@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil Utilisateur - BIBOCOM Digital Learning Platform</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fbibocomdi3697back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.9"></script>
+  <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.1"></script>
+  </head>
+<body class="bg-background min-h-screen font-body">
+    <!-- Header Navigation -->
+    <header class="bg-surface border-b border-border shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="student_dashboard.html" class="flex items-center space-x-2">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </a>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="student_dashboard.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Tableau de bord
+                    </a>
+                    <a href="course_catalog.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Catalogue
+                    </a>
+                    <a href="user_profile.html" class="text-primary font-medium">
+                        Profil
+                    </a>
+                    <div class="relative">
+                        <button onclick="toggleUserMenu()" class="flex items-center space-x-2 text-text-secondary hover:text-primary transition-colors duration-200">
+                            <img src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=32&h=32&fit=crop" alt="Profile" class="w-8 h-8 rounded-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-surface rounded-md shadow-lg border border-border z-50">
+                            <div class="py-1">
+                                <a href="user_profile.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50">Mon Profil</a>
+                                <a href="login.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50">Déconnexion</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button type="button" class="text-text-secondary hover:text-primary" onclick="toggleMobileMenu()">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="student_dashboard.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">
+                        Tableau de bord
+                    </a>
+                    <a href="course_catalog.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">
+                        Catalogue
+                    </a>
+                    <a href="user_profile.html" class="text-primary font-medium px-2 py-1">
+                        Profil
+                    </a>
+                    <a href="login.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">
+                        Déconnexion
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 class="text-3xl font-inter font-semibold text-text-primary mb-2">Mon Profil</h1>
+                    <p class="text-text-secondary">Gérez vos informations personnelles et préférences d'apprentissage</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <button onclick="exportProfile()" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors duration-200 flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>Exporter le profil</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Profile Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="bg-surface rounded-lg border border-border p-6 mb-6">
+                    <!-- Profile Photo -->
+                    <div class="text-center mb-6">
+                        <div class="relative inline-block">
+                            <img id="profilePhoto" src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=120&h=120&fit=crop" alt="Photo de profil" class="w-24 h-24 rounded-full object-cover border-4 border-primary-100" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                            <button onclick="triggerPhotoUpload()" class="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full hover:bg-primary-700 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                            </button>
+                            <input type="file" id="photoUpload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)" />
+                        </div>
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mt-4">Marie Dubois</h3>
+                        <p class="text-text-secondary text-sm">Étudiante en Marketing Digital</p>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-text-secondary">Cours complétés</span>
+                            <span class="text-sm font-medium text-text-primary">12</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-text-secondary">Certificats obtenus</span>
+                            <span class="text-sm font-medium text-text-primary">8</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-text-secondary">Heures d'apprentissage</span>
+                            <span class="text-sm font-medium text-text-primary">156h</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-text-secondary">Membre depuis</span>
+                            <span class="text-sm font-medium text-text-primary">Jan 2024</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Achievement Badges -->
+                <div class="bg-surface rounded-lg border border-border p-6">
+                    <h4 class="text-lg font-inter font-semibold text-text-primary mb-4">Badges récents</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-accent-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-text-primary">Expert SEO</p>
+                                <p class="text-xs text-text-secondary">Obtenu le 15/09/2025</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-text-primary">Cours Complétés</p>
+                                <p class="text-xs text-text-secondary">10+ cours terminés</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Profile Content -->
+            <div class="lg:col-span-3">
+                <!-- Tab Navigation -->
+                <div class="bg-surface rounded-lg border border-border">
+                    <div class="border-b border-border">
+                        <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                            <button onclick="switchTab('personal')" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" data-tab="personal">
+                                Informations Personnelles
+                            </button>
+                            <button onclick="switchTab('achievements')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" data-tab="achievements">
+                                Mes Réalisations
+                            </button>
+                            <button onclick="switchTab('preferences')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" data-tab="preferences">
+                                Préférences
+                            </button>
+                            <button onclick="switchTab('security')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" data-tab="security">
+                                Sécurité
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="p-6">
+                        <!-- Personal Information Tab -->
+                        <div id="personalTab" class="tab-content">
+                            <form onsubmit="savePersonalInfo(event)" class="space-y-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label for="firstName" class="block text-sm font-medium text-text-primary mb-2">
+                                            Prénom *
+                                        </label>
+                                        <input type="text" id="firstName" name="firstName" value="Marie" required class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                    </div>
+                                    <div>
+                                        <label for="lastName" class="block text-sm font-medium text-text-primary mb-2">
+                                            Nom *
+                                        </label>
+                                        <input type="text" id="lastName" name="lastName" value="Dubois" required class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label for="email" class="block text-sm font-medium text-text-primary mb-2">
+                                        Adresse e-mail *
+                                    </label>
+                                    <input type="email" id="email" name="email" value="marie.dubois@email.fr" required class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                </div>
+
+                                <div>
+                                    <label for="phone" class="block text-sm font-medium text-text-primary mb-2">
+                                        Téléphone
+                                    </label>
+                                    <input type="tel" id="phone" name="phone" value="+33 6 12 34 56 78" class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                </div>
+
+                                <div>
+                                    <label for="careerInterests" class="block text-sm font-medium text-text-primary mb-2">
+                                        Intérêts de carrière
+                                    </label>
+                                    <select id="careerInterests" name="careerInterests" class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200">
+                                        <option value="marketing-digital">Marketing Digital</option>
+                                        <option value="developpement-web">Développement Web</option>
+                                        <option value="data-science">Data Science</option>
+                                        <option value="ux-ui-design">UX/UI Design</option>
+                                        <option value="e-commerce">E-commerce</option>
+                                        <option value="cybersecurite">Cybersécurité</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label for="bio" class="block text-sm font-medium text-text-primary mb-2">
+                                        Biographie
+                                    </label>
+                                    <textarea id="bio" name="bio" rows="4" class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" placeholder="Parlez-nous de vous et de vos objectifs professionnels...">Passionnée par le marketing digital, je me forme actuellement pour devenir experte en SEO et stratégies de contenu. Mon objectif est de rejoindre une agence digitale innovante.</textarea>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary-700 transition-colors duration-200">
+                                        Sauvegarder les modifications
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Achievements Tab -->
+                        <div id="achievementsTab" class="tab-content hidden">
+                            <div class="space-y-8">
+                                <!-- Learning Statistics -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Statistiques d'apprentissage</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div class="bg-primary-50 rounded-lg p-6 text-center">
+                                            <div class="text-3xl font-inter font-bold text-primary mb-2">156</div>
+                                            <div class="text-sm text-text-secondary">Heures d'apprentissage</div>
+                                        </div>
+                                        <div class="bg-accent-50 rounded-lg p-6 text-center">
+                                            <div class="text-3xl font-inter font-bold text-accent mb-2">12</div>
+                                            <div class="text-sm text-text-secondary">Cours complétés</div>
+                                        </div>
+                                        <div class="bg-warning-50 rounded-lg p-6 text-center">
+                                            <div class="text-3xl font-inter font-bold text-warning mb-2">8</div>
+                                            <div class="text-sm text-text-secondary">Certificats obtenus</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Certificates -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Certificats obtenus</h3>
+                                    <div class="space-y-4">
+                                        <div class="border border-border rounded-lg p-4 flex items-center justify-between">
+                                            <div class="flex items-center space-x-4">
+                                                <div class="w-12 h-12 bg-accent-100 rounded-lg flex items-center justify-center">
+                                                    <svg class="w-6 h-6 text-accent" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium text-text-primary">Certification SEO Avancé</h4>
+                                                    <p class="text-sm text-text-secondary">Obtenu le 15 septembre 2025</p>
+                                                </div>
+                                            </div>
+                                            <button onclick="downloadCertificate('seo-advanced')" class="text-primary hover:text-primary-700 transition-colors duration-200">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="border border-border rounded-lg p-4 flex items-center justify-between">
+                                            <div class="flex items-center space-x-4">
+                                                <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                                                    <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium text-text-primary">Google Analytics Certifié</h4>
+                                                    <p class="text-sm text-text-secondary">Obtenu le 28 août 2025</p>
+                                                </div>
+                                            </div>
+                                            <button onclick="downloadCertificate('google-analytics')" class="text-primary hover:text-primary-700 transition-colors duration-200">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Learning Progress -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Progression des compétences</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-sm font-medium text-text-primary">SEO & Référencement</span>
+                                                <span class="text-sm text-text-secondary">85%</span>
+                                            </div>
+                                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                                <div class="bg-accent h-2 rounded-full" style="width: 85%"></div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-sm font-medium text-text-primary">Marketing de Contenu</span>
+                                                <span class="text-sm text-text-secondary">72%</span>
+                                            </div>
+                                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                                <div class="bg-primary h-2 rounded-full" style="width: 72%"></div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-sm font-medium text-text-primary">Analytics & Data</span>
+                                                <span class="text-sm text-text-secondary">68%</span>
+                                            </div>
+                                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                                <div class="bg-warning h-2 rounded-full" style="width: 68%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preferences Tab -->
+                        <div id="preferencesTab" class="tab-content hidden">
+                            <form onsubmit="savePreferences(event)" class="space-y-6">
+                                <!-- Notification Settings -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Notifications</h3>
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-text-primary">Nouveaux cours</label>
+                                                <p class="text-xs text-text-secondary">Recevoir des notifications pour les nouveaux cours</p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" checked class="sr-only peer" />
+                                                <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-text-primary">Rappels de cours</label>
+                                                <p class="text-xs text-text-secondary">Rappels pour continuer vos cours en cours</p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" checked class="sr-only peer" />
+                                                <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <label class="text-sm font-medium text-text-primary">Actualités de la plateforme</label>
+                                                <p class="text-xs text-text-secondary">Nouvelles fonctionnalités et mises à jour</p>
+                                            </div>
+                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" />
+                                                <div class="w-11 h-6 bg-secondary-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Language Preferences -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Langue</h3>
+                                    <select class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200">
+                                        <option value="fr" selected>Français</option>
+                                        <option value="en">English</option>
+                                        <option value="es">Español</option>
+                                    </select>
+                                </div>
+
+                                <!-- Course Recommendations -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Recommandations de cours</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <label class="flex items-center space-x-3">
+                                            <input type="checkbox" checked class="h-4 w-4 text-primary focus:ring-primary-100 border-border rounded" />
+                                            <span class="text-sm text-text-primary">Marketing Digital</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3">
+                                            <input type="checkbox" class="h-4 w-4 text-primary focus:ring-primary-100 border-border rounded" />
+                                            <span class="text-sm text-text-primary">Développement Web</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3">
+                                            <input type="checkbox" checked class="h-4 w-4 text-primary focus:ring-primary-100 border-border rounded" />
+                                            <span class="text-sm text-text-primary">Data Science</span>
+                                        </label>
+                                        <label class="flex items-center space-x-3">
+                                            <input type="checkbox" class="h-4 w-4 text-primary focus:ring-primary-100 border-border rounded" />
+                                            <span class="text-sm text-text-primary">UX/UI Design</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end">
+                                    <button type="submit" class="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary-700 transition-colors duration-200">
+                                        Sauvegarder les préférences
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Security Tab -->
+                        <div id="securityTab" class="tab-content hidden">
+                            <div class="space-y-8">
+                                <!-- Change Password -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Changer le mot de passe</h3>
+                                    <form onsubmit="changePassword(event)" class="space-y-4">
+                                        <div>
+                                            <label for="currentPassword" class="block text-sm font-medium text-text-primary mb-2">
+                                                Mot de passe actuel
+                                            </label>
+                                            <input type="password" id="currentPassword" name="currentPassword" required class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                        </div>
+                                        <div>
+                                            <label for="newPassword" class="block text-sm font-medium text-text-primary mb-2">
+                                                Nouveau mot de passe
+                                            </label>
+                                            <input type="password" id="newPassword" name="newPassword" required class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                        </div>
+                                        <div>
+                                            <label for="confirmPassword" class="block text-sm font-medium text-text-primary mb-2">
+                                                Confirmer le nouveau mot de passe
+                                            </label>
+                                            <input type="password" id="confirmPassword" name="confirmPassword" required class="w-full px-4 py-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                        </div>
+                                        <button type="submit" class="bg-primary text-white px-6 py-3 rounded-md hover:bg-primary-700 transition-colors duration-200">
+                                            Changer le mot de passe
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Two-Factor Authentication -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Authentification à deux facteurs</h3>
+                                    <div class="bg-secondary-50 rounded-lg p-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm font-medium text-text-primary">Authentification à deux facteurs</p>
+                                                <p class="text-xs text-text-secondary">Ajoutez une couche de sécurité supplémentaire à votre compte</p>
+                                            </div>
+                                            <button onclick="setup2FA()" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors duration-200 text-sm">
+                                                Configurer
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Account Deletion -->
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Zone de danger</h3>
+                                    <div class="bg-error-50 border border-error-100 rounded-lg p-4">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <p class="text-sm font-medium text-error">Supprimer le compte</p>
+                                                <p class="text-xs text-error">Cette action est irréversible</p>
+                                            </div>
+                                            <button onclick="confirmAccountDeletion()" class="bg-error text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-200 text-sm">
+                                                Supprimer
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-surface border-t border-border mt-16">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </div>
+                    <p class="text-text-secondary text-sm mb-4">
+                        Votre plateforme d'apprentissage digital pour développer les compétences de demain.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                            </svg>
+                        </a>
+                        <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/>
+                            </svg>
+                        </a>
+                        <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-inter font-semibold text-text-primary uppercase tracking-wider mb-4">
+                        Apprentissage
+                    </h3>
+                    <ul class="space-y-2">
+                        <li><a href="course_catalog.html" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Catalogue des cours</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Parcours de formation</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Certifications</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Instructeurs</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-inter font-semibold text-text-primary uppercase tracking-wider mb-4">
+                        Support
+                    </h3>
+                    <ul class="space-y-2">
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Centre d'aide</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Nous contacter</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Politique de confidentialité</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200 text-sm">Conditions d'utilisation</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-border">
+                <p class="text-center text-text-secondary text-sm">
+                    © 2025 BIBOCOM Digital Learning Platform. Tous droits réservés.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Success Message Modal -->
+    <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-surface rounded-lg max-w-md w-full p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-success-100 rounded-full flex items-center justify-center mr-4">
+                    <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-inter font-semibold text-text-primary">Succès</h3>
+                    <p id="successMessage" class="text-text-secondary">Modifications sauvegardées avec succès</p>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="hideSuccessModal()" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors duration-200">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.add('hidden'));
+            
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active', 'border-primary', 'text-primary');
+                button.classList.add('border-transparent', 'text-text-secondary');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+            
+            // Add active class to selected tab button
+            const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
+            activeButton.classList.add('active', 'border-primary', 'text-primary');
+            activeButton.classList.remove('border-transparent', 'text-text-secondary');
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // User menu toggle
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Photo upload functionality
+        function triggerPhotoUpload() {
+            document.getElementById('photoUpload').click();
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('profilePhoto').src = e.target.result;
+                    showSuccessModal('Photo de profil mise à jour avec succès');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Form submission handlers
+        function savePersonalInfo(event) {
+            event.preventDefault();
+            // Simulate API call
+            setTimeout(() => {
+                showSuccessModal('Informations personnelles sauvegardées avec succès');
+            }, 500);
+        }
+
+        function savePreferences(event) {
+            event.preventDefault();
+            // Simulate API call
+            setTimeout(() => {
+                showSuccessModal('Préférences sauvegardées avec succès');
+            }, 500);
+        }
+
+        function changePassword(event) {
+            event.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                alert('Les mots de passe ne correspondent pas');
+                return;
+            }
+            
+            // Simulate API call
+            setTimeout(() => {
+                showSuccessModal('Mot de passe modifié avec succès');
+                event.target.reset();
+            }, 500);
+        }
+
+        // Certificate download
+        function downloadCertificate(certificateId) {
+            // Simulate certificate download
+            showSuccessModal('Téléchargement du certificat en cours...');
+        }
+
+        // Profile export
+        function exportProfile() {
+            // Simulate profile export
+            showSuccessModal('Export du profil en cours...');
+        }
+
+        // 2FA setup
+        function setup2FA() {
+            alert('Configuration de l\'authentification à deux facteurs sera disponible prochainement.');
+        }
+
+        // Account deletion confirmation
+        function confirmAccountDeletion() {
+            if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+                alert('Suppression du compte annulée pour cette démonstration.');
+            }
+        }
+
+        // Success modal
+        function showSuccessModal(message) {
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        function hideSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const userMenuButton = event.target.closest('button[onclick="toggleUserMenu()"]');
+            
+            if (!userMenuButton && !userMenu.contains(event.target)) {
+                userMenu.classList.add('hidden');
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default active tab
+            switchTab('personal');
+        });
+    </script>
+</body>
+</html>

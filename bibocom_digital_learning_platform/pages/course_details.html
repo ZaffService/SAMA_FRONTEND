@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Détails du cours - BIBOCOM Digital Learning Platform</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fbibocomdi3697back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.9"></script>
+  <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.1"></script>
+  </head>
+<body class="bg-background min-h-screen font-body">
+    <!-- Header Navigation -->
+    <header class="bg-surface border-b border-border shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="course_catalog.html" class="flex items-center space-x-2">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </a>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="course_catalog.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Catalogue des cours
+                    </a>
+                    <a href="student_dashboard.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Tableau de bord
+                    </a>
+                    <a href="user_profile.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Profil
+                    </a>
+                    <a href="login.html" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors duration-200">
+                        Connexion
+                    </a>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button type="button" class="text-text-secondary hover:text-primary" onclick="toggleMobileMenu()">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="course_catalog.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">
+                        Catalogue des cours
+                    </a>
+                    <a href="student_dashboard.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">
+                        Tableau de bord
+                    </a>
+                    <a href="user_profile.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">
+                        Profil
+                    </a>
+                    <a href="login.html" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors duration-200 text-center">
+                        Connexion
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Breadcrumb Navigation -->
+    <nav class="bg-surface border-b border-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center space-x-2 text-sm">
+                <a href="course_catalog.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                    Catalogue des cours
+                </a>
+                <svg class="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                    Marketing Digital
+                </a>
+                <svg class="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-text-primary font-medium">
+                    Stratégies de Marketing Digital Avancées
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Course Content Area -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Course Header -->
+                <section class="bg-surface rounded-lg border border-border p-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="bg-primary-50 text-primary-600 px-3 py-1 rounded-full text-sm font-medium">
+                                    Marketing Digital
+                                </span>
+                                <span class="bg-accent-50 text-accent-600 px-3 py-1 rounded-full text-sm font-medium">
+                                    Niveau Avancé
+                                </span>
+                            </div>
+                            <h1 class="text-3xl font-inter font-semibold text-text-primary mb-4">
+                                Stratégies de Marketing Digital Avancées
+                            </h1>
+                            <p class="text-text-secondary mb-6 leading-relaxed">
+                                Maîtrisez les techniques avancées du marketing digital pour développer votre carrière et booster vos performances. Ce cours complet couvre les stratégies SEO/SEA, les réseaux sociaux, l'email marketing et l'analyse de données.
+                            </p>
+                            
+                            <!-- Course Stats -->
+                            <div class="flex flex-wrap items-center gap-6 text-sm text-text-secondary">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                    <span class="font-medium text-text-primary">4,8</span>
+                                    <span>(247 avis)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                                    </svg>
+                                    <span>1 247 étudiants inscrits</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span>12 heures de contenu</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span>Certificat inclus</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Instructor Profile -->
+                        <div class="flex items-center gap-4 bg-secondary-50 rounded-lg p-4 min-w-0 md:min-w-[280px]">
+                            <img src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=2" alt="Sophie Martin" class="w-16 h-16 rounded-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-inter font-semibold text-text-primary">Sophie Martin</h3>
+                                <p class="text-sm text-text-secondary">Expert Marketing Digital</p>
+                                <p class="text-xs text-text-secondary mt-1">15+ ans d'expérience</p>
+                                <div class="flex items-center gap-1 mt-2">
+                                    <svg class="w-4 h-4 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                    <span class="text-xs text-text-secondary">4,9 (89 cours)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Course Preview Video -->
+                <section class="bg-surface rounded-lg border border-border overflow-hidden shadow-sm">
+                    <div class="aspect-video bg-black relative">
+                        <video id="coursePreview" class="w-full h-full object-cover" poster="https://images.pixabay.com/photos/2017/01/29/21/16/adult-2014044_1280.jpg" controls preload="metadata">
+                            <source src="#" type="video/mp4" />
+                            Votre navigateur ne supporte pas la lecture vidéo.
+                        </video>
+                        <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center" id="videoOverlay">
+                            <button onclick="playPreview()" class="bg-primary hover:bg-primary-700 text-white rounded-full p-4 transition-all duration-200 transform hover:scale-110">
+                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-secondary-50">
+                        <p class="text-sm text-text-secondary">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                            Aperçu gratuit du cours - Introduction aux stratégies marketing (5:32)
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Course Information Tabs -->
+                <section class="bg-surface rounded-lg border border-border shadow-sm">
+                    <!-- Tab Navigation -->
+                    <div class="border-b border-border">
+                        <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                            <button onclick="switchTab('overview')" class="tab-button active py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" id="overview-tab">
+                                Aperçu
+                            </button>
+                            <button onclick="switchTab('curriculum')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" id="curriculum-tab">
+                                Programme
+                            </button>
+                            <button onclick="switchTab('reviews')" class="tab-button py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200" id="reviews-tab">
+                                Avis
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="p-6">
+                        <!-- Overview Tab -->
+                        <div id="overview-content" class="tab-content">
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-3">
+                                        Description du cours
+                                    </h3>
+                                    <div class="prose prose-sm max-w-none text-text-secondary">
+                                        <p class="mb-4">
+                                            Ce cours avancé en marketing digital vous permettra de maîtriser les stratégies les plus efficaces pour développer votre présence en ligne et générer des résultats mesurables. Vous apprendrez à créer des campagnes intégrées qui combinent SEO, SEA, réseaux sociaux et email marketing.
+                                        </p>
+                                        <p class="mb-4">
+                                            Grâce à des études de cas réels et des exercices pratiques, vous développerez une expertise approfondie dans l'analyse de données, l'optimisation des conversions et la gestion de budgets publicitaires.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-3">
+                                        Objectifs d'apprentissage
+                                    </h3>
+                                    <ul class="space-y-2">
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-accent-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Développer une stratégie marketing digital complète et cohérente</span>
+                                        </li>
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-accent-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Maîtriser les outils d'analyse et de mesure de performance</span>
+                                        </li>
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-accent-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Optimiser les campagnes publicitaires pour maximiser le ROI</span>
+                                        </li>
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-accent-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Créer du contenu engageant pour les réseaux sociaux</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-3">
+                                        Prérequis
+                                    </h3>
+                                    <ul class="space-y-2">
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-secondary-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Connaissances de base en marketing</span>
+                                        </li>
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-secondary-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Utilisation courante d'Internet et des réseaux sociaux</span>
+                                        </li>
+                                        <li class="flex items-start gap-3">
+                                            <svg class="w-5 h-5 text-secondary-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            <span class="text-text-secondary">Motivation pour apprendre et pratiquer</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Curriculum Tab -->
+                        <div id="curriculum-content" class="tab-content hidden">
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">
+                                    Programme du cours (8 modules)
+                                </h3>
+                                
+                                <!-- Module 1 -->
+                                <div class="border border-border rounded-lg">
+                                    <button onclick="toggleModule('module1')" class="w-full flex items-center justify-between p-4 text-left hover:bg-secondary-50 transition-colors duration-200">
+                                        <div class="flex items-center gap-3">
+                                            <span class="bg-primary-100 text-primary-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium">1</span>
+                                            <div>
+                                                <h4 class="font-medium text-text-primary">Introduction au Marketing Digital</h4>
+                                                <p class="text-sm text-text-secondary">5 leçons • 45 min</p>
+                                            </div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-secondary-400 transform transition-transform duration-200" id="module1-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </button>
+                                    <div id="module1-content" class="hidden border-t border-border bg-secondary-50">
+                                        <div class="p-4 space-y-2">
+                                            <div class="flex items-center gap-3 py-2">
+                                                <svg class="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                                </svg>
+                                                <span class="text-sm text-text-secondary">Vue d'ensemble du marketing digital</span>
+                                                <span class="text-xs text-secondary-400">8:32</span>
+                                            </div>
+                                            <div class="flex items-center gap-3 py-2">
+                                                <svg class="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                </svg>
+                                                <span class="text-sm text-text-secondary">Les canaux digitaux essentiels</span>
+                                                <span class="text-xs text-secondary-400">Lecture</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Module 2 -->
+                                <div class="border border-border rounded-lg">
+                                    <button onclick="toggleModule('module2')" class="w-full flex items-center justify-between p-4 text-left hover:bg-secondary-50 transition-colors duration-200">
+                                        <div class="flex items-center gap-3">
+                                            <span class="bg-primary-100 text-primary-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium">2</span>
+                                            <div>
+                                                <h4 class="font-medium text-text-primary">SEO et Référencement Naturel</h4>
+                                                <p class="text-sm text-text-secondary">7 leçons • 1h 20min</p>
+                                            </div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-secondary-400 transform transition-transform duration-200" id="module2-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <!-- Module 3 -->
+                                <div class="border border-border rounded-lg">
+                                    <button onclick="toggleModule('module3')" class="w-full flex items-center justify-between p-4 text-left hover:bg-secondary-50 transition-colors duration-200">
+                                        <div class="flex items-center gap-3">
+                                            <span class="bg-primary-100 text-primary-600 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium">3</span>
+                                            <div>
+                                                <h4 class="font-medium text-text-primary">Publicité Payante (SEA)</h4>
+                                                <p class="text-sm text-text-secondary">6 leçons • 1h 15min</p>
+                                            </div>
+                                        </div>
+                                        <svg class="w-5 h-5 text-secondary-400 transform transition-transform duration-200" id="module3-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <!-- Additional modules would follow the same pattern -->
+                            </div>
+                        </div>
+
+                        <!-- Reviews Tab -->
+                        <div id="reviews-content" class="tab-content hidden">
+                            <div class="space-y-6">
+                                <!-- Rating Summary -->
+                                <div class="flex flex-col md:flex-row gap-6">
+                                    <div class="text-center md:text-left">
+                                        <div class="text-4xl font-inter font-bold text-text-primary mb-2">4,8</div>
+                                        <div class="flex items-center justify-center md:justify-start gap-1 mb-2">
+                                            <svg class="w-5 h-5 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <svg class="w-5 h-5 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <svg class="w-5 h-5 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <svg class="w-5 h-5 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <svg class="w-5 h-5 text-secondary-300" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="text-sm text-text-secondary">247 avis</p>
+                                    </div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-sm text-text-secondary w-8">5★</span>
+                                            <div class="flex-1 bg-secondary-200 rounded-full h-2">
+                                                <div class="bg-warning-500 h-2 rounded-full" style="width: 75%"></div>
+                                            </div>
+                                            <span class="text-sm text-text-secondary w-8">185</span>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-sm text-text-secondary w-8">4★</span>
+                                            <div class="flex-1 bg-secondary-200 rounded-full h-2">
+                                                <div class="bg-warning-500 h-2 rounded-full" style="width: 20%"></div>
+                                            </div>
+                                            <span class="text-sm text-text-secondary w-8">49</span>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-sm text-text-secondary w-8">3★</span>
+                                            <div class="flex-1 bg-secondary-200 rounded-full h-2">
+                                                <div class="bg-warning-500 h-2 rounded-full" style="width: 3%"></div>
+                                            </div>
+                                            <span class="text-sm text-text-secondary w-8">8</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Individual Reviews -->
+                                <div class="space-y-6">
+                                    <div class="border-b border-border pb-6">
+                                        <div class="flex items-start gap-4">
+                                            <img src="https://images.pixabay.com/photos/2016/11/21/12/42/beard-1845166_1280.jpg" alt="Marc Dubois" class="w-12 h-12 rounded-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <h4 class="font-medium text-text-primary">Marc Dubois</h4>
+                                                    <div class="flex items-center gap-1">
+                                                        <svg class="w-4 h-4 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                        </svg>
+                                                        <span class="text-sm text-text-secondary">5,0</span>
+                                                    </div>
+                                                    <span class="text-sm text-text-secondary">• Il y a 2 semaines</span>
+                                                </div>
+                                                <p class="text-text-secondary leading-relaxed">
+                                                    Excellent cours ! Les explications sont claires et les exemples pratiques très utiles. J'ai pu appliquer immédiatement les stratégies apprises dans mon entreprise. Sophie est une formatrice exceptionnelle.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-b border-border pb-6">
+                                        <div class="flex items-start gap-4">
+                                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?q=80&w=80&h=80&auto=format&fit=crop" alt="Julie Moreau" class="w-12 h-12 rounded-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <h4 class="font-medium text-text-primary">Julie Moreau</h4>
+                                                    <div class="flex items-center gap-1">
+                                                        <svg class="w-4 h-4 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                        </svg>
+                                                        <span class="text-sm text-text-secondary">4,0</span>
+                                                    </div>
+                                                    <span class="text-sm text-text-secondary">• Il y a 1 mois</span>
+                                                </div>
+                                                <p class="text-text-secondary leading-relaxed">
+                                                    Très bon contenu, bien structuré. Les modules sur le SEO sont particulièrement détaillés. J'aurais aimé plus d'exemples concrets pour les petites entreprises, mais dans l'ensemble très satisfaite.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Enrollment Sidebar -->
+            <div class="lg:col-span-1">
+                <div class="sticky top-8 space-y-6">
+                    <!-- Enrollment Card -->
+                    <div class="bg-surface rounded-lg border border-border p-6 shadow-sm">
+                        <div class="text-center mb-6">
+                            <div class="text-3xl font-inter font-bold text-text-primary mb-2">
+                                149,00 €
+                            </div>
+                            <p class="text-sm text-text-secondary line-through">199,00 €</p>
+                            <div class="bg-error-50 text-error-600 px-3 py-1 rounded-full text-sm font-medium inline-block mt-2">
+                                Offre limitée -25%
+                            </div>
+                        </div>
+
+                        <button onclick="enrollCourse()" class="w-full bg-primary hover:bg-primary-700 text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 mb-4">
+                            S'inscrire maintenant
+                        </button>
+
+                        <div class="text-center mb-4">
+                            <p class="text-sm text-text-secondary">ou</p>
+                        </div>
+
+                        <button onclick="addToWishlist()" class="w-full border border-border hover:bg-secondary-50 text-text-primary font-medium py-3 px-4 rounded-md transition-colors duration-200 mb-6">
+                            Ajouter à la liste de souhaits
+                        </button>
+
+                        <!-- Course Features -->
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-text-secondary">Accès à vie</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                <span class="text-text-secondary">Compatible mobile</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-text-secondary">Certificat de fin</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                                </svg>
+                                <span class="text-text-secondary">Ressources téléchargeables</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/>
+                                </svg>
+                                <span class="text-text-secondary">Support instructeur</span>
+                            </div>
+                        </div>
+
+                        <!-- Payment Options -->
+                        <div class="mt-6 pt-6 border-t border-border">
+                            <h4 class="font-medium text-text-primary mb-3">Options de paiement</h4>
+                            <div class="flex items-center gap-2">
+                                <img src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=32&h=20&auto=format&fit=crop" alt="Visa" class="w-8 h-5 object-cover rounded" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                <img src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=32&h=20&auto=format&fit=crop" alt="Mastercard" class="w-8 h-5 object-cover rounded" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                <img src="https://images.pixabay.com/photos/2018/05/08/21/29/paypal-3384015_1280.png" alt="PayPal" class="w-8 h-5 object-cover rounded" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Downloads -->
+                    <div class="bg-surface rounded-lg border border-border p-6 shadow-sm">
+                        <h3 class="font-inter font-semibold text-text-primary mb-4">Ressources du cours</h3>
+                        <div class="space-y-3">
+                            <a href="javascript:void(0)" class="flex items-center gap-3 p-3 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-error-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Programme détaillé</p>
+                                    <p class="text-xs text-text-secondary">PDF • 2,3 MB</p>
+                                </div>
+                                <svg class="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </a>
+                            <a href="javascript:void(0)" class="flex items-center gap-3 p-3 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <svg class="w-5 h-5 text-accent-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Modèles et templates</p>
+                                    <p class="text-xs text-text-secondary">ZIP • 15,7 MB</p>
+                                </div>
+                                <svg class="w-4 h-4 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Related Courses -->
+                    <div class="bg-surface rounded-lg border border-border p-6 shadow-sm">
+                        <h3 class="font-inter font-semibold text-text-primary mb-4">Cours recommandés</h3>
+                        <div class="space-y-4">
+                            <a href="course_details.html" class="block group">
+                                <div class="flex gap-3">
+                                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=80&h=60&auto=format&fit=crop" alt="Analytics Web" class="w-20 h-15 object-cover rounded" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-medium text-text-primary group-hover:text-primary transition-colors duration-200">
+                                            Analytics Web et Data
+                                        </h4>
+                                        <p class="text-xs text-text-secondary mt-1">Sophie Martin</p>
+                                        <div class="flex items-center gap-1 mt-2">
+                                            <svg class="w-3 h-3 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <span class="text-xs text-text-secondary">4,7</span>
+                                            <span class="text-xs text-primary font-medium ml-2">89,00 €</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                            
+                            <a href="course_details.html" class="block group">
+                                <div class="flex gap-3">
+                                    <img src="https://images.pixabay.com/photos/2017/06/10/07/18/list-2389219_1280.jpg" alt="E-commerce" class="w-20 h-15 object-cover rounded" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-medium text-text-primary group-hover:text-primary transition-colors duration-200">
+                                            E-commerce et Vente en Ligne
+                                        </h4>
+                                        <p class="text-xs text-text-secondary mt-1">Pierre Durand</p>
+                                        <div class="flex items-center gap-1 mt-2">
+                                            <svg class="w-3 h-3 text-warning-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            </svg>
+                                            <span class="text-xs text-text-secondary">4,6</span>
+                                            <span class="text-xs text-primary font-medium ml-2">129,00 €</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-surface border-t border-border mt-16">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </div>
+                    <p class="text-text-secondary mb-4 max-w-md">
+                        Plateforme d'apprentissage digital leader pour développer vos compétences professionnelles et accélérer votre carrière dans le numérique.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                            </svg>
+                        </a>
+                        <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M22.46 6c-.77.35-1.6.58-2.46.69.88-.53 1.56-1.37 1.88-2.38-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29 0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15 0 1.49.75 2.81 1.91 3.56-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.22 4.22 0 0 1-1.93.07 4.28 4.28 0 0 0 4 2.98 8.521 8.521 0 0 1-5.33 1.84c-.34 0-.68-.02-1.02-.06C3.44 20.29 5.7 21 8.12 21 16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56.84-.6 1.56-1.36 2.14-2.23z"/>
+                            </svg>
+                        </a>
+                        <a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-sm font-inter font-semibold text-text-primary uppercase tracking-wider mb-4">
+                        Liens rapides
+                    </h3>
+                    <ul class="space-y-2">
+                        <li><a href="course_catalog.html" class="text-text-secondary hover:text-primary transition-colors duration-200">Catalogue des cours</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">À propos</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Instructeurs</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Blog</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h3 class="text-sm font-inter font-semibold text-text-primary uppercase tracking-wider mb-4">
+                        Support
+                    </h3>
+                    <ul class="space-y-2">
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Centre d'aide</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Contact</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Politique de confidentialité</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Conditions d'utilisation</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
+                <p class="text-text-secondary text-sm">
+                    © 2025 BIBOCOM Digital Learning Platform. Tous droits réservés.
+                </p>
+                <div class="flex items-center space-x-6 mt-4 md:mt-0">
+                    <span class="text-sm text-text-secondary">Français</span>
+                    <span class="text-sm text-text-secondary">EUR (€)</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.add('hidden'));
+
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active', 'border-primary', 'text-primary');
+                button.classList.add('border-transparent', 'text-text-secondary', 'hover:text-text-primary', 'hover:border-secondary-300');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName + '-content').classList.remove('hidden');
+
+            // Add active class to selected tab button
+            const activeButton = document.getElementById(tabName + '-tab');
+            activeButton.classList.add('active', 'border-primary', 'text-primary');
+            activeButton.classList.remove('border-transparent', 'text-text-secondary', 'hover:text-text-primary', 'hover:border-secondary-300');
+        }
+
+        // Module toggle functionality
+        function toggleModule(moduleId) {
+            const content = document.getElementById(moduleId + '-content');
+            const icon = document.getElementById(moduleId + '-icon');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Video preview functionality
+        function playPreview() {
+            const video = document.getElementById('coursePreview');
+            const overlay = document.getElementById('videoOverlay');
+            
+            // Hide overlay and play video
+            overlay.style.display = 'none';
+            video.play();
+            
+            // Show overlay again when video ends
+            video.addEventListener('ended', function() {
+                overlay.style.display = 'flex';
+            });
+        }
+
+        // Enrollment functionality
+        function enrollCourse() {
+            // Check if user is logged in
+            const currentUser = localStorage.getItem('currentUser');
+            
+            if (!currentUser) {
+                // Redirect to login if not logged in
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Simulate enrollment process
+            alert('Redirection vers la page de paiement...');
+            // In a real app, this would redirect to payment processing
+        }
+
+        // Wishlist functionality
+        function addToWishlist() {
+            const currentUser = localStorage.getItem('currentUser');
+            
+            if (!currentUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Simulate adding to wishlist
+            alert('Cours ajouté à votre liste de souhaits !');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default active tab
+            switchTab('overview');
+            
+            // Initialize tab button styles
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                if (!button.classList.contains('active')) {
+                    button.classList.add('border-transparent', 'text-text-secondary', 'hover:text-text-primary', 'hover:border-secondary-300');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

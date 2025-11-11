@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lecteur de cours - Marketing Digital Avancé - BIBOCOM</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fbibocomdi3697back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.9"></script>
+  <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.1"></script>
+  </head>
+<body class="bg-background min-h-screen font-body">
+    <!-- Header Navigation -->
+    <header class="bg-surface border-b border-border shadow-sm sticky top-0 z-40">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo & Course Info -->
+                <div class="flex items-center space-x-4">
+                    <a href="course_catalog.html" class="flex items-center space-x-2">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </a>
+                    <div class="hidden md:block h-6 w-px bg-border"></div>
+                    <div class="hidden md:block">
+                        <h1 class="text-lg font-inter font-medium text-text-primary">Marketing Digital Avancé</h1>
+                        <p class="text-sm text-text-secondary">Module 2: Stratégies de contenu</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation Controls -->
+                <div class="flex items-center space-x-4">
+                    <!-- Progress Indicator -->
+                    <div class="hidden lg:flex items-center space-x-2">
+                        <span class="text-sm text-text-secondary">Progression:</span>
+                        <div class="w-24 h-2 bg-secondary-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-accent transition-all duration-300" style="width: 65%"></div>
+                        </div>
+                        <span class="text-sm font-medium text-text-primary">65%</span>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <div class="relative">
+                        <button onclick="toggleUserMenu()" class="flex items-center space-x-2 p-2 rounded-md hover:bg-secondary-100 transition-colors duration-200">
+                            <img src="https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&fit=crop" alt="Profile" class="w-8 h-8 rounded-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                            <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        
+                        <!-- User Dropdown -->
+                        <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-surface rounded-md shadow-lg border border-border z-50">
+                            <div class="py-1">
+                                <a href="student_dashboard.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50 transition-colors duration-200">
+                                    Tableau de bord
+                                </a>
+                                <a href="user_profile.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50 transition-colors duration-200">
+                                    Mon profil
+                                </a>
+                                <div class="border-t border-border"></div>
+                                <a href="login.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50 transition-colors duration-200">
+                                    Se déconnecter
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 p-4 sm:p-6">
+                <!-- Video Player Section -->
+                <div class="lg:col-span-3 space-y-6">
+                    <!-- Video Player -->
+                    <div class="bg-surface rounded-lg shadow-sm overflow-hidden">
+                        <div class="relative aspect-video bg-black">
+                            <video id="courseVideo" class="w-full h-full" poster="https://images.pixabay.com/photo/2017/01/24/12/04/video-2004536_1280.jpg" preload="metadata">
+                                <source src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" type="video/mp4" />
+                                <track kind="captions" src="#" srclang="fr" label="Français" default />
+                                Votre navigateur ne supporte pas la lecture vidéo.
+                            </video>
+                            
+                            <!-- Custom Video Controls -->
+                            <div id="videoControls" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <div class="flex items-center space-x-4">
+                                    <!-- Play/Pause Button -->
+                                    <button id="playPauseBtn" onclick="togglePlayPause()" class="text-white hover:text-primary-300 transition-colors duration-200">
+                                        <svg id="playIcon" class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg id="pauseIcon" class="w-8 h-8 hidden" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                        </svg>
+                                    </button>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="flex-1 flex items-center space-x-2">
+                                        <span id="currentTime" class="text-white text-sm font-mono">00:00</span>
+                                        <div class="flex-1 relative">
+                                            <input type="range" id="progressBar" min="0" max="100" value="0" class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer" onchange="seekVideo()" />
+                                        </div>
+                                        <span id="duration" class="text-white text-sm font-mono">00:00</span>
+                                    </div>
+                                    
+                                    <!-- Volume Control -->
+                                    <div class="flex items-center space-x-2">
+                                        <button onclick="toggleMute()" class="text-white hover:text-primary-300 transition-colors duration-200">
+                                            <svg id="volumeIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M6.343 6.343L4.93 4.93A1 1 0 003.515 6.343L6.343 9.17v5.66L3.515 17.657a1 1 0 001.415 1.414l1.413-1.414L9.17 20.485a1 1 0 001.414-1.414L7.757 16.243h5.66l2.828 2.828a1 1 0 001.414-1.414L15.83 15.83V9.17l2.828-2.828z"/>
+                                            </svg>
+                                        </button>
+                                        <input type="range" id="volumeBar" min="0" max="100" value="100" class="w-16 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer" onchange="changeVolume()" />
+                                    </div>
+                                    
+                                    <!-- Speed Control -->
+                                    <select id="speedSelect" onchange="changeSpeed()" class="bg-black/50 text-white border border-white/20 rounded px-2 py-1 text-sm">
+                                        <option value="0.5">0.5x</option>
+                                        <option value="0.75">0.75x</option>
+                                        <option value="1" selected>1x</option>
+                                        <option value="1.25">1.25x</option>
+                                        <option value="1.5">1.5x</option>
+                                        <option value="2">2x</option>
+                                    </select>
+                                    
+                                    <!-- Fullscreen Button -->
+                                    <button onclick="toggleFullscreen()" class="text-white hover:text-primary-300 transition-colors duration-200">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lesson Information -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <h2 class="text-2xl font-inter font-semibold text-text-primary mb-2">
+                                    Création de contenu engageant pour les réseaux sociaux
+                                </h2>
+                                <p class="text-text-secondary">
+                                    Apprenez les techniques avancées pour créer du contenu qui captive votre audience et génère de l'engagement sur les plateformes sociales.
+                                </p>
+                            </div>
+                            <button onclick="toggleBookmark()" id="bookmarkBtn" class="p-2 rounded-md hover:bg-secondary-100 transition-colors duration-200">
+                                <svg class="w-6 h-6 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Lesson Stats -->
+                        <div class="flex items-center space-x-6 text-sm text-text-secondary mb-6">
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>25 minutes</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                <span>1 247 vues</span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Leçon 3 sur 8</span>
+                            </div>
+                        </div>
+
+                        <!-- Lesson Navigation -->
+                        <div class="flex items-center justify-between">
+                            <button onclick="previousLesson()" class="flex items-center space-x-2 px-4 py-2 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                                <span>Leçon précédente</span>
+                            </button>
+                            <button onclick="nextLesson()" class="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-700 transition-colors duration-200">
+                                <span>Leçon suivante</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Downloadable Resources -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Ressources téléchargeables</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-error-100 rounded-md flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-error-500" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-text-primary">Guide de création de contenu</p>
+                                        <p class="text-sm text-text-secondary">PDF • 2.3 MB</p>
+                                    </div>
+                                </div>
+                                <button onclick="downloadResource('guide')" class="px-3 py-1 text-primary hover:bg-primary-50 rounded-md transition-colors duration-200">
+                                    Télécharger
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-accent-100 rounded-md flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-accent-600" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-text-primary">Templates de posts</p>
+                                        <p class="text-sm text-text-secondary">ZIP • 15.7 MB</p>
+                                    </div>
+                                </div>
+                                <button onclick="downloadResource('templates')" class="px-3 py-1 text-primary hover:bg-primary-50 rounded-md transition-colors duration-200">
+                                    Télécharger
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes Section -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Mes notes</h3>
+                        <div class="space-y-4">
+                            <textarea id="lessonNotes" placeholder="Ajoutez vos notes personnelles sur cette leçon..." class="w-full h-32 p-3 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200 resize-none" onchange="saveNotes()"></textarea>
+                            <div class="flex justify-between items-center">
+                                <p class="text-sm text-text-secondary">
+                                    <span id="notesSaved" class="hidden text-accent-600">✓ Notes sauvegardées automatiquement</span>
+                                </p>
+                                <button onclick="clearNotes()" class="text-sm text-error-500 hover:text-error-600 transition-colors duration-200">
+                                    Effacer les notes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Sidebar -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Course Progress -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Progression du cours</h3>
+                        <div class="space-y-4">
+                            <div class="text-center">
+                                <div class="relative w-20 h-20 mx-auto mb-3">
+                                    <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
+                                        <path class="text-secondary-200" stroke="currentColor" stroke-width="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                        <path class="text-accent" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="65, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    </svg>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <span class="text-xl font-semibold text-text-primary">65%</span>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-text-secondary">5 sur 8 leçons terminées</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-text-secondary">Temps passé</span>
+                                    <span class="font-medium text-text-primary">2h 45min</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-text-secondary">Temps restant</span>
+                                    <span class="font-medium text-text-primary">1h 15min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Module Structure -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Structure du module</h3>
+                        <div class="space-y-3">
+                            <!-- Completed Lesson -->
+                            <div class="flex items-center space-x-3 p-2 rounded-md bg-accent-50 border border-accent-100">
+                                <div class="w-6 h-6 bg-accent text-white rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Introduction aux réseaux sociaux</p>
+                                    <p class="text-xs text-text-secondary">15 min • Terminé</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Completed Lesson -->
+                            <div class="flex items-center space-x-3 p-2 rounded-md bg-accent-50 border border-accent-100">
+                                <div class="w-6 h-6 bg-accent text-white rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Analyse de l'audience cible</p>
+                                    <p class="text-xs text-text-secondary">20 min • Terminé</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Lesson -->
+                            <div class="flex items-center space-x-3 p-2 rounded-md bg-primary-50 border border-primary-200">
+                                <div class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Création de contenu engageant</p>
+                                    <p class="text-xs text-text-secondary">25 min • En cours</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Upcoming Lessons -->
+                            <div class="flex items-center space-x-3 p-2 rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <div class="w-6 h-6 bg-secondary-200 text-secondary-600 rounded-full flex items-center justify-center">
+                                    <span class="text-xs font-medium">4</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Planification de contenu</p>
+                                    <p class="text-xs text-text-secondary">18 min</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3 p-2 rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <div class="w-6 h-6 bg-secondary-200 text-secondary-600 rounded-full flex items-center justify-center">
+                                    <span class="text-xs font-medium">5</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Mesure de performance</p>
+                                    <p class="text-xs text-text-secondary">22 min</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Actions rapides</h3>
+                        <div class="space-y-3">
+                            <button onclick="markAsComplete()" class="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-600 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Marquer comme terminé</span>
+                            </button>
+                            
+                            <button onclick="goToDashboard()" class="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                                </svg>
+                                <span>Retour au tableau de bord</span>
+                            </button>
+                            
+                            <button onclick="viewCourseDetails()" class="w-full flex items-center justify-center space-x-2 px-4 py-2 border border-border rounded-md hover:bg-secondary-50 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Détails du cours</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Discussion -->
+                    <div class="bg-surface rounded-lg shadow-sm p-6">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Discussion</h3>
+                        <div class="space-y-4">
+                            <div class="p-3 bg-secondary-50 rounded-md">
+                                <div class="flex items-start space-x-2">
+                                    <img src="https://images.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png" alt="Student" class="w-6 h-6 rounded-full" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                                    <div class="flex-1">
+                                        <p class="text-xs font-medium text-text-primary">Marie L.</p>
+                                        <p class="text-xs text-text-secondary mt-1">Excellente explication des techniques de storytelling !</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <input type="text" placeholder="Poser une question..." class="flex-1 px-3 py-2 text-sm border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                <button onclick="postQuestion()" class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primary-700 transition-colors duration-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcutsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-surface rounded-lg max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-inter font-semibold text-text-primary">Raccourcis clavier</h3>
+                <button onclick="hideShortcuts()" class="text-text-secondary hover:text-text-primary">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-text-secondary">Lecture/Pause</span>
+                    <kbd class="px-2 py-1 bg-secondary-100 rounded text-xs">Espace</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-text-secondary">Avancer 10s</span>
+                    <kbd class="px-2 py-1 bg-secondary-100 rounded text-xs">→</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-text-secondary">Reculer 10s</span>
+                    <kbd class="px-2 py-1 bg-secondary-100 rounded text-xs">←</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-text-secondary">Volume +</span>
+                    <kbd class="px-2 py-1 bg-secondary-100 rounded text-xs">↑</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-text-secondary">Volume -</span>
+                    <kbd class="px-2 py-1 bg-secondary-100 rounded text-xs">↓</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-text-secondary">Plein écran</span>
+                    <kbd class="px-2 py-1 bg-secondary-100 rounded text-xs">F</kbd>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Video player functionality
+        const video = document.getElementById('courseVideo');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const durationSpan = document.getElementById('duration');
+        const volumeBar = document.getElementById('volumeBar');
+        const speedSelect = document.getElementById('speedSelect');
+
+        // Initialize video
+        video.addEventListener('loadedmetadata', function() {
+            durationSpan.textContent = formatTime(video.duration);
+        });
+
+        video.addEventListener('timeupdate', function() {
+            const progress = (video.currentTime / video.duration) * 100;
+            progressBar.value = progress;
+            currentTimeSpan.textContent = formatTime(video.currentTime);
+            
+            // Save progress
+            saveProgress();
+        });
+
+        // Play/Pause functionality
+        function togglePlayPause() {
+            if (video.paused) {
+                video.play();
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            } else {
+                video.pause();
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            }
+        }
+
+        // Seek functionality
+        function seekVideo() {
+            const seekTime = (progressBar.value / 100) * video.duration;
+            video.currentTime = seekTime;
+        }
+
+        // Volume control
+        function toggleMute() {
+            video.muted = !video.muted;
+            volumeBar.value = video.muted ? 0 : video.volume * 100;
+        }
+
+        function changeVolume() {
+            video.volume = volumeBar.value / 100;
+            video.muted = video.volume === 0;
+        }
+
+        // Speed control
+        function changeSpeed() {
+            video.playbackRate = parseFloat(speedSelect.value);
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                video.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Format time helper
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    togglePlayPause();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    video.currentTime += 10;
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    video.currentTime -= 10;
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    video.volume = Math.min(1, video.volume + 0.1);
+                    volumeBar.value = video.volume * 100;
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    video.volume = Math.max(0, video.volume - 0.1);
+                    volumeBar.value = video.volume * 100;
+                    break;
+                case 'KeyF':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'KeyK':
+                    e.preventDefault();
+                    document.getElementById('shortcutsModal').classList.remove('hidden');
+                    break;
+            }
+        });
+
+        // User menu toggle
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(e) {
+            const userMenu = document.getElementById('userMenu');
+            const userButton = e.target.closest('button[onclick="toggleUserMenu()"]');
+            
+            if (!userButton && !userMenu.contains(e.target)) {
+                userMenu.classList.add('hidden');
+            }
+        });
+
+        // Bookmark functionality
+        function toggleBookmark() {
+            const btn = document.getElementById('bookmarkBtn');
+            const svg = btn.querySelector('svg');
+            
+            if (svg.classList.contains('text-secondary-400')) {
+                svg.classList.remove('text-secondary-400');
+                svg.classList.add('text-warning-500');
+                svg.setAttribute('fill', 'currentColor');
+                showNotification('Leçon ajoutée aux favoris');
+            } else {
+                svg.classList.remove('text-warning-500');
+                svg.classList.add('text-secondary-400');
+                svg.setAttribute('fill', 'none');
+                showNotification('Leçon retirée des favoris');
+            }
+        }
+
+        // Navigation functions
+        function previousLesson() {
+            showNotification('Navigation vers la leçon précédente...');
+            // In a real app, this would navigate to the previous lesson
+        }
+
+        function nextLesson() {
+            showNotification('Navigation vers la leçon suivante...');
+            // In a real app, this would navigate to the next lesson
+        }
+
+        function markAsComplete() {
+            showNotification('Leçon marquée comme terminée !');
+            // Update progress and move to next lesson
+        }
+
+        function goToDashboard() {
+            window.location.href = 'student_dashboard.html';
+        }
+
+        function viewCourseDetails() {
+            window.location.href = 'course_details.html';
+        }
+
+        // Download resources
+        function downloadResource(type) {
+            showNotification(`Téléchargement de ${type} en cours...`);
+        }
+
+        // Notes functionality
+        function saveNotes() {
+            const notes = document.getElementById('lessonNotes').value;
+            localStorage.setItem('lesson_notes_3', notes);
+            
+            const savedIndicator = document.getElementById('notesSaved');
+            savedIndicator.classList.remove('hidden');
+            setTimeout(() => {
+                savedIndicator.classList.add('hidden');
+            }, 2000);
+        }
+
+        function clearNotes() {
+            if (confirm('Êtes-vous sûr de vouloir effacer toutes vos notes ?')) {
+                document.getElementById('lessonNotes').value = '';
+                localStorage.removeItem('lesson_notes_3');
+                showNotification('Notes effacées');
+            }
+        }
+
+        // Discussion
+        function postQuestion() {
+            const input = document.querySelector('input[placeholder="Poser une question..."]');
+            if (input.value.trim()) {
+                showNotification('Question envoyée !');
+                input.value = '';
+            }
+        }
+
+        // Progress saving
+        function saveProgress() {
+            const progress = {
+                currentTime: video.currentTime,
+                duration: video.duration,
+                completed: video.currentTime / video.duration > 0.9
+            };
+            localStorage.setItem('lesson_progress_3', JSON.stringify(progress));
+        }
+
+        // Load saved progress
+        function loadProgress() {
+            const saved = localStorage.getItem('lesson_progress_3');
+            if (saved) {
+                const progress = JSON.parse(saved);
+                if (progress.currentTime && progress.currentTime > 30) {
+                    if (confirm(`Reprendre la lecture à ${formatTime(progress.currentTime)} ?`)) {
+                        video.currentTime = progress.currentTime;
+                    }
+                }
+            }
+            
+            // Load saved notes
+            const savedNotes = localStorage.getItem('lesson_notes_3');
+            if (savedNotes) {
+                document.getElementById('lessonNotes').value = savedNotes;
+            }
+        }
+
+        // Shortcuts modal
+        function hideShortcuts() {
+            document.getElementById('shortcutsModal').classList.add('hidden');
+        }
+
+        // Notification system
+        function showNotification(message) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-surface border border-border rounded-lg shadow-lg p-4 z-50 animate-fade-in';
+            notification.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-text-primary">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProgress();
+            
+            // Show keyboard shortcuts hint
+            setTimeout(() => {
+                showNotification('Appuyez sur K pour voir les raccourcis clavier');
+            }, 2000);
+        });
+
+        // Auto-hide video controls
+        let controlsTimeout;
+        const videoContainer = document.querySelector('.relative.aspect-video');
+        const videoControls = document.getElementById('videoControls');
+
+        videoContainer.addEventListener('mousemove', function() {
+            videoControls.style.opacity = '1';
+            clearTimeout(controlsTimeout);
+            
+            if (!video.paused) {
+                controlsTimeout = setTimeout(() => {
+                    videoControls.style.opacity = '0';
+                }, 3000);
+            }
+        });
+
+        videoContainer.addEventListener('mouseleave', function() {
+            if (!video.paused) {
+                videoControls.style.opacity = '0';
+            }
+        });
+
+        // Show controls when video is paused
+        video.addEventListener('pause', function() {
+            videoControls.style.opacity = '1';
+            clearTimeout(controlsTimeout);
+        });
+
+        video.addEventListener('play', function() {
+            controlsTimeout = setTimeout(() => {
+                videoControls.style.opacity = '0';
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

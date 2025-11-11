@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de Bord Administrateur - BIBOCOM Digital Learning Platform</title>
+    <link rel="stylesheet" href="../css/main.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fbibocomdi3697back.builtwithrocket.new&_be=https%3A%2F%2Fapplication.rocket.new&_v=0.1.9"></script>
+  <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.1"></script>
+  </head>
+<body class="bg-background min-h-screen font-body">
+    <!-- Header Navigation -->
+    <header class="bg-surface border-b border-border shadow-sm">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <a href="course_catalog.html" class="flex items-center space-x-2">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </a>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="course_catalog.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Catalogue des cours
+                    </a>
+                    <a href="student_dashboard.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Tableau de bord
+                    </a>
+                    <a href="editor_moderator_dashboard.html" class="text-primary font-medium border-b-2 border-primary pb-1">
+                        Administration
+                    </a>
+                    <a href="user_profile.html" class="text-text-secondary hover:text-primary transition-colors duration-200">
+                        Mon profil
+                    </a>
+                </div>
+
+                <!-- Role Badge -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <span id="roleIndicator" class="bg-primary text-white px-3 py-1 rounded-md text-xs font-medium">
+                            Super Admin
+                        </span>
+                    </div>
+                    
+                    <!-- User Actions -->
+                    <div class="relative">
+                        <button class="p-2 text-text-secondary hover:text-primary transition-colors duration-200" onclick="toggleNotifications()">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM10.07 2.82l3.93 3.93-3.93 3.93M21 12H3"/>
+                            </svg>
+                            <span class="absolute -top-1 -right-1 h-4 w-4 bg-error text-white rounded-full text-xs flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                    
+                    <div class="relative">
+                        <button class="flex items-center space-x-2 p-2 rounded-md hover:bg-secondary-50 transition-colors duration-200" onclick="toggleUserMenu()">
+                            <img src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&dpr=2" alt="Profile" class="w-8 h-8 rounded-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1584824486509-112e4181ff6b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; this.onerror=null;" />
+                            <svg class="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <!-- User Dropdown -->
+                        <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-surface rounded-md shadow-lg border border-border z-50">
+                            <div class="py-1">
+                                <a href="user_profile.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50">Mon profil</a>
+                                <a href="student_dashboard.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50">Vue Étudiant</a>
+                                <hr class="my-1 border-border" />
+                                <a href="login.html" class="block px-4 py-2 text-sm text-text-primary hover:bg-secondary-50">Se déconnecter</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden">
+                    <button type="button" class="text-text-secondary hover:text-primary" onclick="toggleMobileMenu()">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="course_catalog.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">Catalogue des cours</a>
+                    <a href="student_dashboard.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">Tableau de bord</a>
+                    <a href="editor_moderator_dashboard.html" class="text-primary font-medium px-2 py-1">Administration</a>
+                    <a href="user_profile.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">Mon profil</a>
+                    <hr class="my-2 border-border" />
+                    <a href="login.html" class="text-text-secondary hover:text-primary px-2 py-1 transition-colors duration-200">Se déconnecter</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Role Switcher -->
+    <div class="bg-primary-50 border-b border-primary-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm font-medium text-primary">Mode d'affichage:</span>
+                    <div class="flex bg-white rounded-md border border-primary-200 overflow-hidden">
+                        <button onclick="switchRole('super-admin')" class="role-switch px-4 py-2 text-sm font-medium transition-colors duration-200 bg-primary text-white" data-role="super-admin">
+                            Super Admin
+                        </button>
+                        <button onclick="switchRole('admin')" class="role-switch px-4 py-2 text-sm font-medium transition-colors duration-200 text-primary hover:bg-primary-50" data-role="admin">
+                            Admin
+                        </button>
+                        <button onclick="switchRole('editor')" class="role-switch px-4 py-2 text-sm font-medium transition-colors duration-200 text-primary hover:bg-primary-50" data-role="editor">
+                            Éditeur
+                        </button>
+                        <button onclick="switchRole('moderator')" class="role-switch px-4 py-2 text-sm font-medium transition-colors duration-200 text-primary hover:bg-primary-50" data-role="moderator">
+                            Modérateur
+                        </button>
+                    </div>
+                </div>
+                <div class="text-sm text-primary-600">
+                    Dernière mise à jour: <span id="lastUpdate">10 Oct 2025, 23:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Dashboard Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-inter font-semibold text-text-primary mb-2">
+                Tableau de Bord Administrateur
+            </h1>
+            <p class="text-text-secondary" id="dashboardDescription">
+                Gestion complète de la plateforme avec vue d'ensemble des apprenants et supervision du contenu
+            </p>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Users -->
+            <div class="bg-surface border border-border rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm text-text-secondary mb-1">Total Apprenants</p>
+                        <p class="text-2xl font-inter font-semibold text-text-primary">2,847</p>
+                        <p class="text-sm text-success">+12.5% ce mois</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Courses -->
+            <div class="bg-surface border border-border rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm text-text-secondary mb-1">Cours Actifs</p>
+                        <p class="text-2xl font-inter font-semibold text-text-primary">156</p>
+                        <p class="text-sm text-primary">+8 nouveaux</p>
+                    </div>
+                    <div class="w-12 h-12 bg-accent-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completion Rate -->
+            <div class="bg-surface border border-border rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm text-text-secondary mb-1">Taux de Réussite</p>
+                        <p class="text-2xl font-inter font-semibold text-text-primary">87.3%</p>
+                        <p class="text-sm text-success">+2.1% ce mois</p>
+                    </div>
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Reviews -->
+            <div class="bg-surface border border-border rounded-lg p-6">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <p class="text-sm text-text-secondary mb-1">En Attente de Révision</p>
+                        <p class="text-2xl font-inter font-semibold text-text-primary">23</p>
+                        <p class="text-sm text-warning">Nécessite attention</p>
+                    </div>
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Tabs -->
+        <div class="mb-8">
+            <div class="border-b border-border">
+                <nav class="flex space-x-8">
+                    <button onclick="showTab('learners')" class="dashboard-tab py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-primary text-primary" data-tab="learners">
+                        Gestion des Apprenants
+                    </button>
+                    <button onclick="showTab('content')" class="dashboard-tab py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-text-secondary hover:text-primary" data-tab="content">
+                        Modération Contenu
+                    </button>
+                    <button onclick="showTab('analytics')" class="dashboard-tab py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-text-secondary hover:text-primary" data-tab="analytics">
+                        Analyses & Rapports
+                    </button>
+                    <button onclick="showTab('community')" class="dashboard-tab py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-text-secondary hover:text-primary" data-tab="community">
+                        Gestion Communauté
+                    </button>
+                    <button onclick="showTab('system')" class="dashboard-tab py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 border-transparent text-text-secondary hover:text-primary role-restricted" data-tab="system" data-roles="super-admin,admin">
+                        Administration Système
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content: Learners Management -->
+        <div id="learners-tab" class="tab-content">
+            <!-- Learners Filter & Search -->
+            <div class="bg-surface border border-border rounded-lg p-6 mb-6">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <!-- Search & Filters -->
+                    <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                        <!-- Search -->
+                        <div class="flex-1">
+                            <div class="relative">
+                                <input type="text" id="learnerSearch" placeholder="Rechercher un apprenant..." class="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary transition-all duration-200" />
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                    <svg class="w-5 h-5 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Category Filter -->
+                        <div class="flex-1">
+                            <select id="categoryLearnerFilter" class="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary">
+                                <option value>Toutes les catégories</option>
+                                <option value="developpement-web">Développement Web</option>
+                                <option value="marketing-digital">Marketing Digital</option>
+                                <option value="design-ux-ui">Design UX/UI</option>
+                                <option value="data-science">Data Science</option>
+                                <option value="cybersecurite">Cybersécurité</option>
+                            </select>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="flex-1">
+                            <select id="statusLearnerFilter" class="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary">
+                                <option value>Tous les statuts</option>
+                                <option value="active">Actif</option>
+                                <option value="completed">Terminé</option>
+                                <option value="inactive">Inactif</option>
+                                <option value="suspended">Suspendu</option>
+                            </select>
+                        </div>
+
+                        <!-- Progress Filter -->
+                        <div class="flex-1">
+                            <select id="progressLearnerFilter" class="w-full px-3 py-2 border border-border rounded-md focus:ring-2 focus:ring-primary-100 focus:border-primary">
+                                <option value>Tous les niveaux</option>
+                                <option value="0-25">0-25% (Débutant)</option>
+                                <option value="26-50">26-50% (En cours)</option>
+                                <option value="51-75">51-75% (Avancé)</option>
+                                <option value="76-100">76-100% (Presque fini)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportLearnerData()" class="px-4 py-2 text-sm border border-border rounded-md text-text-secondary hover:bg-secondary-50 transition-colors duration-200">
+                            Exporter
+                        </button>
+                        <button onclick="addNewLearner()" class="px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-primary-700 transition-colors duration-200 role-restricted" data-roles="super-admin,admin">
+                            Ajouter Apprenant
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Summary -->
+                <div class="mt-4 pt-4 border-t border-border">
+                    <p class="text-sm text-text-secondary">
+                        <span id="learnerResultsCount">2,847</span> apprenants trouvés • 
+                        Actifs: <span class="text-success font-medium">2,234</span> • 
+                        Inactifs: <span class="text-warning font-medium">613</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Learners Categories Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                <!-- Développement Web Category -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-inter font-semibold text-text-primary">Développement Web</h3>
+                                <p class="text-sm text-text-secondary">847 apprenants</p>
+                            </div>
+                        </div>
+                        <button onclick="viewCategory('developpement-web')" class="text-primary hover:text-primary-700 text-sm font-medium">
+                            Voir tout
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Débutants</span>
+                            <span class="text-text-primary font-medium">432 (51%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Intermédiaires</span>
+                            <span class="text-text-primary font-medium">298 (35%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Avancés</span>
+                            <span class="text-text-primary font-medium">117 (14%)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Taux de réussite</span>
+                            <span class="text-success font-medium">89.2%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Marketing Digital Category -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-accent-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-inter font-semibold text-text-primary">Marketing Digital</h3>
+                                <p class="text-sm text-text-secondary">623 apprenants</p>
+                            </div>
+                        </div>
+                        <button onclick="viewCategory('marketing-digital')" class="text-primary hover:text-primary-700 text-sm font-medium">
+                            Voir tout
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Débutants</span>
+                            <span class="text-text-primary font-medium">287 (46%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Intermédiaires</span>
+                            <span class="text-text-primary font-medium">249 (40%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Avancés</span>
+                            <span class="text-text-primary font-medium">87 (14%)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Taux de réussite</span>
+                            <span class="text-success font-medium">82.7%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Design UX/UI Category -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-secondary-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4 4 4 0 004-4V5z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-inter font-semibold text-text-primary">Design UX/UI</h3>
+                                <p class="text-sm text-text-secondary">539 apprenants</p>
+                            </div>
+                        </div>
+                        <button onclick="viewCategory('design-ux-ui')" class="text-primary hover:text-primary-700 text-sm font-medium">
+                            Voir tout
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Débutants</span>
+                            <span class="text-text-primary font-medium">312 (58%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Intermédiaires</span>
+                            <span class="text-text-primary font-medium">162 (30%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Avancés</span>
+                            <span class="text-text-primary font-medium">65 (12%)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Taux de réussite</span>
+                            <span class="text-success font-medium">91.3%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Science Category -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-inter font-semibold text-text-primary">Data Science</h3>
+                                <p class="text-sm text-text-secondary">456 apprenants</p>
+                            </div>
+                        </div>
+                        <button onclick="viewCategory('data-science')" class="text-primary hover:text-primary-700 text-sm font-medium">
+                            Voir tout
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Débutants</span>
+                            <span class="text-text-primary font-medium">182 (40%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Intermédiaires</span>
+                            <span class="text-text-primary font-medium">187 (41%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Avancés</span>
+                            <span class="text-text-primary font-medium">87 (19%)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Taux de réussite</span>
+                            <span class="text-success font-medium">85.1%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cybersécurité Category -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-error-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-error" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-inter font-semibold text-text-primary">Cybersécurité</h3>
+                                <p class="text-sm text-text-secondary">382 apprenants</p>
+                            </div>
+                        </div>
+                        <button onclick="viewCategory('cybersecurite')" class="text-primary hover:text-primary-700 text-sm font-medium">
+                            Voir tout
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Débutants</span>
+                            <span class="text-text-primary font-medium">153 (40%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Intermédiaires</span>
+                            <span class="text-text-primary font-medium">152 (40%)</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Avancés</span>
+                            <span class="text-text-primary font-medium">77 (20%)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-border">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-text-secondary">Taux de réussite</span>
+                            <span class="text-success font-medium">88.9%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Learners Table -->
+            <div class="bg-surface border border-border rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-border">
+                    <h3 class="text-lg font-inter font-semibold text-text-primary">Détails des Apprenants</h3>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-secondary-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Apprenant</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Catégorie</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Cours Actuel</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Progrès</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Statut</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">Dernière Activité</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider role-restricted" data-roles="super-admin,admin,editor">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-surface divide-y divide-border" id="learnersTableBody">
+                            <!-- Sample Learner Row 1 -->
+                            <tr class="hover:bg-secondary-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <img class="h-10 w-10 rounded-full" src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&dpr=2" alt="Profile" />
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-text-primary">Marie Dubois</div>
+                                            <div class="text-sm text-text-secondary">marie.dubois@email.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary">
+                                        Développement Web
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                                    Frontend avec React
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-full bg-secondary-200 rounded-full h-2 mr-2">
+                                            <div class="bg-primary h-2 rounded-full" style="width: 78%"></div>
+                                        </div>
+                                        <span class="text-sm text-text-secondary">78%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success">
+                                        Actif
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                                    Il y a 2h
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium role-restricted" data-roles="super-admin,admin,editor">
+                                    <button onclick="viewLearner('marie-dubois')" class="text-primary hover:text-primary-700 mr-3">Voir</button>
+                                    <button onclick="editLearner('marie-dubois')" class="text-accent hover:text-accent-700 mr-3">Modifier</button>
+                                    <button onclick="suspendLearner('marie-dubois')" class="text-error hover:text-error-700 role-restricted" data-roles="super-admin,admin">Suspendre</button>
+                                </td>
+                            </tr>
+
+                            <!-- Sample Learner Row 2 -->
+                            <tr class="hover:bg-secondary-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <img class="h-10 w-10 rounded-full" src="https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&dpr=2" alt="Profile" />
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-text-primary">Pierre Martin</div>
+                                            <div class="text-sm text-text-secondary">pierre.martin@email.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-100 text-accent">
+                                        Marketing Digital
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                                    Stratégies SEO Avancées
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-full bg-secondary-200 rounded-full h-2 mr-2">
+                                            <div class="bg-accent h-2 rounded-full" style="width: 45%"></div>
+                                        </div>
+                                        <span class="text-sm text-text-secondary">45%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success">
+                                        Actif
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                                    Il y a 1j
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium role-restricted" data-roles="super-admin,admin,editor">
+                                    <button onclick="viewLearner('pierre-martin')" class="text-primary hover:text-primary-700 mr-3">Voir</button>
+                                    <button onclick="editLearner('pierre-martin')" class="text-accent hover:text-accent-700 mr-3">Modifier</button>
+                                    <button onclick="suspendLearner('pierre-martin')" class="text-error hover:text-error-700 role-restricted" data-roles="super-admin,admin">Suspendre</button>
+                                </td>
+                            </tr>
+
+                            <!-- Sample Learner Row 3 -->
+                            <tr class="hover:bg-secondary-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <img class="h-10 w-10 rounded-full" src="https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&dpr=2" alt="Profile" />
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-text-primary">Sophie Laurent</div>
+                                            <div class="text-sm text-text-secondary">sophie.laurent@email.com</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-100 text-secondary">
+                                        Design UX/UI
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                                    Prototypage avec Figma
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-full bg-secondary-200 rounded-full h-2 mr-2">
+                                            <div class="bg-success h-2 rounded-full" style="width: 92%"></div>
+                                        </div>
+                                        <span class="text-sm text-text-secondary">92%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success">
+                                        Presque terminé
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
+                                    Il y a 3h
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium role-restricted" data-roles="super-admin,admin,editor">
+                                    <button onclick="viewLearner('sophie-laurent')" class="text-primary hover:text-primary-700 mr-3">Voir</button>
+                                    <button onclick="editLearner('sophie-laurent')" class="text-accent hover:text-accent-700 mr-3">Modifier</button>
+                                    <button onclick="suspendLearner('sophie-laurent')" class="text-error hover:text-error-700 role-restricted" data-roles="super-admin,admin">Suspendre</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-6 py-3 border-t border-border">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-text-secondary">
+                            Affichage de 1 à 25 sur 2,847 apprenants
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="px-3 py-1 text-sm border border-border rounded-md text-text-secondary hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Précédent
+                            </button>
+                            <button class="px-3 py-1 text-sm bg-primary text-white rounded-md">1</button>
+                            <button class="px-3 py-1 text-sm border border-border rounded-md text-text-secondary hover:bg-secondary-50">2</button>
+                            <button class="px-3 py-1 text-sm border border-border rounded-md text-text-secondary hover:bg-secondary-50">3</button>
+                            <span class="px-2 text-text-secondary">...</span>
+                            <button class="px-3 py-1 text-sm border border-border rounded-md text-text-secondary hover:bg-secondary-50">114</button>
+                            <button class="px-3 py-1 text-sm border border-border rounded-md text-text-secondary hover:bg-secondary-50">
+                                Suivant
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Content Moderation -->
+        <div id="content-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Pending Content Reviews -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary">Contenu en Attente</h3>
+                        <span class="bg-warning-100 text-warning px-2 py-1 rounded-md text-sm font-medium">23 en attente</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-warning-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-warning-200 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-text-primary">Nouveau cours JavaScript</p>
+                                    <p class="text-xs text-text-secondary">Par Jean Dupont</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="approveContent('js-course')" class="px-3 py-1 text-xs bg-success text-white rounded-md hover:bg-success-700">
+                                    Approuver
+                                </button>
+                                <button onclick="rejectContent('js-course')" class="px-3 py-1 text-xs bg-error text-white rounded-md hover:bg-error-700">
+                                    Rejeter
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-secondary-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-secondary-200 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-text-primary">Mise à jour cours UX</p>
+                                    <p class="text-xs text-text-secondary">Par Sophie Martin</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="approveContent('ux-update')" class="px-3 py-1 text-xs bg-success text-white rounded-md hover:bg-success-700">
+                                    Approuver
+                                </button>
+                                <button onclick="rejectContent('ux-update')" class="px-3 py-1 text-xs bg-error text-white rounded-md hover:bg-error-700">
+                                    Rejeter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button onclick="viewAllPendingContent()" class="w-full text-center text-sm text-primary hover:text-primary-700 font-medium">
+                            Voir tout le contenu en attente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quality Metrics -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Métriques de Qualité</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Taux d'approbation</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-20 bg-secondary-200 rounded-full h-2">
+                                    <div class="bg-success h-2 rounded-full" style="width: 92%"></div>
+                                </div>
+                                <span class="text-sm font-medium text-text-primary">92%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Temps de révision moyen</span>
+                            <span class="text-sm font-medium text-text-primary">2.3 jours</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Contenu rejeté ce mois</span>
+                            <span class="text-sm font-medium text-error">7 cours</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Note moyenne des cours</span>
+                            <div class="flex items-center space-x-1">
+                                <svg class="w-4 h-4 text-warning fill-current" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                <span class="text-sm font-medium text-text-primary">4.7/5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Analytics & Reports -->
+        <div id="analytics-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Learning Progress Chart -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Progression des Apprentissages</h3>
+                    <div class="h-64 bg-secondary-50 rounded-lg flex items-center justify-center">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 text-secondary-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            <p class="text-secondary-500">Graphique de progression</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completion Rates -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Taux de Complétion par Catégorie</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-text-secondary">Développement Web</span>
+                                <span class="text-text-primary font-medium">89.2%</span>
+                            </div>
+                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                <div class="bg-primary h-2 rounded-full" style="width: 89.2%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-text-secondary">Design UX/UI</span>
+                                <span class="text-text-primary font-medium">91.3%</span>
+                            </div>
+                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                <div class="bg-secondary h-2 rounded-full" style="width: 91.3%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-text-secondary">Cybersécurité</span>
+                                <span class="text-text-primary font-medium">88.9%</span>
+                            </div>
+                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                <div class="bg-error h-2 rounded-full" style="width: 88.9%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-text-secondary">Data Science</span>
+                                <span class="text-text-primary font-medium">85.1%</span>
+                            </div>
+                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                <div class="bg-warning h-2 rounded-full" style="width: 85.1%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-text-secondary">Marketing Digital</span>
+                                <span class="text-text-primary font-medium">82.7%</span>
+                            </div>
+                            <div class="w-full bg-secondary-200 rounded-full h-2">
+                                <div class="bg-accent h-2 rounded-full" style="width: 82.7%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Community Management -->
+        <div id="community-tab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Recent Discussions -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary">Discussions Récentes</h3>
+                        <span class="bg-primary-100 text-primary px-2 py-1 rounded-md text-sm font-medium">8 nouvelles</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="border border-border rounded-lg p-3">
+                            <div class="flex items-start space-x-3">
+                                <img class="h-8 w-8 rounded-full" src="https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=32&h=32&dpr=2" alt="User" />
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Question sur React Hooks</p>
+                                    <p class="text-xs text-text-secondary">par Marie L. • il y a 2h</p>
+                                    <p class="text-xs text-text-secondary mt-1">12 réponses</p>
+                                </div>
+                                <button onclick="moderateDiscussion('react-hooks')" class="text-primary hover:text-primary-700 text-xs">
+                                    Modérer
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="border border-border rounded-lg p-3">
+                            <div class="flex items-start space-x-3">
+                                <img class="h-8 w-8 rounded-full" src="https://images.pexels.com/photos/697509/pexels-photo-697509.jpeg?auto=compress&cs=tinysrgb&w=32&h=32&dpr=2" alt="User" />
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-text-primary">Partage d'expérience UX</p>
+                                    <p class="text-xs text-text-secondary">par Pierre M. • il y a 4h</p>
+                                    <p class="text-xs text-text-secondary mt-1">7 réponses</p>
+                                </div>
+                                <button onclick="moderateDiscussion('ux-experience')" class="text-primary hover:text-primary-700 text-xs">
+                                    Modérer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reported Content -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-inter font-semibold text-text-primary">Contenu Signalé</h3>
+                        <span class="bg-error-100 text-error px-2 py-1 rounded-md text-sm font-medium">3 rapports</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="border border-error-200 bg-error-50 rounded-lg p-3">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-text-primary">Commentaire inapproprié</p>
+                                    <p class="text-xs text-text-secondary">Signalé par 3 utilisateurs</p>
+                                    <p class="text-xs text-text-secondary mt-1">Contenu: "Message offensant..."</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="approveReport('comment-1')" class="px-2 py-1 text-xs bg-success text-white rounded">
+                                        Supprimer
+                                    </button>
+                                    <button onclick="dismissReport('comment-1')" class="px-2 py-1 text-xs bg-secondary text-white rounded">
+                                        Ignorer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border border-warning-200 bg-warning-50 rounded-lg p-3">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-text-primary">Spam potentiel</p>
+                                    <p class="text-xs text-text-secondary">Signalé par 1 utilisateur</p>
+                                    <p class="text-xs text-text-secondary mt-1">Plusieurs posts identiques</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="approveReport('spam-1')" class="px-2 py-1 text-xs bg-success text-white rounded">
+                                        Supprimer
+                                    </button>
+                                    <button onclick="dismissReport('spam-1')" class="px-2 py-1 text-xs bg-secondary text-white rounded">
+                                        Ignorer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: System Administration -->
+        <div id="system-tab" class="tab-content hidden role-restricted" data-roles="super-admin,admin">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- System Health -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">État du Système</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-success-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-success rounded-full"></div>
+                                <span class="text-sm font-medium text-text-primary">Serveurs Web</span>
+                            </div>
+                            <span class="text-sm text-success">Opérationnel</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-success-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-success rounded-full"></div>
+                                <span class="text-sm font-medium text-text-primary">Base de Données</span>
+                            </div>
+                            <span class="text-sm text-success">Opérationnel</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 bg-warning-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-3 h-3 bg-warning rounded-full"></div>
+                                <span class="text-sm font-medium text-text-primary">Stockage</span>
+                            </div>
+                            <span class="text-sm text-warning">82% utilisé</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Management -->
+                <div class="bg-surface border border-border rounded-lg p-6">
+                    <h3 class="text-lg font-inter font-semibold text-text-primary mb-4">Gestion des Utilisateurs</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Administrateurs</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-text-primary">4</span>
+                                <button onclick="manageAdmins()" class="text-primary hover:text-primary-700 text-xs">Gérer</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Éditeurs</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-text-primary">12</span>
+                                <button onclick="manageEditors()" class="text-primary hover:text-primary-700 text-xs">Gérer</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Modérateurs</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-text-primary">8</span>
+                                <button onclick="manageModerators()" class="text-primary hover:text-primary-700 text-xs">Gérer</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-text-secondary">Utilisateurs suspendus</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-medium text-error">23</span>
+                                <button onclick="manageSuspended()" class="text-primary hover:text-primary-700 text-xs">Gérer</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-border">
+                        <button onclick="systemSettings()" class="w-full px-4 py-2 text-sm bg-primary text-white rounded-md hover:bg-primary-700 transition-colors duration-200">
+                            Paramètres Système
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Notification Dropdown -->
+    <div id="notificationDropdown" class="hidden fixed top-16 right-4 w-80 bg-surface rounded-lg shadow-lg border border-border z-50">
+        <div class="p-4 border-b border-border">
+            <h3 class="font-inter font-semibold text-text-primary">Notifications</h3>
+        </div>
+        <div class="max-h-64 overflow-y-auto">
+            <div class="p-3 hover:bg-secondary-50 border-b border-border">
+                <p class="text-sm font-medium text-text-primary">Nouveau cours soumis</p>
+                <p class="text-xs text-text-secondary">Jean Dupont a soumis un cours pour révision</p>
+                <p class="text-xs text-text-secondary mt-1">Il y a 15 minutes</p>
+            </div>
+            <div class="p-3 hover:bg-secondary-50 border-b border-border">
+                <p class="text-sm font-medium text-text-primary">Contenu signalé</p>
+                <p class="text-xs text-text-secondary">Un commentaire a été signalé dans le forum</p>
+                <p class="text-xs text-text-secondary mt-1">Il y a 1 heure</p>
+            </div>
+            <div class="p-3 hover:bg-secondary-50">
+                <p class="text-sm font-medium text-text-primary">Rapport mensuel prêt</p>
+                <p class="text-xs text-text-secondary">Le rapport de performance d'octobre est disponible</p>
+                <p class="text-xs text-text-secondary mt-1">Il y a 2 heures</p>
+            </div>
+        </div>
+        <div class="p-3 border-t border-border">
+            <button onclick="viewAllNotifications()" class="w-full text-center text-sm text-primary hover:text-primary-700 font-medium">
+                Voir toutes les notifications
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-surface border-t border-border mt-16">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span class="text-xl font-inter font-semibold text-text-primary">BIBOCOM</span>
+                    </div>
+                    <p class="text-text-secondary mb-4 max-w-md">
+                        Plateforme d'apprentissage numérique dédiée au développement des compétences digitales pour les professionnels de demain.
+                    </p>
+                </div>
+
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="font-inter font-semibold text-text-primary mb-4">Administration</h3>
+                    <ul class="space-y-2">
+                        <li><a href="javascript:void(0)" onclick="showTab('learners')" class="text-text-secondary hover:text-primary transition-colors duration-200">Gestion Apprenants</a></li>
+                        <li><a href="javascript:void(0)" onclick="showTab('content')" class="text-text-secondary hover:text-primary transition-colors duration-200">Modération</a></li>
+                        <li><a href="javascript:void(0)" onclick="showTab('analytics')" class="text-text-secondary hover:text-primary transition-colors duration-200">Analyses</a></li>
+                        <li><a href="javascript:void(0)" onclick="showTab('community')" class="text-text-secondary hover:text-primary transition-colors duration-200">Communauté</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h3 class="font-inter font-semibold text-text-primary mb-4">Support</h3>
+                    <ul class="space-y-2">
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Centre d'aide Admin</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Documentation</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Support Technique</a></li>
+                        <li><a href="javascript:void(0)" class="text-text-secondary hover:text-primary transition-colors duration-200">Logs Système</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
+                <p class="text-sm text-text-secondary mb-4 md:mb-0">
+                    © 2025 BIBOCOM Digital Learning Platform. Tous droits réservés.
+                </p>
+                <div class="flex items-center space-x-6">
+                    <span class="text-sm text-text-secondary">
+                        Dashboard v2.1.0
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Global variables
+        let currentRole = 'super-admin';
+        let currentTab = 'learners';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateRolePermissions();
+            updateLastUpdateTime();
+        });
+
+        // Role management functions
+        function switchRole(role) {
+            currentRole = role;
+            
+            // Update role switcher buttons
+            document.querySelectorAll('.role-switch').forEach(btn => {
+                btn.classList.remove('bg-primary', 'text-white');
+                btn.classList.add('text-primary', 'hover:bg-primary-50');
+            });
+            
+            document.querySelector(`[data-role="${role}"]`).classList.add('bg-primary', 'text-white');
+            document.querySelector(`[data-role="${role}"]`).classList.remove('text-primary', 'hover:bg-primary-50');
+            
+            // Update role indicator
+            const roleNames = {
+                'super-admin': 'Super Admin',
+                'admin': 'Admin',
+                'editor': 'Éditeur',
+                'moderator': 'Modérateur'
+            };
+            document.getElementById('roleIndicator').textContent = roleNames[role];
+            
+            // Update dashboard description
+            const descriptions = {
+                'super-admin': 'Gestion complète de la plateforme avec vue d\'ensemble des apprenants et supervision du contenu',
+                'admin': 'Administration des utilisateurs et modération du contenu éducatif',
+                'editor': 'Gestion et révision du contenu pédagogique et des cours',
+                'moderator': 'Supervision des discussions et modération de la communauté'
+            };
+            document.getElementById('dashboardDescription').textContent = descriptions[role];
+            
+            updateRolePermissions();
+        }
+
+        function updateRolePermissions() {
+            // Show/hide elements based on role
+            document.querySelectorAll('.role-restricted').forEach(element => {
+                const allowedRoles = element.dataset.roles ? element.dataset.roles.split(',') : [];
+                if (allowedRoles.length === 0 || allowedRoles.includes(currentRole)) {
+                    element.style.display = '';
+                    element.classList.remove('hidden');
+                } else {
+                    element.style.display = 'none';
+                    element.classList.add('hidden');
+                }
+            });
+
+            // Update tab visibility
+            document.querySelectorAll('.dashboard-tab').forEach(tab => {
+                const allowedRoles = tab.dataset.roles ? tab.dataset.roles.split(',') : [];
+                if (allowedRoles.length === 0 || allowedRoles.includes(currentRole)) {
+                    tab.style.display = '';
+                } else {
+                    tab.style.display = 'none';
+                }
+            });
+
+            // Hide system tab if not admin
+            if (!['super-admin', 'admin'].includes(currentRole) && currentTab === 'system') {
+                showTab('learners');
+            }
+        }
+
+        // Tab management
+        function showTab(tabName) {
+            currentTab = tabName;
+            
+            // Update tab buttons
+            document.querySelectorAll('.dashboard-tab').forEach(tab => {
+                tab.classList.remove('border-primary', 'text-primary');
+                tab.classList.add('border-transparent', 'text-text-secondary');
+            });
+            
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('border-primary', 'text-primary');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.remove('border-transparent', 'text-text-secondary');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+        }
+
+        // Navigation functions
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleUserMenu() {
+            const menu = document.getElementById('userMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Learner management functions
+        function viewCategory(category) {
+            // Filter learners table by category
+            document.getElementById('categoryLearnerFilter').value = category;
+            filterLearners();
+        }
+
+        function filterLearners() {
+            // Implement learner filtering logic here
+            console.log('Filtering learners...');
+        }
+
+        function exportLearnerData() {
+            alert('Export des données des apprenants en cours...');
+        }
+
+        function addNewLearner() {
+            alert('Ouverture du formulaire d\'ajout d\'apprenant...');
+        }
+
+        function viewLearner(learnerId) {
+            alert(`Affichage des détails de l'apprenant: ${learnerId}`);
+        }
+
+        function editLearner(learnerId) {
+            alert(`Modification de l'apprenant: ${learnerId}`);
+        }
+
+        function suspendLearner(learnerId) {
+            if (confirm(`Êtes-vous sûr de vouloir suspendre l'apprenant ${learnerId} ?`)) {
+                alert(`Apprenant ${learnerId} suspendu`);
+            }
+        }
+
+        // Content moderation functions
+        function approveContent(contentId) {
+            alert(`Contenu ${contentId} approuvé`);
+        }
+
+        function rejectContent(contentId) {
+            alert(`Contenu ${contentId} rejeté`);
+        }
+
+        function viewAllPendingContent() {
+            alert('Affichage de tout le contenu en attente...');
+        }
+
+        // Community management functions
+        function moderateDiscussion(discussionId) {
+            alert(`Modération de la discussion: ${discussionId}`);
+        }
+
+        function approveReport(reportId) {
+            alert(`Rapport ${reportId} approuvé - contenu supprimé`);
+        }
+
+        function dismissReport(reportId) {
+            alert(`Rapport ${reportId} ignoré`);
+        }
+
+        // System administration functions
+        function manageAdmins() {
+            alert('Gestion des administrateurs...');
+        }
+
+        function manageEditors() {
+            alert('Gestion des éditeurs...');
+        }
+
+        function manageModerators() {
+            alert('Gestion des modérateurs...');
+        }
+
+        function manageSuspended() {
+            alert('Gestion des utilisateurs suspendus...');
+        }
+
+        function systemSettings() {
+            alert('Ouverture des paramètres système...');
+        }
+
+        function viewAllNotifications() {
+            alert('Affichage de toutes les notifications...');
+        }
+
+        // Utility functions
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleDateString('fr-FR', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('lastUpdate').textContent = timeString;
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.getElementById('userMenu');
+            const userButton = userMenu.previousElementSibling;
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            
+            if (!userMenu.contains(event.target) && !userButton.contains(event.target)) {
+                userMenu.classList.add('hidden');
+            }
+
+            if (!notificationDropdown.contains(event.target) && !event.target.closest('button[onclick="toggleNotifications()"]')) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                document.getElementById('userMenu').classList.add('hidden');
+                document.getElementById('notificationDropdown').classList.add('hidden');
+            }
+            
+            // Quick tab switching with Alt + number
+            if (event.altKey && event.key >= '1' && event.key <= '5') {
+                event.preventDefault();
+                const tabs = ['learners', 'content', 'analytics', 'community', 'system'];
+                const tabIndex = parseInt(event.key) - 1;
+                if (tabs[tabIndex]) {
+                    showTab(tabs[tabIndex]);
+                }
+            }
+        });
+
+        // Auto-refresh data every 5 minutes
+        setInterval(function() {
+            updateLastUpdateTime();
+            // Here you would typically refresh dashboard data
+        }, 300000); // 5 minutes
+    </script>
+</body>
+</html>
