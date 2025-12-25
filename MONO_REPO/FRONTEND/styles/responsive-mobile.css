@@ -1,0 +1,821 @@
+/**
+ * ============================================
+ * RESPONSIVE MOBILE PROFESSIONAL FIXES
+ * BIBOCOM DIGITAL - E-Learning Platform
+ * Date: 6 Décembre 2025
+ * Priority: HAUTE
+ * ============================================
+ */
+
+/* ============================================
+   VARIABLES CSS (CSS CUSTOM PROPERTIES)
+   ============================================ */
+
+:root {
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Social Media Colors */
+  --color-facebook: #1877f2;
+  --color-twitter: #1da1f2;
+  --color-linkedin: #0a66c2;
+  --color-instagram: #e1306c;
+  --color-youtube: #ff0000;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+}
+
+/* ============================================
+   1. LOGO RESPONSIVE (BIBOCOM DIGITAL)
+   ============================================
+   PROBLÈME: Logo 40-50% trop grand sur mobile
+   SOLUTION: Utiliser clamp() pour scaling fluide
+   ============================================ */
+
+.logo {
+  /* Scaling fluide: min 0.875rem, idéal 5vw, max 1.5rem */
+  font-size: clamp(0.875rem, 4vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  transition: transform var(--transition-fast);
+}
+
+.logo:hover {
+  transform: scale(1.02);
+}
+
+/* Desktop: Logo normal size */
+@media (min-width: 768px) {
+  .logo {
+    font-size: clamp(1.125rem, 5vw, 1.75rem);
+  }
+}
+
+/* Mobile: Reduce spacing around logo */
+@media (max-width: 640px) {
+  .logo {
+    letter-spacing: -0.75px;
+  }
+}
+
+/* ============================================
+   2. HERO SECTION IMAGE (Photo de la dame)
+   ============================================
+   PROBLÈME: Image prend trop d'espace sur mobile
+   SOLUTION: display: none <768px, visible desktop
+   ============================================ */
+
+.hero-image,
+.hero-section__image,
+.section-hero img[alt*="dame"],
+.section-hero img[alt*="woman"],
+.section-hero img[alt*="person"],
+.hero-visual {
+  /* Masquer complètement sur mobile et tablette petit */
+  display: none;
+}
+
+/* Afficher à partir de desktop (768px+) */
+@media (min-width: 768px) {
+  .hero-image,
+  .hero-section__image,
+  .section-hero img[alt*="dame"],
+  .section-hero img[alt*="woman"],
+  .section-hero img[alt*="person"],
+  .hero-visual {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 16px;
+    animation: fadeInUp 0.6s ease-out;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   3. FILTRES MODERNES (CHIPS/PILLS)
+   ============================================
+   INSPIRATION: Airbnb, Booking.com, Amazon
+   DESIGN: Chips arrondis, active state, hover effects
+   ============================================ */
+
+/* Conteneur des filtres */
+.filters-container,
+.filter-group,
+.chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+  margin: var(--space-lg) 0;
+  padding: var(--space-md);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.05),
+    rgba(139, 92, 246, 0.05)
+  );
+  border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+/* Chip/Pill Style */
+.filter-chip,
+.chip,
+.filter-tag,
+.filter-button {
+  /* Base styling */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: 2px solid #e5e7eb;
+  background-color: #ffffff;
+  color: #374151;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  white-space: nowrap;
+  user-select: none;
+  min-height: 40px;
+}
+
+/* Chip Hover State */
+.filter-chip:hover,
+.chip:hover,
+.filter-tag:hover,
+.filter-button:hover {
+  border-color: #6366f1;
+  background-color: #f0f4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+/* Chip Active/Selected State */
+.filter-chip.active,
+.chip.active,
+.filter-tag.active,
+.filter-button.active,
+.filter-chip[aria-selected="true"],
+.chip[aria-selected="true"] {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  border-color: #6366f1;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+/* Chip Focus State (Accessibility) */
+.filter-chip:focus-visible,
+.chip:focus-visible,
+.filter-tag:focus-visible,
+.filter-button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Icon inside chip */
+.filter-chip svg,
+.chip svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition-fast);
+}
+
+.filter-chip:hover svg,
+.chip:hover svg {
+  transform: scale(1.1);
+}
+
+/* Mobile: Stack chips if needed */
+@media (max-width: 480px) {
+  .filters-container,
+  .filter-group,
+  .chips-container {
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    margin: var(--space-md) 0;
+  }
+
+  .filter-chip,
+  .chip,
+  .filter-tag,
+  .filter-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    min-height: 36px;
+    flex: 1 1 calc(50% - 0.25rem);
+  }
+}
+
+/* Reset Button Style */
+.filter-reset,
+.reset-button,
+.clear-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  margin-top: var(--space-md);
+}
+
+.filter-reset:hover,
+.reset-button:hover,
+.clear-filters:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+/* Mobile: Full-width reset button */
+@media (max-width: 640px) {
+  .filter-reset,
+  .reset-button,
+  .clear-filters {
+    width: 100%;
+    justify-content: center;
+    margin-top: var(--space-lg);
+  }
+}
+
+/* ============================================
+   4. ICÔNES RÉSEAUX SOCIAUX PROFESSIONNELS
+   ============================================
+   INSPIRATION: Dribbble, Awwwards, Premium sites
+   EFFETS: Hover animation, color branding, shadows
+   ============================================ */
+
+/* Social Icons Container */
+.social-icons,
+.social-links,
+.social-media {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Individual Social Icon Link */
+.social-icon,
+.social-link,
+.social-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  overflow: hidden;
+}
+
+/* Pseudo-element for background animation */
+.social-icon::before,
+.social-link::before,
+.social-button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.1;
+  transform: translate(-50%, -50%);
+  transition:
+    width var(--transition-base),
+    height var(--transition-base);
+  z-index: -1;
+}
+
+/* Icon element */
+.social-icon svg,
+.social-link svg,
+.social-button svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--transition-fast);
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover Effects */
+.social-icon:hover,
+.social-link:hover,
+.social-button:hover {
+  transform: translateY(-4px);
+  border-color: currentColor;
+}
+
+.social-icon:hover svg,
+.social-link:hover svg,
+.social-button:hover svg {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.social-icon:hover::before,
+.social-link:hover::before,
+.social-button:hover::before {
+  width: 60px;
+  height: 60px;
+}
+
+/* Facebook */
+.social-icon--facebook,
+.social-link--facebook,
+.social-button[data-social="facebook"] {
+  color: var(--color-facebook);
+}
+
+.social-icon--facebook:hover,
+.social-link--facebook:hover,
+.social-button[data-social="facebook"]:hover {
+  background-color: rgba(24, 119, 242, 0.1);
+  box-shadow: 0 8px 24px rgba(24, 119, 242, 0.2);
+}
+
+/* Twitter */
+.social-icon--twitter,
+.social-link--twitter,
+.social-button[data-social="twitter"] {
+  color: var(--color-twitter);
+}
+
+.social-icon--twitter:hover,
+.social-link--twitter:hover,
+.social-button[data-social="twitter"]:hover {
+  background-color: rgba(29, 161, 242, 0.1);
+  box-shadow: 0 8px 24px rgba(29, 161, 242, 0.2);
+}
+
+/* LinkedIn */
+.social-icon--linkedin,
+.social-link--linkedin,
+.social-button[data-social="linkedin"] {
+  color: var(--color-linkedin);
+}
+
+.social-icon--linkedin:hover,
+.social-link--linkedin:hover,
+.social-button[data-social="linkedin"]:hover {
+  background-color: rgba(10, 102, 194, 0.1);
+  box-shadow: 0 8px 24px rgba(10, 102, 194, 0.2);
+}
+
+/* Instagram */
+.social-icon--instagram,
+.social-link--instagram,
+.social-button[data-social="instagram"] {
+  color: var(--color-instagram);
+}
+
+.social-icon--instagram:hover,
+.social-link--instagram:hover,
+.social-button[data-social="instagram"]:hover {
+  background: linear-gradient(
+    135deg,
+    #f09433,
+    #e6683c,
+    #dc2743,
+    #cc2366,
+    #bc1888
+  );
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(225, 48, 108, 0.2);
+}
+
+/* YouTube */
+.social-icon--youtube,
+.social-link--youtube,
+.social-button[data-social="youtube"] {
+  color: var(--color-youtube);
+}
+
+.social-icon--youtube:hover,
+.social-link--youtube:hover,
+.social-button[data-social="youtube"]:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(255, 0, 0, 0.2);
+}
+
+/* Mobile: Reduced size */
+@media (max-width: 640px) {
+  .social-icon,
+  .social-link,
+  .social-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .social-icon svg,
+  .social-link svg,
+  .social-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .social-icons,
+  .social-links,
+  .social-media {
+    gap: 0.75rem;
+  }
+}
+
+/* ============================================
+   5. BANNIÈRE VIDÉOS MODERNE
+   ============================================
+   INSPIRATION: Netflix, Vimeo, Premium platforms
+   DESIGN: Gradient, pattern, metadata spacing
+   ============================================ */
+
+/* Video Banner Container */
+.video-banner,
+.video-header,
+.course-banner {
+  position: relative;
+  padding: clamp(2rem, 8vw, 4rem);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  overflow: hidden;
+  color: white;
+  margin-bottom: var(--space-2xl);
+}
+
+/* SVG Pattern Background (Subtle) */
+.video-banner::before,
+.video-header::before,
+.course-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-size: 60px 60px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Content wrapper */
+.video-banner__content,
+.video-header__content,
+.course-banner__content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+/* Left content */
+.video-banner__text,
+.video-header__text,
+.course-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Banner Title */
+.video-banner__title,
+.video-header__title,
+.course-banner__title {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+/* Banner Description */
+.video-banner__description,
+.video-header__description,
+.course-banner__description {
+  font-size: clamp(0.9375rem, 2vw, 1.125rem);
+  line-height: 1.6;
+  opacity: 0.95;
+  max-width: 90%;
+}
+
+/* Banner Metadata */
+.video-banner__meta,
+.video-header__meta,
+.course-banner__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Meta item */
+.video-banner__meta-item,
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9375rem;
+}
+
+.video-banner__meta-item svg,
+.meta-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Right side - Video visual/image */
+.video-banner__visual,
+.video-header__visual,
+.course-banner__visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.video-banner__visual img,
+.video-header__visual img,
+.course-banner__visual img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Play Button Overlay */
+.video-play-button {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.video-play-button:hover {
+  transform: scale(1.15);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.video-play-button svg {
+  width: 28px;
+  height: 28px;
+  color: #667eea;
+  margin-left: 2px;
+}
+
+/* Mobile: Stack vertical */
+@media (max-width: 768px) {
+  .video-banner,
+  .video-header,
+  .course-banner {
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+  }
+
+  .video-banner__content,
+  .video-header__content,
+  .course-banner__content {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .video-banner__meta,
+  .video-header__meta,
+  .course-banner__meta {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .video-banner__visual,
+  .video-header__visual,
+  .course-banner__visual {
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+
+/* Small Mobile: Extra compact */
+@media (max-width: 480px) {
+  .video-banner,
+  .video-header,
+  .course-banner {
+    padding: clamp(1rem, 4vw, 1.5rem);
+  }
+
+  .video-banner__title,
+  .video-header__title,
+  .course-banner__title {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+  }
+
+  .video-banner__description,
+  .video-header__description,
+  .course-banner__description {
+    font-size: 0.875rem;
+    max-width: 100%;
+  }
+
+  .video-play-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .video-play-button svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ============================================
+   6. TYPOGRAPHIE RESPONSIVE GLOBALE
+   ============================================
+   PRINCIPE: Typography 15-25% plus petit sur mobile
+   SOLUTION: clamp() pour scaling fluide
+   ============================================ */
+
+/* Headings */
+h1 {
+  font-size: clamp(1.875rem, 6vw, 3rem);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  line-height: 1.3;
+  letter-spacing: -0.25px;
+}
+
+h3 {
+  font-size: clamp(1.25rem, 4vw, 1.875rem);
+  line-height: 1.4;
+}
+
+h4 {
+  font-size: clamp(1.0625rem, 3vw, 1.5rem);
+  line-height: 1.4;
+}
+
+h5 {
+  font-size: clamp(0.9375rem, 2.5vw, 1.25rem);
+  line-height: 1.5;
+}
+
+h6 {
+  font-size: clamp(0.875rem, 2vw, 1.125rem);
+  line-height: 1.5;
+}
+
+/* Body Text */
+body,
+p,
+span {
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  line-height: 1.6;
+}
+
+/* Small text */
+small,
+.text-small {
+  font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  line-height: 1.5;
+}
+
+/* Large text */
+.text-large {
+  font-size: clamp(1.0625rem, 2.5vw, 1.25rem);
+  line-height: 1.5;
+}
+
+/* Extra large text */
+.text-xl {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  line-height: 1.4;
+}
+
+/* Mobile: Optimize line-height for readability */
+@media (max-width: 640px) {
+  h1,
+  h2,
+  h3 {
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-md);
+  }
+
+  h4,
+  h5,
+  h6 {
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+
+  p {
+    line-height: 1.65;
+    margin-bottom: var(--space-md);
+  }
+
+  body {
+    line-height: 1.6;
+  }
+}
+
+/* ============================================
+   7. UTILITAIRES & FIX GLOBAUX
+   ============================================ */
+
+/* Ensure images responsive everywhere */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Touch target minimum (44x44px) */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (max-width: 640px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  [role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Animation utility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   END OF RESPONSIVE MOBILE FIXES
+   ============================================ */
