@@ -29,7 +29,7 @@ export class AuthApi {
     return data;
   }
 
-  static async register(data: RegisterData): Promise<AuthResponse> {
+  static async register(data: RegisterData): Promise<User> {
     const res = await fetch(`${this.BASE_URL}/user/create-account`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -78,15 +78,22 @@ export class AuthApi {
     }
   }
 
-  static async verifyEmail(token: string): Promise<void> {
+  static async verifyEmail(token: string): Promise<{ message: string }> {
     const res = await fetch(`${this.BASE_URL}/user/verify-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ token }),
     });
-    if (!res.ok)
-      throw new Error((await res.json()).message || "Échec de la vérification");
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Échec de la vérification");
+    }
+
+    return data;
   }
 
   static async refreshToken(): Promise<boolean> {

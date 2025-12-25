@@ -24,12 +24,11 @@ export interface LoginData {
 }
 
 export interface RegisterData {
-  username: string;
   email: string;
   password: string;
-  first_name: string;
-  last_name: string;
-  region?: string;
+  firstName: string;
+  lastName: string;
+  role: string;
 }
 
 export interface AuthResponse {

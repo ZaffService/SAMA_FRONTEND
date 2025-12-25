@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { AuthApi } from "@/infrastructure/api/auth-api";
 
 export const dynamic = "force-dynamic";
 
@@ -26,32 +27,19 @@ export default function VerifyEmail() {
       return;
     }
 
-    // Appeler notre endpoint Next.js pour vérifier l'email
+    // Appeler l'endpoint backend pour vérifier l'email
     const verifyEmail = async () => {
       try {
         console.log("🔍 Vérification de l'email avec le token:", token);
 
-        const response = await fetch("...", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
+        const data = await AuthApi.verifyEmail(token);
         console.log("📊 Réponse de vérification:", data);
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Erreur de vérification");
-        }
 
         // ✅ Email vérifié avec succès!
         // Afficher le message de succès
         setStatus("success");
         setMessage(
-          "Votre email a été vérifié avec succès! Vous pouvez maintenant vous connecter.",
+          data.message || "Votre email a été vérifié avec succès! Vous pouvez maintenant vous connecter.",
         );
 
         // Redirection vers LOGIN après 2 secondes
