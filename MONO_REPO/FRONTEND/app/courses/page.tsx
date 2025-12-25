@@ -12,7 +12,6 @@ import {
   Users,
   ChevronDown,
 } from "lucide-react";
-import { CourseCard } from "@/components/course-card";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { HeroBanner } from "@/components/hero-banner";
@@ -21,6 +20,7 @@ import Swal from "sweetalert2";
 import { useCourses } from "@/application/use-cases/useCourses";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { CourseCard } from "@/components/course-card";
 
 const CoursesPage = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();

@@ -6,11 +6,16 @@ import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { getYoutubeVideoId } from "@/lib/utils";
 import { useYoutubePlayerSimple } from "@/hooks/useYoutubePlayerSimple";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { LockedVideoOverlay } from "@/components/LockedVideoOverlay";
+import { PaymentModal } from "@/components/payment-modal";
+import { OrangeMoneyOtpModal } from "@/components/OrangeMoneyOtpModal";
+import { WaveQrModal } from "@/components/WaveQrModal";
+import { PaymentSuccessModal } from "@/components/PaymentSuccessModal";
 import {
   Play,
   Pause,
   ArrowLeft,
-  Heart,
   Volume2,
   VolumeX,
   Cast,
@@ -19,6 +24,7 @@ import {
   ChevronDown,
   X,
   Maximize,
+  Lock,
 } from "lucide-react";
 
 interface CourseDetailsData {
@@ -53,6 +59,7 @@ interface CourseDetailsData {
 function CourseDetailsPageComponent() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useLocalAuth();
   const courseId = params?.id as string;
 
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
@@ -68,6 +75,16 @@ function CourseDetailsPageComponent() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Course access states
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [isFree, setIsFree] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showOrangeOtpModal, setShowOrangeOtpModal] = useState(false);
+  const [showWaveQrModal, setShowWaveQrModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -99,6 +116,13 @@ function CourseDetailsPageComponent() {
         );
 
         setCourseData(data);
+
+        // Détecter le type de cours
+        const courseIsFree = data.course.price === 0 || data.course.isFree === true;
+        setIsFree(courseIsFree);
+
+        // Vérifier le statut d'inscription
+        await checkEnrollmentStatus();
 
         if (data.modules && data.modules.length > 0) {
           console.log("📖 Composant: Premier module:", data.modules[0].title);
@@ -142,6 +166,145 @@ function CourseDetailsPageComponent() {
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+  };
+
+  // Gestion de l'inscription gratuite
+  const handleFreeEnrollment = async () => {
+    if (!user?.id || !courseId) return;
+
+    try {
+      setEnrolling(true);
+      // Appeler l'API d'inscription
+      const response = await fetch('http://localhost:3006/course/enrollment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Pour inclure les cookies d'authentification
+        body: JSON.stringify({
+          courseId: courseId,
+          userId: user.id.toString(),
+        }),
+      });
+
+      if (response.ok) {
+        setIsEnrolled(true);
+        // Afficher message de succès
+        // TODO: Afficher modal de succès ou toast
+        console.log('Inscription gratuite réussie');
+      } else {
+        console.error('Erreur lors de l\'inscription gratuite');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'inscription gratuite:', error);
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  // Gestion du clic sur le bouton d'inscription/paiement
+  const handleEnrollClick = () => {
+    if (isFree) {
+      handleFreeEnrollment();
+    } else {
+      setShowPaymentModal(true);
+    }
+  };
+
+  // Gestion des sélections de méthode de paiement
+  const handleOrangeSelected = () => {
+    setShowOrangeOtpModal(true);
+  };
+
+  const handleWaveSelected = () => {
+    setShowWaveQrModal(true);
+  };
+
+  const handleCardSelected = () => {
+    // TODO: Implémenter le paiement par carte
+    console.log("Paiement par carte sélectionné");
+  };
+
+  // Vérifier le statut d'inscription au chargement
+  const checkEnrollmentStatus = async () => {
+    if (!user?.id || !courseId) {
+      console.log('ℹ️ Pas d\'utilisateur ou courseId, skip vérification inscription');
+      return;
+    }
+
+    try {
+      console.log('🔍 Vérification statut d\'inscription...');
+      // Essayer de récupérer le cours avec l'endpoint follow (qui nécessite d'être inscrit)
+      const response = await fetch(`http://localhost:3006/course/follow/${courseId}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        console.log('✅ Utilisateur déjà inscrit au cours');
+        setIsEnrolled(true);
+        setIsPaid(true); // Si on peut accéder au follow, c'est qu'on est payé/inscrit
+      } else {
+        console.log('ℹ️ Utilisateur non inscrit ou accès refusé');
+        setIsEnrolled(false);
+        setIsPaid(false);
+      }
+    } catch (error) {
+      console.log('ℹ️ Erreur vérification inscription, utilisateur probablement non inscrit:', error);
+      setIsEnrolled(false);
+      setIsPaid(false);
+    }
+  };
+
+  // Gestion du succès de paiement
+  const handlePaymentSuccess = async () => {
+    if (!user?.id || !courseId) return;
+
+    try {
+      // Appeler l'API d'inscription après paiement réussi
+      const response = await fetch('http://localhost:3006/course/enrollment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          courseId: courseId,
+          userId: user.id.toString(),
+        }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Enrollment réussi après paiement');
+        console.log('📊 États après enrollment:', {
+          isEnrolled: true,
+          isPaid: true,
+          isFree,
+          canAccessContent: true || (true && true)
+        });
+        // CRUCIAL : Mettre à jour les états immédiatement
+        setIsEnrolled(true);
+        setIsPaid(true);
+        setShowSuccessModal(true);
+      } else {
+        console.error('Erreur lors de l\'inscription après paiement');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'inscription après paiement:', error);
+    }
+  };
+
+  // Gestion de l'accès au cours après succès
+  const handleAccessCourse = () => {
+    console.log('🎉 Accès au cours activé !');
+    setShowSuccessModal(false);
+
+    // S'assurer que les états sont bien mis à jour (au cas où)
+    setIsEnrolled(true);
+    setIsPaid(true);
+
+    // Optionnel : Recharger les données du cours pour avoir les modules complets
+    // Pour l'instant, on garde simple et on fait confiance aux états
   };
 
   const modules = courseData?.modules || [];
@@ -197,7 +360,7 @@ function CourseDetailsPageComponent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-pink-600"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600"></div>
       </div>
     );
   }
@@ -211,7 +374,7 @@ function CourseDetailsPageComponent() {
           </p>
           <button
             onClick={() => router.back()}
-            className="text-pink-600 hover:underline"
+            className="text-indigo-600 hover:underline"
           >
             Retour
           </button>
@@ -241,6 +404,9 @@ function CourseDetailsPageComponent() {
 
   // ✅ Détermine si on a une vidéo à afficher
   const hasVideo = !!currentVideoId;
+
+  // ✅ Détermine si le cours a du contenu vidéo (leçons avec URLs)
+  const hasVideoContent = lessonsWithVideos.length > 0;
 
 
   return (
@@ -307,34 +473,41 @@ function CourseDetailsPageComponent() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+        <div className={`grid gap-4 lg:gap-8 ${hasVideoContent ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1'}`}>
           {/* Video Section */}
-          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-            {/* Video Player - Only show if lesson has video */}
-            {hasVideo && (
+          <div className={`${hasVideoContent ? 'lg:col-span-2' : ''} space-y-4 lg:space-y-6`}>
+            {/* Video Player - Only show if lesson has video AND course has video content */}
+            {hasVideo && hasVideoContent && (
               <div className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg">
                 <div className="aspect-video relative">
-                  {isReady && youtubeUrl ? (
-                    <iframe
-                      key={selectedLessonId}
-                      src={youtubeUrl}
-                      className="w-full h-full"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      title={selectedLesson?.title || course.title}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                      <div className="text-center text-white">
-                        <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-                          <Play className="w-8 h-8 lg:w-10 lg:h-10 text-gray-400" />
+                  {/* Rendu conditionnel complet - PAS d'overlay sur la vidéo */}
+                  {isFree || isEnrolled ? (
+                    // ✅ ACCÈS AUTORISÉ - Afficher la vraie vidéo
+                    isReady && youtubeUrl ? (
+                      <iframe
+                        key={selectedLessonId}
+                        src={youtubeUrl}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={selectedLesson?.title || course.title}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                        <div className="text-center text-white">
+                          <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
+                            <Play className="w-8 h-8 lg:w-10 lg:h-10 text-gray-400" />
+                          </div>
+                          <p className="text-gray-400">
+                            Chargement de la vidéo...
+                          </p>
                         </div>
-                        <p className="text-gray-400">
-                          Chargement de la vidéo...
-                        </p>
                       </div>
-                    </div>
+                    )
+                  ) : (
+                    // ❌ ACCÈS REFUSÉ - Afficher seulement l'overlay SANS vidéo
+                    <LockedVideoOverlay onUnlockClick={handleEnrollClick} />
                   )}
                 </div>
               </div>
@@ -354,15 +527,15 @@ function CourseDetailsPageComponent() {
 
               <div className="flex-1" />
 
-              <button className="px-4 lg:px-6 py-2 lg:py-2.5 bg-pink-600 text-white text-sm lg:text-base font-semibold rounded-full hover:bg-pink-700 transition-colors shadow-sm">
-                S'inscrire
-              </button>
-              <button className="flex items-center gap-2 p-2 lg:px-4 lg:py-2.5 border border-gray-300 text-gray-700 font-medium rounded-full hover:bg-gray-100 transition-colors">
-                <Heart className="w-4 h-4" />
-                <span className="hidden lg:inline text-sm lg:text-base">
-                  Ajouter aux favoris
-                </span>
-              </button>
+              {!isEnrolled && hasVideoContent && (
+                <button
+                  onClick={handleEnrollClick}
+                  disabled={enrolling}
+                  className="px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm lg:text-base font-semibold rounded-full hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {enrolling ? "Inscription..." : (isFree ? "S'inscrire Gratuitement" : "S'inscrire")}
+                </button>
+              )}
             </div>
 
             {/* Course Description */}
@@ -388,48 +561,49 @@ function CourseDetailsPageComponent() {
             </div>
           </div>
 
-          {/* Sidebar - Lessons List */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg lg:rounded-xl border border-gray-200 shadow-sm lg:sticky lg:top-24">
+          {/* Sidebar - Lessons List - Only show if course has video content */}
+          {hasVideoContent && (
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg lg:rounded-xl border border-gray-200 shadow-sm lg:sticky lg:top-24">
               {/* Tabs */}
               <div className="flex border-b border-gray-200">
                 <button
                   onClick={() => setActiveTab("videos")}
                   className={`flex-1 py-2.5 lg:py-3 px-3 lg:px-4 text-xs lg:text-sm font-medium transition-colors relative ${
                     activeTab === "videos"
-                      ? "text-pink-600"
+                      ? "text-indigo-600"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   Vidéos
                   {activeTab === "videos" && (
-                    <div className="absolute bottom-0 left-3 right-3 lg:left-4 lg:right-4 h-0.5 bg-pink-600 rounded-full" />
+                    <div className="absolute bottom-0 left-3 right-3 lg:left-4 lg:right-4 h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full" />
                   )}
                 </button>
                 <button
                   onClick={() => setActiveTab("resources")}
                   className={`flex-1 py-2.5 lg:py-3 px-3 lg:px-4 text-xs lg:text-sm font-medium transition-colors relative ${
                     activeTab === "resources"
-                      ? "text-pink-600"
+                      ? "text-indigo-600"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   Ressources
                   {activeTab === "resources" && (
-                    <div className="absolute bottom-0 left-3 right-3 lg:left-4 lg:right-4 h-0.5 bg-pink-600 rounded-full" />
+                    <div className="absolute bottom-0 left-3 right-3 lg:left-4 lg:right-4 h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full" />
                   )}
                 </button>
                 <button
                   onClick={() => setActiveTab("support")}
                   className={`flex-1 py-2.5 lg:py-3 px-3 lg:px-4 text-xs lg:text-sm font-medium transition-colors relative ${
                     activeTab === "support"
-                      ? "text-pink-600"
+                      ? "text-indigo-600"
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   Support
                   {activeTab === "support" && (
-                    <div className="absolute bottom-0 left-3 right-3 lg:left-4 lg:right-4 h-0.5 bg-pink-600 rounded-full" />
+                    <div className="absolute bottom-0 left-3 right-3 lg:left-4 lg:right-4 h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full" />
                   )}
                 </button>
               </div>
@@ -448,11 +622,11 @@ function CourseDetailsPageComponent() {
                         <div key={module.id} className="mb-2">
                           <button
                             onClick={() => toggleModule(module.id)}
-                            className="w-full flex items-center justify-between p-2.5 lg:p-3 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+                            className="w-full flex items-center justify-between p-2.5 lg:p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left group"
                           >
                             <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
-                              <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-pink-100 flex items-center justify-center flex-shrink-0">
-                                <span className="text-xs lg:text-sm font-bold text-pink-600">
+                              <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs lg:text-sm font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                                   {moduleIndex + 1}
                                 </span>
                               </div>
@@ -491,22 +665,22 @@ function CourseDetailsPageComponent() {
                                   }}
                                   className={`w-full flex items-start gap-2 lg:gap-3 p-2.5 lg:p-3 pl-3 lg:pl-4 rounded-lg transition-colors text-left ${
                                     selectedLessonId === lesson.id
-                                      ? "bg-pink-50"
+                                      ? "bg-gradient-to-r from-indigo-50 to-purple-50"
                                       : "hover:bg-gray-50"
                                   }`}
                                 >
                                   <div
                                     className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                                       selectedLessonId === lesson.id
-                                        ? "bg-pink-600"
-                                        : "bg-pink-100"
+                                        ? "bg-gradient-to-r from-indigo-600 to-purple-600"
+                                        : "bg-gradient-to-r from-indigo-100 to-purple-100"
                                     }`}
                                   >
                                     <Play
                                       className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${
                                         selectedLessonId === lesson.id
                                           ? "text-white"
-                                          : "text-pink-600"
+                                          : "text-indigo-600"
                                       } fill-current ml-0.5`}
                                     />
                                   </div>
@@ -548,7 +722,7 @@ function CourseDetailsPageComponent() {
                       Besoin d'aide ? Contactez notre équipe de support à{" "}
                       <a
                         href="mailto:support@bibocomdigital.com"
-                        className="text-pink-600 hover:underline break-all"
+                        className="text-indigo-600 hover:underline break-all"
                       >
                         support@bibocomdigital.com
                       </a>
@@ -558,8 +732,44 @@ function CourseDetailsPageComponent() {
               </div>
             </div>
           </div>
+          )}
         </div>
       </main>
+
+      {/* Payment Modals */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        courseId={courseId}
+        courseTitle={course?.title || ""}
+        coursePrice={course?.price || 0}
+        onOrangeSelected={handleOrangeSelected}
+        onWaveSelected={handleWaveSelected}
+        onCardSelected={handleCardSelected}
+      />
+
+      <OrangeMoneyOtpModal
+        isOpen={showOrangeOtpModal}
+        onClose={() => setShowOrangeOtpModal(false)}
+        onSuccess={handlePaymentSuccess}
+        courseTitle={course?.title || ""}
+        coursePrice={course?.price || 0}
+      />
+
+      <WaveQrModal
+        isOpen={showWaveQrModal}
+        onClose={() => setShowWaveQrModal(false)}
+        onSuccess={handlePaymentSuccess}
+        courseTitle={course?.title || ""}
+        coursePrice={course?.price || 0}
+      />
+
+      <PaymentSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        courseTitle={course?.title || ""}
+        onAccessCourse={handleAccessCourse}
+      />
     </div>
   );
 }
