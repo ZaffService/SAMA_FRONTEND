@@ -9,8 +9,11 @@ import {
   AlertCircle,
   Lock,
 } from "lucide-react";
+import { AuthApi } from "@/infrastructure/api/auth-api";
+import { useSearchParams } from "next/navigation";
 
 export default function ResetPassword() {
+  const searchParams = useSearchParams();
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,18 +27,16 @@ export default function ResetPassword() {
     confirmPassword?: string;
   }>({});
 
-  // Simuler la récupération du token depuis l'URL
+  // Récupérer le token depuis l'URL
   useEffect(() => {
-    // Dans une vraie app: const params = new URLSearchParams(window.location.search)
-    // const urlToken = params.get('token')
-    const urlToken = "demo-token-123"; // Simulation
+    const urlToken = searchParams.get('token');
 
     if (!urlToken) {
       setIsTokenValid(false);
     } else {
       setToken(urlToken);
     }
-  }, []);
+  }, [searchParams]);
 
   const validateForm = () => {
     const newErrors: { password?: string; confirmPassword?: string } = {};
@@ -57,7 +58,7 @@ export default function ResetPassword() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -66,16 +67,25 @@ export default function ResetPassword() {
 
     setIsLoading(true);
 
-    // Simulation de l'appel API
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await AuthApi.resetPassword(token, password, confirmPassword);
       setIsSuccess(true);
 
       // Redirection après 3 secondes
       setTimeout(() => {
         window.location.href = "/login";
       }, 3000);
-    }, 2000);
+    } catch (err: any) {
+      console.error("Erreur lors de la réinitialisation:", err);
+      // Pour les erreurs de token invalide/expiré, on peut gérer différemment
+      if (err.message.includes("token") || err.message.includes("expiré")) {
+        setIsTokenValid(false);
+      } else {
+        setErrors({ password: err.message || "Une erreur est survenue" });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Token invalide ou expiré

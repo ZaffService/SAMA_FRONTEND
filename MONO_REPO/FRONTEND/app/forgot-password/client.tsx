@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { AuthApi } from "@/infrastructure/api/auth-api";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,7 @@ export default function ForgotPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -20,11 +21,15 @@ export default function ForgotPassword() {
 
     setIsLoading(true);
 
-    // Simulation de l'envoi
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await AuthApi.requestPasswordReset(email);
       setIsSuccess(true);
-    }, 2000);
+    } catch (err: any) {
+      console.error("Erreur lors de la demande de réinitialisation:", err);
+      setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSuccess) {

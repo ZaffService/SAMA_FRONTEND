@@ -101,6 +101,38 @@ export class AuthApi {
     return false;
   }
 
+  static async requestPasswordReset(email: string): Promise<{ message: string }> {
+    const res = await fetch(`${this.BASE_URL}/user/request-password-reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Échec de la demande de réinitialisation");
+    }
+
+    return data;
+  }
+
+  static async resetPassword(token: string, password: string, confirmPassword: string): Promise<{ message: string }> {
+    const res = await fetch(`${this.BASE_URL}/user/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password, confirmPassword }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Échec de la réinitialisation du mot de passe");
+    }
+
+    return data;
+  }
+
   static getGoogleAuthUrl(): string {
     // TODO: Implement Google auth URL
     return "";

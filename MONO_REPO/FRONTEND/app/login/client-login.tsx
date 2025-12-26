@@ -104,6 +104,8 @@ export default function ClientLogin() {
         setFormErrors({ email: "Cette adresse email n'existe pas" });
       } else if (err.message === 'INCORRECT_PASSWORD') {
         setFormErrors({ password: 'Mot de passe incorrect' });
+      } else if (err.message === 'EMAIL_NOT_VERIFIED') {
+        setFormErrors({ general: "Veuillez vérifier votre email avant de vous connecter" });
       } else {
         setFormErrors({ general: err.message || 'Erreur de connexion' });
       }
