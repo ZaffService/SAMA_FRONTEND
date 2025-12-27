@@ -58,3 +58,43 @@ export interface CourseDetailsResponse {
   };
   moduleCount: number;
 }
+
+// Quiz types
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  type: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+  options?: string[];
+  correctAnswer: string;
+  explanation?: string;
+  points: number;
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  description?: string;
+  lessonId?: string;
+  moduleId?: string;
+  passingScore: number;
+  questions: QuizQuestion[];
+  timeLimit?: number;
+}
+
+export interface QuizAttempt {
+  id: string;
+  quizId: string;
+  studentId: string;
+  answers: Record<string, string>;
+  score?: number;
+  passed: boolean;
+  submittedAt?: string;
+}
+
+// Lesson progress tracking
+export interface LessonProgress {
+  lessonId: string;
+  completed: boolean;
+  quizPassed?: boolean;
+  completedAt?: string;
+}

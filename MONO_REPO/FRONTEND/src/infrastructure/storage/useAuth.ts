@@ -116,13 +116,7 @@ export function useProvideAuth(): AuthContextType {
     setIsLoading(true);
 
     try {
-      await AuthApi.register({
-        username: data.email,
-        email: data.email,
-        password: data.password,
-        first_name: data.firstName,
-        last_name: data.lastName,
-      });
+      await AuthApi.register(data);
     } catch (error) {
       throw error;
     } finally {

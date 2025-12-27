@@ -41,85 +41,52 @@ function useTypewriter(words: string[], speed = 100, delayBetween = 2000) {
   return words[index].substring(0, subIndex);
 }
 
-// Fonction pour jouer le son de notification
-const playNotificationSound = () => {
-  try {
-    const audioContext = new (
-      window.AudioContext || (window as any).webkitAudioContext
-    )();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.frequency.value = 800;
-    oscillator.type = "sine";
-
-    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.01,
-      audioContext.currentTime + 0.15,
-    );
-
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.15);
-  } catch (e) {
-    console.log("Audio not supported");
-  }
-};
-
-// Données des témoignages
+// Données des témoignages - VRAIS TÉMOIGNAGES BIBOCOM DIGITAL
 const testimonials = [
   {
     id: 1,
-    name: "Aminata Diop",
-    role: "Community Manager",
+    name: "Youssouf Issa Bilal",
     image: "/avatars/avatar1.jpg",
     rating: 5,
     comment:
-      "Formation excellente ! J'ai doublé mon engagement sur les réseaux sociaux en 2 mois.",
+      "De la découverte en ligne à la réussite professionnelle : mon parcours avec Bibocom Digital",
     color: "from-blue-500 to-blue-600",
   },
   {
     id: 2,
-    name: "Moussa Sarr",
-    role: "Entrepreneur",
+    name: "Nogoye Gueye",
     image: "/avatars/avatar2.jpg",
     rating: 5,
     comment:
-      "Les stratégies enseignées sont concrètes et faciles à appliquer. Très satisfait !",
+      "Chez Bibocom Digital, chaque formation est une expérience qui révèle des talents, forge des compétences et redéfinit des parcours.",
     color: "from-purple-500 to-purple-600",
   },
   {
     id: 3,
-    name: "Fatou Ndiaye",
-    role: "Marketing Digital",
+    name: "Fatou Sow",
     image: "/avatars/avatar3.jpg",
     rating: 5,
     comment:
-      "J'ai enfin compris comment créer du contenu qui convertit. Merci !",
+      "Mon parcours de reconversion avec BiBocom Digital : une renaissance professionnelle",
     color: "from-pink-500 to-pink-600",
   },
   {
     id: 4,
-    name: "Omar Ba",
-    role: "Créateur de contenu",
+    name: "Mamadou Lamine Djiba",
     image: "/avatars/avatar4.jpg",
     rating: 5,
     comment:
-      "Le meilleur investissement pour ma carrière digitale. Je recommande à 100% !",
+      "Quand une simple visite devient une révélation.",
     color: "from-indigo-500 to-indigo-600",
   },
   {
     id: 5,
-    name: "Aïcha Kane",
-    role: "Social Media Manager",
+    name: "El Hadji Ibrahima Fall",
     image: "/avatars/avatar5.jpg",
     rating: 5,
     comment:
-      "Formation complète avec un support incroyable. J'ai appris énormément !",
+      "Le Digital a transformé ma vision du monde... grâce à Bibocom Digital.",
     color: "from-teal-500 to-teal-600",
   },
 ];
@@ -136,7 +103,6 @@ const TestimonialCircle = ({
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-    playNotificationSound();
   };
 
   return (
@@ -197,7 +163,6 @@ const TestimonialCircle = ({
                 <div className="font-bold text-slate-900 text-base">
                   {testimonial.name}
                 </div>
-                <div className="text-sm text-slate-500">{testimonial.role}</div>
               </div>
             </div>
 
@@ -260,7 +225,6 @@ const TestimonialCard = ({
           <div className="font-bold text-slate-900 text-sm">
             {testimonial.name}
           </div>
-          <div className="text-xs text-slate-500">{testimonial.role}</div>
         </div>
       </div>
 

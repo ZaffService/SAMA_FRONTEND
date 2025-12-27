@@ -140,6 +140,7 @@ export default function Register() {
         firstName: formData.firstName,
         lastName: formData.lastName,
         role: "STUDENT", // Role par défaut géré en background
+        acceptTerms: formData.acceptTerms,
       };
 
       const response = await AuthApi.register(registrationData);

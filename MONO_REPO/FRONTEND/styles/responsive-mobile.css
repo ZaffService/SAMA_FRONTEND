@@ -800,9 +800,9 @@ input[type="submit"],
   }
 }
 
-/* Smooth scrolling */
+/* Smooth scrolling disabled to prevent automatic scroll to top on state changes */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Animation utility */

@@ -1,22 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, Pacifico } from "next/font/google";
 import "./globals.css";
 import "../styles/responsive-mobile.css";
 import { Providers } from "@/components/providers";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-  fallback: ["system-ui", "sans-serif"],
-});
-const pacifico = Pacifico({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-pacifico",
-  display: "swap",
-  fallback: ["cursive", "system-ui", "sans-serif"],
-});
 
 export const metadata: Metadata = {
   title: "Bibocom digital - Plateforme E-Learning",
@@ -42,7 +27,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body
-        className={`${inter.className} ${pacifico.variable} font-sans antialiased`}
+        className="font-sans antialiased"
+        style={{
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+        }}
       >
         <Providers>{children}</Providers>
         {/* <Analytics /> */}

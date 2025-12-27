@@ -187,6 +187,61 @@ export class CoursesApi {
   }
 
   /**
+   * Récupère le contenu d'un cours avec la progression de l'utilisateur (pour utilisateurs inscrits)
+   */
+  static async getCourseWithProgress(courseId: string): Promise<any> {
+    console.log(`🔍 API: Récupération du cours avec progression: ${courseId}`);
+
+    const response = await fetch(
+      `${this.BASE_URL}/course/follow/${courseId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch course with progress: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(
+      "📦 API: Réponse backend complète avec progression:",
+      JSON.stringify(data, null, 2),
+    );
+
+    return data;
+  }
+
+  /**
+   * Marque une leçon comme terminée
+   */
+  static async markLessonCompleted(lessonId: string): Promise<{ success: boolean }> {
+    console.log(`✅ API: Marquage de la leçon ${lessonId} comme terminée`);
+
+    const response = await fetch(
+      `${this.BASE_URL}/course/lesson/${lessonId}/complete`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to mark lesson completed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  /**
    * Mapper pour les cours de la liste (léger)
    */
   private static mapBackendCourseToFrontend(

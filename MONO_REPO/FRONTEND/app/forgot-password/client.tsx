@@ -42,15 +42,6 @@ export default function ForgotPassword() {
         </div>
 
         <div className="relative z-10 w-full max-w-md">
-          {/* BIBOCOM Logo */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <span className="text-3xl font-bold text-blue-600">BIBOCOM</span>
-              <span className="text-xs font-semibold text-red-500 bg-red-100 px-2 py-1 rounded">
-                DIGITAL
-              </span>
-            </div>
-          </div>
 
           {/* Success Card */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
@@ -71,7 +62,8 @@ export default function ForgotPassword() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-blue-800">
-                📧 Vérifiez votre boîte de réception et cliquez sur le lien pour
+                <Mail className="inline w-4 h-4 mr-2" />
+                Vérifiez votre boîte de réception et cliquez sur le lien pour
                 réinitialiser votre mot de passe.
               </p>
             </div>
@@ -213,16 +205,6 @@ export default function ForgotPassword() {
         </div>
 
         <div className="max-w-md text-white relative z-10">
-          {/* BIBOCOM Logo */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <span className="text-3xl font-bold text-white">BIBOCOM</span>
-              <span className="text-xs font-semibold text-red-500 bg-white px-2 py-1 rounded">
-                DIGITAL
-              </span>
-            </div>
-          </div>
-
           <div className="text-center mb-8">
             <div className="mb-6 flex justify-center">
               <div className="w-24 h-24 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">

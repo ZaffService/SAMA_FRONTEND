@@ -1,16 +1,17 @@
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import type {
   LoginData,
-  RegisterData,
   AuthResponse,
 } from "@/domain/entities/user";
+import type { RegisterData } from "@/types/auth";
+import type { User } from "@/domain/entities/user";
 
 export class AuthUseCases {
   static async login(credentials: LoginData): Promise<AuthResponse> {
     return AuthApi.login(credentials);
   }
 
-  static async register(userData: RegisterData): Promise<AuthResponse> {
+  static async register(userData: RegisterData): Promise<User> {
     return AuthApi.register(userData);
   }
 

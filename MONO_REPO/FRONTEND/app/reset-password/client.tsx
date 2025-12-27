@@ -8,6 +8,7 @@ import {
   CheckCircle,
   AlertCircle,
   Lock,
+  Check,
 } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useSearchParams } from "next/navigation";
@@ -394,8 +395,9 @@ export default function ResetPassword() {
 
           <div className="space-y-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <h4 className="font-semibold text-sm mb-2">
-                ✓ Conseils pour un bon mot de passe :
+              <h4 className="font-semibold text-sm mb-2 flex items-center">
+                <Check className="w-4 h-4 mr-2" />
+                Conseils pour un bon mot de passe :
               </h4>
               <ul className="text-xs text-white/70 space-y-1.5">
                 <li>• Au moins 6 caractères</li>

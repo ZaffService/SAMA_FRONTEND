@@ -1,9 +1,9 @@
 import type {
   User,
   LoginData,
-  RegisterData,
   AuthResponse,
 } from "@/domain/entities/user";
+import type { RegisterData } from "@/types/auth";
 
 export class AuthApi {
   private static readonly BASE_URL = "http://localhost:3006";
@@ -30,11 +30,12 @@ export class AuthApi {
   }
 
   static async register(data: RegisterData): Promise<User> {
+    const { acceptTerms, ...payload } = data;
     const res = await fetch(`${this.BASE_URL}/user/create-account`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (!res.ok)
       throw new Error((await res.json()).message || "Échec de l'inscription");

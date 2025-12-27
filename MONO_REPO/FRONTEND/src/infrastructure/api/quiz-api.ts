@@ -60,7 +60,66 @@ export interface QuizResult {
 }
 
 export class QuizApi {
-  private static readonly BASE_URL = "";
+  private static readonly BASE_URL = "http://localhost:3006";
+
+  /**
+   * Récupérer les questions d'un quiz
+   */
+  static async getQuizQuestions(quizId: string): Promise<{
+    quiz: {
+      id: string;
+      title: string;
+      description?: string;
+      passingScore: number;
+    };
+    questions: Array<{
+      id: string;
+      question: string;
+      type: string;
+      options?: any;
+      points: number;
+    }>;
+  }> {
+    const response = await fetch(
+      `${this.BASE_URL}/course/quiz/${quizId}/questions`,
+      {
+        method: "GET",
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Erreur lors de la récupération des questions du quiz");
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Soumettre un quiz
+   */
+  static async submitQuiz(quizId: string, answers: Record<string, any>): Promise<{
+    quizId: string;
+    score: number;
+    passed: boolean;
+    answers: Record<string, any>;
+  }> {
+    const response = await fetch(
+      `${this.BASE_URL}/course/quiz/${quizId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ answers }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Erreur lors de la soumission du quiz");
+    }
+
+    return response.json();
+  }
 
   static async getQuizzesByCourse(courseId: number): Promise<Quiz[]> {
     const response = await fetch(

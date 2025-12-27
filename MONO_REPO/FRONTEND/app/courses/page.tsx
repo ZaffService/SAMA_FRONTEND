@@ -5,17 +5,12 @@ import {
   Search,
   X,
   Filter,
-  Star,
-  Clock,
-  DollarSign,
-  BookOpen,
-  Users,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { HeroBanner } from "@/components/hero-banner";
-import { CoursePagination } from "@/components/course-pagination";
 import Swal from "sweetalert2";
 import { useCourses } from "@/application/use-cases/useCourses";
 import type { Course, CourseFilter } from "@/domain/entities/course";
@@ -24,7 +19,6 @@ import { CourseCard } from "@/components/course-card";
 
 const CoursesPage = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
-  const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<CourseFilter>({
     categories: [],
@@ -34,44 +28,30 @@ const CoursesPage = () => {
     rating: [],
   });
 
-  // Utiliser le hook avec pagination pour récupérer les cours
+  // ✅ Hook unique avec gestion intégrée de la pagination et recherche
   const {
     courses,
     loading,
     error,
     total,
     pages,
-    currentPage: apiCurrentPage,
-    refetch,
+    currentPage,
+    filterData,
+    filterLoading,
+    setPage,
+    setSearchQuery,
+    refresh,
   } = useCourses(1, 8);
 
-  // État local pour la pagination (évite les re-renders inutiles)
-  const [localCurrentPage, setLocalCurrentPage] = useState(1);
+  // ✅ État local uniquement pour l'input de recherche (UI)
+  const [searchInputValue, setSearchInputValue] = useState("");
 
-  // Gestion du changement de page (sans appel API immédiat)
-  const handlePageChange = useCallback((page: number) => {
-    setLocalCurrentPage(page);
-  }, []);
-
-  // Appeler l'API seulement quand la page locale change
+  // ✅ Synchroniser l'input avec le hook (debounce géré dans le hook)
   useEffect(() => {
-    if (localCurrentPage !== apiCurrentPage) {
-      refetch(localCurrentPage, 8, {
-        query: searchQuery,
-      });
-    }
-  }, [localCurrentPage, apiCurrentPage, refetch, searchQuery]);
+    setSearchQuery(searchInputValue);
+  }, [searchInputValue, setSearchQuery]);
 
-  // Recharger quand la recherche change
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      refetch(1, 8, { query: searchQuery });
-    }, 300); // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, refetch]);
-
-  // Écouter l'événement pour activer les tutos gratuits
+  // Événement pour activer les tutos gratuits
   useEffect(() => {
     const handleActivateFreeTutorials = () => {
       setShowFilters(true);
@@ -81,28 +61,13 @@ const CoursesPage = () => {
       }));
     };
 
-    window.addEventListener(
-      "activateFreeTutorials",
-      handleActivateFreeTutorials,
-    );
+    window.addEventListener("activateFreeTutorials", handleActivateFreeTutorials);
     return () =>
-      window.removeEventListener(
-        "activateFreeTutorials",
-        handleActivateFreeTutorials,
-      );
+      window.removeEventListener("activateFreeTutorials", handleActivateFreeTutorials);
   }, []);
 
   // Fonctions de gestion des filtres
-  const toggleFilter = (category: keyof CourseFilter, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [category]: (prev[category] as string[])?.includes(value)
-        ? (prev[category] as string[])?.filter((item) => item !== value) || []
-        : [...((prev[category] as string[]) || []), value],
-    }));
-  };
-
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       categories: [],
       levels: [],
@@ -110,12 +75,11 @@ const CoursesPage = () => {
       duration: [],
       rating: [],
     });
-  };
+  }, []);
 
-  // Appliquer tous les filtres
-  const applyFilters = (courses: Course[]) => {
+  // Appliquer les filtres côté client
+  const applyFilters = useCallback((courses: Course[]) => {
     return courses.filter((course) => {
-      // Filtrer par catégories
       if (filters.categories.length > 0) {
         const categoryName =
           typeof course.category === "string"
@@ -125,15 +89,12 @@ const CoursesPage = () => {
           return false;
       }
 
-      // Filtrer par niveau
       if (filters.levels.length > 0) {
         if (!filters.levels.includes(course.level.toLowerCase())) return false;
       }
 
-      // Filtrer par prix
       if (filters.priceRange.length > 0) {
         const isFree = course.price === 0;
-
         if (filters.priceRange.includes("free") && !isFree) return false;
         if (filters.priceRange.includes("paid") && isFree) return false;
         if (filters.priceRange.includes("under-5000") && course.price >= 5000)
@@ -147,7 +108,6 @@ const CoursesPage = () => {
           return false;
       }
 
-      // Filtrer par note
       if (filters.rating.length > 0) {
         if (
           filters.rating.includes("4+") &&
@@ -163,32 +123,12 @@ const CoursesPage = () => {
 
       return true;
     });
-  };
+  }, [filters]);
 
-  // Appliquer la recherche et les filtres
-  let filteredCourses = courses;
-
-  // Appliquer la recherche
-  if (searchQuery) {
-    filteredCourses = filteredCourses.filter(
-      (course) =>
-        course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (course.description &&
-          course.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())) ||
-        (course.tags &&
-          course.tags.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase()),
-          )),
-    );
-  }
-
-  // Appliquer les filtres
-  filteredCourses = applyFilters(filteredCourses);
+  const filteredCourses = applyFilters(courses);
 
   // Handlers pour les actions des cours
-  const handleEnrollClick = (course: Course) => {
+  const handleEnrollClick = useCallback((course: Course) => {
     console.log("Inscription au cours:", course.title);
     Swal.fire({
       title: "<strong>Inscription</strong>",
@@ -196,25 +136,26 @@ const CoursesPage = () => {
       icon: "info",
       confirmButtonText: "OK",
     });
-  };
+  }, []);
 
-  const handleVideoClick = (course: Course) => {
+  const handleVideoClick = useCallback((course: Course) => {
     console.log("Lecture vidéo du cours:", course.title);
 
     if (!isAuthenticated) {
-      // Stocker la destination après connexion
       setRedirectAfterLogin(`/course-details/${course.id}`);
-      // Rediriger vers la page de connexion
       window.location.href = "/login";
       return;
     }
 
-    // Redirection vers la page du cours
     window.location.href = `/course-details/${course.id}`;
-  };
+  }, [isAuthenticated, setRedirectAfterLogin]);
 
-  // Gestion des états de chargement et d'erreur
-  if (loading) {
+  const handlePageChange = useCallback((page: number) => {
+    setPage(page);
+  }, [setPage]);
+
+  // Gestion du loading
+  if (loading && courses.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -243,7 +184,7 @@ const CoursesPage = () => {
             </h2>
             <p className="text-muted-foreground mb-4 max-w-md">{error}</p>
             <button
-              onClick={() => refetch()}
+              onClick={refresh}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
               Réessayer
@@ -253,6 +194,12 @@ const CoursesPage = () => {
       </div>
     );
   }
+
+  const hasActiveFilters = 
+    filters.categories.length > 0 ||
+    filters.levels.length > 0 ||
+    filters.priceRange.length > 0 ||
+    filters.rating.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -265,7 +212,7 @@ const CoursesPage = () => {
               Tous nos cours
             </h1>
 
-            {/* Champ de recherche dynamique */}
+            {/* Champ de recherche */}
             <div className="relative w-full sm:max-w-sm lg:max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
@@ -273,13 +220,13 @@ const CoursesPage = () => {
               <input
                 type="text"
                 placeholder="Rechercher un cours..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInputValue}
+                onChange={(e) => setSearchInputValue(e.target.value)}
                 className="block w-full pl-9 sm:pl-10 pr-10 py-2.5 sm:py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
               />
-              {searchQuery && (
+              {searchInputValue && (
                 <button
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => setSearchInputValue("")}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground hover:text-foreground" />
@@ -289,14 +236,11 @@ const CoursesPage = () => {
           </div>
         </div>
 
-        {/* Section de filtres professionnels */}
+        {/* Section de filtres */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              {(filters.categories.length > 0 ||
-                filters.levels.length > 0 ||
-                filters.priceRange.length > 0 ||
-                filters.rating.length > 0) && (
+              {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
                   className="text-sm text-primary hover:text-primary/80 underline"
@@ -318,14 +262,131 @@ const CoursesPage = () => {
           </div>
 
           {showFilters && (
-            <div className="p-4 sm:p-6 bg-muted/30 rounded-xl text-center">
-              <p className="text-muted-foreground">
-                🔧 Filtres à implémenter avec le backend
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Les données de filtrage seront chargées dynamiquement depuis
-                l'API
-              </p>
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 shadow-sm">
+              {filterLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-3 text-muted-foreground">Chargement des filtres...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Catégories */}
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      Catégories
+                    </h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {filterData.categories.map((category) => (
+                        <label key={category.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={filters.categories.includes(category.name.toLowerCase())}
+                            onChange={() => {
+                              const categoryName = category.name.toLowerCase();
+                              setFilters(prev => ({
+                                ...prev,
+                                categories: prev.categories.includes(categoryName)
+                                  ? prev.categories.filter(c => c !== categoryName)
+                                  : [...prev.categories, categoryName]
+                              }));
+                            }}
+                            className="rounded border-border"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {category.name} ({category.count})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Niveaux */}
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-3">Niveau</h3>
+                    <div className="space-y-2">
+                      {filterData.levels.map((level) => (
+                        <label key={level.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={filters.levels.includes(level.name.toLowerCase())}
+                            onChange={() => {
+                              const levelName = level.name.toLowerCase();
+                              setFilters(prev => ({
+                                ...prev,
+                                levels: prev.levels.includes(levelName)
+                                  ? prev.levels.filter(l => l !== levelName)
+                                  : [...prev.levels, levelName]
+                              }));
+                            }}
+                            className="rounded border-border"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {level.name} ({level.count})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Prix */}
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-3">Prix</h3>
+                    <div className="space-y-2">
+                      {filterData.priceRanges.map((range) => (
+                        <label key={range.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={filters.priceRange.includes(range.id)}
+                            onChange={() => {
+                              setFilters(prev => ({
+                                ...prev,
+                                priceRange: prev.priceRange.includes(range.id)
+                                  ? prev.priceRange.filter(p => p !== range.id)
+                                  : [...prev.priceRange, range.id]
+                              }));
+                            }}
+                            className="rounded border-border"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {range.name} ({range.count})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Note */}
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-3">Note minimum</h3>
+                    <div className="space-y-2">
+                      {[
+                        { id: "4+", name: "4 étoiles et plus", count: 15 },
+                        { id: "3+", name: "3 étoiles et plus", count: 28 }
+                      ].map((rating) => (
+                        <label key={rating.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={filters.rating.includes(rating.id)}
+                            onChange={() => {
+                              setFilters(prev => ({
+                                ...prev,
+                                rating: prev.rating.includes(rating.id)
+                                  ? prev.rating.filter(r => r !== rating.id)
+                                  : [...prev.rating, rating.id]
+                              }));
+                            }}
+                            className="rounded border-border"
+                          />
+                          <span className="text-sm text-muted-foreground">
+                            {rating.name} ({rating.count})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -335,56 +396,90 @@ const CoursesPage = () => {
             {/* Header avec nombre de résultats */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-foreground">
-                {searchQuery
-                  ? `Résultats pour "${searchQuery}"`
+                {searchInputValue
+                  ? `Résultats pour "${searchInputValue}"`
                   : "Tous nos cours"}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                {filteredCourses.length !== total
-                  ? filteredCourses.length
-                  : total}{" "}
-                cours trouvé
-                {filteredCourses.length !== total
-                  ? filteredCourses.length
-                  : total > 1
-                    ? "s"
-                    : ""}
+                {hasActiveFilters ? filteredCourses.length : total} cours trouvé
+                {(hasActiveFilters ? filteredCourses.length : total) > 1 ? "s" : ""}
               </p>
             </div>
 
-            {/* Grid de cours - 4 cards par ligne comme Udemy/Coursera */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {filteredCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  onEnrollClick={handleEnrollClick}
-                  onVideoClick={handleVideoClick}
-                />
-              ))}
-            </div>
+            {/* Indicateur de chargement pour changement de page */}
+            {loading && (
+              <div className="mb-4 text-center">
+                <span className="text-sm text-muted-foreground">
+                  Chargement...
+                </span>
+              </div>
+            )}
 
-            {/* Pagination - masquée si filtres actifs */}
-            {!(
-              filters.categories.length > 0 ||
-              filters.levels.length > 0 ||
-              filters.priceRange.length > 0 ||
-              filters.rating.length > 0
-            ) && (
-              <CoursePagination
-                currentPage={localCurrentPage}
-                totalPages={pages}
-                total={total}
-                limit={8}
-                onPageChange={handlePageChange}
-              />
+            {/* Grid de cours avec pagination carrousel */}
+            {!hasActiveFilters && pages > 1 && (
+              <div className="relative mb-8">
+                {/* Chevron gauche */}
+                {currentPage > 1 && (
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-gray-800" />
+                  </button>
+                )}
+
+                {/* Grid de cours */}
+                <div className="space-y-6">
+                  {Array.from({ length: Math.ceil(filteredCourses.length / 4) }, (_, rowIndex) => {
+                    const startIndex = rowIndex * 4;
+                    const rowCourses = filteredCourses.slice(startIndex, startIndex + 4);
+
+                    return (
+                      <div key={rowIndex} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {rowCourses.map(course => (
+                          <CourseCard
+                            key={course.id}
+                            course={course}
+                            onEnrollClick={handleEnrollClick}
+                            onVideoClick={handleVideoClick}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Chevron droit */}
+                {currentPage < pages && (
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="absolute right-0  z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all"
+                  >
+                    <ChevronRight className="w-6 h-6 text-gray-800" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Affichage sans pagination si filtres actifs ou une seule page */}
+            {(hasActiveFilters || pages <= 1) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {filteredCourses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    onEnrollClick={handleEnrollClick}
+                    onVideoClick={handleVideoClick}
+                  />
+                ))}
+              </div>
             )}
           </div>
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              {searchQuery
-                ? `Aucun cours trouvé pour "${searchQuery}"`
+              {searchInputValue
+                ? `Aucun cours trouvé pour "${searchInputValue}"`
                 : "Aucun cours disponible pour le moment."}
             </p>
           </div>

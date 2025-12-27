@@ -13,10 +13,14 @@ import {
   Clock,
   CheckCircle2,
   ArrowRight,
+  TrendingUp,
+  GraduationCap,
+  ArrowLeft,
+  Play,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/header";
-import { BackButton } from "@/components/back-button";
 
 type TabType = "all" | "active" | "completed";
 
@@ -66,10 +70,28 @@ export default function MesApprentissagesPage() {
     (c) => c.status === "COMPLETED",
   ).length;
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getCategoryFromTitle = (title: string) => {
+    const lowerTitle = title.toLowerCase();
+    if (lowerTitle.includes("design") || lowerTitle.includes("figma")) return "Design";
+    if (lowerTitle.includes("react")) return "React";
+    if (lowerTitle.includes("javascript")) return "JavaScript";
+    if (lowerTitle.includes("python")) return "Python";
+    if (lowerTitle.includes("typescript")) return "Développement";
+    return "PROGRAMMING";
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
       </div>
     );
   }
@@ -79,89 +101,152 @@ export default function MesApprentissagesPage() {
       {/* Header */}
       <Header />
 
-      {/* Back Button */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <BackButton href="/" text="Retour à l'accueil" />
-      </div>
-
       {/* Header Section */}
-      <div className="bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
-                Mes Apprentissages
-              </h1>
+      <header className="bg-gray-50 border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Back Button */}
+          <div className="pt-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour à l'accueil
+            </Link>
+          </div>
+
+          {/* Title Section */}
+          <div className="py-8 sm:py-10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                  Mes Apprentissages
+                </h1>
+                <p className="text-gray-600 mt-1 text-sm">
+                  Continuez votre progression et atteignez vos objectifs
+                </p>
+              </div>
             </div>
           </div>
-          <p className="text-gray-600 text-sm lg:text-base">
-            Continuez votre progression et atteignez vos objectifs
-          </p>
+        </div>
+      </header>
+
+      {/* Stats Section */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Total des cours */}
+          <div
+            className="bg-white border border-gray-200 rounded-lg p-4 opacity-0 animate-[slideUp_0.4s_ease-out_0ms_forwards]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total des cours</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {courses.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* En cours */}
+          <div
+            className="bg-white border border-gray-200 rounded-lg p-4 opacity-0 animate-[slideUp_0.4s_ease-out_100ms_forwards]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">En cours</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {activeCourses}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Terminés */}
+          <div
+            className="bg-white border border-gray-200 rounded-lg p-4 opacity-0 animate-[slideUp_0.4s_ease-out_200ms_forwards]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Terminés</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {completedCourses}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs Navigation */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="flex gap-8">
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`pb-4 px-1 relative font-medium text-sm lg:text-base transition-colors ${
-                activeTab === "all"
-                  ? "text-primary"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Tous les cours
-              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                {courses.length}
-              </span>
-              {activeTab === "all" && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Tabs */}
+        <div className="flex items-center gap-6 mb-6 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`pb-3 px-1 relative font-medium text-sm transition-colors ${
+              activeTab === "all"
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Tous
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+              {courses.length}
+            </span>
+            {activeTab === "all" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+            )}
+          </button>
 
-            <button
-              onClick={() => setActiveTab("active")}
-              className={`pb-4 px-1 relative font-medium text-sm lg:text-base transition-colors ${
-                activeTab === "active"
-                  ? "text-primary"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              En cours
-              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                {activeCourses}
-              </span>
-              {activeTab === "active" && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
+          <button
+            onClick={() => setActiveTab("active")}
+            className={`pb-3 px-1 relative font-medium text-sm transition-colors ${
+              activeTab === "active"
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            En cours
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+              {activeCourses}
+            </span>
+            {activeTab === "active" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+            )}
+          </button>
 
-            <button
-              onClick={() => setActiveTab("completed")}
-              className={`pb-4 px-1 relative font-medium text-sm lg:text-base transition-colors ${
-                activeTab === "completed"
-                  ? "text-primary"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Terminés
-              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                {completedCourses}
-              </span>
-              {activeTab === "completed" && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-              )}
-            </button>
-          </nav>
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={`pb-3 px-1 relative font-medium text-sm transition-colors ${
+              activeTab === "completed"
+                ? "text-blue-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Terminés
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+              {completedCourses}
+            </span>
+            {activeTab === "completed" && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+            )}
+          </button>
         </div>
 
-        {/* Courses Grid */}
+        {/* Courses List */}
         {filteredCourses.length === 0 ? (
           <div className="text-center py-16 lg:py-24">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -171,136 +256,143 @@ export default function MesApprentissagesPage() {
               Aucun cours dans cette catégorie
             </h3>
             <p className="text-gray-600 mb-6">
-              Explorez notre catalogue pour commencer votre apprentissage
+              Explorez notre catalogue pour commencer votre apprentissage et
+              développer de nouvelles compétences.
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
             >
               Découvrir les cours
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map((course) => (
-              <div
-                key={course.id}
-                className="group bg-white border border-gray-200 rounded-xl hover:border-primary/50 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
-              >
-                {/* Course Thumbnail */}
-                <div className="relative w-full h-48 bg-gray-100 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <BookOpen className="w-16 h-16 text-gray-300" />
-                  </div>
+          <div className="space-y-4">
+            {filteredCourses.map((course, index) => {
+              const isCompleted = course.status === "COMPLETED";
+              const hasStarted = course.progressPercentage > 0;
+              const category = getCategoryFromTitle(course.title);
 
-                  {/* Status Badge */}
-                  {course.status === "COMPLETED" && (
-                    <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Terminé
-                    </div>
-                  )}
-
-                  {course.status === "ACTIVE" &&
-                    course.progressPercentage > 0 && (
-                      <div className="absolute top-3 right-3 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        En cours
+              return (
+                <div
+                  key={course.id}
+                  className="group bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-200 opacity-0 animate-[slideUp_0.4s_ease-out_forwards]"
+                  style={{ animationDelay: `${index * 80}ms` }}
+                >
+                  <div className="flex flex-col sm:flex-row">
+                    {/* Thumbnail */}
+                    <div className="relative w-full sm:w-32 h-24 sm:h-auto bg-gray-100 flex-shrink-0">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <BookOpen className="w-8 h-8 text-gray-300" />
                       </div>
-                    )}
-                </div>
 
-                {/* Course Content */}
-                <div className="p-5 flex flex-col flex-grow">
-                  {/* Category Badge */}
-                  <div className="mb-3">
-                    <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-md">
-                      {course.title.includes("Design")
-                        ? "DESIGN"
-                        : "PROGRAMMING"}
-                    </span>
-                  </div>
-
-                  {/* Course Title */}
-                  <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors min-h-[3.5rem]">
-                    {course.title}
-                  </h3>
-
-                  {/* Instructor */}
-                  <p className="text-sm text-gray-600 mb-4">
-                    {course.instructorName !== "undefined undefined"
-                      ? course.instructorName
-                      : "Instructeur BIBOCOM"}
-                  </p>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-medium text-gray-600">
-                        Progression
-                      </span>
-                      <span className="text-xs font-bold text-gray-900">
-                        {course.progressPercentage}%
-                      </span>
+                      {/* Status Badge */}
+                      {isCompleted && (
+                        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Terminé
+                        </div>
+                      )}
+                      {!isCompleted && hasStarted && (
+                        <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1">
+                          <Play className="w-3 h-3" />
+                          En cours
+                        </div>
+                      )}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-500 ${
-                          course.status === "COMPLETED"
-                            ? "bg-green-500"
-                            : "bg-primary"
-                        }`}
-                        style={{ width: `${course.progressPercentage}%` }}
-                      />
+
+                    {/* Content */}
+                    <div className="flex-1 p-4 flex flex-col justify-between">
+                      <div>
+                        {/* Category */}
+                        <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-600 mb-2">
+                          {category}
+                        </span>
+
+                        {/* Title */}
+                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1">
+                          {course.title}
+                        </h3>
+
+                        {/* Instructor & Date */}
+                        <p className="text-sm text-gray-600 mb-3">
+                          {course.instructorName !== "undefined undefined"
+                            ? course.instructorName
+                            : "Instructeur BIBOCOM"}{" "}
+                          •{" "}
+                          {isCompleted && course.completionDate
+                            ? `Terminé le ${formatDate(course.completionDate)}`
+                            : `Inscrit le ${formatDate(course.enrollmentDate)}`}
+                        </p>
+                      </div>
+
+                      {/* Progress & CTA */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className={`h-1.5 rounded-full transition-all duration-500 ${
+                                isCompleted ? "bg-green-500" : "bg-blue-600"
+                              }`}
+                              style={{
+                                width: `${course.progressPercentage}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-900 min-w-[2.5rem] text-right">
+                            {course.progressPercentage}%
+                          </span>
+                        </div>
+
+                        {/* CTA Button */}
+                        <Link
+                          href={`/course-details/${course.id}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            isCompleted
+                              ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              : "bg-blue-600 text-white hover:bg-blue-700"
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <>
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Revoir
+                            </>
+                          ) : hasStarted ? (
+                            <>
+                              <Play className="w-3.5 h-3.5" />
+                              Continuer
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5" />
+                              Commencer
+                            </>
+                          )}
+                        </Link>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Enrollment Date */}
-                  <div className="flex items-center gap-2 mb-4 text-xs text-gray-500">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>
-                      {course.status === "COMPLETED" && course.completionDate
-                        ? `Terminé le ${new Date(
-                            course.completionDate,
-                          ).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}`
-                        : `Inscrit le ${new Date(
-                            course.enrollmentDate,
-                          ).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                          })}`}
-                    </span>
-                  </div>
-
-                  {/* Spacer pour pousser le bouton en bas */}
-                  <div className="flex-grow"></div>
-
-                  {/* CTA Button */}
-                  <Link
-                    href={`/cours/${course.id}/learn`}
-                    className="block w-full text-center bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors group/btn mt-auto"
-                  >
-                    <span className="flex items-center justify-center gap-2">
-                      {course.status === "COMPLETED"
-                        ? "Revoir le cours"
-                        : course.progressPercentage === 0
-                          ? "Commencer"
-                          : "Continuer"}
-                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                    </span>
-                  </Link>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
-      </div>
+      </main>
+
+      <style jsx>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

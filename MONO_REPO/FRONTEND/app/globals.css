@@ -82,10 +82,9 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", "Inter Fallback", system-ui, -apple-system, sans-serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
-  /* Fixed Pacifico font reference to use the CSS variable from layout */
-  --font-pacifico: "Pacifico", cursive;
+  --font-pacifico: cursive, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -310,7 +309,7 @@
 
 /* Added font-pacifico utility class */
 .font-pacifico {
-  font-family: var(--font-pacifico), "Pacifico", cursive;
+  font-family: var(--font-pacifico);
 }
 
 /* SweetAlert2 custom styles for better integration */

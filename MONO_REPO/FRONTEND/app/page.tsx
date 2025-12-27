@@ -1,72 +1,85 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useCallback,
+} from "react";
 import {
   Search,
   X,
   Filter,
-  Star,
-  Clock,
-  DollarSign,
-  BookOpen,
-  Users,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import CourseCarousel from "@/components/course-carousel";
-import { CourseCard } from "@/components/course-card";
+
+import Swal from "sweetalert2";
+
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { HeroBanner } from "@/components/hero-banner";
-import Swal from "sweetalert2";
+import { CourseCard } from "@/components/course-card";
+
 import { useCourses } from "@/application/use-cases/useCourses";
-import { CoursePagination } from "@/components/course-pagination";
-import type { Course, CourseFilter } from "@/domain/entities/course";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import type { Course, CourseFilter } from "@/domain/entities/course";
 
 const Index = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<CourseFilter>({
-    categories: [],
-    levels: [],
-    priceRange: [],
-    duration: [],
-    rating: [],
+  const [filters, setFilters] = useState({
+    categories: [] as string[],
+    levels: [] as string[],
+    priceRange: [] as string[],
+    duration: [] as string[],
+    rating: [] as string[],
   });
 
-  // Utiliser le hook optimisé pour récupérer les cours
-  const { courses, loading, error, total, pages, currentPage, refetch } =
-    useCourses(1, 8);
+  const {
+    courses,
+    loading,
+    error,
+    pages,
+    currentPage,
+    setPage,
+    refresh,
+  } = useCourses(1, 8);
 
-  // Écouter l'événement pour activer les tutos gratuits
-  useEffect(() => {
-    const handleActivateFreeTutorials = () => {
-      setShowFilters(true);
-      setFilters((prev) => ({
-        ...prev,
-        priceRange: ["free"],
-      }));
-    };
+  /** 🔒 Ref pour la section des formations */
+  const courseSectionRef = useRef<HTMLDivElement>(null);
+  const isPageChanging = useRef(false);
 
-    window.addEventListener(
-      "activateFreeTutorials",
-      handleActivateFreeTutorials,
-    );
-    return () =>
-      window.removeEventListener(
-        "activateFreeTutorials",
-        handleActivateFreeTutorials,
-      );
-  }, []);
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      isPageChanging.current = true;
+      setPage(newPage);
+    },
+    [setPage]
+  );
 
-  // Fonctions de gestion des filtres
+  /** Scroll automatique vers la section formations après changement de page */
+  // Supprimé pour éviter le masquage du titre après connexion
+  // useLayoutEffect(() => {
+  //   if (isPageChanging.current && courseSectionRef.current) {
+  //     courseSectionRef.current.scrollIntoView({
+  //       behavior: "auto",
+  //       block: "start",
+  //     });
+  //     isPageChanging.current = false;
+  //   }
+  // }, [currentPage]);
+
   const toggleFilter = (category: keyof CourseFilter, value: string) => {
     setFilters((prev) => ({
       ...prev,
-      [category]: (prev[category] as string[])?.includes(value)
-        ? (prev[category] as string[])?.filter((item) => item !== value) || []
-        : [...((prev[category] as string[]) || []), value],
+      [category]: prev[category]?.includes(value)
+        ? prev[category].filter((item) => item !== value)
+        : [...prev[category], value],
     }));
   };
 
@@ -80,94 +93,46 @@ const Index = () => {
     });
   };
 
-  // Appliquer tous les filtres
-  const applyFilters = (courses: Course[]) => {
-    return courses.filter((course) => {
-      // Filtrer par catégories
+  const applyFilters = (courses: Course[]) =>
+    courses.filter((course) => {
       if (filters.categories.length > 0) {
-        const categoryName =
+        const cat =
           typeof course.category === "string"
             ? course.category
             : course.category.name;
-        if (!filters.categories.includes(categoryName.toLowerCase()))
-          return false;
+        if (!filters.categories.includes(cat.toLowerCase())) return false;
       }
-
-      // Filtrer par niveau
       if (filters.levels.length > 0) {
         if (!filters.levels.includes(course.level.toLowerCase())) return false;
       }
-
-      // Filtrer par prix
       if (filters.priceRange.length > 0) {
         const isFree = course.price === 0;
-
         if (filters.priceRange.includes("free") && !isFree) return false;
         if (filters.priceRange.includes("paid") && isFree) return false;
-        if (filters.priceRange.includes("under-5000") && course.price >= 5000)
-          return false;
-        if (
-          filters.priceRange.includes("5000-10000") &&
-          (course.price < 5000 || course.price > 10000)
-        )
-          return false;
-        if (filters.priceRange.includes("over-10000") && course.price <= 10000)
-          return false;
       }
-
-      // Filtrer par note
       if (filters.rating.length > 0) {
         if (
           filters.rating.includes("4+") &&
           (course.rating === undefined || course.rating < 4)
         )
           return false;
-        if (
-          filters.rating.includes("3+") &&
-          (course.rating === undefined || course.rating < 3)
-        )
-          return false;
       }
-
       return true;
     });
-  };
 
-  // Appliquer la recherche et les filtres
-  let filteredCourses = courses;
+  let filteredCourses = applyFilters(courses);
 
-  // Appliquer la recherche
   if (searchQuery) {
     filteredCourses = filteredCourses.filter(
       (course) =>
         course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (course.description &&
-          course.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())) ||
-        (course.tags &&
-          course.tags.some((tag) =>
-            tag.toLowerCase().includes(searchQuery.toLowerCase()),
-          )),
+        course.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
 
-  // Appliquer les filtres
-  filteredCourses = applyFilters(filteredCourses);
-
-  // Gestionnaire de changement de page
-  const handlePageChange = useCallback(
-    async (page: number) => {
-      await refetch(page);
-    },
-    [refetch],
-  );
-
-  // Handlers pour les actions des cours
   const handleEnrollClick = (course: Course) => {
-    console.log("Inscription au cours:", course.title);
     Swal.fire({
-      title: "<strong>Inscription</strong>",
+      title: "Inscription",
       text: `Inscription au cours "${course.title}"`,
       icon: "info",
       confirmButtonText: "OK",
@@ -175,56 +140,37 @@ const Index = () => {
   };
 
   const handleVideoClick = (course: Course) => {
-    console.log("Lecture vidéo du cours:", course.title);
-
     if (!isAuthenticated) {
-      // Stocker la destination après connexion
       setRedirectAfterLogin(`/course-details/${course.id}`);
-      // Rediriger vers la page de connexion
       window.location.href = "/login";
       return;
     }
-
-    // Redirection vers la page du cours
     window.location.href = `/course-details/${course.id}`;
   };
 
-  // Gestion des états de chargement et d'erreur
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <span className="ml-3 text-muted-foreground">
-              Chargement des cours...
-            </span>
-          </div>
+        <div className="flex items-center justify-center mt-12">
+          <p>Chargement des cours...</p>
         </div>
       </div>
     );
   }
 
-  // Gestion des erreurs
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col justify-center items-center h-64 text-center">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              Erreur de chargement
-            </h2>
-            <p className="text-muted-foreground mb-4 max-w-md">{error}</p>
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Réessayer
-            </button>
-          </div>
+        <div className="flex flex-col items-center justify-center mt-12">
+          <p className="text-red-500">{error}</p>
+          <button
+            onClick={() => refresh()}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );
@@ -233,122 +179,69 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
       <HeroBanner />
 
-      <main
-        className={`container mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 ${isAuthenticated ? "pt-24 lg:pt-32" : ""}`}
-      >
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              Découvrez nos formations
-            </h1>
+      <main className="container mx-auto px-4 py-8">
+        {/* 🎯 Ancre pour la section formations */}
+        <div ref={courseSectionRef} id="formations-section">
+          {/* Barre de recherche */}
+          <div className="flex justify-between items-center mb-6">
+            {!isAuthenticated && <h1 className="text-2xl font-bold">Découvrez nos formations</h1>}
 
-            {/* Champ de recherche dynamique */}
             <div className="relative w-full sm:max-w-sm lg:max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
-              </div>
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <input
-                type="text"
-                placeholder="Rechercher une formation..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-9 sm:pl-10 pr-10 py-2.5 sm:py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
+                className="w-full pl-9 pr-8 py-2 border rounded"
+                placeholder="Rechercher une formation"
               />
               {searchQuery && (
-                <button
+                <X
                   onClick={() => setSearchQuery("")}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <X className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground hover:text-foreground" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Section de filtres professionnels */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              {(filters.categories.length > 0 ||
-                filters.levels.length > 0 ||
-                filters.priceRange.length > 0 ||
-                filters.rating.length > 0) && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-sm text-primary hover:text-primary/80 underline"
-                >
-                  Effacer tout
-                </button>
-              )}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm sm:text-base"
-              >
-                <Filter className="h-4 w-4" />
-                {showFilters ? "Masquer" : "Afficher"} les filtres
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
+                  className="absolute right-3 top-3 h-4 w-4 cursor-pointer"
                 />
-              </button>
+              )}
             </div>
           </div>
 
-          {showFilters && (
-            <div className="p-4 sm:p-6 bg-muted/30 rounded-xl border text-center">
-              <p className="text-muted-foreground">
-                🔧 Filtres à implémenter avec le backend
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Les données de filtrage seront chargées dynamiquement depuis
-                l'API
-              </p>
+          {/* Grille */}
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
+            {filteredCourses.map((course: Course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                onEnrollClick={handleEnrollClick}
+                onVideoClick={handleVideoClick}
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {pages > 1 && (
+            <div className="relative mt-4 flex justify-center items-center gap-4">
+              {currentPage > 1 && (
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className="px-3 py-2 bg-primary text-white rounded"
+                >
+                  <ChevronLeft />
+                </button>
+              )}
+              <span>
+                Page {currentPage} sur {pages}
+              </span>
+              {currentPage < pages && (
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className="px-3 py-2 bg-primary text-white rounded"
+                >
+                  <ChevronRight />
+                </button>
+              )}
             </div>
           )}
         </div>
-
-        {filteredCourses.length > 0 ? (
-          <div id="formations">
-            {/* Titre de la section */}
-            <h2 className="text-2xl font-bold text-foreground mb-6">
-              {searchQuery
-                ? `Résultats pour "${searchQuery}"`
-                : "Formations disponibles"}
-            </h2>
-
-            {/* Grille des cours */}
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
-              {filteredCourses.map((course: Course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  onEnrollClick={handleEnrollClick}
-                  onVideoClick={handleVideoClick}
-                />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            <CoursePagination
-              currentPage={currentPage}
-              totalPages={pages}
-              total={total}
-              limit={8}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              {searchQuery
-                ? `Aucun cours trouvé pour "${searchQuery}"`
-                : "Aucun cours disponible pour le moment."}
-            </p>
-          </div>
-        )}
       </main>
 
       <Footer />
