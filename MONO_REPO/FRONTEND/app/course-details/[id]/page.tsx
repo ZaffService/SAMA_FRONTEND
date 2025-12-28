@@ -15,6 +15,7 @@ import { WaveQrModal } from "@/components/WaveQrModal";
 import { PaymentSuccessModal } from "@/components/PaymentSuccessModal";
 import { QuizModal } from "@/components/QuizModal";
 import { ModuleLessonList } from "@/components/ModuleLessonList";
+import { TEXTS } from "@/lib/constants";
 import {
   Play,
   Pause,
@@ -412,9 +413,23 @@ useEffect(() => {
     console.log(`Quiz terminé: ${passed ? 'Réussi' : 'Échoué'} avec ${score}%`);
   }, []);
 
-  const handleStartQuiz = (quizId: string) => {
-    setCurrentQuizId(quizId);
-    setShowQuizModal(true);
+  const handleStartQuiz = async (moduleId: string) => {
+    console.log('Démarrage du quiz pour le module:', moduleId);
+
+    try {
+      // Ouvrir le modal directement avec l'ID du module
+      setCurrentQuizId(moduleId);
+      setShowQuizModal(true);
+    } catch (error) {
+      console.error('Erreur lors du démarrage du quiz:', error);
+      await Swal.fire({
+        title: 'Erreur',
+        text: 'Impossible de démarrer le quiz',
+        icon: 'error',
+        confirmButtonText: 'Fermer',
+        confirmButtonColor: '#6366f1',
+      });
+    }
   };
 
   const totalLessons = lessonsWithVideos.length;
@@ -1024,10 +1039,10 @@ useEffect(() => {
                                   
                                   {/* Bouton Quiz avec gradient purple-indigo */}
                                   <button
-                                    onClick={() => handleStartQuiz(module.id)}
+                                    onClick={() => { console.log('Bouton Quiz cliqué pour module:', module.id); handleStartQuiz(module.id); }}
                                     className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0"
                                   >
-                                    Passer le Quiz
+                                    {TEXTS.QUIZ_BUTTON}
                                   </button>
                                 </div>
                               </div>

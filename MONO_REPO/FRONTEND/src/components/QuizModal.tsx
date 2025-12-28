@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, CheckCircle, XCircle, Clock, Award } from "lucide-react";
+import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
 
 interface QuizData {
@@ -36,19 +37,23 @@ export function QuizModal({
   onQuizCompleted,
 }: QuizModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [quizResult, setQuizResult] = useState<{ score: number; passed: boolean } | null>(null);
 
   useEffect(() => {
     if (isOpen && quizId) {
       fetchQuizData();
     } else if (!isOpen) {
       setQuizData(null);
+      setError(null);
+      setLoading(false);
     }
   }, [isOpen, quizId]);
 
@@ -56,6 +61,7 @@ export function QuizModal({
     if (!quizId) return;
 
     setLoading(true);
+    setError(null);
     try {
       const data = await QuizApi.getQuizQuestions(quizId);
       setQuizData(data);
@@ -64,9 +70,10 @@ export function QuizModal({
       setShowResults(false);
       setIsSubmitting(false);
       setStartTime(new Date());
-      setTimeLeft(null); // Pas de limite de temps pour l'instant
+      setTimeLeft(null);
     } catch (error) {
       console.error('Erreur lors du chargement du quiz:', error);
+      setError('Impossible de charger le quiz. Quiz non trouvé pour ce module.');
     } finally {
       setLoading(false);
     }
@@ -87,7 +94,7 @@ export function QuizModal({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleAnswerChange = (questionId: string, answer: string) => {
+  const handleAnswerChange = (questionId: string, answer: number) => {
     setAnswers((prev) => ({
       ...prev,
       [questionId]: answer,
@@ -107,109 +114,176 @@ export function QuizModal({
   };
 
   const handleSubmitQuiz = async () => {
-    if (!quizData || !quizId) return;
+    if (!quizData) return;
 
     setIsSubmitting(true);
     try {
-      // Soumettre à l'API backend
-      const result = await QuizApi.submitQuiz(quizId, answers);
+      const result = await QuizApi.submitQuiz(quizData.quiz.id, answers);
+      setQuizResult({ score: result.score, passed: result.passed });
+
+      if (result.passed) {
+        await Swal.fire({
+          title: '🎉 Bravo !',
+          text: `Quiz réussi avec ${result.score}%`,
+          icon: 'success',
+          confirmButtonText: 'Fermer',
+          confirmButtonColor: '#6366f1',
+        });
+      } else {
+        await Swal.fire({
+          title: '❌ Quiz échoué',
+          text: `Score obtenu : ${result.score}%`,
+          icon: 'error',
+          confirmButtonText: 'Réessayer',
+          confirmButtonColor: '#6366f1',
+        });
+      }
 
       setShowResults(true);
       onQuizCompleted(result.passed, result.score);
     } catch (error) {
       console.error("Error submitting quiz:", error);
+      await Swal.fire({
+        title: 'Erreur',
+        text: 'Une erreur est survenue lors de la soumission du quiz',
+        icon: 'error',
+        confirmButtonText: 'Fermer',
+        confirmButtonColor: '#6366f1',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleRestart = () => {
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setShowResults(false);
+    setIsSubmitting(false);
+    setQuizResult(null);
+    setStartTime(new Date());
+    setTimeLeft(null);
+  };
+
   const currentQuestion = quizData?.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === (quizData?.questions.length || 0) - 1;
-  const allQuestionsAnswered = quizData?.questions.every(q => answers[q.id]);
+  const allQuestionsAnswered = quizData?.questions.every(q => answers[q.id] !== undefined);
 
-  if (!isOpen || !quizData) return null;
+  if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center gap-3">
-            <Award className="w-6 h-6 text-indigo-600" />
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {quizData.quiz.title}
-              </h2>
-              {quizData.quiz.description && (
-                <p className="text-sm text-gray-600">{quizData.quiz.description}</p>
-              )}
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
             </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {timeLeft !== null && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="w-4 h-4" />
-                <span className={timeLeft < 300 ? "text-red-600 font-medium" : ""}>
-                  {formatTime(timeLeft)}
-                </span>
-              </div>
-            )}
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Erreur de chargement</h3>
+            <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
-              <X className="w-5 h-5" />
+              Fermer
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Progress Bar */}
-        <div className="px-6 py-4 bg-gray-50">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>Question {currentQuestionIndex + 1} sur {quizData.questions.length}</span>
-            <span>{Math.round(((currentQuestionIndex + 1) / quizData.questions.length) * 100)}%</span>
+  if (!quizData) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between p-6 border-b border-gray-100">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Award className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Quiz - {quizData.quiz.title}
+              </h2>
+              {quizData.quiz.description && (
+                <p className="text-sm text-gray-500 mt-1">{quizData.quiz.description}</p>
+              )}
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%`,
-              }}
-            />
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[400px]">
+        <div className="p-8">
           {showResults ? (
-            <QuizResults
-              quizData={quizData}
-              answers={answers}
-              onClose={onClose}
-            />
-          ) : currentQuestion ? (
-            <QuestionCard
-              question={currentQuestion}
-              answer={answers[currentQuestion.id] || ""}
-              onAnswerChange={(answer) =>
-                handleAnswerChange(currentQuestion.id, answer)
-              }
-            />
-          ) : null}
+            quizResult ? (
+              <QuizResults
+                quizData={quizData}
+                answers={answers}
+                onClose={onClose}
+                quizResult={quizResult}
+                onRestart={handleRestart}
+              />
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="mt-4 text-gray-600">Chargement des résultats...</p>
+              </div>
+            )
+          ) : (
+            <>
+              {/* Progress Bar */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between text-sm mb-3">
+                  <span className="text-gray-600">Question {currentQuestionIndex + 1} sur {quizData.questions.length}</span>
+                  <span className="text-blue-600 font-medium">{Math.round(((currentQuestionIndex + 1) / quizData.questions.length) * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Question */}
+              {currentQuestion && (
+                <QuestionCard
+                  question={currentQuestion}
+                  answer={answers[currentQuestion.id] !== undefined ? answers[currentQuestion.id] : -1}
+                  onAnswerChange={(answer) =>
+                    handleAnswerChange(currentQuestion.id, answer)
+                  }
+                />
+              )}
+            </>
+          )}
         </div>
 
         {/* Footer */}
         {!showResults && (
-          <div className="flex items-center justify-between p-6 border-t bg-gray-50">
+          <div className="flex items-center justify-between px-8 py-6 border-t border-gray-100 bg-white">
             <button
               onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              Précédent
+              ← Précédent
             </button>
 
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-500">
               {Object.keys(answers).length} / {quizData.questions.length} répondues
             </div>
 
@@ -217,7 +291,7 @@ export function QuizModal({
               <button
                 onClick={handleSubmitQuiz}
                 disabled={!allQuestionsAnswered || isSubmitting}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -225,15 +299,17 @@ export function QuizModal({
                     Soumission...
                   </>
                 ) : (
-                  "Terminer le quiz"
+                  <>
+                    Voir résultats →
+                  </>
                 )}
               </button>
             ) : (
               <button
                 onClick={handleNext}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium"
               >
-                Suivant
+                Suivant →
               </button>
             )}
           </div>
@@ -255,63 +331,97 @@ function QuestionCard({
     options?: string[];
     points: number;
   };
-  answer: string;
-  onAnswerChange: (answer: string) => void;
+  answer: number;
+  onAnswerChange: (answer: number) => void;
 }) {
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-900">
+    <div className="space-y-6">
+      <h3 className="text-xl font-semibold text-gray-900 leading-relaxed">
         {question.question}
       </h3>
 
       {question.type === "MULTIPLE_CHOICE" && question.options && (
-        <div className="space-y-2">
-          {question.options.map((option: string, index: number) => (
-            <label
-              key={index}
-              className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-            >
-              <input
-                type="radio"
-                name={`question-${question.id}`}
-                value={option}
-                checked={answer === option}
-                onChange={(e) => onAnswerChange(e.target.value)}
-                className="w-4 h-4 text-indigo-600"
-              />
-              <span className="text-gray-700">{option}</span>
-            </label>
-          ))}
+        <div className="space-y-3">
+          {question.options.map((option: string, index: number) => {
+            const isSelected = answer === index;
+            return (
+              <label
+                key={index}
+                htmlFor={`option-${question.id}-${index}`}
+                className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all group ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-medium text-sm transition-colors ${
+                  isSelected 
+                    ? 'bg-blue-200 text-blue-700' 
+                    : 'bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
+                }`}>
+                  {String.fromCharCode(65 + index)}
+                </div>
+                <input
+                  type="radio"
+                  id={`option-${question.id}-${index}`}
+                  name={`question-${question.id}`}
+                  value={index}
+                  checked={isSelected}
+                  onChange={() => onAnswerChange(index)}
+                  className="sr-only"
+                />
+                <span className="flex-1 text-gray-800">{option}</span>
+                {isSelected && <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+              </label>
+            );
+          })}
         </div>
       )}
 
       {question.type === "TRUE_FALSE" && (
-        <div className="space-y-2">
-          {["Vrai", "Faux"].map((option) => (
-            <label
-              key={option}
-              className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-            >
-              <input
-                type="radio"
-                name={`question-${question.id}`}
-                value={option}
-                checked={answer === option}
-                onChange={(e) => onAnswerChange(e.target.value)}
-                className="w-4 h-4 text-indigo-600"
-              />
-              <span className="text-gray-700">{option}</span>
-            </label>
-          ))}
+        <div className="space-y-3">
+          {["Vrai", "Faux"].map((option, index) => {
+            const isSelected = answer === index;
+            return (
+              <label
+                key={option}
+                htmlFor={`option-${question.id}-${index}`}
+                className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all group ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-medium text-sm transition-colors ${
+                  isSelected
+                    ? 'bg-blue-200 text-blue-700'
+                    : 'bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
+                }`}>
+                  {String.fromCharCode(65 + index)}
+                </div>
+                <input
+                  type="radio"
+                  id={`option-${question.id}-${index}`}
+                  name={`question-${question.id}`}
+                  value={index}
+                  checked={isSelected}
+                  onChange={() => onAnswerChange(index)}
+                  className="sr-only"
+                />
+                <span className="flex-1 text-gray-800">{option}</span>
+                {isSelected && <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0" />}
+              </label>
+            );
+          })}
         </div>
       )}
 
       {question.type === "SHORT_ANSWER" && (
         <textarea
           value={answer}
-          onChange={(e) => onAnswerChange(e.target.value)}
+          onChange={(e) => onAnswerChange(Number(e.target.value))}
           placeholder="Votre réponse..."
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
           rows={4}
         />
       )}
@@ -323,79 +433,50 @@ function QuizResults({
   quizData,
   answers,
   onClose,
+  quizResult,
+  onRestart,
 }: {
   quizData: QuizData;
-  answers: Record<string, string>;
+  answers: Record<string, number>;
   onClose: () => void;
+  quizResult: { score: number; passed: boolean } | null;
+  onRestart: () => void;
 }) {
-  let totalScore = 0;
-  let maxScore = 0;
-
-  quizData.questions.forEach((question) => {
-    maxScore += question.points;
-    // Note: Dans la vraie API, on ne reçoit pas les bonnes réponses
-    // Le calcul du score se fait côté backend
-  });
-
-  // Pour l'instant, on utilise les données du backend
-  const percentage = 0; // Sera calculé par le backend
-  const passed = false; // Sera déterminé par le backend
+  const percentage = quizResult?.score || 0;
+  const passed = quizResult?.passed || false;
 
   return (
-    <div className="text-center space-y-6">
-      <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
-        passed ? "bg-green-100" : "bg-red-100"
-      }`}>
-        {passed ? (
-          <CheckCircle className="w-8 h-8 text-green-600" />
-        ) : (
-          <XCircle className="w-8 h-8 text-red-600" />
-        )}
+    <div className="text-center space-y-8 py-8">
+      <div className="w-40 h-40 mx-auto rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shadow-lg">
+        <span className="text-5xl font-bold text-blue-600">{percentage}%</span>
       </div>
 
       <div>
-        <h3 className={`text-2xl font-bold ${
-          passed ? "text-green-600" : "text-red-600"
-        }`}>
-          {passed ? "Félicitations !" : "Échec du quiz"}
+        <h3 className="text-3xl font-bold text-gray-900 mb-3">
+          {percentage >= 71 ? "Excellent travail!" : percentage >= 41 ? "Bon effort!" : "Continuez à apprendre!"}
         </h3>
-        <p className="text-gray-600 mt-2">
-          {passed
-            ? "Vous avez réussi le quiz !"
-            : `Vous devez obtenir au moins ${quizData.quiz.passingScore}% pour réussir.`
-          }
+        <p className="text-gray-600 text-lg">
+          Vous avez répondu correctement à <span className="font-semibold text-gray-900">{Math.round((percentage / 100) * quizData.questions.length)}</span> questions sur <span className="font-semibold text-gray-900">{quizData.questions.length}</span>
         </p>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-4">
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-gray-900">
-              {totalScore}/{maxScore}
-            </div>
-            <div className="text-sm text-gray-600">Points</div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold text-gray-900">
-              {Math.round(percentage)}%
-            </div>
-            <div className="text-sm text-gray-600">Score</div>
-          </div>
-        </div>
+      <div className="flex gap-4 justify-center pt-4">
+        <button
+          onClick={onRestart}
+          className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Recommencer
+        </button>
+        <button
+          onClick={onClose}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium"
+        >
+          Terminer
+        </button>
       </div>
-
-      <div className="space-y-3">
-        <p className="text-sm text-gray-600 text-center">
-          Les détails des réponses sont disponibles auprès de votre instructeur.
-        </p>
-      </div>
-
-      <button
-        onClick={onClose}
-        className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-      >
-        Fermer
-      </button>
     </div>
   );
 }

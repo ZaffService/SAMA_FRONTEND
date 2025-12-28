@@ -65,7 +65,7 @@ export class QuizApi {
   /**
    * Récupérer les questions d'un quiz
    */
-  static async getQuizQuestions(quizId: string): Promise<{
+  static async getQuizQuestions(moduleId: string): Promise<{
     quiz: {
       id: string;
       title: string;
@@ -81,7 +81,7 @@ export class QuizApi {
     }>;
   }> {
     const response = await fetch(
-      `${this.BASE_URL}/course/quiz/${quizId}/questions`,
+      `${this.BASE_URL}/course/quiz/module/${moduleId}/questions`,
       {
         method: "GET",
         credentials: "include",
