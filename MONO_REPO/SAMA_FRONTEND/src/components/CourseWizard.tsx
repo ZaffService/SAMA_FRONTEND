@@ -1,0 +1,571 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Save, Eye, AlertCircle, Image, ChevronLeft, ChevronRight } from "lucide-react";
+import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { StepIndicator, defaultCourseSteps } from "./StepIndicator";
+import { ModuleManager } from "./ModuleManager";
+import { ThumbnailUploader } from "./ThumbnailUploader";
+import { QuizManager } from "./QuizManager";
+import { CoursePreview } from "./CoursePreview";
+import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { showCourseCreatedSuccess, showCourseCreationError, showDraftSavedSuccess, showLoadingToast, closeLoading } from "@/shared/helpers/sweet-alert";
+import { Module } from "@/domain/entities/module";
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface CourseFormData {
+  title: string;
+  description: string;
+  categoryId: string;
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  price: number;
+  modules: Module[];
+}
+
+interface CourseFormData {
+  title: string;
+  description: string;
+  categoryId: string;
+  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  price: number;
+  modules: Module[];
+}
+
+interface CourseWizardProps {
+  onCourseCreated?: () => void;
+}
+
+const TOTAL_STEPS = 5;
+
+export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
+  const router = useRouter();
+  const { user } = useLocalAuth();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState<CourseFormData>({
+    title: '',
+    description: '',
+    categoryId: '',
+    level: 'BEGINNER',
+    price: 0,
+    modules: [],
+  });
+
+  // Load categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        console.log("🔍 Wizard: Début du chargement des catégories...");
+        const cats = await CoursesApi.getCategories();
+        console.log(`✅ Wizard: ${cats.length} catégories reçues`);
+        setCategories(cats);
+      } catch (err) {
+        console.error("❌ Wizard: Erreur lors du chargement des catégories:", err);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Auto-save draft every 30 seconds
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      if (formData.title.trim() && !isSubmitting && !isSavingDraft) {
+        handleSaveDraft(true);
+      }
+    }, 30000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [formData, isSubmitting, isSavingDraft]);
+
+  const updateFormData = (updates: Partial<CourseFormData>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleModulesChange = (modules: Module[]) => {
+    updateFormData({ modules });
+  };
+
+  const handleThumbnailUploaded = (fileOrUrl: File | string) => {
+    // If it's a File, store it; if it's a string (URL), use it directly
+    if (fileOrUrl instanceof File) {
+      setThumbnailFile(fileOrUrl);
+    } else {
+      setThumbnailUrl(fileOrUrl);
+    }
+  };
+
+  const handleThumbnailRemoved = () => {
+    setThumbnailUrl(null);
+    setThumbnailFile(null);
+  };
+
+  const validateStep = (step: number): string | null => {
+    switch (step) {
+      case 1: // Basic Info
+        if (!formData.title.trim()) return 'Le titre du cours est requis';
+        if (!formData.description.trim()) return 'La description du cours est requise';
+        if (!formData.categoryId) return 'La catégorie est requise';
+        if (formData.price < 0) return 'Le prix ne peut pas être négatif';
+        break;
+      case 2: // Modules
+        if (formData.modules.length === 0) return 'Au moins un module est requis';
+        for (const module of formData.modules) {
+          if (!module.title.trim()) {
+            return `Le titre du module "${module.title || 'sans titre'}" est requis`;
+          }
+          // ✅ description est OPTIONNELLE - pas de validation
+        }
+        break;
+      case 3: // Lessons
+        for (const module of formData.modules) {
+          if (module.lessons.length === 0) {
+            return `Le module "${module.title}" doit contenir au moins une leçon`;
+          }
+          for (const lesson of module.lessons) {
+            if (!lesson.title.trim()) {
+              return `Le titre de la leçon "${lesson.title || 'sans titre'}" est requis`;
+            }
+            if (!lesson.content.trim()) {
+              return `Le contenu de la leçon "${lesson.title}" est requis`;
+            }
+            if (!lesson.tempId) {
+              // ✅ CRITIQUE : Vérifier que tempId existe
+              return `La leçon "${lesson.title}" doit avoir un tempId`;
+            }
+          }
+        }
+        break;
+      case 4: // Quiz (optional - no validation required)
+        break;
+      case 5: // Preview (no validation needed)
+        break;
+    }
+    return null;
+  };
+
+  const canProceedToStep = (step: number): boolean => {
+    return validateStep(step) === null;
+  };
+
+  const handleNextStep = () => {
+    const validationError = validateStep(currentStep);
+    if (validationError) {
+      setError(validationError);
+      showCourseCreationError(validationError);
+      return;
+    }
+    setError(null);
+    if (currentStep < TOTAL_STEPS) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevStep = () => {
+    setError(null);
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleStepClick = (step: number) => {
+    // Only allow going back or to already completed steps
+    if (step < currentStep || (step === currentStep)) {
+      // Validate all steps between current and target
+      for (let s = 1; s < step; s++) {
+        if (!canProceedToStep(s)) {
+          setError(`Veuillez d'abord compléter l'étape ${s}`);
+          return;
+        }
+      }
+      setError(null);
+      setCurrentStep(step);
+    }
+  };
+
+  const prepareCourseData = () => {
+    return {
+      ...formData,
+      instructorId: String(user?.id || ''),
+      thumbnail: thumbnailFile || undefined,
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    const validationError = validateStep(3); // Validate up to lessons
+    if (validationError) {
+      setError(validationError);
+      showCourseCreationError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+    showLoadingToast("Création de votre cours en cours...");
+
+    try {
+      const result = await CoursesApi.createCourse(prepareCourseData());
+      closeLoading();
+      showCourseCreatedSuccess(formData.title, () => {
+        onCourseCreated?.();
+        router.push('/instructor-dashboard');
+      });
+    } catch (err) {
+      closeLoading();
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du cours';
+      setError(errorMessage);
+      showCourseCreationError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveDraft = async (isAutoSave = false) => {
+    if (!formData.title.trim()) {
+      if (!isAutoSave) {
+        setError('Le titre du cours est requis pour sauvegarder un brouillon');
+        showCourseCreationError('Le titre du cours est requis');
+      }
+      return;
+    }
+
+    setIsSavingDraft(true);
+
+    try {
+      const result = await CoursesApi.saveDraft(prepareCourseData());
+
+      setDraftId(result.courseId || result.course?.id || draftId);
+      
+      if (!isAutoSave) {
+        showDraftSavedSuccess(formData.title);
+      }
+
+      console.log('✅ Brouillon sauvegardé:', result);
+    } catch (err) {
+      if (!isAutoSave) {
+        const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la sauvegarde du brouillon';
+        setError(errorMessage);
+        showCourseCreationError(errorMessage);
+      }
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <Step1BasicInfo formData={formData} updateFormData={updateFormData} categories={categories} thumbnailUrl={thumbnailUrl} onThumbnailUploaded={handleThumbnailUploaded} onThumbnailRemoved={handleThumbnailRemoved} draftId={draftId} />;
+      case 2:
+        return <Step2Modules modules={formData.modules} onModulesChange={handleModulesChange} />;
+      case 3:
+        return <Step3Lessons modules={formData.modules} onModulesChange={handleModulesChange} />;
+      case 4:
+        return <Step4Quizzes modules={formData.modules} onQuizzesChange={handleModulesChange} />;
+      case 5:
+        return <CoursePreview courseData={formData} thumbnailUrl={thumbnailUrl || undefined} instructorName={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Instructeur'} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto p-6">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Créer un nouveau cours</h1>
+        <p className="text-gray-600 mt-2">
+          Suivez les étapes ci-dessous pour créer votre cours.
+        </p>
+        {draftId && (
+          <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
+            <Save className="h-4 w-4 mr-2" />
+            Brouillon sauvegardé
+          </div>
+        )}
+      </div>
+
+      {/* Step Indicator */}
+      <StepIndicator
+        currentStep={currentStep}
+        totalSteps={TOTAL_STEPS}
+        steps={defaultCourseSteps}
+        onStepClick={handleStepClick}
+      />
+
+      {/* Error Alert */}
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Step Content */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          {renderStep()}
+        </CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <div className="flex justify-between items-center pt-6 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => handleSaveDraft(false)}
+          disabled={isSubmitting || isSavingDraft}
+          className="flex items-center space-x-2"
+        >
+          {isSavingDraft ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          <span>{isSavingDraft ? 'Sauvegarde...' : 'Sauvegarder le brouillon'}</span>
+        </Button>
+
+        <div className="flex space-x-4">
+          {currentStep > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrevStep}
+              disabled={isSubmitting}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Précédent
+            </Button>
+          )}
+
+          {currentStep < TOTAL_STEPS ? (
+            <Button
+              type="button"
+              onClick={handleNextStep}
+              disabled={isLoading}
+            >
+              Suivant
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex items-center space-x-2"
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+              <span>{isSubmitting ? 'Création en cours...' : 'Publier le cours'}</span>
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Step 1: Basic Info
+function Step1BasicInfo({
+  formData,
+  updateFormData,
+  categories,
+  thumbnailUrl,
+  onThumbnailUploaded,
+  onThumbnailRemoved,
+  draftId,
+}: {
+  formData: CourseFormData;
+  updateFormData: (updates: Partial<CourseFormData>) => void;
+  categories: Category[];
+  thumbnailUrl: string | null;
+  onThumbnailUploaded: (fileOrUrl: File | string) => void;
+  onThumbnailRemoved: () => void;
+  draftId: string | null;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="mb-6">
+        <ThumbnailUploader
+          courseId={draftId || undefined}
+          onThumbnailUploaded={onThumbnailUploaded}
+          onThumbnailRemoved={onThumbnailRemoved}
+          existingThumbnailUrl={thumbnailUrl || undefined}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Titre du cours *
+          </label>
+          <Input
+            value={formData.title}
+            onChange={(e) => updateFormData({ title: e.target.value })}
+            placeholder="Entrez le titre de votre cours"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Catégorie *
+          </label>
+          <Select
+            value={formData.categoryId}
+            onValueChange={(value) => updateFormData({ categoryId: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionnez une catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Niveau *
+          </label>
+          <Select
+            value={formData.level}
+            onValueChange={(value: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED') =>
+              updateFormData({ level: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BEGINNER">Débutant</SelectItem>
+              <SelectItem value="INTERMEDIATE">Intermédiaire</SelectItem>
+              <SelectItem value="ADVANCED">Avancé</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Prix (XOF) *
+          </label>
+          <Input
+            type="number"
+            value={formData.price}
+            onChange={(e) => updateFormData({ price: parseFloat(e.target.value) || 0 })}
+            placeholder="0"
+            min="0"
+            step="100"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Description du cours *
+        </label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => updateFormData({ description: e.target.value })}
+          placeholder="Décrivez votre cours en détail..."
+          rows={6}
+          required
+        />
+      </div>
+    </div>
+  );
+}
+
+// Step 2: Modules
+function Step2Modules({
+  modules,
+  onModulesChange,
+}: {
+  modules: Module[];
+  onModulesChange: (modules: Module[]) => void;
+}) {
+  return (
+    <div>
+      <p className="text-gray-600 mb-4">
+        Organisez votre cours en modules. Chaque module peut contenir plusieurs leçons.
+      </p>
+      <ModuleManager
+        modules={modules}
+        onModulesChange={onModulesChange}
+      />
+    </div>
+  );
+}
+
+// Step 3: Lessons
+function Step3Lessons({
+  modules,
+  onModulesChange,
+}: {
+  modules: Module[];
+  onModulesChange: (modules: Module[]) => void;
+}) {
+  return (
+    <div>
+      <p className="text-gray-600 mb-4">
+        Ajoutez des leçons à vos modules avec du contenu et des vidéos.
+      </p>
+      <ModuleManager
+        modules={modules}
+        onModulesChange={onModulesChange}
+      />
+    </div>
+  );
+}
+
+// Step 4: Quizzes
+function Step4Quizzes({
+  modules,
+  onQuizzesChange,
+}: {
+  modules: Module[];
+  onQuizzesChange: (modules: Module[]) => void;
+}) {
+  return (
+    <div>
+      <p className="text-gray-600 mb-4">
+        Créez des quiz d&apos;évaluation pour tester les connaissances des étudiants.
+      </p>
+      <QuizManager
+        modules={modules}
+        onQuizzesChange={onQuizzesChange}
+      />
+    </div>
+  );
+}
+
