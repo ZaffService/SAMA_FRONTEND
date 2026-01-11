@@ -195,7 +195,7 @@ export function Header() {
                             </Link>
                           </DropdownMenu.Item>
 
-                          <DropdownMenu.Item className="focus:outline-none">
+                          {/* <DropdownMenu.Item className="focus:outline-none">
                             <Link
                               href="/user-profile"
                               className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors cursor-pointer w-full"
@@ -205,7 +205,7 @@ export function Header() {
                                 <span>Mon profil</span>
                               </div>
                             </Link>
-                          </DropdownMenu.Item>
+                          </DropdownMenu.Item> */}
                         </div>
 
                         <div className="border-t p-2">
@@ -317,7 +317,7 @@ export function Header() {
                     </div>
                   </Link>
 
-                  <Link
+                  {/* <Link
                     href="/user-profile"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-4 px-4 py-4 text-base rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
@@ -326,7 +326,7 @@ export function Header() {
                       <User className="h-5 w-5 text-muted-foreground shrink-0" />
                       <span>Mon profil</span>
                     </div>
-                  </Link>
+                  </Link> */}
                 </nav>
 
                 {/* Logout Button */}

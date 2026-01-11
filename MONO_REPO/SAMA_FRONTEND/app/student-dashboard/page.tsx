@@ -33,14 +33,19 @@ const StudentDashboard = () => {
 
   // Activité récente basée sur les vraies données de cours
   const recentActivities =
-    courses?.enrolled_courses?.slice(0, 5).map((course, index) => ({
-      id: course.id || index,
-      type: course.status === "COMPLETED" ? "completed" : "in_progress",
-      title: course.title || "Cours sans titre",
-      progress: course.progressPercentage || course.progress || 0,
-      completed: course.status === "COMPLETED",
-      time: "Récemment",
-    })) || [];
+    courses?.enrolled_courses?.slice(0, 5).map((course, index) => {
+      console.log("🎨 [Dashboard UI] Cours à afficher:", course);
+      console.log("🎨 [Dashboard UI] Progression:", course.progressPercentage, course.progress);
+
+      return {
+        id: course.id || index,
+        type: course.status === "COMPLETED" ? "completed" : "in_progress",
+        title: course.title || "Cours sans titre",
+        progress: course.progressPercentage || course.progress || 0,
+        completed: course.status === "COMPLETED",
+        time: "Récemment",
+      };
+    }) || [];
 
   if (loading) {
     return (

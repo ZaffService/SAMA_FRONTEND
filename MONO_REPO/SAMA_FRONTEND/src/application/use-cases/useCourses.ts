@@ -7,6 +7,7 @@ interface UseCoursesState {
   courses: Course[];
   loading: boolean;
   error: string | null;
+  showMaintenance: boolean;
   total: number;
   pages: number;
   hasMore: boolean;
@@ -34,6 +35,7 @@ export function useCourses(
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showMaintenance, setShowMaintenance] = useState(false);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -85,6 +87,7 @@ export function useCourses(
       );
 
       if (!abortControllerRef.current.signal.aborted) {
+        setShowMaintenance(false); // ✅ Backend répond, cacher la page maintenance
         setCourses(result.courses);
         setTotal(result.total);
         setPages(result.pages);
@@ -105,6 +108,7 @@ export function useCourses(
           ? err.message
           : "Erreur inconnue lors du chargement";
       setError(errorMessage);
+      setShowMaintenance(true); // ✅ Afficher la page maintenance
       console.error("❌ Erreur dans useCourses:", err);
     } finally {
       if (!abortControllerRef.current?.signal.aborted) {
@@ -228,6 +232,7 @@ export function useCourses(
     courses,
     loading,
     error,
+    showMaintenance,
     total,
     pages,
     hasMore,

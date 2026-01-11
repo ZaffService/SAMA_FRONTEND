@@ -16,6 +16,7 @@ import { useCourses } from "@/application/use-cases/useCourses";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CourseCard } from "@/components/course-card";
+import MaintenancePage from "@/components/MaintenancePage";
 
 const CoursesPage = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
@@ -33,6 +34,8 @@ const CoursesPage = () => {
     courses,
     loading,
     error,
+    showMaintenance,
+    refetch,
     total,
     pages,
     currentPage,
@@ -188,6 +191,11 @@ const CoursesPage = () => {
         </div>
       </div>
     );
+  }
+
+  // ✅ Afficher la page de maintenance si le backend ne répond pas
+  if (showMaintenance) {
+    return <MaintenancePage onRetry={refetch} />;
   }
 
   // Gestion des erreurs

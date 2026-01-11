@@ -7,6 +7,7 @@ import {
   EnrollmentApi,
   type EnrolledCourse,
 } from "@/infrastructure/api/enrollment-api";
+import { StudentApi } from "@/infrastructure/api/student-api";
 import {
   Loader2,
   BookOpen,
@@ -29,7 +30,7 @@ type TabType = "all" | "active" | "completed";
 export default function MesApprentissagesPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useLocalAuth();
-  const [courses, setCourses] = useState<EnrolledCourse[]>([]);
+  const [courses, setCourses] = useState<(EnrolledCourse & { completedLessons?: number; totalLessons?: number; lastAccessed?: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("all");
 
@@ -50,27 +51,98 @@ export default function MesApprentissagesPage() {
   const loadEnrolledCourses = async () => {
     try {
       setIsLoading(true);
+      console.log("📚 [Mes Apprentissages] Chargement des cours inscrits...");
+
       const data = await EnrollmentApi.getEnrolledCourses();
-      setCourses(data.courses);
+      console.log(`📚 [Mes Apprentissages] ${data.courses.length} cours récupérés depuis enrollment`);
+
+      // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE - COMME LE DASHBOARD
+      console.log("📊 [Mes Apprentissages] Début récupération progression pour", data.courses.length, "cours");
+      const coursesWithProgress = await Promise.all(
+        data.courses.map(async (course) => {
+          try {
+            const courseId = course.id;
+            if (!courseId) {
+              console.log("⚠️ [Mes Apprentissages] Cours sans ID:", course);
+              return course;
+            }
+
+            console.log(`📚 [Mes Apprentissages] Récupération progression pour cours ID: ${courseId} - ${course.title}`);
+            const progressData = await StudentApi.getCourseProgress(courseId);
+
+            console.log(`✅ [Mes Apprentissages] Progression reçue pour cours ${courseId}:`, {
+              progress: progressData.progress,
+              completed_lessons: progressData.completed_lessons,
+              total_lessons: progressData.total_lessons,
+              last_accessed: progressData.last_accessed,
+              timestamp: new Date().toISOString()
+            });
+
+            return {
+              ...course,
+              progressPercentage: progressData.progress,
+              completedLessons: progressData.completed_lessons,
+              totalLessons: progressData.total_lessons,
+              lastAccessed: progressData.last_accessed,
+            };
+          } catch (error) {
+            console.error(`❌ [Mes Apprentissages] Erreur récupération progression pour cours ${course.id}:`, error);
+            // Return course with default progress if API fails
+            return {
+              ...course,
+              progressPercentage: course.progressPercentage || 0,
+              completedLessons: (course as any).completedLessons || 0,
+              totalLessons: (course as any).totalLessons || 0,
+            };
+          }
+        })
+      );
+
+      console.log("✅ [Mes Apprentissages] Progression chargée pour tous les cours");
+      console.log("📊 [Mes Apprentissages] Résumé des progressions:");
+      coursesWithProgress.forEach(course => {
+        console.log(`  - Cours ${course.id}: ${course.progressPercentage}% (${(course as any).completedLessons}/${(course as any).totalLessons} leçons)`);
+      });
+
+      setCourses(coursesWithProgress);
     } catch (error) {
-      console.error("Erreur chargement des cours:", error);
+      console.error("❌ [Mes Apprentissages] Erreur globale chargement des cours:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Fonction helper pour déterminer le statut d'un cours basé sur la progression
+  const getCourseStatus = (progressPercentage: number) => {
+    if (progressPercentage >= 100) return "completed";
+    if (progressPercentage > 0) return "active";
+    return "not-started";
+  };
+
   // Filtrer les cours selon l'onglet actif
   const filteredCourses = courses.filter((course) => {
     if (activeTab === "all") return true;
-    if (activeTab === "active") return course.status === "ACTIVE";
-    if (activeTab === "completed") return course.status === "COMPLETED";
+    const status = getCourseStatus(course.progressPercentage || 0);
+    if (activeTab === "active") return status === "active";
+    if (activeTab === "completed") return status === "completed";
     return true;
   });
 
-  const activeCourses = courses.filter((c) => c.status === "ACTIVE").length;
-  const completedCourses = courses.filter(
-    (c) => c.status === "COMPLETED",
-  ).length;
+  // ✅ CALCULER LES STATISTIQUES BASÉ SUR LA PROGRESSION RÉELLE
+  const activeCourses = courses.filter((c) => {
+    const progress = c.progressPercentage || 0;
+    return progress > 0 && progress < 100;
+  }).length;
+
+  const completedCourses = courses.filter((c) => {
+    const progress = c.progressPercentage || 0;
+    return progress >= 100;
+  }).length;
+
+  const notStartedCourses = courses.filter((c) => {
+    const progress = c.progressPercentage || 0;
+    return progress === 0;
+  }).length;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("fr-FR", {
@@ -251,8 +323,11 @@ export default function MesApprentissagesPage() {
             ) : (
               <div className="space-y-4">
                 {filteredCourses.map((course, index) => {
-                  const isCompleted = course.status === "COMPLETED";
-                  const hasStarted = course.progressPercentage > 0;
+                  const progress = course.progressPercentage || 0;
+                  const courseStatus = getCourseStatus(progress);
+                  const isCompleted = courseStatus === "completed";
+                  const isActive = courseStatus === "active";
+                  const notStarted = courseStatus === "not-started";
 
                   return (
                     <div
@@ -266,17 +341,23 @@ export default function MesApprentissagesPage() {
                             <BookOpen className="w-12 h-12 text-blue-300" />
                           </div>
 
-                          {/* Status Badge moderne */}
+                          {/* Status Badge basé sur la vraie progression */}
                           {isCompleted && (
                             <div className="absolute top-3 right-3 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-lg">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Terminé
                             </div>
                           )}
-                          {!isCompleted && hasStarted && (
+                          {isActive && (
                             <div className="absolute top-3 right-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-lg">
                               <Play className="w-3.5 h-3.5" />
                               En cours
+                            </div>
+                          )}
+                          {notStarted && (
+                            <div className="absolute top-3 right-3 bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-lg">
+                              <Clock className="w-3.5 h-3.5" />
+                              Non commencé
                             </div>
                           )}
                         </div>
@@ -327,6 +408,8 @@ export default function MesApprentissagesPage() {
                               className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
                                 isCompleted
                                   ? "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-md"
+                                  : isActive
+                                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-600/25"
                                   : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-600/25"
                               }`}
                             >
@@ -335,17 +418,15 @@ export default function MesApprentissagesPage() {
                                   <RotateCcw className="w-4 h-4" />
                                   Revoir
                                 </>
-                              ) : hasStarted ? (
+                              ) : isActive ? (
                                 <>
                                   <Play className="w-4 h-4" />
                                   Continuer
                                 </>
                               ) : (
                                 <>
-                                  <div className="flex gap-1  justify-center items-center">
-                                    <Play className="w-4 h-4" />
-                                     Commencer
-                                  </div>
+                                  <Play className="w-4 h-4" />
+                                  Commencer
                                 </>
                               )}
                             </Link>

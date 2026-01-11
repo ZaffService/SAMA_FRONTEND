@@ -15,7 +15,7 @@ import { WaveQrModal } from "@/components/WaveQrModal";
 import { PaymentSuccessModal } from "@/components/PaymentSuccessModal";
 import { QuizModal } from "@/components/QuizModal";
 import { TEXTS } from "@/lib/constants";
-import {Play,ArrowLeft,ChevronDown,X,CheckCircle,} from "lucide-react";
+import {Play,ArrowLeft,ChevronDown,X,CheckCircle,Lock} from "lucide-react";
 
 interface CourseDetailsData {
   course: {
@@ -42,6 +42,13 @@ interface CourseDetailsData {
       duration: number;
       status: string;
     }>;
+  }>;
+  enrollments?: Array<{
+    id: string;
+    userId: string;
+    courseId: string;
+    status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+    enrolledAt: Date;
   }>;
   moduleCount: number;
 }
@@ -87,6 +94,9 @@ function CourseDetailsPageComponent() {
   // Quiz states
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
+
+  // Enrollment check states
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -459,6 +469,18 @@ useEffect(() => {
     }
   };
 
+  // Gestion du clic sur un module
+  const handleModuleClick = (moduleId: string) => {
+    if (!isEnrolled) {
+      setShowEnrollmentModal(true);
+      return;
+    }
+
+    // Si l'utilisateur est inscrit, ouvrir le module
+    console.log("Ouverture du module:", moduleId);
+    // Ici vous pouvez ajouter la logique pour ouvrir le module
+  };
+
   const totalLessons = lessonsWithVideos.length;
 
   if (loading) {
@@ -800,11 +822,19 @@ useEffect(() => {
                         return (
                           <div key={module.id} className="mb-2">
                             <button
-                              onClick={() => toggleModule(module.id)}
+                              onClick={() => {
+                                if (isEnrolled) {
+                                  toggleModule(module.id);
+                                } else {
+                                  handleModuleClick(module.id);
+                                }
+                              }}
                               className={`w-full flex items-center justify-between p-2.5 lg:p-3 rounded-lg transition-all duration-300 text-left group ${
                                 isModuleCompleted
                                   ? "bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200"
-                                  : "hover:bg-indigo-50"
+                                  : isEnrolled
+                                    ? "hover:bg-indigo-50"
+                                    : "opacity-60 cursor-not-allowed bg-gray-50"
                               }`}
                             >
                               <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
@@ -831,12 +861,22 @@ useEffect(() => {
                                         : "text-gray-900"
                                     }`}
                                   >
-                                    {module.title}
-                                    {isModuleCompleted && (
-                                      <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
-                                        Terminé
-                                      </span>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                      {module.title}
+                                      {!isEnrolled && (
+                                        <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                      )}
+                                      {isModuleCompleted && (
+                                        <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
+                                          Terminé
+                                        </span>
+                                      )}
+                                      {!isEnrolled && (
+                                        <span className="ml-2 px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full font-medium">
+                                          Verrouillé
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                   <div className="text-xs text-gray-500 mt-0.5">
                                     {
@@ -1227,6 +1267,38 @@ useEffect(() => {
         courseTitle={course?.title || ""}
         onAccessCourse={handleAccessCourse}
       />
+
+      {/* Modal d'inscription */}
+      {showEnrollmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <Lock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Contenu Verrouillé</h2>
+              <p className="text-gray-600 mb-6">
+                Inscrivez-vous à ce cours pour accéder à tous les modules, leçons et ressources.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => setShowEnrollmentModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEnrollmentModal(false);
+                    handleEnrollClick();
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  S'inscrire maintenant
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <QuizModal
         isOpen={showQuizModal}

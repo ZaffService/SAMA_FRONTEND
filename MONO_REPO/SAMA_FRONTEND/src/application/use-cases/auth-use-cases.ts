@@ -17,7 +17,7 @@ export class AuthUseCases {
   }
 
   static async getCurrentUser(): Promise<any> {
-    return AuthApi.getCurrentUser();
+    return AuthApi.validateSession();
   }
 
   static async refreshToken(): Promise<boolean> {

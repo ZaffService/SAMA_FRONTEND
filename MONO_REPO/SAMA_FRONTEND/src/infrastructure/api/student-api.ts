@@ -28,6 +28,9 @@ export interface Enrollment {
   instructorName?: string;
   progressPercentage?: number;
   completionDate?: string;
+  completedLessons?: number;
+  totalLessons?: number;
+  lastAccessed?: string;
 }
 
 export interface StudentDashboard {
@@ -114,10 +117,15 @@ export class StudentApi {
 
   static async getEnrolledCourses(): Promise<Enrollment[]> {
     try {
+      console.log("🔍 [StudentApi] Appel getEnrolledCourses");
+      console.log("🔍 [StudentApi] URL:", buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED));
+
       const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED), {
         method: "GET",
         credentials: "include",
       });
+
+      console.log("🔍 [StudentApi] Réponse status:", response.status);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -127,32 +135,99 @@ export class StudentApi {
       }
 
       const data = await response.json();
-      return data.courses ?? data.data ?? data ?? [];
+      console.log("🔍 [StudentApi] Données brutes reçues:", JSON.stringify(data, null, 2));
+
+      const courses = data.courses ?? data.data ?? data ?? [];
+      console.log("🔍 [StudentApi] Cours extraits:", courses);
+      console.log("🔍 [StudentApi] Nombre de cours:", courses.length);
+
+      // 🔥 DEBUG spécifique pour Leadership
+      const leadershipCourse = courses.find((c: any) => c.title?.includes("Leadership"));
+      if (leadershipCourse) {
+        console.log("🎯 [StudentApi] Cours Leadership trouvé dans enrolled:", leadershipCourse);
+        console.log("🆔 ID du cours Leadership:", leadershipCourse.id || leadershipCourse.course_id);
+      } else {
+        console.log("❌ [StudentApi] Cours Leadership NON trouvé dans enrolled");
+      }
+
+      return courses;
     } catch (error) {
-      console.error("Erreur getEnrolledCourses:", error);
+      console.error("❌ [StudentApi] Erreur getEnrolledCourses:", error);
       throw error;
     }
   }
 
-  static async getCourseProgress(courseId: number): Promise<{
+  static async getCourseProgress(courseId: string): Promise<{
     progress: number;
     completed_lessons: number;
     total_lessons: number;
     last_accessed: string;
   }> {
-    const response = await fetch(
-      buildApiUrl(`${API_ENDPOINTS.COURSES.PROGRESS}/${courseId}`),
-      {
-        method: "GET",
-        credentials: "include",
-      },
-    );
+    // PROGRESS est une fonction dans API_ENDPOINTS, on doit l'appeler avec le courseId
+    const endpoint = API_ENDPOINTS.COURSES.PROGRESS(courseId);
+    const url = buildApiUrl(endpoint);
+    console.log(`🌐 [StudentApi] Appel API getCourseProgress pour cours ID: ${courseId}`);
+    console.log(`🌐 [StudentApi] URL: ${url}`);
+    
+    const response = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    console.log(`🌐 [StudentApi] Réponse status: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ [StudentApi] Erreur getCourseProgress pour cours ${courseId}:`, {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
       throw new Error("Erreur lors de la récupération de la progression");
     }
 
-    return response.json();
+    // ✅ RÉCUPÉRATION DE LA RÉPONSE BRUTE DU BACKEND
+    const backendData = await response.json();
+    console.log(`🔍 [StudentApi] RÉPONSE BRUTE DU BACKEND:`, JSON.stringify(backendData, null, 2));
+
+    // ✅ MAPPING CORRECT: Backend → Frontend
+    // Backend retourne:
+    // {
+    //   "courseId": "string",
+    //   "userId": "string",
+    //   "progressPercentage": 100,
+    //   "completedLessons": ["lessonId1", "lessonId2"], // TABLEAU
+    //   "currentLesson": "lessonId",
+    //   "lessonsProgress": [...]
+    // }
+    
+    // ✅ Calculer le nombre total de leçons depuis lessonsProgress
+    // lessonsProgress est un tableau de modules, chaque module contient un tableau de lessons
+    let totalLessons = 0;
+    if (Array.isArray(backendData.lessonsProgress)) {
+      totalLessons = backendData.lessonsProgress.reduce((total: number, module: any) => {
+        return total + (Array.isArray(module.lessons) ? module.lessons.length : 0);
+      }, 0);
+    }
+
+    const mappedData = {
+      progress: backendData.progressPercentage || 0,
+      completed_lessons: Array.isArray(backendData.completedLessons) 
+        ? backendData.completedLessons.length  // ✅ Convertir tableau en nombre
+        : 0,
+      total_lessons: totalLessons,  // ✅ Calculer en parcourant tous les modules
+      last_accessed: backendData.currentLesson || null,
+    };
+
+    console.log(`✅ [StudentApi] DONNÉES MAPPÉES:`, {
+      progress: mappedData.progress,
+      completed_lessons: mappedData.completed_lessons,
+      total_lessons: mappedData.total_lessons,
+      last_accessed: mappedData.last_accessed,
+      timestamp: new Date().toISOString()
+    });
+    
+    return mappedData;
   }
 
   static async markLessonComplete(lessonId: number): Promise<void> {

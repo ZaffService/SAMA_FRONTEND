@@ -80,6 +80,61 @@ export function useStudentDashboard(options: {
 
         console.log("✅ Cours chargés:", coursesResult.length, "cours");
 
+        // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE
+        console.log("📊 [useStudentDashboard] Début récupération progression pour", coursesResult.length, "cours");
+        const coursesWithProgress = await Promise.all(
+          coursesResult.map(async (course) => {
+            try {
+              const courseId = course.id || course.course_id;
+              if (!courseId) {
+                console.log("⚠️ [useStudentDashboard] Cours sans ID:", course);
+                return course;
+              }
+
+              console.log(`📚 [useStudentDashboard] Récupération progression pour cours ID: ${courseId} - ${course.title || 'sans titre'}`);
+              const progressData = await StudentApi.getCourseProgress(courseId);
+              
+              console.log(`✅ [useStudentDashboard] Progression reçue pour cours ${courseId}:`, {
+                progress: progressData.progress,
+                completed_lessons: progressData.completed_lessons,
+                total_lessons: progressData.total_lessons,
+                last_accessed: progressData.last_accessed,
+                timestamp: new Date().toISOString()
+              });
+
+              return {
+                ...course,
+                progressPercentage: progressData.progress,
+                completedLessons: progressData.completed_lessons,
+                totalLessons: progressData.total_lessons,
+                lastAccessed: progressData.last_accessed,
+              };
+            } catch (error) {
+              console.error(`❌ [useStudentDashboard] Erreur récupération progression pour cours ${course.id}:`, error);
+              // Return course with default progress if API fails
+              return {
+                ...course,
+                progressPercentage: course.progressPercentage || 0,
+                completedLessons: course.completedLessons || 0,
+                totalLessons: course.totalLessons || 0,
+              };
+            }
+          })
+        );
+
+        console.log("✅ [useStudentDashboard] Progression chargée pour tous les cours");
+        console.log("📊 [useStudentDashboard] Résumé des progressions:");
+        coursesWithProgress.forEach(course => {
+          console.log(`  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons)`);
+        });
+
+        // ✅ CALCULER LES COURS TERMINÉS BASÉ SUR LA PROGRESSION RÉELLE
+        const completedCoursesCount = coursesWithProgress.filter(
+          (course) => course.progressPercentage === 100
+        ).length;
+
+        console.log(`✅ [useStudentDashboard] Cours terminés calculés: ${completedCoursesCount} (basé sur progressPercentage === 100)`);
+
         const endTime = performance.now();
         console.log(
           `Dashboard chargé en ${(endTime - startTime).toFixed(0)}ms`,
@@ -87,7 +142,7 @@ export function useStudentDashboard(options: {
 
         const adaptedDashboard = {
           enrolled_course_count: dashboardResult.total_courses,
-          completed_courses: dashboardResult.completed_courses,
+          completed_courses: completedCoursesCount, // ✅ UTILISER LE CALCUL DYNAMIQUE AU LIEU DE L'API BACKEND
           certificates_earned: 0, // Non disponible dans l'API actuelle
           study_hours: 0, // Non disponible dans l'API actuelle
           progress_percentage: dashboardResult.total_progress,
@@ -98,11 +153,11 @@ export function useStudentDashboard(options: {
         };
 
         const adaptedCourses = {
-          enrolled_courses: coursesResult,
-          completed_courses: coursesResult.filter(
+          enrolled_courses: coursesWithProgress,
+          completed_courses: coursesWithProgress.filter(
             (course) => course.status === "COMPLETED",
           ),
-          in_progress_courses: coursesResult.filter(
+          in_progress_courses: coursesWithProgress.filter(
             (course) => course.status === "ACTIVE",
           ),
         };
@@ -125,16 +180,72 @@ export function useStudentDashboard(options: {
   // Fonction pour rafraîchir les données
   const refreshData = async () => {
     try {
+      console.log("🔄 [useStudentDashboard] Début rafraîchissement des données...");
       const [dashboardResult, coursesResult, quizStats] = await Promise.all([
         StudentApi.getStudentDashboard(),
         StudentApi.getEnrolledCourses(),
         StudentApi.computeQuizStats(),
       ]);
 
+      // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE
+      console.log("📊 [useStudentDashboard] Rafraîchissement progression pour", coursesResult.length, "cours");
+      const coursesWithProgress = await Promise.all(
+        coursesResult.map(async (course) => {
+          try {
+            const courseId = course.id || course.course_id;
+            if (!courseId) {
+              console.log("⚠️ [useStudentDashboard] Cours sans ID lors du refresh:", course);
+              return course;
+            }
+
+            console.log(`📚 [useStudentDashboard] Refresh progression pour cours ID: ${courseId} - ${course.title || 'sans titre'}`);
+            const progressData = await StudentApi.getCourseProgress(courseId);
+            
+            console.log(`✅ [useStudentDashboard] Progression rafraîchie pour cours ${courseId}:`, {
+              progress: progressData.progress,
+              completed_lessons: progressData.completed_lessons,
+              total_lessons: progressData.total_lessons,
+              last_accessed: progressData.last_accessed,
+              timestamp: new Date().toISOString()
+            });
+
+            return {
+              ...course,
+              progressPercentage: progressData.progress,
+              completedLessons: progressData.completed_lessons,
+              totalLessons: progressData.total_lessons,
+              lastAccessed: progressData.last_accessed,
+            };
+          } catch (error) {
+            console.error(` [useStudentDashboard] Erreur refresh progression pour cours ${course.id}:`, error);
+            // Return course with default progress if API fails
+            return {
+              ...course,
+              progressPercentage: course.progressPercentage || 0,
+              completedLessons: course.completedLessons || 0,
+              totalLessons: course.totalLessons || 0,
+            };
+          }
+        })
+      );
+
+      console.log("✅ [useStudentDashboard] Progression rafraîchie pour tous les cours");
+      console.log("📊 [useStudentDashboard] Résumé des progressions après refresh:");
+      coursesWithProgress.forEach(course => {
+        console.log(`  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons) - Dernier accès: ${course.lastAccessed || 'N/A'}`);
+      });
+
+      // ✅ CALCULER LES COURS TERMINÉS BASÉ SUR LA PROGRESSION RÉELLE (REFRESH)
+      const completedCoursesCount = coursesWithProgress.filter(
+        (course) => course.progressPercentage === 100
+      ).length;
+
+      console.log(`✅ [useStudentDashboard] Cours terminés recalculés après refresh: ${completedCoursesCount} (basé sur progressPercentage === 100)`);
+
       // Adapter les données pour correspondre aux types attendus
       const adaptedDashboard = {
         enrolled_course_count: dashboardResult.total_courses,
-        completed_courses: dashboardResult.completed_courses,
+        completed_courses: completedCoursesCount, // ✅ UTILISER LE CALCUL DYNAMIQUE AU LIEU DE L'API BACKEND
         certificates_earned: 0, // Non disponible dans l'API actuelle
         study_hours: 0, // Non disponible dans l'API actuelle
         progress_percentage: dashboardResult.total_progress,
@@ -145,12 +256,12 @@ export function useStudentDashboard(options: {
       };
 
       const adaptedCourses = {
-        enrolled_courses: coursesResult,
-        completed_courses: coursesResult.filter(
-          (course) => course.status === "COMPLETED",
+        enrolled_courses: coursesWithProgress,
+        completed_courses: coursesWithProgress.filter(
+          (course) => course.status === "COMPLETED" || course.progressPercentage === 100,
         ),
-        in_progress_courses: coursesResult.filter(
-          (course) => course.status === "ACTIVE",
+        in_progress_courses: coursesWithProgress.filter(
+          (course) => course.status === "ACTIVE" && (course.progressPercentage ?? 0) < 100,
         ),
       };
 

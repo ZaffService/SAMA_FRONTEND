@@ -22,8 +22,10 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { HeroBanner } from "@/components/hero-banner";
 import { CourseCard } from "@/components/course-card";
+import MaintenancePage from "@/components/MaintenancePage";
 
 import { useCourses } from "@/application/use-cases/useCourses";
+import { useEnrolledCourses } from "@/application/use-cases/useEnrolledCourses";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 
@@ -43,6 +45,8 @@ const Index = () => {
 
   const { courses, loading, error, pages, currentPage, setPage, refresh } =
     useCourses(1, 8);
+
+  const { enrolledCourses } = useEnrolledCourses();
 
   /** 🔒 Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
@@ -174,6 +178,41 @@ const Index = () => {
     window.location.href = `/course-details/${course.id}`;
   };
 
+  // Fonction helper pour vérifier si un cours est acheté
+  const isCourseEnrolled = (courseId: string) => {
+    console.log(`🔍 [isCourseEnrolled] Vérification pour cours ID: ${courseId}`);
+    console.log(`📚 [isCourseEnrolled] Cours inscrits disponibles:`, enrolledCourses);
+
+    const isEnrolled = enrolledCourses.some(enrollment => {
+      // 🔥 CORRECTION : Vérifier tous les champs possibles (id, _id, course_id)
+      const enrolledId = enrollment.id || (enrollment as any)._id || enrollment.course_id;
+      const match = enrolledId === courseId;
+      console.log(`🔍 [isCourseEnrolled] Comparaison: ${enrolledId} === ${courseId} ? ${match}`);
+      return match;
+    });
+
+    console.log(`✅ [isCourseEnrolled] Résultat pour ${courseId}: ${isEnrolled}`);
+    return isEnrolled;
+  };
+
+  // Fonction helper pour récupérer la progression d'un cours
+  const getCourseProgress = (courseId: string) => {
+    const enrollment = enrolledCourses.find(enrollment => {
+      const enrolledId = enrollment.id || (enrollment as any)._id || enrollment.course_id;
+      return enrolledId === courseId;
+    });
+
+    // 🔥 CORRECTION : Vérifier TOUS les champs possibles pour la progression
+    const progress =
+      enrollment?.progressPercentage ||
+      enrollment?.progress ||
+      (enrollment as any)?.percentage ||
+      0;
+
+    console.log(`📊 [getCourseProgress] Progression pour ${courseId}: ${progress}% (enrollment:`, enrollment, `)`);
+    return progress;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen">
@@ -186,20 +225,7 @@ const Index = () => {
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="flex flex-col items-center justify-center mt-12">
-          <p className="text-red-500">{error}</p>
-          <button
-            onClick={() => refresh()}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded"
-          >
-            Réessayer
-          </button>
-        </div>
-      </div>
-    );
+    return <MaintenancePage onRetry={refresh} />;
   }
 
   return (
@@ -209,16 +235,14 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* 🎯 Ancre pour la section formations */}
-        <div ref={courseSectionRef} id="formations-section">
+        <div ref={courseSectionRef} id="formations-section" className="pt-12">
           {/* Barre de recherche avec titre - Layout mobile en colonne */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-            {!isAuthenticated && (
-              <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">
-                {showFreeTutorials
-                  ? "Tutos gratuits disponibles"
-                  : "Découvrez nos formations"}
-              </h2>
-            )}
+            <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">
+              {showFreeTutorials
+                ? "Tutos gratuits disponibles"
+                : "Découvrez nos formations"}
+            </h2>
 
             <div className="relative w-full sm:max-w-sm lg:max-w-md">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -239,14 +263,30 @@ const Index = () => {
 
           {/* Grille */}
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
-            {filteredCourses.map((course: Course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                onEnrollClick={handleEnrollClick}
-                onVideoClick={handleVideoClick}
-              />
-            ))}
+            {filteredCourses.map((course: Course) => {
+              const isEnrolled = isCourseEnrolled(course.id);
+              const progress = getCourseProgress(course.id);
+
+              // 🔥 DEBUG spécifique pour le cours Leadership
+              if (course.title?.includes("Leadership")) {
+                console.log("🎯 [CourseCard] Rendu du cours Leadership:");
+                console.log("   - Titre:", course.title);
+                console.log("   - ID:", course.id);
+                console.log("   - Est inscrit?", isEnrolled);
+                console.log("   - Progression:", progress);
+              }
+
+              return (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onEnrollClick={handleEnrollClick}
+                  onVideoClick={handleVideoClick}
+                  isEnrolled={isEnrolled}
+                  progress={progress}
+                />
+              );
+            })}
           </div>
 
           {/* Message si aucun tuto gratuit */}

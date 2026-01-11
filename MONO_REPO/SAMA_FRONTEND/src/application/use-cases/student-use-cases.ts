@@ -22,7 +22,7 @@ export class StudentUseCases {
     return StudentApi.getEnrolledCourses();
   }
 
-  static async getCourseProgress(courseId: number): Promise<{
+  static async getCourseProgress(courseId: string): Promise<{
     progress: number;
     completed_lessons: number;
     total_lessons: number;

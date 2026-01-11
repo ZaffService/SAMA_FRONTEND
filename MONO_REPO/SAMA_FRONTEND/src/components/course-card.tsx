@@ -10,9 +10,11 @@ interface CourseCardProps {
   course: Course;
   onEnrollClick?: (course: Course) => void;
   onVideoClick?: (course: Course) => void;
+  isEnrolled?: boolean;
+  progress?: number;
 }
 
-export function CourseCard({ course }: CourseCardProps) {
+export function CourseCard({ course, isEnrolled = false, progress }: CourseCardProps) {
   const router = useRouter();
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
 
@@ -85,14 +87,23 @@ export function CourseCard({ course }: CourseCardProps) {
           onError={handleThumbnailError}
         />
 
-        <div className="absolute top-3 left-3 flex gap-2">
-          {isPremium && (
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1 sm:gap-2">
+          {isEnrolled && (
+            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs sm:text-sm font-bold px-2 py-1 sm:px-3 sm:py-1 rounded-full shadow-lg flex items-center gap-1">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="hidden sm:inline">Inscrit</span>
+              <span className="sm:hidden">✓</span>
+            </div>
+          )}
+          {isPremium && !isEnrolled && (
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs sm:text-sm font-bold px-2 py-1 sm:px-3 sm:py-1 rounded-full shadow-lg">
               ✨ Premium
             </div>
           )}
           {duration && (
-            <div className="bg-blue-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            <div className="bg-blue-600/90 text-white text-xs sm:text-sm font-bold px-2 py-1 sm:px-3 sm:py-1 rounded-full shadow-lg">
               {duration}
             </div>
           )}
@@ -146,16 +157,38 @@ export function CourseCard({ course }: CourseCardProps) {
           </div>
         )}
 
-        <div className="pt-2 border-t border-gray-100 mt-auto">
-          {isFree ? (
-            <div className="flex items-center justify-end">
-              <span className="text-lg font-bold text-green-600">Gratuit</span>
+        <div className="pt-2 border-t border-gray-100 mt-auto space-y-2 sm:space-y-3">
+          {isEnrolled ? (
+            <div className="space-y-2 sm:space-y-3">
+              {progress !== undefined && progress > 0 && (
+                <div className="w-full">
+                  <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1 sm:mb-1.5">
+                    <span className="font-medium">Progression</span>
+                    <span className="font-semibold text-indigo-600">{progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="w-full">
+                <button className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg">
+                  Continuer l'apprentissage →
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-end">
-              <span className="text-lg font-bold text-gray-900">
-                {formatPrice(price)} FCFA
-              </span>
+              {isFree ? (
+                <span className="text-base sm:text-lg font-bold text-green-600">Gratuit</span>
+              ) : (
+                <span className="text-base sm:text-lg font-bold text-gray-900">
+                  {formatPrice(price)} FCFA
+                </span>
+              )}
             </div>
           )}
         </div>
