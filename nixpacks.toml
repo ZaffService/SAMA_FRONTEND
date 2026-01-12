@@ -1,2 +1,5 @@
 [build]
 cache_directories = [".next/cache", "node_modules/.cache"]
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
