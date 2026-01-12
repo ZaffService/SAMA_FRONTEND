@@ -2,4 +2,4 @@
 cache_directories = [".next/cache", "node_modules/.cache"]
 
 [phases.setup]
-nixPkgs = ["nodejs_20"]
+nixPkgs = ["nodejs_20", "pnpm-9_x"]
