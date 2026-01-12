@@ -1,0 +1,2 @@
+[build]
+cache_directories = [".next/cache", "node_modules/.cache"]
