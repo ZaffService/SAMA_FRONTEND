@@ -2,9 +2,9 @@ name: CI pour les pull et push dans main
 
 on:
   push:
-    branches: ['main']
+    branches: ['main', 'sama_front']
   pull_request:
-    branches: ['main']
+    branches: ['main', 'sama_front']
 
 jobs:
   build:
