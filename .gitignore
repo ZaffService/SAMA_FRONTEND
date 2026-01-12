@@ -28,3 +28,6 @@ yarn-error.log*
 .idea/
 .vscode/
 Dockerfile
+
+# TypeScript build info
+tsconfig.tsbuildinfo
