@@ -634,6 +634,42 @@ export class CoursesApi {
 
 
   /**
+   * Récupère les cours auxquels l'utilisateur est inscrit
+   */
+  static async getEnrolledCourses(): Promise<any[]> {
+    console.log("🔍 API: Récupération des cours inscrits");
+
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      console.error("❌ Erreur lors de la récupération des cours inscrits:", response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log("📦 API: Cours inscrits:", data);
+
+    // Le format peut varier selon le backend
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data.courses && Array.isArray(data.courses)) {
+      return data.courses;
+    }
+    if (data.enrollments && Array.isArray(data.enrollments)) {
+      return data.enrollments;
+    }
+
+    return [];
+  }
+
+  /**
    * Mapper pour les cours de la liste (léger)
    */
   private static mapBackendCourseToFrontend(
