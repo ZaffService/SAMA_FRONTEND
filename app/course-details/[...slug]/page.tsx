@@ -8,16 +8,6 @@ export default function CatchAllCourseDetails() {
   const router = useRouter();
   const slug = params?.slug as string[];
 
-  useEffect(() => {
-    if (slug && slug.length >= 2 && slug[0] === 'undefined' && slug[1].startsWith('test_')) {
-      // PayDunya redirect with token
-      const token = slug[1];
-      router.push(`/payment-success?token=${token}`);
-    } else {
-      // Invalid path, redirect to 404
-      router.push('/not-found');
-    }
-  }, [slug, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
