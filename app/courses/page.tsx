@@ -13,10 +13,12 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import Swal from "sweetalert2";
 import { useCourses } from "@/application/use-cases/useCourses";
+import { CoursesUseCases } from "@/application/use-cases/courses-use-cases";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
+import Cookies from 'js-cookie';
 
 const CoursesPage = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
@@ -153,7 +155,7 @@ const CoursesPage = () => {
   }, []);
 
   const handleVideoClick = useCallback(
-    (course: Course) => {
+    async (course: Course) => {
       console.log("Lecture vidéo du cours:", course.title);
 
       if (!isAuthenticated) {
@@ -162,7 +164,25 @@ const CoursesPage = () => {
         return;
       }
 
-      window.location.href = `/course-details/${course.id}`;
+      try {
+        // ✅ Essayer de s'inscrire au cours
+        const result = await CoursesUseCases.followCourse(course.id);
+
+        if (result && 'payment_url' in result && result.payment_url) {
+          // 🔄 Redirection vers le paiement
+          console.log("💳 Redirection vers le paiement:", result.payment_url);
+          Cookies.set('pendingCourseId', course.id, { expires: 1 });
+          window.location.href = result.payment_url;
+        } else {
+          // ✅ Inscription réussie ou déjà inscrit - aller au cours
+          console.log("✅ Redirection vers le cours:", course.id);
+          window.location.href = `/course-details/${course.id}`;
+        }
+      } catch (error) {
+        console.error("❌ Erreur lors de l'inscription:", error);
+        // En cas d'erreur, aller quand même au cours (pour les cours gratuits ou déjà inscrits)
+        window.location.href = `/course-details/${course.id}`;
+      }
     },
     [isAuthenticated, setRedirectAfterLogin],
   );

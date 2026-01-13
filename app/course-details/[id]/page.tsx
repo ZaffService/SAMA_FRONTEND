@@ -6,6 +6,7 @@ import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { usePayment } from "@/application/use-cases/usePayment";
 import { VideoPlayer } from "@/components/video-player";
 import Swal from "sweetalert2";
 import { LockedVideoOverlay } from "@/components/LockedVideoOverlay";
@@ -48,6 +49,7 @@ function CourseDetailsPageComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useLocalAuth();
+  const { verifyPayment } = usePayment();
   const courseId = params?.id as string;
 
 
@@ -116,11 +118,66 @@ function CourseDetailsPageComponent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Gestion du paiement (anciennement dans /payment-success)
   useEffect(() => {
+    const token = searchParams.get('token');
     const status = searchParams.get('status') as 'success' | 'failed' | 'cancelled' | null;
-    setPaymentStatus(status);
 
-    if (status === 'failed') {
+    if (token) {
+      // Vérifier le paiement avec le token
+      console.log(`🔍 Vérification paiement avec token: ${token}`);
+      verifyPayment(token)
+        .then(async (result) => {
+          console.log(`🔍 Résultat vérification:`, result);
+
+          if (result.status === "success") {
+            // Inscrire l'utilisateur au cours
+            console.log("✅ Paiement vérifié, inscription au cours...");
+            try {
+              await CoursesApi.enrollUser(courseId);
+              setIsEnrolled(true);
+              setIsPaid(true);
+              Cookies.set('justPaidCourse', courseId, { expires: 1 });
+              Cookies.remove('pendingCourseId');
+
+              Swal.fire({
+                title: "Paiement réussi !",
+                text: "Vous êtes maintenant inscrit à ce cours.",
+                icon: "success",
+                confirmButtonText: "Commencer",
+                confirmButtonColor: "#6366f1",
+              });
+            } catch (enrollError) {
+              console.error("Erreur inscription:", enrollError);
+              Swal.fire({
+                title: "Paiement réussi",
+                text: "Le paiement a été validé mais l'inscription a échoué. Contactez le support.",
+                icon: "warning",
+                confirmButtonText: "Fermer",
+                confirmButtonColor: "#6366f1",
+              });
+            }
+          } else {
+            Swal.fire({
+              title: "Paiement échoué",
+              text: "Le paiement n'a pas pu être vérifié.",
+              icon: "error",
+              confirmButtonText: "Fermer",
+              confirmButtonColor: "#6366f1",
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("❌ Erreur vérification paiement:", error);
+          Swal.fire({
+            title: "Erreur",
+            text: `Erreur lors de la vérification du paiement: ${error.message}`,
+            icon: "error",
+            confirmButtonText: "Fermer",
+            confirmButtonColor: "#6366f1",
+          });
+        });
+    } else if (status === 'failed') {
       Swal.fire({
         title: "Paiement échoué",
         text: "Le paiement n'a pas pu être traité. Veuillez réessayer.",
@@ -137,7 +194,7 @@ function CourseDetailsPageComponent() {
         confirmButtonColor: "#6366f1",
       });
     }
-  }, [searchParams]);
+  }, [searchParams, courseId, verifyPayment]);
 
 
 useEffect(() => {
