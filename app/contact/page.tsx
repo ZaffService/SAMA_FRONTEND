@@ -67,10 +67,10 @@ export default function Contact() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col pt-16">
+    <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 pt-20 sm:pt-24 lg:pt-28">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary/10 to-destructive/10 py-16 lg:py-24">
           <div className="container mx-auto px-4">

@@ -204,9 +204,9 @@ useEffect(() => {
   useEffect(() => {
     const checkEnrollmentStatus = async () => {
       if (!user?.id || !courseId) {
-        console.log(
-          "ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription",
-        );
+        console.log("ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription");
+        setIsEnrolled(false);
+        setIsPaid(false);
         return;
       }
 
@@ -219,12 +219,13 @@ useEffect(() => {
           setIsEnrolled(true);
           setIsPaid(true);
         } else {
-          console.log("ℹ️ Utilisateur non inscrit ou accès refusé");
+          console.log("ℹ️ Utilisateur non inscrit - accès limité au contenu");
           setIsEnrolled(false);
           setIsPaid(false);
         }
       } catch (error) {
-        console.log("ℹ️ Erreur vérification inscription:", error);
+        console.error("❌ Erreur vérification inscription:", error);
+        // En cas d'erreur, considérer comme non inscrit pour sécurité
         setIsEnrolled(false);
         setIsPaid(false);
       }
@@ -371,25 +372,64 @@ useEffect(() => {
 
     try {
       setEnrolling(true);
+
+      // ✅ Vérifier d'abord si l'utilisateur est déjà inscrit
+      const alreadyEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
+      if (alreadyEnrolled) {
+        console.log("✅ Utilisateur déjà inscrit à ce cours");
+        setIsEnrolled(true);
+        setIsPaid(true);
+        Swal.fire({
+          title: "Déjà inscrit",
+          text: "Vous êtes déjà inscrit à ce cours. Vous pouvez commencer à apprendre !",
+          icon: "info",
+          confirmButtonText: "Commencer",
+          confirmButtonColor: "#6366f1",
+        });
+        return;
+      }
+
+      // ✅ Tentative d'inscription
       const result = await CoursesApi.followCourse(courseId);
 
       if (result && 'payment_url' in result && result.payment_url) {
-        // Sauvegarder le courseId pour le récupérer après paiement
+        // 🔄 Redirection vers le paiement (nouveau ou en cours)
+        console.log("💳 Redirection vers le paiement:", result.payment_url);
         Cookies.set('pendingCourseId', courseId, { expires: 1 }); // Expire dans 1 jour
-        // Rediriger vers l'URL de paiement
         window.location.href = result.payment_url;
-      } else {
-        // Inscription réussie pour cours gratuit
+      } else if (result && result.course && result.status) {
+        // ✅ Inscription réussie (cours gratuit)
+        console.log("✅ Inscription réussie pour cours gratuit");
         setIsEnrolled(true);
         setIsPaid(true);
-        console.log("Suivi du cours réussi");
+        Swal.fire({
+          title: "Inscription réussie",
+          text: "Vous êtes maintenant inscrit à ce cours gratuit. Bonne apprentissage !",
+          icon: "success",
+          confirmButtonText: "Commencer",
+          confirmButtonColor: "#6366f1",
+        });
+      } else {
+        // ❓ Cas inattendu
+        console.warn("⚠️ Réponse inattendue de l'API:", result);
+        throw new Error("Réponse inattendue du serveur");
       }
     } catch (error) {
-      console.error("Erreur lors du suivi du cours:", error);
-      // Afficher un message d'erreur à l'utilisateur
+      console.error("❌ Erreur lors du suivi du cours:", error);
+
+      // Gestion spécifique des erreurs
+      let errorMessage = "Impossible de suivre ce cours. Veuillez réessayer.";
+      if (error instanceof Error) {
+        if (error.message.includes("403")) {
+          errorMessage = "Accès refusé. Vérifiez vos permissions.";
+        } else if (error.message.includes("500")) {
+          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+        }
+      }
+
       Swal.fire({
         title: "Erreur",
-        text: "Impossible de suivre ce cours. Veuillez réessayer.",
+        text: errorMessage,
         icon: "error",
         confirmButtonText: "Fermer",
         confirmButtonColor: "#6366f1",
@@ -399,9 +439,34 @@ useEffect(() => {
     }
   };
 
+  // Vérifier s'il y a un paiement en cours pour ce cours
+  const checkPendingPayment = async (courseId: string): Promise<string | null> => {
+    try {
+      console.log(`🔍 Vérification paiement en cours pour le cours ${courseId}`);
+      // Cette fonction pourrait appeler une API dédiée si nécessaire
+      // Pour l'instant, on s'appuie sur la logique backend
+      return null; // Le backend gère cette logique
+    } catch (error) {
+      console.error("❌ Erreur vérification paiement en cours:", error);
+      return null;
+    }
+  };
+
   // Gestion du clic sur le bouton d'inscription/paiement
-  const handleEnrollClick = () => {
-    handleFollowCourse();
+  const handleEnrollClick = async () => {
+    // ✅ Vérification rapide avant de procéder
+    if (isEnrolled === true) {
+      Swal.fire({
+        title: "Déjà inscrit",
+        text: "Vous êtes déjà inscrit à ce cours !",
+        icon: "info",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#6366f1",
+      });
+      return;
+    }
+
+    await handleFollowCourse();
   };
 
   // Vérifier le statut d'inscription au chargement

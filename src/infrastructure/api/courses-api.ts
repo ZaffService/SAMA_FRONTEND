@@ -117,8 +117,8 @@ export class CoursesApi {
     if (searchOptions?.query) {
       url.searchParams.append("query", searchOptions.query);
     }
-    if (searchOptions?.category) {
-      url.searchParams.append("category", searchOptions.category);
+    if (searchOptions?.categoryId) {
+      url.searchParams.append("categoryId", searchOptions.categoryId);
     }
     if (searchOptions?.level) {
       url.searchParams.append("level", searchOptions.level);
@@ -276,7 +276,7 @@ export class CoursesApi {
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
+      // credentials: "include", // ❌ Pas nécessaire pour les catégories
     });
 
     console.log("📡 [API] Statut de la réponse:", response.status, response.statusText);

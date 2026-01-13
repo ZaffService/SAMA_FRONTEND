@@ -253,7 +253,7 @@ const Index = () => {
       <Header />
       <HeroBanner />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pt-20 sm:pt-24 lg:pt-28">
         {/* 🎯 Filtre par catégories */}
         <section className="mb-12 py-8 border-b border-slate-200">
           <CategoryFilter

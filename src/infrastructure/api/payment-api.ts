@@ -25,11 +25,11 @@ export class PaymentApi {
     const url = buildApiUrl(`course/payments/verify?token=${token}`);
     console.log(`🔍 URL appelée: ${url}`);
 
-    const response = await fetch(buildApiUrl(`course/payments/verify`), {
-      method: "POST",
+    // Le backend attend un GET avec le token en query parameter
+    const response = await fetch(url, {
+      method: "GET",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ token })
+      credentials: "include"
     });
 
     console.log(`🔍 Statut réponse: ${response.status} ${response.statusText}`);

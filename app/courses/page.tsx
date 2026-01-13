@@ -43,6 +43,7 @@ const CoursesPage = () => {
     filterLoading,
     setPage,
     setSearchQuery,
+    setFilterCategories,
     refresh,
   } = useCourses(1, 8);
 
@@ -77,6 +78,10 @@ const CoursesPage = () => {
 
   // Fonctions de gestion des filtres
   const clearAllFilters = useCallback(() => {
+    // ✅ Effacer les catégories côté serveur d'abord
+    setFilterCategories([]);
+
+    // ✅ Puis effacer tous les filtres côté client
     setFilters({
       categories: [],
       levels: [],
@@ -84,18 +89,13 @@ const CoursesPage = () => {
       duration: [],
       rating: [],
     });
-  }, []);
+  }, [setFilterCategories]);
 
-  // Appliquer les filtres côté client
+  // Appliquer les filtres côté client (seulement prix, niveau, rating - pas catégories)
   const applyFilters = useCallback(
     (courses: Course[]) => {
       return courses.filter((course) => {
-        if (filters.categories.length > 0) {
-          // Compare filters.categories (IDs) with course.categoryId
-          if (!course.categoryId || !filters.categories.includes(course.categoryId)) {
-            return false;
-          }
-        }
+        // ✅ NE PAS FILTRER PAR CATÉGORIES ICI - Le backend s'en charge
 
         if (filters.levels.length > 0) {
           if (!filters.levels.includes(course.level.toLowerCase()))
@@ -230,7 +230,7 @@ const CoursesPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8">
+      <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 pt-20 sm:pt-24 lg:pt-28">
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -280,6 +280,7 @@ const CoursesPage = () => {
                     ...prev,
                     categories: [],
                   }));
+                  setFilterCategories([]);
                 }}
                 className={`text-sm font-medium transition-colors ${
                   filters.categories.length === 0
@@ -308,11 +309,19 @@ const CoursesPage = () => {
                   <button
                     key={category.id}
                     onClick={() => {
+                      console.log("🖱️ Clic sur catégorie:", category.name, category.id);
+                      const newCategories = filters.categories.includes(category.id)
+                        ? filters.categories.filter(id => id !== category.id)
+                        : [...filters.categories, category.id];
+                      console.log("📋 Nouvelles catégories:", newCategories);
+
+                      // ✅ PREMIÈRE: Mettre à jour le hook
+                      setFilterCategories(newCategories);
+
+                      // ✅ DEUXIÈME: Mettre à jour l'UI locale en dernier
                       setFilters((prev) => ({
                         ...prev,
-                        categories: prev.categories.includes(category.id)
-                          ? prev.categories.filter(id => id !== category.id)
-                          : [...prev.categories, category.id],
+                        categories: newCategories,
                       }));
                     }}
                     className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${
@@ -382,11 +391,19 @@ const CoursesPage = () => {
                             type="checkbox"
                             checked={filters.categories.includes(category.id)}
                             onChange={() => {
+                              console.log("☑️ Checkbox catégorie:", category.name, category.id);
+                              const newCategories = filters.categories.includes(category.id)
+                                ? filters.categories.filter((c) => c !== category.id)
+                                : [...filters.categories, category.id];
+                              console.log("📋 Nouvelles catégories (checkbox):", newCategories);
+
+                              // ✅ PREMIÈRE: Mettre à jour le hook
+                              setFilterCategories(newCategories);
+
+                              // ✅ DEUXIÈME: Mettre à jour l'UI locale en dernier
                               setFilters((prev) => ({
                                 ...prev,
-                                categories: prev.categories.includes(category.id)
-                                  ? prev.categories.filter((c) => c !== category.id)
-                                  : [...prev.categories, category.id],
+                                categories: newCategories,
                               }));
                             }}
                             className="rounded border-border"

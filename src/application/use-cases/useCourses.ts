@@ -23,6 +23,7 @@ interface UseCoursesState {
 interface UseCoursesActions {
   setPage: (page: number) => void;
   setSearchQuery: (query: string) => void;
+  setFilterCategories: (categoryIds: string[]) => void;
   refresh: () => Promise<void>;
   clearError: () => void;
   refetch: () => Promise<void>;
@@ -40,6 +41,7 @@ export function useCourses(
   const [pages, setPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const [filterData, setFilterData] = useState<{
     categories: Array<{ id: string; name: string; count: number }>;
@@ -59,7 +61,7 @@ export function useCourses(
   /**
     * ✅ Fonction stable de récupération
     */
-   const fetchCourses = useCallback(async (page: number, query: string) => {
+   const fetchCourses = useCallback(async (page: number, query: string, categories: string[] = []) => {
      if (abortControllerRef.current) {
        abortControllerRef.current.abort();
      }
@@ -73,11 +75,16 @@ export function useCourses(
        console.log("🔄 fetchCourses appelé:", {
          page,
          query,
+         categories,
          perPage: perPage.current,
        });
 
-       const searchOptions: CourseSearchOptions | undefined = query
-         ? { query }
+       // Construire les options de recherche
+       const searchOptions: CourseSearchOptions | undefined = (query || categories.length > 0)
+         ? { 
+             query: query || undefined,
+             categoryId: categories.length > 0 ? categories[0] : undefined // API accepte une catégorie à la fois
+           }
          : undefined;
 
        const result = await CoursesUseCases.getCourses(
@@ -129,11 +136,23 @@ export function useCourses(
      console.log("🔍 Recherche modifiée:", searchQuery);
      const timeoutId = setTimeout(() => {
        setCurrentPage(1); // Reset à page 1
-       fetchCourses(1, searchQuery);
+       fetchCourses(1, searchQuery, selectedCategories);
      }, 300);
 
      return () => clearTimeout(timeoutId);
-   }, [searchQuery, fetchCourses, filterData.categories]);
+   }, [searchQuery, fetchCourses, selectedCategories]);
+
+  /**
+    * ✅ Écouter les changements de catégories
+    */
+   useEffect(() => {
+     if (isInitialMount.current) {
+       return;
+     }
+
+     console.log("🎯 Catégories modifiées:", selectedCategories);
+     fetchCourses(1, searchQuery, selectedCategories);
+   }, [selectedCategories, fetchCourses, searchQuery]);
 
   /**
     * ✅ Changement de page
@@ -145,18 +164,21 @@ export function useCourses(
      }
 
      console.log("📄 useEffect [currentPage]:", currentPage);
-     fetchCourses(currentPage, searchQuery);
-   }, [currentPage, fetchCourses, searchQuery, filterData.categories]);
+     fetchCourses(currentPage, searchQuery, selectedCategories);
+   }, [currentPage, fetchCourses, searchQuery, selectedCategories]);
 
   /**
     * ✅ Fonction pour charger les données de filtrage
     */
    const loadFilterData = useCallback(async () => {
      try {
+       console.log("🔄 [loadFilterData] Début chargement des données de filtrage");
        setFilterLoading(true);
 
        // Fetch real categories from API
+       console.log("🔍 [loadFilterData] Appel à CoursesUseCases.getCategories()");
        const categories = await CoursesUseCases.getCategories();
+       console.log("✅ [loadFilterData] Catégories reçues:", categories);
 
        // Mock data for levels and price ranges (can be updated later if API provides them)
        const mockFilterData = {
@@ -180,16 +202,18 @@ export function useCourses(
 
        setFilterData(mockFilterData);
      } catch (err) {
-       console.error("Erreur chargement données filtrage:", err);
-       // Fallback to mock data if API fails - using same IDs as API
-       const mockFilterData = {
+       console.error("❌ Erreur chargement données filtrage:", err);
+       console.error("❌ Détails de l'erreur:", err instanceof Error ? err.message : err);
+       // Fallback temporaire avec vraies données pour que ça fonctionne
+       console.log("⚠️ Utilisation du fallback temporaire");
+       setFilterData({
          categories: [
-           { id: "903c9aab-0e65-4911-9b16-09343c279469", name: "Gestion", count: 25 },
-           { id: "d78bd0a8-4a97-448f-b0c6-54473f3aef16", name: "Développement web", count: 18 },
-           { id: "bd0e5ad6-2658-436a-9d90-d1b0f99cf565", name: "Création de contenu", count: 15 },
-           { id: "d8ac4d02-5af9-47bd-a246-8319dabe15ed", name: "Marketing digital", count: 22 },
-           { id: "bc62bf7d-ced3-47cd-9dfe-892971ed87c4", name: "Intelligence Artificielle", count: 12 },
-           { id: "e115f86c-3611-48b6-83f1-1c1e68f69c0f", name: "Informatique bureautique", count: 8 },
+           { id: "3d4b99d6-1d8f-4dab-b20f-9f7a791a48c1", name: "Gestion", count: 2 },
+           { id: "75adc1cb-a5b6-497f-bb28-a55c36b995eb", name: "Développement web", count: 2 },
+           { id: "432bfdae-6f51-4248-aec9-8f2fec204c58", name: "Création de contenu", count: 2 },
+           { id: "fa93ca42-66e5-4bd7-87ae-ca921df46f04", name: "Marketing digital", count: 2 },
+           { id: "af9f5bc7-b055-4851-8190-7b73c6aeb41a", name: "Intelligence Artificielle", count: 2 },
+           { id: "ea7b4c15-e7cd-456e-bd09-5749d3d32367", name: "Informatique bureautique", count: 0 },
          ],
          levels: [
            { id: "beginner", name: "Débutant", count: 35 },
@@ -202,8 +226,7 @@ export function useCourses(
            { id: "5000-10000", name: "5 000 - 10 000 FCFA", count: 18 },
            { id: "over-10000", name: "Plus de 10 000 FCFA", count: 12 },
          ],
-       };
-       setFilterData(mockFilterData);
+       });
      } finally {
        setFilterLoading(false);
      }
@@ -237,12 +260,19 @@ export function useCourses(
   }, []); // ✅ AUCUNE dépendance !
 
   const refresh = useCallback(async () => {
-    await fetchCourses(1, searchQuery);
-  }, [fetchCourses, searchQuery]);
+    await fetchCourses(1, searchQuery, selectedCategories);
+  }, [fetchCourses, searchQuery, selectedCategories]);
 
   const refetch = useCallback(async () => {
-    await fetchCourses(currentPage, searchQuery);
-  }, [fetchCourses, currentPage, searchQuery]);
+    await fetchCourses(currentPage, searchQuery, selectedCategories);
+  }, [fetchCourses, currentPage, searchQuery, selectedCategories]);
+
+  const setFilterCategories = useCallback((categoryIds: string[]) => {
+    console.log("🎯 [setFilterCategories] Catégories:", categoryIds);
+    setSelectedCategories(categoryIds);
+    setCurrentPage(1);
+    // ✅ Laisser le useEffect de selectedCategories appeler fetchCourses
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -266,6 +296,7 @@ export function useCourses(
     filterLoading,
     setPage,
     setSearchQuery,
+    setFilterCategories,
     refresh,
     clearError,
     refetch,

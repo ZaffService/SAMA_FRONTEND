@@ -166,10 +166,10 @@ export default function UserProfile() {
   const displayAvatar = profileImage || authUser?.avatar_url || "";
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#e9eff4] to-white pt-16">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#e9eff4] to-white">
       <Header />
 
-      <main className="flex-1 py-8 md:py-12">
+      <main className="flex-1 py-8 md:py-12 pt-20 sm:pt-24 lg:pt-28">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
