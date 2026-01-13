@@ -103,6 +103,12 @@ function CourseDetailsPageComponent() {
   const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, boolean>>({});
   const [checkingQuizzes, setCheckingQuizzes] = useState<Set<string>>(new Set());
 
+  // Helper function to validate UUID format (defined before useEffects)
+  const isValidUUID = (id: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
+
   // Enrollment check states
   // Popup d'inscription retiré - causait des boucles d'affichage
 
@@ -189,6 +195,14 @@ useEffect(() => {
         return;
       }
 
+      // Valider le format du courseId avant de faire l'appel API
+      if (!isValidUUID(courseId)) {
+        console.warn(`⚠️ Format de courseId invalide: ${courseId}`);
+        setIsEnrolled(false);
+        setIsPaid(false);
+        return;
+      }
+
       try {
         console.log("🔍 Vérification statut d'inscription...");
         const isEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
@@ -218,6 +232,13 @@ useEffect(() => {
       // Ne pas bloquer si isEnrolled est false au démarrage
       if (!courseId) return;
 
+      // Valider le format du courseId avant de faire l'appel API
+      if (!isValidUUID(courseId)) {
+        console.warn(`⚠️ Format de courseId invalide: ${courseId}`);
+        setLessonProgress({});
+        return;
+      }
+
       try {
         console.log("📥 Tentative de chargement de la progression...");
 
@@ -243,6 +264,11 @@ useEffect(() => {
 
           console.log("💾 Progression transformée:", progress);
           setLessonProgress(progress);
+        } else if (response.status === 400) {
+          // Erreur de validation - ID invalide
+          console.warn("⚠️ Erreur de validation du courseId");
+          setLessonProgress({});
+          // Ne pas définir error state pour ce cas - c'est normal si non inscrit
         } else if (response.status === 404 || response.status === 403) {
           console.log("ℹ️ Aucune progression trouvée (normal si non inscrit)");
           setLessonProgress({});
@@ -256,12 +282,19 @@ useEffect(() => {
               setIsEnrolled(false);
               return;
             }
+            if (errorData.errorCode === "VALIDATION_FAILED") {
+              console.log("⚠️ Erreur de validation backend, progression vide");
+              setLessonProgress({});
+              return;
+            }
           } catch (e) {
             // Ignore
           }
           console.error("❌ Erreur récupération progression:", response.status);
+          setLessonProgress({});
         } else {
           console.error("❌ Erreur récupération progression:", response.status);
+          setLessonProgress({});
         }
       } catch (error) {
         console.error("💥 Erreur lors du chargement de la progression:", error);
