@@ -104,8 +104,7 @@ function CourseDetailsPageComponent() {
   const [checkingQuizzes, setCheckingQuizzes] = useState<Set<string>>(new Set());
 
   // Enrollment check states
-  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'success' | 'failed' | 'cancelled' | null>(null);
+  // Popup d'inscription retiré - causait des boucles d'affichage
 
   useEffect(() => {
     const checkMobile = () => {
@@ -118,83 +117,6 @@ function CourseDetailsPageComponent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Gestion du paiement (anciennement dans /payment-success)
-  useEffect(() => {
-    const token = searchParams.get('token');
-    const status = searchParams.get('status') as 'success' | 'failed' | 'cancelled' | null;
-
-    if (token) {
-      // Vérifier le paiement avec le token
-      console.log(`🔍 Vérification paiement avec token: ${token}`);
-      verifyPayment(token)
-        .then(async (result) => {
-          console.log(`🔍 Résultat vérification:`, result);
-
-          if (result.status === "success") {
-            // Inscrire l'utilisateur au cours
-            console.log("✅ Paiement vérifié, inscription au cours...");
-            try {
-              await CoursesApi.enrollUser(courseId);
-              setIsEnrolled(true);
-              setIsPaid(true);
-              Cookies.set('justPaidCourse', courseId, { expires: 1 });
-              Cookies.remove('pendingCourseId');
-
-              Swal.fire({
-                title: "Paiement réussi !",
-                text: "Vous êtes maintenant inscrit à ce cours.",
-                icon: "success",
-                confirmButtonText: "Commencer",
-                confirmButtonColor: "#6366f1",
-              });
-            } catch (enrollError) {
-              console.error("Erreur inscription:", enrollError);
-              Swal.fire({
-                title: "Paiement réussi",
-                text: "Le paiement a été validé mais l'inscription a échoué. Contactez le support.",
-                icon: "warning",
-                confirmButtonText: "Fermer",
-                confirmButtonColor: "#6366f1",
-              });
-            }
-          } else {
-            Swal.fire({
-              title: "Paiement échoué",
-              text: "Le paiement n'a pas pu être vérifié.",
-              icon: "error",
-              confirmButtonText: "Fermer",
-              confirmButtonColor: "#6366f1",
-            });
-          }
-        })
-        .catch((error) => {
-          console.error("❌ Erreur vérification paiement:", error);
-          Swal.fire({
-            title: "Erreur",
-            text: `Erreur lors de la vérification du paiement: ${error.message}`,
-            icon: "error",
-            confirmButtonText: "Fermer",
-            confirmButtonColor: "#6366f1",
-          });
-        });
-    } else if (status === 'failed') {
-      Swal.fire({
-        title: "Paiement échoué",
-        text: "Le paiement n'a pas pu être traité. Veuillez réessayer.",
-        icon: "error",
-        confirmButtonText: "Fermer",
-        confirmButtonColor: "#6366f1",
-      });
-    } else if (status === 'cancelled') {
-      Swal.fire({
-        title: "Paiement annulé",
-        text: "Le paiement a été annulé.",
-        icon: "warning",
-        confirmButtonText: "Fermer",
-        confirmButtonColor: "#6366f1",
-      });
-    }
-  }, [searchParams, courseId, verifyPayment]);
 
 
 useEffect(() => {
@@ -688,8 +610,9 @@ useEffect(() => {
 
   // Gestion du clic sur un module
   const handleModuleClick = (moduleId: string) => {
+    // Si l'utilisateur n'est pas inscrit, on tente de l'inscrire
     if (isEnrolled === false) {
-      setShowEnrollmentModal(true);
+      handleEnrollClick();
       return;
     }
 
@@ -1442,37 +1365,7 @@ useEffect(() => {
       </main>
 
 
-      {/* Modal d'inscription */}
-      {showEnrollmentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="text-center">
-              <Lock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Contenu Verrouillé</h2>
-              <p className="text-gray-600 mb-6">
-                Inscrivez-vous à ce cours pour accéder à tous les modules, leçons et ressources.
-              </p>
-              <div className="flex gap-4 justify-center">
-                <button
-                  onClick={() => setShowEnrollmentModal(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={() => {
-                    setShowEnrollmentModal(false);
-                    handleEnrollClick();
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  S'inscrire maintenant
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal d'inscription retiré - causait des boucles d'affichage */}
 
       <QuizModal
         isOpen={showQuizModal}
