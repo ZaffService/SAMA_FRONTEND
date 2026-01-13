@@ -29,9 +29,9 @@ interface UseCoursesActions {
 }
 
 export function useCourses(
-  initialPage: number = 1,
-  initialPerPage: number = 8,
-): UseCoursesState & UseCoursesActions {
+   initialPage: number = 1,
+   initialPerPage: number = 8,
+ ): UseCoursesState & UseCoursesActions {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,144 +57,169 @@ export function useCourses(
   const isInitialMount = useRef(true); // ✅ Track initial mount
 
   /**
-   * ✅ Fonction stable de récupération
-   */
-  const fetchCourses = useCallback(async (page: number, query: string) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+    * ✅ Fonction stable de récupération
+    */
+   const fetchCourses = useCallback(async (page: number, query: string) => {
+     if (abortControllerRef.current) {
+       abortControllerRef.current.abort();
+     }
 
-    abortControllerRef.current = new AbortController();
+     abortControllerRef.current = new AbortController();
 
-    try {
-      setLoading(true);
-      setError(null);
+     try {
+       setLoading(true);
+       setError(null);
 
-      console.log("🔄 fetchCourses appelé:", {
-        page,
-        query,
-        perPage: perPage.current,
-      });
+       console.log("🔄 fetchCourses appelé:", {
+         page,
+         query,
+         perPage: perPage.current,
+       });
 
-      const searchOptions: CourseSearchOptions | undefined = query
-        ? { query }
-        : undefined;
+       const searchOptions: CourseSearchOptions | undefined = query
+         ? { query }
+         : undefined;
 
-      const result = await CoursesUseCases.getCourses(
-        page,
-        perPage.current,
-        searchOptions,
-      );
+       const result = await CoursesUseCases.getCourses(
+         page,
+         perPage.current,
+         searchOptions,
+       );
 
-      if (!abortControllerRef.current.signal.aborted) {
-        setShowMaintenance(false); // ✅ Backend répond, cacher la page maintenance
-        setCourses(result.courses);
-        setTotal(result.total);
-        setPages(result.pages);
-        // ✅ Mettre à jour currentPage ici aussi pour sync
-        setCurrentPage(page);
-        console.log(
-          `✅ ${result.courses.length} cours chargés (page ${page}/${result.pages})`,
-        );
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        console.log("🚫 Requête annulée");
-        return;
-      }
+       if (!abortControllerRef.current.signal.aborted) {
+         setShowMaintenance(false); // ✅ Backend répond, cacher la page maintenance
+         setCourses(result.courses);
+         setTotal(result.total);
+         setPages(result.pages);
+         // ✅ Mettre à jour currentPage ici aussi pour sync
+         setCurrentPage(page);
+         console.log(
+           `✅ ${result.courses.length} cours chargés (page ${page}/${result.pages})`,
+         );
+       }
+     } catch (err) {
+       if (err instanceof Error && err.name === "AbortError") {
+         console.log("🚫 Requête annulée");
+         return;
+       }
 
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Erreur inconnue lors du chargement";
-      setError(errorMessage);
-      setShowMaintenance(true); // ✅ Afficher la page maintenance
-      console.error("❌ Erreur dans useCourses:", err);
-    } finally {
-      if (!abortControllerRef.current?.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  /**
-   * ✅ Debounce pour la recherche
-   */
-  useEffect(() => {
-    // Skip si c'est le montage initial
-    if (isInitialMount.current) {
-      return;
-    }
-
-    console.log("🔍 Recherche modifiée:", searchQuery);
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1); // Reset à page 1
-      fetchCourses(1, searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, fetchCourses]);
+       const errorMessage =
+         err instanceof Error
+           ? err.message
+           : "Erreur inconnue lors du chargement";
+       setError(errorMessage);
+       setShowMaintenance(true); // ✅ Afficher la page maintenance
+       console.error("❌ Erreur dans useCourses:", err);
+     } finally {
+       if (!abortControllerRef.current?.signal.aborted) {
+         setLoading(false);
+       }
+     }
+   }, []);
 
   /**
-   * ✅ Changement de page
-   */
-  useEffect(() => {
-    // Skip le montage initial
-    if (isInitialMount.current) {
-      return;
-    }
+    * ✅ Debounce pour la recherche
+    */
+   useEffect(() => {
+     // Skip si c'est le montage initial
+     if (isInitialMount.current) {
+       return;
+     }
 
-    console.log("📄 useEffect [currentPage]:", currentPage);
-    fetchCourses(currentPage, searchQuery);
-  }, [currentPage, fetchCourses, searchQuery]);
+     console.log("🔍 Recherche modifiée:", searchQuery);
+     const timeoutId = setTimeout(() => {
+       setCurrentPage(1); // Reset à page 1
+       fetchCourses(1, searchQuery);
+     }, 300);
 
-  /**
-   * ✅ Fonction pour charger les données de filtrage
-   */
-  const loadFilterData = useCallback(async () => {
-    try {
-      setFilterLoading(true);
-      const mockFilterData = {
-        categories: [
-          { id: "marketing", name: "Marketing Digital", count: 25 },
-          { id: "community", name: "Community Management", count: 18 },
-          { id: "content", name: "Content Marketing", count: 15 },
-          { id: "social", name: "Réseaux Sociaux", count: 22 },
-          { id: "seo", name: "SEO/SEA", count: 12 },
-        ],
-        levels: [
-          { id: "beginner", name: "Débutant", count: 35 },
-          { id: "intermediate", name: "Intermédiaire", count: 28 },
-          { id: "advanced", name: "Avancé", count: 15 },
-        ],
-        priceRanges: [
-          { id: "free", name: "Gratuit", count: 8 },
-          { id: "under-5000", name: "Moins de 5 000 FCFA", count: 22 },
-          { id: "5000-10000", name: "5 000 - 10 000 FCFA", count: 18 },
-          { id: "over-10000", name: "Plus de 10 000 FCFA", count: 12 },
-        ],
-      };
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setFilterData(mockFilterData);
-    } catch (err) {
-      console.error("Erreur chargement données filtrage:", err);
-    } finally {
-      setFilterLoading(false);
-    }
-  }, []);
+     return () => clearTimeout(timeoutId);
+   }, [searchQuery, fetchCourses, filterData.categories]);
 
   /**
-   * ✅ Chargement initial
-   */
-  useEffect(() => {
-    console.log("🏁 Montage initial du hook");
-    fetchCourses(initialPage, "");
-    loadFilterData();
+    * ✅ Changement de page
+    */
+   useEffect(() => {
+     // Skip le montage initial
+     if (isInitialMount.current) {
+       return;
+     }
 
-    // Marquer la fin du montage initial
-    isInitialMount.current = false;
-  }, [fetchCourses, loadFilterData, initialPage]);
+     console.log("📄 useEffect [currentPage]:", currentPage);
+     fetchCourses(currentPage, searchQuery);
+   }, [currentPage, fetchCourses, searchQuery, filterData.categories]);
+
+  /**
+    * ✅ Fonction pour charger les données de filtrage
+    */
+   const loadFilterData = useCallback(async () => {
+     try {
+       setFilterLoading(true);
+
+       // Fetch real categories from API
+       const categories = await CoursesUseCases.getCategories();
+
+       // Mock data for levels and price ranges (can be updated later if API provides them)
+       const mockFilterData = {
+         categories: categories.map(cat => ({
+           id: cat.id,
+           name: cat.name,
+           count: 0, // TODO: Get count from API if available
+         })),
+         levels: [
+           { id: "beginner", name: "Débutant", count: 35 },
+           { id: "intermediate", name: "Intermédiaire", count: 28 },
+           { id: "advanced", name: "Avancé", count: 15 },
+         ],
+         priceRanges: [
+           { id: "free", name: "Gratuit", count: 8 },
+           { id: "under-5000", name: "Moins de 5 000 FCFA", count: 22 },
+           { id: "5000-10000", name: "5 000 - 10 000 FCFA", count: 18 },
+           { id: "over-10000", name: "Plus de 10 000 FCFA", count: 12 },
+         ],
+       };
+
+       setFilterData(mockFilterData);
+     } catch (err) {
+       console.error("Erreur chargement données filtrage:", err);
+       // Fallback to mock data if API fails - using same IDs as API
+       const mockFilterData = {
+         categories: [
+           { id: "903c9aab-0e65-4911-9b16-09343c279469", name: "Gestion", count: 25 },
+           { id: "d78bd0a8-4a97-448f-b0c6-54473f3aef16", name: "Développement web", count: 18 },
+           { id: "bd0e5ad6-2658-436a-9d90-d1b0f99cf565", name: "Création de contenu", count: 15 },
+           { id: "d8ac4d02-5af9-47bd-a246-8319dabe15ed", name: "Marketing digital", count: 22 },
+           { id: "bc62bf7d-ced3-47cd-9dfe-892971ed87c4", name: "Intelligence Artificielle", count: 12 },
+           { id: "e115f86c-3611-48b6-83f1-1c1e68f69c0f", name: "Informatique bureautique", count: 8 },
+         ],
+         levels: [
+           { id: "beginner", name: "Débutant", count: 35 },
+           { id: "intermediate", name: "Intermédiaire", count: 28 },
+           { id: "advanced", name: "Avancé", count: 15 },
+         ],
+         priceRanges: [
+           { id: "free", name: "Gratuit", count: 8 },
+           { id: "under-5000", name: "Moins de 5 000 FCFA", count: 22 },
+           { id: "5000-10000", name: "5 000 - 10 000 FCFA", count: 18 },
+           { id: "over-10000", name: "Plus de 10 000 FCFA", count: 12 },
+         ],
+       };
+       setFilterData(mockFilterData);
+     } finally {
+       setFilterLoading(false);
+     }
+   }, []);
+
+  /**
+    * ✅ Chargement initial
+    */
+   useEffect(() => {
+     console.log("🏁 Montage initial du hook");
+     fetchCourses(initialPage, "");
+     loadFilterData();
+
+     // Marquer la fin du montage initial
+     isInitialMount.current = false;
+   }, [fetchCourses, loadFilterData, initialPage]);
 
   /**
    * ✅ setPage SANS dépendances (fonction stable)

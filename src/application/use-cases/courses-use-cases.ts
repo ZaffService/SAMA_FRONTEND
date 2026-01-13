@@ -81,14 +81,15 @@ export class CoursesUseCases {
 
       // Map CourseDetailsResponse to CourseDetails
       const courseDetails: CourseDetails = {
+        // ✅ CORRECTION: Utiliser id comme retourné par l'API
         id: courseDetailsResponse.course.id,
         title: courseDetailsResponse.course.title,
         content: courseDetailsResponse.course.description,
-        category: courseDetailsResponse.course.categoryId, // Assuming categoryId is string
-        thumbnailUrl: "", // Not in response, set default
-        thumbnail: "",
+        category: courseDetailsResponse.course.categoryId,
+        thumbnailUrl: courseDetailsResponse.course.thumbnailUrl || "",
+        thumbnail: courseDetailsResponse.course.thumbnailUrl || "",
         price: courseDetailsResponse.course.price,
-        instructor: { name: "Instructeur" }, // Not in response
+        instructor: { name: "Instructeur" },
         level: courseDetailsResponse.course.level,
         description: courseDetailsResponse.course.description,
 
@@ -166,6 +167,65 @@ export class CoursesUseCases {
     } catch (error) {
       console.warn("Leçons non disponibles:", error);
       return [];
+    }
+  }
+
+  /**
+   * S'inscrire à un cours (gratuit ou payant)
+   * @param courseId - ID du cours
+   * @returns Objet contenant soit payment_url pour cours payant, soit les détails d'inscription pour cours gratuit
+   */
+  static async followCourse(courseId: string): Promise<{
+    payment_url?: string;
+    course?: any;
+    progress?: number;
+    status?: string;
+  }> {
+    try {
+      console.log(`🔄 Inscription au cours: ${courseId}`);
+
+      const result = await CoursesApi.followCourse(courseId);
+
+      console.log(`✅ Inscription réussie pour le cours: ${courseId}`);
+      return result;
+    } catch (error) {
+      console.error("❌ Erreur lors de l'inscription au cours:", error);
+
+      throw new Error(
+        `Impossible de s'inscrire au cours: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
+    }
+  }
+
+  /**
+   * Récupérer les catégories disponibles
+   * @returns Liste des catégories
+   */
+  static async getCategories(): Promise<Array<{ id: string; name: string; description?: string }>> {
+    try {
+      console.log("🔄 Récupération des catégories depuis l'API...");
+
+      const categories = await CoursesApi.getCategories();
+
+      console.log(`✅ ${categories.length} catégories récupérées avec succès`);
+      return categories;
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération des catégories:", error);
+
+      // Gestion d'erreur réseau
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        console.warn(
+          "🌐 Erreur réseau détectée - Le backend est probablement arrêté",
+        );
+        throw new Error(
+          "Impossible de se connecter au serveur. Veuillez vérifier que le backend est en cours d'exécution.",
+        );
+      }
+
+      // Erreur générique
+      throw new Error(
+        `Erreur lors du chargement des catégories: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
     }
   }
 

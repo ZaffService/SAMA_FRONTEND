@@ -362,12 +362,6 @@ export const HeroBanner = () => {
                 size="lg"
                 variant="outline"
                 className="border-2 border-slate-300 hover:border-blue-600 hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-4 sm:px-6 py-4 sm:py-6 text-sm sm:text-base font-semibold rounded-xl transition-all hover:scale-105 flex items-center gap-1.5 sm:gap-2"
-                onClick={() => {
-                  // Déclencher l'événement pour activer les tutos gratuits
-                  window.dispatchEvent(
-                    new CustomEvent("activateFreeTutorials"),
-                  );
-                }}
               >
                 <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                 Tutos gratuits

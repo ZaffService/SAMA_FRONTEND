@@ -62,6 +62,10 @@ export const API_ENDPOINTS = {
     RETRY_STATUS: "/quizzes/retake-status",
     STUDENT_PROGRESS: "/students/quiz-progress",
   },
+  PAYMENT: {
+    CREATE_INTENT: "course/payments/create-intent",
+    VERIFY: "course/payments/verify",
+  },
   LESSONS: {
     COMPLETE: (lessonId: string) => `/course/lesson/${lessonId}/complete`,
     UNCOMPLETE: (lessonId: string) => `/course/lesson/${lessonId}/uncomplete`,

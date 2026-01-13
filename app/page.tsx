@@ -26,7 +26,9 @@ import MaintenancePage from "@/components/MaintenancePage";
 
 import { useCourses } from "@/application/use-cases/useCourses";
 import { useEnrolledCourses } from "@/application/use-cases/useEnrolledCourses";
+import { useCategories } from "@/application/use-cases/useCategories";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { CategoryFilter } from "@/components/category-filter";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 
 const Index = () => {
@@ -35,6 +37,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showFreeTutorials, setShowFreeTutorials] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     categories: [] as string[],
     levels: [] as string[],
@@ -47,6 +50,7 @@ const Index = () => {
     useCourses(1, 8);
 
   const { enrolledCourses } = useEnrolledCourses();
+  const { categories, loading: categoriesLoading } = useCategories();
 
   /** 🔒 Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
@@ -59,6 +63,13 @@ const Index = () => {
     },
     [setPage],
   );
+
+  /** Gérer la sélection de catégorie */
+  const handleCategorySelect = useCallback((categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    // Réinitialiser à la première page lors de changement de filtre
+    setPage(1);
+  }, [setPage]);
 
   /** Scroll automatique vers la section formations après changement de page */
   // Supprimé pour éviter le masquage du titre après connexion
@@ -125,6 +136,15 @@ const Index = () => {
 
   const applyFilters = (courses: Course[]) =>
     courses.filter((course) => {
+      // Filtre par catégorie sélectionnée
+      if (selectedCategoryId) {
+        const courseCategory =
+          typeof course.category === "string"
+            ? course.categoryId
+            : course.category.id;
+        if (courseCategory !== selectedCategoryId) return false;
+      }
+
       if (filters.categories.length > 0) {
         const cat =
           typeof course.category === "string"
@@ -234,6 +254,16 @@ const Index = () => {
       <HeroBanner />
 
       <main className="container mx-auto px-4 py-8">
+        {/* 🎯 Filtre par catégories */}
+        <section className="mb-12 py-8 border-b border-slate-200">
+          <CategoryFilter
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={handleCategorySelect}
+            loading={categoriesLoading}
+          />
+        </section>
+
         {/* 🎯 Ancre pour la section formations */}
         <div ref={courseSectionRef} id="formations-section" className="pt-12">
           {/* Barre de recherche avec titre - Layout mobile en colonne */}
@@ -241,7 +271,9 @@ const Index = () => {
             <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">
               {showFreeTutorials
                 ? "Tutos gratuits disponibles"
-                : "Découvrez nos formations"}
+                : selectedCategoryId
+                  ? `${categories.find(cat => cat.id === selectedCategoryId)?.name || "Formations"}`
+                  : "Découvrez nos formations"}
             </h2>
 
             <div className="relative w-full sm:max-w-sm lg:max-w-md">

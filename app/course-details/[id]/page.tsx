@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -9,13 +9,10 @@ import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { VideoPlayer } from "@/components/video-player";
 import Swal from "sweetalert2";
 import { LockedVideoOverlay } from "@/components/LockedVideoOverlay";
-import { PaymentModal } from "@/components/payment-modal";
-import { OrangeMoneyOtpModal } from "@/components/OrangeMoneyOtpModal";
-import { WaveQrModal } from "@/components/WaveQrModal";
-import { PaymentSuccessModal } from "@/components/PaymentSuccessModal";
 import { QuizModal } from "@/components/QuizModal";
 import { TEXTS } from "@/lib/constants";
 import {Play,ArrowLeft,ChevronDown,X,CheckCircle,Lock} from "lucide-react";
+import Cookies from 'js-cookie';
 
 interface CourseDetailsData {
   course: {
@@ -43,21 +40,32 @@ interface CourseDetailsData {
       status: string;
     }>;
   }>;
-  enrollments?: Array<{
-    id: string;
-    userId: string;
-    courseId: string;
-    status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-    enrolledAt: Date;
-  }>;
   moduleCount: number;
 }
 
 function CourseDetailsPageComponent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useLocalAuth();
   const courseId = params?.id as string;
+
+
+  if (!courseId || courseId === 'undefined') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center px-4">
+          <p className="text-red-600 text-xl mb-4">ID de cours invalide</p>
+          <button
+            onClick={() => router.back()}
+            className="text-indigo-600 hover:underline"
+          >
+            Retour
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,13 +82,9 @@ function CourseDetailsPageComponent() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Course access states
-  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isEnrolled, setIsEnrolled] = useState<boolean | undefined>(undefined);
   const [isPaid, setIsPaid] = useState(false);
   const [isFree, setIsFree] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showOrangeOtpModal, setShowOrangeOtpModal] = useState(false);
-  const [showWaveQrModal, setShowWaveQrModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
 
   // Lesson progress states
@@ -94,9 +98,12 @@ function CourseDetailsPageComponent() {
   // Quiz states
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
+  const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, boolean>>({});
+  const [checkingQuizzes, setCheckingQuizzes] = useState<Set<string>>(new Set());
 
   // Enrollment check states
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'success' | 'failed' | 'cancelled' | null>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -108,6 +115,29 @@ function CourseDetailsPageComponent() {
 
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+    const status = searchParams.get('status') as 'success' | 'failed' | 'cancelled' | null;
+    setPaymentStatus(status);
+
+    if (status === 'failed') {
+      Swal.fire({
+        title: "Paiement échoué",
+        text: "Le paiement n'a pas pu être traité. Veuillez réessayer.",
+        icon: "error",
+        confirmButtonText: "Fermer",
+        confirmButtonColor: "#6366f1",
+      });
+    } else if (status === 'cancelled') {
+      Swal.fire({
+        title: "Paiement annulé",
+        text: "Le paiement a été annulé.",
+        icon: "warning",
+        confirmButtonText: "Fermer",
+        confirmButtonColor: "#6366f1",
+      });
+    }
+  }, [searchParams]);
 
 
 useEffect(() => {
@@ -129,9 +159,6 @@ useEffect(() => {
       const courseIsFree =
         data.course.price === 0 || data.course.isFree === true;
       setIsFree(courseIsFree);
-
-      // ✅ Vérifier d'abord l'inscription
-      await checkEnrollmentStatus();
 
       if (data.modules && data.modules.length > 0) {
         // ✅ Ouvrir le premier module par défaut
@@ -173,6 +200,39 @@ useEffect(() => {
   fetchCourseDetails();
 }, [courseId]);
 
+  // Vérifier le statut d'inscription au chargement et quand l'utilisateur change
+  useEffect(() => {
+    const checkEnrollmentStatus = async () => {
+      if (!user?.id || !courseId) {
+        console.log(
+          "ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription",
+        );
+        return;
+      }
+
+      try {
+        console.log("🔍 Vérification statut d'inscription...");
+        const isEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
+
+        if (isEnrolled) {
+          console.log("✅ Utilisateur déjà inscrit au cours");
+          setIsEnrolled(true);
+          setIsPaid(true);
+        } else {
+          console.log("ℹ️ Utilisateur non inscrit ou accès refusé");
+          setIsEnrolled(false);
+          setIsPaid(false);
+        }
+      } catch (error) {
+        console.log("ℹ️ Erreur vérification inscription:", error);
+        setIsEnrolled(false);
+        setIsPaid(false);
+      }
+    };
+
+    checkEnrollmentStatus();
+  }, [courseId, user?.id]);
+
   useEffect(() => {
     const fetchProgress = async () => {
       // Ne pas bloquer si isEnrolled est false au démarrage
@@ -206,6 +266,20 @@ useEffect(() => {
         } else if (response.status === 404 || response.status === 403) {
           console.log("ℹ️ Aucune progression trouvée (normal si non inscrit)");
           setLessonProgress({});
+        } else if (response.status === 500) {
+          // Vérifier si c'est une erreur "not enrolled"
+          try {
+            const errorData = await response.json();
+            if (errorData.message && errorData.message.includes("not enrolled")) {
+              console.log("ℹ️ Utilisateur non inscrit, progression vide");
+              setLessonProgress({});
+              setIsEnrolled(false);
+              return;
+            }
+          } catch (e) {
+            // Ignore
+          }
+          console.error("❌ Erreur récupération progression:", response.status);
         } else {
           console.error("❌ Erreur récupération progression:", response.status);
         }
@@ -254,6 +328,27 @@ useEffect(() => {
     });
   }, [lessonProgress, courseData?.modules]);
 
+  // Vérifier l'existence des quiz pour les modules terminés
+  useEffect(() => {
+    if (!courseData?.modules?.length || !isEnrolled) return;
+
+    const checkQuizzesForCompletedModules = async () => {
+      const modulesToCheck = courseData.modules.filter((module) => {
+        const moduleLessons = module.lessons.filter((l) => l.videoUrl);
+        const allLessonsCompleted = moduleLessons.every(
+          (lesson) => lessonProgress[lesson.id],
+        );
+        return allLessonsCompleted && moduleLessons.length > 0 && moduleQuizzes[module.id] === undefined && !checkingQuizzes.has(module.id);
+      });
+
+      for (const module of modulesToCheck) {
+        await checkQuizExists(module.id);
+      }
+    };
+
+    checkQuizzesForCompletedModules();
+  }, [courseData?.modules, lessonProgress, isEnrolled, moduleQuizzes]);
+
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
       const newSet = new Set(prev);
@@ -270,33 +365,35 @@ useEffect(() => {
     setIsFullscreen(!isFullscreen);
   };
 
-  // Gestion de l'inscription gratuite
-  const handleFreeEnrollment = async () => {
-    if (!user?.id || !courseId) return;
+  // Gestion du suivi du cours (inscription ou redirection paiement)
+  const handleFollowCourse = async () => {
+    if (!courseId) return;
 
     try {
       setEnrolling(true);
-      // Appeler l'API d'inscription
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLMENT), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          courseId: courseId,
-          userId: user.id.toString(),
-        }),
-      });
+      const result = await CoursesApi.followCourse(courseId);
 
-      if (response.ok) {
-        setIsEnrolled(true);
-        console.log("Inscription gratuite réussie");
+      if (result && 'payment_url' in result && result.payment_url) {
+        // Sauvegarder le courseId pour le récupérer après paiement
+        Cookies.set('pendingCourseId', courseId, { expires: 1 }); // Expire dans 1 jour
+        // Rediriger vers l'URL de paiement
+        window.location.href = result.payment_url;
       } else {
-        console.error("Erreur lors de l'inscription gratuite");
+        // Inscription réussie pour cours gratuit
+        setIsEnrolled(true);
+        setIsPaid(true);
+        console.log("Suivi du cours réussi");
       }
     } catch (error) {
-      console.error("Erreur lors de l'inscription gratuite:", error);
+      console.error("Erreur lors du suivi du cours:", error);
+      // Afficher un message d'erreur à l'utilisateur
+      Swal.fire({
+        title: "Erreur",
+        text: "Impossible de suivre ce cours. Veuillez réessayer.",
+        icon: "error",
+        confirmButtonText: "Fermer",
+        confirmButtonColor: "#6366f1",
+      });
     } finally {
       setEnrolling(false);
     }
@@ -304,24 +401,7 @@ useEffect(() => {
 
   // Gestion du clic sur le bouton d'inscription/paiement
   const handleEnrollClick = () => {
-    if (isFree) {
-      handleFreeEnrollment();
-    } else {
-      setShowPaymentModal(true);
-    }
-  };
-
-  // Gestion des sélections de méthode de paiement
-  const handleOrangeSelected = () => {
-    setShowOrangeOtpModal(true);
-  };
-
-  const handleWaveSelected = () => {
-    setShowWaveQrModal(true);
-  };
-
-  const handleCardSelected = () => {
-    console.log("Paiement par carte sélectionné");
+    handleFollowCourse();
   };
 
   // Vérifier le statut d'inscription au chargement
@@ -359,43 +439,6 @@ useEffect(() => {
     }
   };
 
-  // Gestion du succès de paiement
-  const handlePaymentSuccess = async () => {
-    if (!user?.id || !courseId) return;
-
-    try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLMENT), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          courseId: courseId,
-          userId: user.id.toString(),
-        }),
-      });
-
-      if (response.ok) {
-        console.log("✅ Enrollment réussi après paiement");
-        setIsEnrolled(true);
-        setIsPaid(true);
-        setShowSuccessModal(true);
-      } else {
-        console.error("Erreur lors de l'inscription après paiement");
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'inscription après paiement:", error);
-    }
-  };
-
-  // Gestion de l'accès au cours après succès
-  const handleAccessCourse = () => {
-    console.log("🎉 Accès au cours activé !");
-    setShowSuccessModal(false);
-    setIsEnrolled(true);
-    setIsPaid(true);
-  };
 
   const modules = courseData?.modules || [];
   const course = courseData?.course;
@@ -450,10 +493,62 @@ useEffect(() => {
     console.log(`Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`);
   }, []);
 
+  const checkQuizExists = async (moduleId: string): Promise<boolean> => {
+    if (moduleQuizzes[moduleId] !== undefined) {
+      return moduleQuizzes[moduleId];
+    }
+
+    if (checkingQuizzes.has(moduleId)) {
+      return false; // Already checking
+    }
+
+    setCheckingQuizzes(prev => new Set(prev).add(moduleId));
+
+    try {
+      console.log(`🔍 Vérification de l'existence du quiz pour le module: ${moduleId}`);
+      const response = await fetch(
+        buildApiUrl(`course/quiz/module/${moduleId}/questions`),
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
+
+      const exists = response.ok;
+      setModuleQuizzes(prev => ({ ...prev, [moduleId]: exists }));
+      console.log(`✅ Quiz ${exists ? 'existe' : 'n\'existe pas'} pour le module ${moduleId}`);
+      return exists;
+    } catch (error) {
+      console.error(`❌ Erreur lors de la vérification du quiz pour le module ${moduleId}:`, error);
+      setModuleQuizzes(prev => ({ ...prev, [moduleId]: false }));
+      return false;
+    } finally {
+      setCheckingQuizzes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(moduleId);
+        return newSet;
+      });
+    }
+  };
+
   const handleStartQuiz = async (moduleId: string) => {
     console.log("Démarrage du quiz pour le module:", moduleId);
 
     try {
+      // Vérifier d'abord si le quiz existe
+      const quizExists = await checkQuizExists(moduleId);
+
+      if (!quizExists) {
+        await Swal.fire({
+          title: "Aucun quiz disponible",
+          text: "Ce module n'a pas de quiz pour le moment.",
+          icon: "info",
+          confirmButtonText: "Compris",
+          confirmButtonColor: "#6366f1",
+        });
+        return;
+      }
+
       // Ouvrir le modal directement avec l'ID du module
       setCurrentQuizId(moduleId);
       setShowQuizModal(true);
@@ -471,7 +566,7 @@ useEffect(() => {
 
   // Gestion du clic sur un module
   const handleModuleClick = (moduleId: string) => {
-    if (!isEnrolled) {
+    if (isEnrolled === false) {
       setShowEnrollmentModal(true);
       return;
     }
@@ -680,7 +775,7 @@ useEffect(() => {
             {hasVideo && hasVideoContent && (
               <div className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg">
                 <div className="aspect-video relative">
-                  {isFree || isEnrolled ? (
+                  {isFree || isEnrolled === true ? (
                     selectedLesson?.videoUrl ? (
                       <VideoPlayer
                         key={selectedLesson?.id}
@@ -718,22 +813,6 @@ useEffect(() => {
               <span className="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs lg:text-sm font-medium rounded-full">
                 {totalLessons} Leçons
               </span>
-
-              <div className="flex-1" />
-
-              {!isEnrolled && hasVideoContent && (
-                <button
-                  onClick={handleEnrollClick}
-                  disabled={enrolling}
-                  className="px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm lg:text-base font-semibold rounded-full hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {enrolling
-                    ? "Inscription..."
-                    : isFree
-                      ? "S'inscrire Gratuitement"
-                      : "S'inscrire"}
-                </button>
-              )}
             </div>
 
             {/* Course Description */}
@@ -823,7 +902,7 @@ useEffect(() => {
                           <div key={module.id} className="mb-2">
                             <button
                               onClick={() => {
-                                if (isEnrolled) {
+                                if (isEnrolled === true) {
                                   toggleModule(module.id);
                                 } else {
                                   handleModuleClick(module.id);
@@ -834,7 +913,9 @@ useEffect(() => {
                                   ? "bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200"
                                   : isEnrolled
                                     ? "hover:bg-indigo-50"
-                                    : "opacity-60 cursor-not-allowed bg-gray-50"
+                                    : isEnrolled === false
+                                      ? "opacity-60 cursor-not-allowed bg-gray-50"
+                                      : "opacity-60 cursor-not-allowed bg-gray-50"
                               }`}
                             >
                               <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
@@ -989,7 +1070,7 @@ useEffect(() => {
                                         </button>
 
                                         {/* Checkbox pour marquer comme terminé */}
-                                        {isEnrolled && (
+                                        {isEnrolled === true && (
                                           <div className="px-3 lg:px-4 pb-2.5 lg:pb-3">
                                             <label
                                               className="flex items-center gap-2 cursor-pointer group/checkbox"
@@ -1166,8 +1247,10 @@ useEffect(() => {
                               const allLessonsCompleted = moduleLessons.every(
                                 (lesson) => isLessonCompleted(lesson.id),
                               );
+                              const quizExists = moduleQuizzes[module.id];
+                              const isCheckingQuiz = checkingQuizzes.has(module.id);
 
-                              return isEnrolled && allLessonsCompleted ? (
+                              return isEnrolled === true && allLessonsCompleted ? (
                                 <div className="mt-3 mx-2 p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 border-2 border-emerald-200 rounded-xl shadow-sm">
                                   <div className="flex items-center gap-3">
                                     {/* Badge avec icône CheckCircle */}
@@ -1182,19 +1265,22 @@ useEffect(() => {
                                       </h6>
                                     </div>
 
-                                    {/* Bouton Quiz avec gradient purple-indigo */}
-                                    <button
-                                      onClick={() => {
-                                        console.log(
-                                          "Bouton Quiz cliqué pour module:",
-                                          module.id,
-                                        );
-                                        handleStartQuiz(module.id);
-                                      }}
-                                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0"
-                                    >
-                                      {TEXTS.QUIZ_BUTTON}
-                                    </button>
+                                    {/* Bouton Quiz avec gradient purple-indigo - Seulement si quiz existe */}
+                                    {quizExists !== false && (
+                                      <button
+                                        onClick={() => {
+                                          console.log(
+                                            "Bouton Quiz cliqué pour module:",
+                                            module.id,
+                                          );
+                                          handleStartQuiz(module.id);
+                                        }}
+                                        disabled={isCheckingQuiz}
+                                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {isCheckingQuiz ? "Vérification..." : TEXTS.QUIZ_BUTTON}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ) : null;
@@ -1233,40 +1319,6 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* Payment Modals */}
-      <PaymentModal
-        isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        courseId={courseId}
-        courseTitle={course?.title || ""}
-        coursePrice={course?.price || 0}
-        onOrangeSelected={handleOrangeSelected}
-        onWaveSelected={handleWaveSelected}
-        onCardSelected={handleCardSelected}
-      />
-
-      <OrangeMoneyOtpModal
-        isOpen={showOrangeOtpModal}
-        onClose={() => setShowOrangeOtpModal(false)}
-        onSuccess={handlePaymentSuccess}
-        courseTitle={course?.title || ""}
-        coursePrice={course?.price || 0}
-      />
-
-      <WaveQrModal
-        isOpen={showWaveQrModal}
-        onClose={() => setShowWaveQrModal(false)}
-        onSuccess={handlePaymentSuccess}
-        courseTitle={course?.title || ""}
-        coursePrice={course?.price || 0}
-      />
-
-      <PaymentSuccessModal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        courseTitle={course?.title || ""}
-        onAccessCourse={handleAccessCourse}
-      />
 
       {/* Modal d'inscription */}
       {showEnrollmentModal && (

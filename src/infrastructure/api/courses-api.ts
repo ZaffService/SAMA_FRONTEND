@@ -14,6 +14,7 @@ function base64UrlDecode(str: string): string {
 }
 
 interface BackendCourse {
+  courseId?: string;
   id?: string;
   _id?: string;
   title?: string;
@@ -29,6 +30,7 @@ interface BackendCourse {
   level?: string;
   _level?: string;
   category?: any;
+  categoryId?: string;
   _category?: any;
   instructor?: any;
   _instructor?: any;
@@ -80,6 +82,12 @@ interface CourseDetailsResponse {
     }>;
   }>;
   moduleCount: number;
+}
+
+interface FollowCourseResult {
+  course: Course;
+  progress: number;
+  status: string;
 }
 
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
@@ -442,9 +450,106 @@ export class CoursesApi {
    }
 
   /**
+   * Vérifie si l'utilisateur est inscrit à un cours
+   */
+  static async checkEnrollmentStatus(courseId: string): Promise<boolean> {
+    console.log(`🔍 API: Vérification du statut d'inscription pour le cours ${courseId}`);
+
+    try {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        console.log("✅ Utilisateur inscrit au cours");
+        return true;
+      } else if (response.status === 403 || response.status === 404) {
+        console.log("ℹ️ Utilisateur non inscrit ou accès refusé");
+        return false;
+      } else {
+        console.error("❌ Erreur inattendue lors de la vérification:", response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("💥 Erreur lors de la vérification du statut d'inscription:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Suit un cours (inscription ou redirection paiement)
+   */
+  static async followCourse(courseId: string): Promise<{
+    payment_url?: string;
+    course?: any;
+    progress?: number;
+    status?: string;
+  }> {
+    console.log(`🔄 API: Tentative de suivi du cours ${courseId}`);
+
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Erreur lors de l'inscription: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("📦 API: Réponse du suivi de cours:", JSON.stringify(data, null, 2));
+
+    // Retourner un objet cohérent avec des propriétés optionnelles
+    return {
+      payment_url: data.payment_url,
+      course: data.course,
+      progress: data.progress,
+      status: data.status,
+    };
+  }
+
+  /**
+   * Inscrit un utilisateur à un cours (après paiement)
+   */
+  static async enrollUser(courseId: string): Promise<any> {
+    console.log(`🔄 API: Inscription de l'utilisateur au cours ${courseId}`);
+
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLL), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ courseId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Erreur lors de l'inscription: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("📦 API: Réponse de l'inscription:", JSON.stringify(data, null, 2));
+
+    return data;
+  }
+
+  /**
     * Crée un nouveau cours
     */
-   static async createCourse(courseData: any): Promise<any> {
+    static async createCourse(courseData: any): Promise<any> {
      console.log('🚀 [CoursesApi] Début création cours...');
 
      const formData = new FormData();
@@ -534,7 +639,9 @@ export class CoursesApi {
   private static mapBackendCourseToFrontend(
     backendCourse: BackendCourse,
   ): Course {
-    const id = backendCourse.id || backendCourse._id || "";
+    // ✅ CORRECTION: Utiliser id du backend (comme retourné par l'API)
+    const id = backendCourse.id || backendCourse.courseId || backendCourse._id || "";
+
     const title = backendCourse.title || backendCourse._title || "";
     const description =
       backendCourse.description || backendCourse._description || "";
@@ -544,15 +651,20 @@ export class CoursesApi {
       backendCourse._thumbnailUrl ||
       "/Fallback.png";
 
+    // ✅ Extraction du categoryId pour le filtrage
+    const categoryId = backendCourse.categoryId || backendCourse._category?.id || backendCourse._category?._id;
+
+    const category = backendCourse._category?._name ||
+      backendCourse._category?.name ||
+      backendCourse.category ||
+      "Non catégorisé";
+
     return {
       id,
       title,
       content: description,
-      category:
-        backendCourse._category?._name ||
-        backendCourse._category?.name ||
-        backendCourse.category ||
-        "Non catégorisé",
+      category,
+      categoryId, // ✅ Ajout du categoryId pour le filtrage
       thumbnailUrl,
       thumbnail: thumbnailUrl,
       price: backendCourse.price ?? backendCourse._price ?? 0,

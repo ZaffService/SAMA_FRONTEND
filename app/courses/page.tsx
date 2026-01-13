@@ -91,12 +91,10 @@ const CoursesPage = () => {
     (courses: Course[]) => {
       return courses.filter((course) => {
         if (filters.categories.length > 0) {
-          const categoryName =
-            typeof course.category === "string"
-              ? course.category
-              : course.category.name;
-          if (!filters.categories.includes(categoryName.toLowerCase()))
+          // Compare filters.categories (IDs) with course.categoryId
+          if (!course.categoryId || !filters.categories.includes(course.categoryId)) {
             return false;
+          }
         }
 
         if (filters.levels.length > 0) {
@@ -263,6 +261,75 @@ const CoursesPage = () => {
           </div>
         </div>
 
+        {/* Section Explorez par domaine */}
+        {!filterLoading && filterData.categories.length > 0 && (
+          <div className="mb-6 sm:mb-8">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Explorez par domaine
+              </h2>
+              <p className="text-muted-foreground">
+                Trouvez la formation qui correspond à vos objectifs
+              </p>
+            </div>
+            <div className="flex items-center justify-between mb-4">
+              <div></div>
+              <button
+                onClick={() => {
+                  setFilters((prev) => ({
+                    ...prev,
+                    categories: [],
+                  }));
+                }}
+                className={`text-sm font-medium transition-colors ${
+                  filters.categories.length === 0
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                Voir tout →
+              </button>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {filterData.categories.map((category) => {
+                const isSelected = filters.categories.includes(category.id);
+                const getCategoryIcon = (name: string) => {
+                  const lowerName = name.toLowerCase();
+                  if (lowerName.includes('développement') || lowerName.includes('web')) return '💻';
+                  if (lowerName.includes('intelligence') || lowerName.includes('ia')) return '🤖';
+                  if (lowerName.includes('marketing') || lowerName.includes('digital')) return '📈';
+                  if (lowerName.includes('contenu') || lowerName.includes('création')) return '🎨';
+                  if (lowerName.includes('gestion') || lowerName.includes('management')) return '👔';
+                  if (lowerName.includes('informatique') || lowerName.includes('bureautique')) return '💼';
+                  return '📚';
+                };
+
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => {
+                      setFilters((prev) => ({
+                        ...prev,
+                        categories: prev.categories.includes(category.id)
+                          ? prev.categories.filter(id => id !== category.id)
+                          : [...prev.categories, category.id],
+                      }));
+                    }}
+                    className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-background text-muted-foreground hover:bg-muted border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <span className="text-base">{getCategoryIcon(category.name)}</span>
+                    <span>{category.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Section de filtres */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
@@ -313,20 +380,13 @@ const CoursesPage = () => {
                         >
                           <input
                             type="checkbox"
-                            checked={filters.categories.includes(
-                              category.name.toLowerCase(),
-                            )}
+                            checked={filters.categories.includes(category.id)}
                             onChange={() => {
-                              const categoryName = category.name.toLowerCase();
                               setFilters((prev) => ({
                                 ...prev,
-                                categories: prev.categories.includes(
-                                  categoryName,
-                                )
-                                  ? prev.categories.filter(
-                                      (c) => c !== categoryName,
-                                    )
-                                  : [...prev.categories, categoryName],
+                                categories: prev.categories.includes(category.id)
+                                  ? prev.categories.filter((c) => c !== category.id)
+                                  : [...prev.categories, category.id],
                               }));
                             }}
                             className="rounded border-border"
@@ -558,3 +618,4 @@ const CoursesPage = () => {
 };
 
 export default CoursesPage;
+

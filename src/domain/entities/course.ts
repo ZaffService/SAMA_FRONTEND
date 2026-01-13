@@ -40,6 +40,7 @@ export interface BaseCourse {
   title: string;
   content?: string;
   category: string | Category;
+  categoryId?: string;
   thumbnailUrl: string;
   thumbnail?: string;
   price: number;
@@ -77,7 +78,7 @@ export interface CourseDetails extends BaseCourse {
 }
 
 export interface CourseFilter {
-  categories: string[];
+  categories: string[]; // Now stores category IDs
   levels: string[];
   priceRange: string[];
   duration: string[];
@@ -94,6 +95,7 @@ export function transformApiCourse(apiCourse: any): Course {
       apiCourse._category?._name ||
       apiCourse.category ||
       "Non catégorisé",
+    categoryId: apiCourse.categoryId || apiCourse._category?.id || apiCourse._category?._id,
     thumbnailUrl:
       apiCourse.thumbnailUrl || apiCourse._thumbnailUrl || "/placeholder.jpg",
     thumbnail:
