@@ -591,10 +591,18 @@ useEffect(() => {
         },
       );
 
-      const exists = response.ok;
-      setModuleQuizzes(prev => ({ ...prev, [moduleId]: exists }));
-      console.log(`✅ Quiz ${exists ? 'existe' : 'n\'existe pas'} pour le module ${moduleId}`);
-      return exists;
+      if (response.ok) {
+        const data = await response.json();
+        // Vérifier si le quiz existe réellement (pas null)
+        const exists = data.quiz !== null && data.quiz !== undefined;
+        setModuleQuizzes(prev => ({ ...prev, [moduleId]: exists }));
+        console.log(`✅ Quiz ${exists ? 'existe' : 'n\'existe pas'} pour le module ${moduleId}`);
+        return exists;
+      } else {
+        setModuleQuizzes(prev => ({ ...prev, [moduleId]: false }));
+        console.log(`❌ Quiz n'existe pas pour le module ${moduleId} (réponse non-ok)`);
+        return false;
+      }
     } catch (error) {
       console.error(`❌ Erreur lors de la vérification du quiz pour le module ${moduleId}:`, error);
       setModuleQuizzes(prev => ({ ...prev, [moduleId]: false }));
@@ -1305,7 +1313,7 @@ useEffect(() => {
                                               </div>
                                               <span className="text-xs text-gray-600 group-hover/checkbox:text-gray-900">
                                                 {completed
-                                                  ? "Leçon terminée (cliquer pour décocher)"
+                                                  ? "Leçon terminée"
                                                   : "Marquer comme terminée"}
                                               </span>
                                             </label>

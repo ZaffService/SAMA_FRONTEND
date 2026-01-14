@@ -207,9 +207,9 @@ export function ModuleLessonList({
                   <CheckCircle2 className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-bold text-green-900 text-sm">
+                  <h3 className="font-bold text-green-900 text-sm">
                     Module terminé !
-                  </h4>
+                  </h3>
                   <p className="text-xs text-green-700 mt-0.5">
                     Félicitations, passez au quiz
                   </p>
