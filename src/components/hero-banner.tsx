@@ -262,7 +262,7 @@ export const HeroBanner = () => {
   }, []);
 
   return (
-    <section className="relative min-h-[500px] sm:min-h-[600px] lg:min-h-[700px] bg-white overflow-visible pt-16 lg:pt-0">
+    <section className="relative min-h-[500px] sm:min-h-[600px] lg:min-h-[700px] bg-white overflow-visible pt-16 lg:pt-5">
       {/* Background subtil */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 sm:top-20 left-5 sm:left-10 w-48 sm:w-72 lg:w-96 h-48 sm:h-72 lg:h-96 bg-slate-100 rounded-full blur-3xl opacity-50" />

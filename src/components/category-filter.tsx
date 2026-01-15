@@ -105,7 +105,11 @@ export function CategoryFilter({
         <div className="flex justify-center">
           <button
             onClick={() => onSelectCategory(null)}
-            className="text-primary hover:text-primary/80 font-medium text-sm underline"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full
+        font-medium text-sm transition-all duration-200
+        whitespace-nowrap
+        bg-slate-100 text-slate-700
+        hover:bg-slate-200 active:scale-95"
           >
             Voir tout →
           </button>

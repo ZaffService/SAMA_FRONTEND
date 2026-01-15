@@ -329,7 +329,6 @@ export class CoursesApi {
 
      if (!accessToken) {
        console.error('❌ [CoursesApi] Token absent');
-       alert('⚠️ Votre session a expiré.\n\nVeuillez vous déconnecter et vous reconnecter pour continuer.');
        throw new Error('Session expirée. Veuillez vous reconnecter.');
      }
 
@@ -349,52 +348,76 @@ export class CoursesApi {
        const now = Date.now() / 1000;
        if (now > payload.exp) {
          console.error('❌ [CoursesApi] Token expiré');
-         alert('⚠️ Votre session a expiré.\n\nVeuillez vous reconnecter.');
          window.location.href = '/login';
          throw new Error('Token expiré');
        }
 
-       const timeLeft = Math.floor((payload.exp - now) / 60);
+     const timeLeft = Math.floor((payload.exp - now) / 60);
        console.log(`⏰ [CoursesApi] Token valide encore ${timeLeft} minutes`);
      } catch (err) {
        console.error('❌ [CoursesApi] Erreur extraction userId:', err);
-       alert('Erreur d\'authentification. Veuillez vous reconnecter.');
        throw err;
      }
 
      const formData = new FormData();
 
-     // ✅ AJOUTER instructorId DANS LES DONNÉES JSON
-     const courseJsonData = {
+     // ✅ Gestion du thumbnail : optionnel si URL valide
+     let thumbnailUrl: string | undefined;
+
+     // Si c'est une URL string valide, on l'utilise
+     if (courseData.thumbnailUrl && typeof courseData.thumbnailUrl === 'string') {
+       thumbnailUrl = courseData.thumbnailUrl;
+     }
+     // Si c'est un fichier, thumbnailUrl reste undefined (sera envoyé séparément)
+
+     // ✅ Format exact attendu par le backend
+     const courseJsonData: any = {
        title: courseData.title,
        description: courseData.description,
        categoryId: courseData.categoryId,
        level: courseData.level,
-       price: courseData.price,
-       instructorId: userId,  // ✅ CRUCIAL : ID de l'admin connecté
-       status: 'DRAFT',  // ✅ Sauvegarder comme brouillon
+       price: Number(courseData.price) || 0,
        modules: courseData.modules.map((module: any) => ({
          title: module.title,
-         orderIndex: module.orderIndex,
+         orderIndex: Number(module.orderIndex) || 0,
          description: module.description || undefined,
-         lessons: module.lessons.map((lesson: any) => ({
+         lessons: module.lessons?.map((lesson: any) => ({
            tempId: lesson.tempId,
            title: lesson.title,
-           content: lesson.content,
-           orderIndex: lesson.orderIndex,
-           duration: lesson.duration || undefined
-         }))
+           content: lesson.content || '',
+           orderIndex: Number(lesson.orderIndex) || 0,
+           duration: Number(lesson.duration) || 0
+         })) || [],
+         quizzes: module.quizzes?.map((quiz: any) => ({
+           title: quiz.title,
+           description: quiz.description || undefined,
+           passingScore: Number(quiz.passingScore) || undefined,
+           questions: quiz.questions?.map((q: any) => ({
+             question: q.question,
+             questionType: q.questionType || 'MULTIPLE_CHOICE',
+             options: q.options || [],
+             correctAnswer: q.correctAnswer,
+             points: Number(q.points) || undefined
+           })) || []
+         })) || []
        }))
      };
 
-     formData.append('data', JSON.stringify(courseJsonData));
-     console.log('📦 [CoursesApi] Données JSON avec instructorId:', courseJsonData);
+     // Ajouter thumbnailUrl seulement si c'est une URL valide
+     if (thumbnailUrl) {
+       courseJsonData.thumbnailUrl = thumbnailUrl;
+     }
 
-     // ❌ RETIRER : Ne pas envoyer les miniatures
-     // if (courseData.thumbnail) {
-     //   formData.append('thumbnail', courseData.thumbnail);
-     //   console.log('🖼️ [CoursesApi] Thumbnail ajoutée');
-     // }
+     // ✅ Le champ "data" contient le JSON stringifié
+     formData.append('data', JSON.stringify(courseJsonData));
+     console.log('📦 [CoursesApi] Données JSON:', JSON.stringify(courseJsonData, null, 2));
+     console.log('🖼️ [CoursesApi] Thumbnail:', thumbnailUrl);
+
+     // ✅ Ajouter le fichier thumbnail si c'est un File
+     if (courseData.thumbnail && typeof courseData.thumbnail !== 'string') {
+       formData.append('thumbnail', courseData.thumbnail);
+       console.log('🖼️ [CoursesApi] Fichier thumbnail ajouté');
+     }
 
      // Ajouter les vidéos
      let videoCount = 0;
@@ -436,7 +459,6 @@ export class CoursesApi {
 
        // Si 401, proposer de se reconnecter
        if (response.status === 401) {
-         alert('Session expirée. Veuillez vous reconnecter.');
          window.location.href = '/login';
        }
 
@@ -554,37 +576,58 @@ export class CoursesApi {
 
      const formData = new FormData();
 
-     // ✅ NE PAS ENVOYER instructorId - Le backend doit le prendre depuis req.user
-     const courseJsonData = {
+     // ✅ Gestion du thumbnail : optionnel si URL valide
+     let thumbnailUrl: string | undefined;
+
+     // Si c'est une URL string valide, on l'utilise
+     if (courseData.thumbnailUrl && typeof courseData.thumbnailUrl === 'string') {
+       thumbnailUrl = courseData.thumbnailUrl;
+     }
+     // Si c'est un fichier, thumbnailUrl reste undefined (sera envoyé séparément)
+
+     // ✅ Format exact attendu par le backend
+     const courseJsonData: any = {
        title: courseData.title,
        description: courseData.description,
        categoryId: courseData.categoryId,
        level: courseData.level,
-       price: courseData.price,
-       // ❌ PAS DE instructorId ICI - le backend doit le gérer depuis la session
-       status: 'PUBLISHED',
+       price: Number(courseData.price) || 0,
        modules: courseData.modules.map((module: any) => ({
          title: module.title,
-         orderIndex: module.orderIndex,
+         orderIndex: Number(module.orderIndex) || 0,
          description: module.description || undefined,
-         lessons: module.lessons.map((lesson: any) => ({
+         lessons: module.lessons?.map((lesson: any) => ({
            tempId: lesson.tempId,
            title: lesson.title,
-           content: lesson.content,
-           orderIndex: lesson.orderIndex,
-           duration: lesson.duration || undefined
-         }))
+           content: lesson.content || '',
+           orderIndex: Number(lesson.orderIndex) || 0,
+           duration: Number(lesson.duration) || 0
+         })) || [],
+         quizzes: module.quizzes?.map((quiz: any) => ({
+           title: quiz.title,
+           description: quiz.description || undefined,
+           passingScore: Number(quiz.passingScore) || undefined,
+           questions: quiz.questions?.map((q: any) => ({
+             question: q.question,
+             questionType: q.questionType || 'MULTIPLE_CHOICE',
+             options: q.options || [],
+             correctAnswer: q.correctAnswer,
+             points: Number(q.points) || undefined
+           })) || []
+         })) || []
        }))
      };
 
+     // ✅ Le champ "data" contient le JSON stringifié
      formData.append('data', JSON.stringify(courseJsonData));
-     console.log('📦 [CoursesApi] Données JSON (sans instructorId):', courseJsonData);
+     console.log('📦 [CoursesApi] Données JSON:', JSON.stringify(courseJsonData, null, 2));
+     console.log('🖼️ [CoursesApi] Thumbnail:', thumbnailUrl);
 
-     // ❌ RETIRER : Ne pas envoyer les miniatures
-     // if (courseData.thumbnail) {
-     //   formData.append('thumbnail', courseData.thumbnail);
-     //   console.log('🖼️ [CoursesApi] Thumbnail ajoutée');
-     // }
+     // ✅ Ajouter le fichier thumbnail si c'est un File
+     if (courseData.thumbnail && typeof courseData.thumbnail !== 'string') {
+       formData.append('thumbnail', courseData.thumbnail);
+       console.log('🖼️ [CoursesApi] Fichier thumbnail ajouté');
+     }
 
      // Ajouter les vidéos
      let videoCount = 0;
@@ -599,6 +642,17 @@ export class CoursesApi {
        });
      });
      console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+
+     // Ajouter les fichiers joints
+     let attachmentCount = 0;
+     if (courseData.attachments && courseData.attachments.length > 0) {
+       courseData.attachments.forEach((attachment: any) => {
+         formData.append('attachments', attachment.file);
+         attachmentCount++;
+         console.log(`📎 [CoursesApi] Fichier joint ajouté: ${attachment.file.name}`);
+       });
+     }
+     console.log(`📎 [CoursesApi] Total fichiers joints: ${attachmentCount}`);
 
      console.log('📡 [CoursesApi] Envoi vers:', buildApiUrl(API_ENDPOINTS.COURSES.CREATE));
      console.log('🔐 [CoursesApi] Credentials: include');

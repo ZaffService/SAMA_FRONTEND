@@ -333,9 +333,9 @@ export default function ClientLogin() {
 
             <div className="text-center mb-4">
               <h2 className="text-xl font-bold mb-1">Prêt à apprendre ?</h2>
-              <p className="text-white/80 text-xs">
+              {/* <p className="text-white/80 text-xs">
                 Rejoignez des milliers d'apprenants
-              </p>
+              </p> */}
             </div>
 
             <div className="space-y-3">

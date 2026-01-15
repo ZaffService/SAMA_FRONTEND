@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Save, Eye, AlertCircle, Image, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Save, Eye, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { StepIndicator, defaultCourseSteps } from "./StepIndicator";
 import { ModuleManager } from "./ModuleManager";
 import { ThumbnailUploader } from "./ThumbnailUploader";
 import { QuizManager } from "./QuizManager";
 import { CoursePreview } from "./CoursePreview";
+import { AttachmentManager } from "./AttachmentManager";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { showCourseCreatedSuccess, showCourseCreationError, showDraftSavedSuccess, showLoadingToast, closeLoading } from "@/shared/helpers/sweet-alert";
 import { Module } from "@/domain/entities/module";
@@ -31,15 +32,7 @@ interface CourseFormData {
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   price: number;
   modules: Module[];
-}
-
-interface CourseFormData {
-  title: string;
-  description: string;
-  categoryId: string;
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-  price: number;
-  modules: Module[];
+  attachments: Array<{ file: File; id: string; preview?: string }>;
 }
 
 interface CourseWizardProps {
@@ -68,6 +61,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     level: 'BEGINNER',
     price: 0,
     modules: [],
+    attachments: [],
   });
 
   // Load categories on mount
@@ -104,8 +98,11 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     updateFormData({ modules });
   };
 
+  const handleAttachmentsChange = (attachments: Array<{ file: File; id: string; preview?: string }>) => {
+    updateFormData({ attachments });
+  };
+
   const handleThumbnailUploaded = (fileOrUrl: File | string) => {
-    // If it's a File, store it; if it's a string (URL), use it directly
     if (fileOrUrl instanceof File) {
       setThumbnailFile(fileOrUrl);
     } else {
@@ -126,17 +123,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         if (!formData.categoryId) return 'La catégorie est requise';
         if (formData.price < 0) return 'Le prix ne peut pas être négatif';
         break;
-      case 2: // Modules
+      case 2: // Modules and Lessons
         if (formData.modules.length === 0) return 'Au moins un module est requis';
         for (const module of formData.modules) {
           if (!module.title.trim()) {
             return `Le titre du module "${module.title || 'sans titre'}" est requis`;
           }
-          // ✅ description est OPTIONNELLE - pas de validation
-        }
-        break;
-      case 3: // Lessons
-        for (const module of formData.modules) {
           if (module.lessons.length === 0) {
             return `Le module "${module.title}" doit contenir au moins une leçon`;
           }
@@ -148,15 +140,16 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
               return `Le contenu de la leçon "${lesson.title}" est requis`;
             }
             if (!lesson.tempId) {
-              // ✅ CRITIQUE : Vérifier que tempId existe
               return `La leçon "${lesson.title}" doit avoir un tempId`;
             }
           }
         }
         break;
-      case 4: // Quiz (optional - no validation required)
+      case 3: // Quiz (optional)
         break;
-      case 5: // Preview (no validation needed)
+      case 4: // Attachments (optional)
+        break;
+      case 5: // Preview
         break;
     }
     return null;
@@ -187,9 +180,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   };
 
   const handleStepClick = (step: number) => {
-    // Only allow going back or to already completed steps
-    if (step < currentStep || (step === currentStep)) {
-      // Validate all steps between current and target
+    if (step < currentStep || step === currentStep) {
       for (let s = 1; s < step; s++) {
         if (!canProceedToStep(s)) {
           setError(`Veuillez d'abord compléter l'étape ${s}`);
@@ -202,10 +193,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   };
 
   const prepareCourseData = () => {
+    // instructorId sera null et récupéré par le backend depuis les cookies JWT
     return {
       ...formData,
-      instructorId: String(user?.id || ''),
+      instructorId: null, // Le backend extrait l'instructorId réel des cookies
       thumbnail: thumbnailFile || undefined,
+      attachments: formData.attachments || [],
     };
   };
 
@@ -213,7 +206,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     e.preventDefault();
     setError(null);
 
-    const validationError = validateStep(3); // Validate up to lessons
+    const validationError = validateStep(2);
     if (validationError) {
       setError(validationError);
       showCourseCreationError(validationError);
@@ -228,7 +221,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       closeLoading();
       showCourseCreatedSuccess(formData.title, () => {
         onCourseCreated?.();
-        router.push('/instructor-dashboard');
+        router.push('/admin-dashboard');
       });
     } catch (err) {
       closeLoading();
@@ -277,11 +270,11 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       case 1:
         return <Step1BasicInfo formData={formData} updateFormData={updateFormData} categories={categories} thumbnailUrl={thumbnailUrl} onThumbnailUploaded={handleThumbnailUploaded} onThumbnailRemoved={handleThumbnailRemoved} draftId={draftId} />;
       case 2:
-        return <Step2Modules modules={formData.modules} onModulesChange={handleModulesChange} />;
+        return <Step2ModulesAndLessons modules={formData.modules} onModulesChange={handleModulesChange} />;
       case 3:
-        return <Step3Lessons modules={formData.modules} onModulesChange={handleModulesChange} />;
+        return <Step3Quizzes modules={formData.modules} onQuizzesChange={handleModulesChange} />;
       case 4:
-        return <Step4Quizzes modules={formData.modules} onQuizzesChange={handleModulesChange} />;
+        return <Step4Attachments attachments={formData.attachments} onAttachmentsChange={handleAttachmentsChange} />;
       case 5:
         return <CoursePreview courseData={formData} thumbnailUrl={thumbnailUrl || undefined} instructorName={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Instructeur'} />;
       default:
@@ -291,7 +284,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Créer un nouveau cours</h1>
         <p className="text-gray-600 mt-2">
@@ -305,7 +297,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         )}
       </div>
 
-      {/* Step Indicator */}
       <StepIndicator
         currentStep={currentStep}
         totalSteps={TOTAL_STEPS}
@@ -313,7 +304,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         onStepClick={handleStepClick}
       />
 
-      {/* Error Alert */}
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
@@ -321,14 +311,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         </Alert>
       )}
 
-      {/* Step Content */}
       <Card className="mb-6">
         <CardContent className="pt-6">
           {renderStep()}
         </CardContent>
       </Card>
 
-      {/* Navigation */}
       <div className="flex justify-between items-center pt-6 border-t">
         <Button
           type="button"
@@ -506,8 +494,8 @@ function Step1BasicInfo({
   );
 }
 
-// Step 2: Modules
-function Step2Modules({
+// Step 2: Modules and Lessons
+function Step2ModulesAndLessons({
   modules,
   onModulesChange,
 }: {
@@ -517,7 +505,7 @@ function Step2Modules({
   return (
     <div>
       <p className="text-gray-600 mb-4">
-        Organisez votre cours en modules. Chaque module peut contenir plusieurs leçons.
+        Organisez votre cours en modules et ajoutez des leçons avec du contenu et des vidéos.
       </p>
       <ModuleManager
         modules={modules}
@@ -527,29 +515,8 @@ function Step2Modules({
   );
 }
 
-// Step 3: Lessons
-function Step3Lessons({
-  modules,
-  onModulesChange,
-}: {
-  modules: Module[];
-  onModulesChange: (modules: Module[]) => void;
-}) {
-  return (
-    <div>
-      <p className="text-gray-600 mb-4">
-        Ajoutez des leçons à vos modules avec du contenu et des vidéos.
-      </p>
-      <ModuleManager
-        modules={modules}
-        onModulesChange={onModulesChange}
-      />
-    </div>
-  );
-}
-
-// Step 4: Quizzes
-function Step4Quizzes({
+// Step 3: Quizzes
+function Step3Quizzes({
   modules,
   onQuizzesChange,
 }: {
@@ -564,6 +531,27 @@ function Step4Quizzes({
       <QuizManager
         modules={modules}
         onQuizzesChange={onQuizzesChange}
+      />
+    </div>
+  );
+}
+
+// Step 4: Attachments
+function Step4Attachments({
+  attachments,
+  onAttachmentsChange,
+}: {
+  attachments: Array<{ file: File; id: string; preview?: string }>;
+  onAttachmentsChange: (attachments: Array<{ file: File; id: string; preview?: string }>) => void;
+}) {
+  return (
+    <div>
+      <p className="text-gray-600 mb-4">
+        Ajoutez des ressources supplémentaires pour vos étudiants.
+      </p>
+      <AttachmentManager
+        attachments={attachments}
+        onAttachmentsChange={onAttachmentsChange}
       />
     </div>
   );

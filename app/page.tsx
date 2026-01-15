@@ -46,7 +46,7 @@ const Index = () => {
     rating: [] as string[],
   });
 
-  const { courses, loading, error, pages, currentPage, setPage, refresh } =
+  const { courses, loading, error, pages, currentPage, setPage, refresh, setFilterCategories } =
     useCourses(1, 8);
 
   const { enrolledCourses } = useEnrolledCourses();
@@ -67,9 +67,11 @@ const Index = () => {
   /** Gérer la sélection de catégorie */
   const handleCategorySelect = useCallback((categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
+    // Utiliser le backend pour filtrer par catégorie
+    setFilterCategories(categoryId ? [categoryId] : []);
     // Réinitialiser à la première page lors de changement de filtre
     setPage(1);
-  }, [setPage]);
+  }, [setPage, setFilterCategories]);
 
   /** Scroll automatique vers la section formations après changement de page */
   // Supprimé pour éviter le masquage du titre après connexion
@@ -136,14 +138,7 @@ const Index = () => {
 
   const applyFilters = (courses: Course[]) =>
     courses.filter((course) => {
-      // Filtre par catégorie sélectionnée
-      if (selectedCategoryId) {
-        const courseCategory =
-          typeof course.category === "string"
-            ? course.categoryId
-            : course.category.id;
-        if (courseCategory !== selectedCategoryId) return false;
-      }
+      // ✅ Le filtrage par catégorie est géré par le backend via setFilterCategories
 
       if (filters.categories.length > 0) {
         const cat =

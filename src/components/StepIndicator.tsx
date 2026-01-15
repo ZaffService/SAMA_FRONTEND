@@ -17,9 +17,9 @@ interface StepIndicatorProps {
 
 export const defaultCourseSteps: Step[] = [
   { id: 1, title: "Informations de base", description: "Titre, description, catégorie" },
-  { id: 2, title: "Modules", description: "Structure du cours" },
-  { id: 3, title: "Leçons", description: "Contenu des modules" },
-  { id: 4, title: "Quiz", description: "Évaluations" },
+  { id: 2, title: "Modules et leçons", description: "Structure et contenu du cours" },
+  { id: 3, title: "Quiz", description: "Évaluations" },
+  { id: 4, title: "Ressources", description: "Fichiers supplémentaires" },
   { id: 5, title: "Aperçu", description: "Validation finale" },
 ];
 

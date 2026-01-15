@@ -44,12 +44,13 @@ export function CoursePreview({
     0
   );
   
-  const totalQuizzes = courseData.modules.filter(
-    (module) => module.quiz
-  ).length;
-  
+  const totalQuizzes = courseData.modules.reduce(
+    (acc, module) => acc + (module.quizzes?.length || 0),
+    0
+  );
+
   const totalQuestions = courseData.modules.reduce(
-    (acc, module) => acc + (module.quiz?.questions.length || 0),
+    (acc, module) => acc + (module.quizzes?.reduce((qAcc, quiz) => qAcc + quiz.questions.length, 0) || 0),
     0
   );
   
@@ -224,7 +225,7 @@ export function CoursePreview({
                         <h4 className="font-medium">{module.title}</h4>
                         <p className="text-sm text-gray-500">
                           {module.lessons.length} leçon(s)
-                          {module.quiz ? ' + 1 quiz' : ''}
+                          {module.quizzes && module.quizzes.length > 0 ? ` + ${module.quizzes.length} quiz` : ''}
                         </p>
                       </div>
                     </div>
@@ -262,17 +263,17 @@ export function CoursePreview({
                 )}
 
                 {/* Quiz */}
-                {module.quiz && (
+                {module.quizzes && module.quizzes.length > 0 && (
                   <div className="p-4 bg-purple-50 border-t">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <HelpCircle className="w-5 h-5 text-purple-600" />
                         <div>
                           <p className="font-medium text-purple-900">
-                            {module.quiz.title}
+                            {module.quizzes[0].title}
                           </p>
                           <p className="text-sm text-purple-700">
-                            {module.quiz.questions.length} questions • Score de passage: {module.quiz.passingScore}%
+                            {module.quizzes[0].questions.length} questions • Score de passage: {module.quizzes[0].passingScore}%
                           </p>
                         </div>
                       </div>

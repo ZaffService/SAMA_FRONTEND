@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Edit } from "lucide-react";
-import { Module } from "@/domain/entities/module";
+import { Module, Quiz } from "@/domain/entities/module";
 
 interface QuizManagerProps {
   modules: Module[];
@@ -24,32 +24,13 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     return lesson.id || lesson.tempId || `lesson-${index}`;
   };
 
-  const addQuizToModule = (moduleId: string) => {
+  const addQuestionToQuiz = (moduleKey: string, lessonKey: string) => {
     const updatedModules = modules.map(module => {
-      if (module.id === moduleId) {
-        return {
-          ...module,
-          lessons: module.lessons.map(lesson => ({
-            ...lesson,
-            quiz: lesson.quiz || {
-              title: `Quiz pour ${lesson.title}`,
-              questions: []
-            }
-          }))
-        };
-      }
-      return module;
-    });
-    onQuizzesChange(updatedModules);
-  };
-
-  const addQuestionToQuiz = (moduleId: string, lessonTempId: string) => {
-    const updatedModules = modules.map(module => {
-      if (module.id === moduleId) {
+      if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
           lessons: module.lessons.map(lesson => {
-            if (lesson.tempId === lessonTempId && lesson.quiz) {
+            if (getLessonKey(lesson, module.lessons.indexOf(lesson)) === lessonKey && lesson.quiz) {
               return {
                 ...lesson,
                 quiz: {
@@ -58,8 +39,10 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                     ...lesson.quiz.questions,
                     {
                       question: '',
+                      questionType: 'MULTIPLE_CHOICE' as const,
                       options: ['', '', '', ''],
-                      correctAnswer: ''
+                      correctAnswer: '',
+                      points: 10
                     }
                   ]
                 }
@@ -74,24 +57,18 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-  const updateQuestion = (moduleId: string, lessonTempId: string, questionIndex: number, field: string, value: string | string[]) => {
+  const removeQuestion = (moduleKey: string, lessonKey: string, qIndex: number) => {
     const updatedModules = modules.map(module => {
-      if (module.id === moduleId) {
+      if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
           lessons: module.lessons.map(lesson => {
-            if (lesson.tempId === lessonTempId && lesson.quiz) {
-              const updatedQuestions = lesson.quiz.questions.map((q, idx) => {
-                if (idx === questionIndex) {
-                  return { ...q, [field]: value };
-                }
-                return q;
-              });
+            if (getLessonKey(lesson, module.lessons.indexOf(lesson)) === lessonKey && lesson.quiz) {
               return {
                 ...lesson,
                 quiz: {
                   ...lesson.quiz,
-                  questions: updatedQuestions
+                  questions: lesson.quiz.questions.filter((_, index) => index !== qIndex)
                 }
               };
             }
@@ -104,18 +81,20 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-  const removeQuestion = (moduleId: string, lessonTempId: string, questionIndex: number) => {
+  const updateQuestion = (moduleKey: string, lessonKey: string, qIndex: number, field: string, value: any) => {
     const updatedModules = modules.map(module => {
-      if (module.id === moduleId) {
+      if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
           lessons: module.lessons.map(lesson => {
-            if (lesson.tempId === lessonTempId && lesson.quiz) {
+            if (getLessonKey(lesson, module.lessons.indexOf(lesson)) === lessonKey && lesson.quiz) {
               return {
                 ...lesson,
                 quiz: {
                   ...lesson.quiz,
-                  questions: lesson.quiz.questions.filter((_, idx) => idx !== questionIndex)
+                  questions: lesson.quiz.questions.map((question, index) =>
+                    index === qIndex ? { ...question, [field]: value } : question
+                  )
                 }
               };
             }
@@ -127,6 +106,34 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     });
     onQuizzesChange(updatedModules);
   };
+
+  const addQuizToModule = (moduleId: string) => {
+    const updatedModules = modules.map(module => {
+      if (getModuleKey(module, modules.indexOf(module)) === moduleId) {
+        const newQuiz: Quiz = {
+          title: `Quiz pour ${module.title}`,
+          description: '',
+          passingScore: 70,
+          questions: [
+            {
+              question: '',
+              questionType: 'MULTIPLE_CHOICE',
+              options: ['', '', '', ''],
+              correctAnswer: '',
+              points: 10
+            }
+          ]
+        };
+        return {
+          ...module,
+          quizzes: [...(module.quizzes || []), newQuiz]
+        };
+      }
+      return module;
+    });
+    onQuizzesChange(updatedModules);
+  };
+
 
   return (
     <div className="space-y-6">

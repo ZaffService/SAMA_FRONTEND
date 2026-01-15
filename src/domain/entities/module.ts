@@ -13,6 +13,7 @@ export interface Lesson {
 export interface Quiz {
   id?: string;
   title: string;
+  description?: string;
   questions: Question[];
   passingScore?: number;
 }
@@ -20,8 +21,10 @@ export interface Quiz {
 export interface Question {
   id?: string;
   question: string;
+  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER';
   options: string[];
   correctAnswer: string;
+  points?: number;
 }
 
 export interface Module {
@@ -31,5 +34,5 @@ export interface Module {
   description?: string;
   orderIndex: number;
   lessons: Lesson[];
-  quiz?: Quiz;
+  quizzes?: Quiz[];
 }

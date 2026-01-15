@@ -283,13 +283,14 @@ const CoursesPage = () => {
                   }));
                   setFilterCategories([]);
                 }}
-                className={`text-sm font-medium transition-colors ${
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${
                   filters.categories.length === 0
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-primary"
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-background text-muted-foreground hover:bg-muted border-border hover:border-primary/50"
                 }`}
               >
-                Voir tout →
+                <span className="text-base">🌐</span>
+                <span>Voir tout</span>
               </button>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
@@ -347,7 +348,7 @@ const CoursesPage = () => {
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
-                  className="text-sm text-primary hover:text-primary/80 underline"
+                  className="text-sm text-primary hover:text-primary/80"
                 >
                   Effacer tout
                 </button>
@@ -597,7 +598,7 @@ const CoursesPage = () => {
                 {currentPage < pages && (
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    className="absolute right-0  z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all"
                   >
                     <ChevronRight className="w-6 h-6 text-gray-800" />
                   </button>
@@ -636,4 +637,3 @@ const CoursesPage = () => {
 };
 
 export default CoursesPage;
-

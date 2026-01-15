@@ -988,7 +988,7 @@ useEffect(() => {
                           <div key={module.id} className="mb-2">
                             <button
                               onClick={() => {
-                                if (isEnrolled === true) {
+                                if (isEnrolled === true || isFree) {
                                   toggleModule(module.id);
                                 } else {
                                   handleModuleClick(module.id);
@@ -997,11 +997,9 @@ useEffect(() => {
                               className={`w-full flex items-center justify-between p-2.5 lg:p-3 rounded-lg transition-all duration-300 text-left group ${
                                 isModuleCompleted
                                   ? "bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200"
-                                  : isEnrolled
+                                  : isEnrolled || isFree
                                     ? "hover:bg-indigo-50"
-                                    : isEnrolled === false
-                                      ? "opacity-60 cursor-not-allowed bg-gray-50"
-                                      : "opacity-60 cursor-not-allowed bg-gray-50"
+                                    : "opacity-60 cursor-not-allowed bg-gray-50"
                               }`}
                             >
                               <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
@@ -1030,7 +1028,7 @@ useEffect(() => {
                                   >
                                     <div className="flex items-center gap-2">
                                       {module.title}
-                                      {!isEnrolled && (
+                                      {!isEnrolled && !isFree && (
                                         <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                       )}
                                       {isModuleCompleted && (
@@ -1038,7 +1036,7 @@ useEffect(() => {
                                           Terminé
                                         </span>
                                       )}
-                                      {!isEnrolled && (
+                                      {!isEnrolled && !isFree && (
                                         <span className="ml-2 px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full font-medium">
                                           Verrouillé
                                         </span>
@@ -1156,7 +1154,7 @@ useEffect(() => {
                                         </button>
 
                                         {/* Checkbox pour marquer comme terminé */}
-                                        {isEnrolled === true && (
+                                        {(isEnrolled === true || isFree) && (
                                           <div className="px-3 lg:px-4 pb-2.5 lg:pb-3">
                                             <label
                                               className="flex items-center gap-2 cursor-pointer group/checkbox"
@@ -1336,7 +1334,7 @@ useEffect(() => {
                               const quizExists = moduleQuizzes[module.id];
                               const isCheckingQuiz = checkingQuizzes.has(module.id);
 
-                              return isEnrolled === true && allLessonsCompleted ? (
+                              return (isEnrolled === true || isFree) && allLessonsCompleted ? (
                                 <div className="mt-3 mx-2 p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 border-2 border-emerald-200 rounded-xl shadow-sm">
                                   <div className="flex items-center gap-3">
                                     {/* Badge avec icône CheckCircle */}
