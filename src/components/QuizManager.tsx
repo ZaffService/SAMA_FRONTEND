@@ -24,19 +24,17 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     return lesson.id || lesson.tempId || `lesson-${index}`;
   };
 
-  const addQuestionToQuiz = (moduleKey: string, lessonKey: string) => {
+  const addQuestionToQuiz = (moduleKey: string, quizIndex: number) => {
     const updatedModules = modules.map(module => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
-          lessons: module.lessons.map(lesson => {
-            if (getLessonKey(lesson, module.lessons.indexOf(lesson)) === lessonKey && lesson.quiz) {
-              return {
-                ...lesson,
-                quiz: {
-                  ...lesson.quiz,
+          quizzes: module.quizzes?.map((quiz, index) =>
+            index === quizIndex
+              ? {
+                  ...quiz,
                   questions: [
-                    ...lesson.quiz.questions,
+                    ...quiz.questions,
                     {
                       question: '',
                       questionType: 'MULTIPLE_CHOICE' as const,
@@ -46,10 +44,8 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                     }
                   ]
                 }
-              };
-            }
-            return lesson;
-          })
+              : quiz
+          )
         };
       }
       return module;
@@ -57,23 +53,19 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-  const removeQuestion = (moduleKey: string, lessonKey: string, qIndex: number) => {
+  const removeQuestion = (moduleKey: string, quizIndex: number, qIndex: number) => {
     const updatedModules = modules.map(module => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
-          lessons: module.lessons.map(lesson => {
-            if (getLessonKey(lesson, module.lessons.indexOf(lesson)) === lessonKey && lesson.quiz) {
-              return {
-                ...lesson,
-                quiz: {
-                  ...lesson.quiz,
-                  questions: lesson.quiz.questions.filter((_, index) => index !== qIndex)
+          quizzes: module.quizzes?.map((quiz, index) =>
+            index === quizIndex
+              ? {
+                  ...quiz,
+                  questions: quiz.questions.filter((_, idx) => idx !== qIndex)
                 }
-              };
-            }
-            return lesson;
-          })
+              : quiz
+          )
         };
       }
       return module;
@@ -81,25 +73,21 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-  const updateQuestion = (moduleKey: string, lessonKey: string, qIndex: number, field: string, value: any) => {
+  const updateQuestion = (moduleKey: string, quizIndex: number, qIndex: number, field: string, value: any) => {
     const updatedModules = modules.map(module => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
-          lessons: module.lessons.map(lesson => {
-            if (getLessonKey(lesson, module.lessons.indexOf(lesson)) === lessonKey && lesson.quiz) {
-              return {
-                ...lesson,
-                quiz: {
-                  ...lesson.quiz,
-                  questions: lesson.quiz.questions.map((question, index) =>
-                    index === qIndex ? { ...question, [field]: value } : question
+          quizzes: module.quizzes?.map((quiz, index) =>
+            index === quizIndex
+              ? {
+                  ...quiz,
+                  questions: quiz.questions.map((question, idx) =>
+                    idx === qIndex ? { ...question, [field]: value } : question
                   )
                 }
-              };
-            }
-            return lesson;
-          })
+              : quiz
+          )
         };
       }
       return module;
@@ -160,44 +148,35 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Lessons */}
             {module.lessons.map((lesson, lessonIndex) => (
               <div key={getLessonKey(lesson, lessonIndex)} className="mb-4 p-4 border rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium">{lesson.title}</h4>
-                  {!lesson.quiz && (
-                    <Button
-                      onClick={() => addQuizToModule(getModuleKey(module, moduleIndex))}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Ajouter Quiz
-                    </Button>
-                  )}
                 </div>
+              </div>
+            ))}
 
-                {lesson.quiz && (
-                  <div className="space-y-4">
+            {/* Quizzes */}
+            {module.quizzes && module.quizzes.length > 0 && (
+              <div className="mt-6 p-4 bg-purple-50 border rounded-lg">
+                <h4 className="font-medium text-purple-900 mb-4">Quiz du module</h4>
+                {module.quizzes.map((quiz, quizIndex) => (
+                  <div key={quizIndex} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">
                         Titre du Quiz
                       </label>
                       <Input
-                        value={lesson.quiz.title}
+                        value={quiz.title}
                         onChange={(e) => {
                           const updatedModules = modules.map(m => {
                             if (getModuleKey(m, modules.indexOf(m)) === getModuleKey(module, moduleIndex)) {
                               return {
                                 ...m,
-                                lessons: m.lessons.map(l => {
-                                  if (getLessonKey(l, m.lessons.indexOf(l)) === getLessonKey(lesson, lessonIndex)) {
-                                    return {
-                                      ...l,
-                                      quiz: { ...l.quiz!, title: e.target.value }
-                                    };
-                                  }
-                                  return l;
-                                })
+                                quizzes: m.quizzes?.map((q, idx) =>
+                                  idx === quizIndex ? { ...q, title: e.target.value } : q
+                                )
                               };
                             }
                             return m;
@@ -212,7 +191,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                       <div className="flex items-center justify-between mb-2">
                         <h5 className="font-medium">Questions</h5>
                         <Button
-                          onClick={() => addQuestionToQuiz(getModuleKey(module, moduleIndex), getLessonKey(lesson, lessonIndex))}
+                          onClick={() => addQuestionToQuiz(getModuleKey(module, moduleIndex), quizIndex)}
                           size="sm"
                           variant="outline"
                         >
@@ -221,13 +200,13 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                         </Button>
                       </div>
 
-                      {lesson.quiz.questions.map((question, qIndex) => (
+                      {quiz.questions.map((question, qIndex) => (
                         <Card key={qIndex} className="mb-4">
                           <CardContent className="pt-4">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium">Question {qIndex + 1}</span>
                               <Button
-                                onClick={() => removeQuestion(getModuleKey(module, moduleIndex), getLessonKey(lesson, lessonIndex), qIndex)}
+                                onClick={() => removeQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex)}
                                 size="sm"
                                 variant="destructive"
                               >
@@ -237,7 +216,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
 
                             <Textarea
                               value={question.question}
-                              onChange={(e) => updateQuestion(getModuleKey(module, moduleIndex), getLessonKey(lesson, lessonIndex), qIndex, 'question', e.target.value)}
+                              onChange={(e) => updateQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex, 'question', e.target.value)}
                               placeholder="Entrez la question"
                               className="mb-2"
                             />
@@ -251,7 +230,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                                   onChange={(e) => {
                                     const newOptions = [...question.options];
                                     newOptions[oIndex] = e.target.value;
-                                    updateQuestion(getModuleKey(module, moduleIndex), getLessonKey(lesson, lessonIndex), qIndex, 'options', newOptions);
+                                    updateQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex, 'options', newOptions);
                                   }}
                                   placeholder={`Option ${oIndex + 1}`}
                                 />
@@ -264,7 +243,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                               </label>
                               <select
                                 value={question.correctAnswer}
-                                onChange={(e) => updateQuestion(getModuleKey(module, moduleIndex), getLessonKey(lesson, lessonIndex), qIndex, 'correctAnswer', e.target.value)}
+                                onChange={(e) => updateQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex, 'correctAnswer', e.target.value)}
                                 className="w-full p-2 border rounded"
                               >
                                 <option value="">Sélectionnez la réponse correcte</option>
@@ -280,9 +259,9 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                       ))}
                     </div>
                   </div>
-                )}
+                ))}
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       ))}
