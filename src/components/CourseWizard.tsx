@@ -146,6 +146,15 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         }
         break;
       case 3: // Quiz (optional)
+        for (const module of formData.modules) {
+          if (module.quizzes && module.quizzes.length > 0) {
+            for (const quiz of module.quizzes) {
+              if (quiz.questions.length === 0) {
+                return `Le quiz "${quiz.title}" du module "${module.title}" doit contenir au moins une question`;
+              }
+            }
+          }
+        }
         break;
       case 4: // Attachments (optional)
         break;
@@ -219,6 +228,24 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     try {
       const result = await CoursesApi.createCourse(prepareCourseData());
       closeLoading();
+      
+      // ✅ IMPORTANT: Récupérer les détails du cours pour obtenir l'URL de la miniature mise à jour
+      // L'upload de la miniature est asynchrone, donc on doit attendre un peu ou récupérer les détails
+      let updatedThumbnailUrl = result.course?.thumbnailUrl;
+      
+      if (!updatedThumbnailUrl && result.courseId) {
+        // Attendre un peu pour l'upload asynchrone
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Récupérer les détails du cours
+        try {
+          const details = await CoursesApi.getCourseDetails(result.courseId);
+          updatedThumbnailUrl = details.course.thumbnailUrl;
+          console.log('✅ Miniature récupérée:', updatedThumbnailUrl);
+        } catch (detailsErr) {
+          console.warn('⚠️ Impossible de récupérer les détails du cours:', detailsErr);
+        }
+      }
+
       showCourseCreatedSuccess(formData.title, () => {
         onCourseCreated?.();
         router.push('/admin-dashboard');

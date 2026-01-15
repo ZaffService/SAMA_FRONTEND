@@ -124,6 +124,19 @@ export function useEnrollment(): UseEnrollmentReturn {
         // Attempt to follow the course
         const result = await CoursesApi.followCourse(id);
 
+        // ✅ GESTION DES RÉSULTATS
+        if (result.status === "DUPLICATE") {
+          // Vérifier si l'utilisateur est maintenant inscrit
+          const checkResult = await CoursesApi.checkEnrollmentStatus(id);
+          if (checkResult) {
+            console.log("✅ [useEnrollment] Inscription confirmée malgré duplicate");
+            setIsEnrolled(true);
+            setPaymentStatus("COMPLETED");
+            clearPendingEnrollment();
+            return { enrolled: true };
+          }
+        }
+
         if (result.payment_url) {
           // 🔄 Paid course - Redirect to PayDunya
           console.log("💳 [useEnrollment] Redirection vers paiement:", result.payment_url);

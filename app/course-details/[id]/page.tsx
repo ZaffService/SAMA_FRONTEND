@@ -88,6 +88,9 @@ function CourseDetailsPageComponent() {
   const [isPaid, setIsPaid] = useState(false);
   const [isFree, setIsFree] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  
+  // ✅ NOUVEAU: Flag pour éviter les requêtes d'enrollment multiples
+  const [enrollmentCheckComplete, setEnrollmentCheckComplete] = useState(false);
 
   // Lesson progress states
   const [lessonProgress, setLessonProgress] = useState<Record<string, boolean>>(
@@ -188,10 +191,17 @@ useEffect(() => {
   // Vérifier le statut d'inscription au chargement et quand l'utilisateur change
   useEffect(() => {
     const checkEnrollmentStatus = async () => {
+      // ✅ EMPÊCHER LES REQUÊTES MULTIPLES
+      if (enrollmentCheckComplete) {
+        console.log("⚠️ Vérification d'inscription déjà effectuée, skip");
+        return;
+      }
+
       if (!user?.id || !courseId) {
         console.log("ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription");
         setIsEnrolled(false);
         setIsPaid(false);
+        setEnrollmentCheckComplete(true);
         return;
       }
 
@@ -200,6 +210,7 @@ useEffect(() => {
         console.warn(`⚠️ Format de courseId invalide: ${courseId}`);
         setIsEnrolled(false);
         setIsPaid(false);
+        setEnrollmentCheckComplete(true);
         return;
       }
 
@@ -221,11 +232,14 @@ useEffect(() => {
         // En cas d'erreur, considérer comme non inscrit pour sécurité
         setIsEnrolled(false);
         setIsPaid(false);
+      } finally {
+        // ✅ Marque la vérification comme terminée
+        setEnrollmentCheckComplete(true);
       }
     };
 
     checkEnrollmentStatus();
-  }, [courseId, user?.id]);
+  }, [courseId, user?.id, enrollmentCheckComplete]);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -382,10 +396,16 @@ useEffect(() => {
   const handleFollowCourse = async () => {
     if (!courseId) return;
 
+    // ✅ EMPÊCHER LES REQUÊTES MULTIPLES
+    if (enrolling) {
+      console.log("⚠️ Inscription déjà en cours, ignore");
+      return;
+    }
+
     try {
       setEnrolling(true);
 
-      // ✅ Vérifier d'abord si l'utilisateur est déjà inscrit
+      // ✅ Vérifier d'abord si l'utilisateur est déjà inscrit (double vérification)
       const alreadyEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
       if (alreadyEnrolled) {
         console.log("✅ Utilisateur déjà inscrit à ce cours");
@@ -401,15 +421,36 @@ useEffect(() => {
         return;
       }
 
-      // ✅ Tentative d'inscription
+      // ✅ Tentative d'inscription avec idempotence
       const result = await CoursesApi.followCourse(courseId);
 
+      // ✅ GESTION DES DIFFÉRENTS RÉSULTATS
+      if (result.status === "DUPLICATE") {
+        // L'inscription existe déjà (ou a été créée entre-temps)
+        console.log("⚠️ Inscription duplicate, vérification de l'état...");
+        
+        // Vérifier si l'utilisateur est maintenant inscrit
+        const checkResult = await CoursesApi.checkEnrollmentStatus(courseId);
+        if (checkResult) {
+          setIsEnrolled(true);
+          setIsPaid(true);
+          Swal.fire({
+            title: "Inscription confirmée",
+            text: "Votre inscription a été confirmée. Bonne apprentissage !",
+            icon: "success",
+            confirmButtonText: "Commencer",
+            confirmButtonColor: "#6366f1",
+          });
+          return;
+        }
+      }
+
       if (result && 'payment_url' in result && result.payment_url) {
-        // 🔄 Redirection vers le paiement (nouveau ou en cours)
+        // 🔄 Redirection vers le paiement (cours payant)
         console.log("💳 Redirection vers le paiement:", result.payment_url);
-        Cookies.set('pendingCourseId', courseId, { expires: 1 }); // Expire dans 1 jour
+        Cookies.set('pendingCourseId', courseId, { expires: 1 });
         window.location.href = result.payment_url;
-      } else if (result && result.course && result.status) {
+      } else if (result && result.course && result.status === "ACTIVE") {
         // ✅ Inscription réussie (cours gratuit)
         console.log("✅ Inscription réussie pour cours gratuit");
         setIsEnrolled(true);
@@ -429,19 +470,41 @@ useEffect(() => {
     } catch (error) {
       console.error("❌ Erreur lors du suivi du cours:", error);
 
-      // Gestion spécifique des erreurs
-      let errorMessage = "Impossible de suivre ce cours. Veuillez réessayer.";
-      if (error instanceof Error) {
-        if (error.message.includes("403")) {
-          errorMessage = "Accès refusé. Vérifiez vos permissions.";
-        } else if (error.message.includes("500")) {
-          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+      // ✅ Vérifier si l'erreur est due à une duplication
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("409") || errorMessage.includes("duplicate") || errorMessage.includes("already enrolled")) {
+        console.log("⚠️ Inscription duplicate détectée, vérification de l'état...");
+        
+        // Vérifier si l'utilisateur est maintenant inscrit
+        const checkResult = await CoursesApi.checkEnrollmentStatus(courseId);
+        if (checkResult) {
+          console.log("✅ Utilisateur déjà inscrit (confirmation)");
+          setIsEnrolled(true);
+          setIsPaid(true);
+          Swal.fire({
+            title: "Inscription confirmée",
+            text: "Votre inscription a été confirmée. Bonne apprentissage !",
+            icon: "success",
+            confirmButtonText: "Commencer",
+            confirmButtonColor: "#6366f1",
+          });
+          return;
         }
+      }
+
+      // Gestion spécifique des erreurs
+      let displayMessage = "Impossible de suivre ce cours. Veuillez réessayer.";
+      if (errorMessage.includes("403")) {
+        displayMessage = "Accès refusé. Vérifiez vos permissions.";
+      } else if (errorMessage.includes("500")) {
+        displayMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+      } else if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+        displayMessage = "Erreur de connexion. Vérifiez votre connexion internet.";
       }
 
       Swal.fire({
         title: "Erreur",
-        text: errorMessage,
+        text: displayMessage,
         icon: "error",
         confirmButtonText: "Fermer",
         confirmButtonColor: "#6366f1",
@@ -483,10 +546,17 @@ useEffect(() => {
 
   // Vérifier le statut d'inscription au chargement
   const checkEnrollmentStatus = async () => {
+    // ✅ EMPÊCHER LES REQUÊTES MULTIPLES
+    if (enrollmentCheckComplete) {
+      console.log("⚠️ checkEnrollmentStatus déjà effectué, skip");
+      return;
+    }
+
     if (!user?.id || !courseId) {
       console.log(
         "ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription",
       );
+      setEnrollmentCheckComplete(true);
       return;
     }
 
@@ -513,6 +583,8 @@ useEffect(() => {
       console.log("ℹ️ Erreur vérification inscription:", error);
       setIsEnrolled(false);
       setIsPaid(false);
+    } finally {
+      setEnrollmentCheckComplete(true);
     }
   };
 
@@ -649,17 +721,31 @@ useEffect(() => {
     }
   };
 
+  // ✅ Gestion du clic sur la vidéo pour cours gratuit non inscrit
+  const handleVideoClick = async () => {
+    if (isFree && isEnrolled === false && !enrolling) {
+      console.log("🖱️ Clic sur vidéo pour cours gratuit - déclenchement de l'inscription");
+      await handleEnrollClick();
+    }
+  };
+
   // Gestion du clic sur un module
   const handleModuleClick = (moduleId: string) => {
-    // Si l'utilisateur n'est pas inscrit, on tente de l'inscrire
+    // Si l'utilisateur n'est pas inscrit
     if (isEnrolled === false) {
+      // Pour cours gratuit: auto-inscription
+      if (isFree) {
+        handleEnrollClick();
+        return;
+      }
+      // Pour cours payant: ouvrir popup d'inscription
       handleEnrollClick();
       return;
     }
 
     // Si l'utilisateur est inscrit, ouvrir le module
     console.log("Ouverture du module:", moduleId);
-    // Ici vous pouvez ajouter la logique pour ouvrir le module
+    toggleModule(moduleId);
   };
 
   const totalLessons = lessonsWithVideos.length;
@@ -835,7 +921,7 @@ useEffect(() => {
 
       {/* Header */}
       <header className="border-b bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-4 flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -847,6 +933,27 @@ useEffect(() => {
               {course.title}
             </span>
           </button>
+
+          {/* ✅ Bouton CTA pour cours gratuit non inscrit */}
+          {isFree && isEnrolled === false && (
+            <button
+              onClick={handleEnrollClick}
+              disabled={enrolling}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {enrolling ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Inscription...
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  Commencer le visionnage
+                </>
+              )}
+            </button>
+          )}
         </div>
       </header>
 
@@ -859,7 +966,10 @@ useEffect(() => {
             className={`${hasVideoContent ? "lg:col-span-2" : ""} space-y-4 lg:space-y-6`}
           >
             {hasVideo && hasVideoContent && (
-              <div className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg">
+              <div 
+                className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg cursor-pointer"
+                onClick={handleVideoClick}
+              >
                 <div className="aspect-video relative">
                   {isFree || isEnrolled === true ? (
                     selectedLesson?.videoUrl ? (
@@ -881,10 +991,55 @@ useEffect(() => {
                         </div>
                       </div>
                     )
+                  ) : isFree && isEnrolled === false ? (
+                    // ✅ COURS Gratuit NON INSCRIT: Bouton pour s'inscrire automatiquement
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-900 to-purple-900">
+                      <div className="w-20 h-20 lg:w-24 lg:h-24 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center">
+                        <Play className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+                      </div>
+                      <h3 className="text-xl lg:text-2xl font-bold text-white mb-2">
+                        Commencer le visionnage
+                      </h3>
+                      <p className="text-white/70 mb-6 text-sm lg:text-base">
+                        Ce cours est gratuit. Cliquez pour commencer à apprendre !
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEnrollClick();
+                        }}
+                        disabled={enrolling}
+                        className="px-8 py-3 bg-white text-indigo-900 font-semibold rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {enrolling ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-indigo-900 border-t-transparent rounded-full animate-spin" />
+                            Inscription...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-5 h-5" />
+                            Commencer maintenant
+                          </>
+                        )}
+                      </button>
+                    </div>
                   ) : (
+                    // ✅ COURS PAYANT NON INSCRIT: Verrouillé avec message
                     <LockedVideoOverlay onUnlockClick={handleEnrollClick} />
                   )}
                 </div>
+                
+                {/* ✅ Overlay pour indiquer que c'est cliquable */}
+                {isFree && isEnrolled === false && !enrolling && (
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <div className="opacity-0 hover:opacity-100 transition-opacity">
+                      <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                        <Play className="w-8 h-8 text-indigo-900 ml-1" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

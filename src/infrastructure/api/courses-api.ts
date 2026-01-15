@@ -513,6 +513,17 @@ export class CoursesApi {
   }> {
     console.log(`🔄 API: Tentative de suivi du cours ${courseId}`);
 
+    // ✅ SÉCURITÉ: Vérifier d'abord si déjà inscrit pour éviter les duplicatas
+    const alreadyEnrolled = await this.checkEnrollmentStatus(courseId);
+    if (alreadyEnrolled) {
+      console.log("✅ Utilisateur déjà inscrit, retour immédiat");
+      return {
+        status: "ACTIVE",
+        progress: 0,
+        course: { id: courseId },
+      };
+    }
+
     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
       method: "POST",
       headers: {
@@ -521,8 +532,35 @@ export class CoursesApi {
       credentials: "include",
     });
 
+    // ✅ GESTION DES ERREURS DE DUPLICATION
+    if (response.status === 409 || response.status === 400) {
+      // L'utilisateur est peut-être déjà inscrit (race condition)
+      console.log("⚠️ Erreur 409/400, vérification de l'état actuel...");
+      
+      // Vérifier si l'utilisateur est maintenant inscrit
+      const checkResult = await this.checkEnrollmentStatus(courseId);
+      if (checkResult) {
+        console.log("✅ Inscription confirmée malgré l'erreur 409");
+        return {
+          status: "ACTIVE",
+          progress: 0,
+          course: { id: courseId },
+        };
+      }
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      
+      // ✅ GESTION SPÉCIFIQUE DES ERREURS
+      if (response.status === 409) {
+        console.log("⚠️ Inscription duplicate détectée");
+        return {
+          status: "DUPLICATE",
+          course: { id: courseId },
+        };
+      }
+      
       throw new Error(
         errorData.message || `Erreur lors de l'inscription: ${response.status}`
       );
