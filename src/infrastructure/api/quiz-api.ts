@@ -127,11 +127,11 @@ export class QuizApi {
   }> {
     try {
       console.log(`📤 API: Soumission du quiz ${quizId} avec les réponses:`, answers);
-      
+
       // Correction: La route backend est /course/quiz/:quizId
       const endpoint = `course/quiz/${quizId}`;
       console.log(`📤 API: Endpoint utilisé pour soumission: ${endpoint}`);
-      
+
       const response = await fetch(buildApiUrl(endpoint), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -144,7 +144,40 @@ export class QuizApi {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ API: Erreur ${response.status} lors de la soumission: ${errorText}`);
-        throw new Error(`Erreur ${response.status}: Impossible de soumettre le quiz`);
+
+        // Gestion spécifique des erreurs d'inscription - Parser le JSON pour obtenir error.code
+        if (response.status === 403 || response.status === 401) {
+          try {
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.error && errorJson.error.code) {
+              // Créer une erreur avec le code pour le mapping centralisé
+              const error = new Error(errorJson.error.message || 'Erreur d\'autorisation') as any;
+              error.code = errorJson.error.code;
+              error.status = response.status;
+              throw error;
+            }
+          } catch (parseError) {
+            // Si le parsing échoue, utiliser le code générique
+            if (errorText.includes('not enrolled') || errorText.includes('enrolled')) {
+              const error = new Error('Non inscrit à ce cours') as any;
+              error.code = 'COURSE_NOT_ENROLLED';
+              error.status = 403;
+              throw error;
+            }
+          }
+        }
+
+        // Pour les autres erreurs 4xx/5xx, créer une erreur avec le code approprié
+        const error = new Error(`Erreur ${response.status}: Impossible de soumettre le quiz`) as any;
+        error.status = response.status;
+        if (response.status >= 500) {
+          error.code = 'INTERNAL_SERVER_ERROR';
+        } else if (response.status === 404) {
+          error.code = 'QUIZ_NOT_FOUND';
+        } else if (response.status === 400) {
+          error.code = 'VALIDATION_ERROR';
+        }
+        throw error;
       }
 
       const data = await response.json();

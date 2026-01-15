@@ -30,6 +30,32 @@ export class QuizUseCases {
     return QuizApi.submitQuizAttempt(attemptId, submission);
   }
 
+  /**
+   * Soumettre un quiz avec vérification d'inscription
+   */
+  static async submitQuiz(
+    quizId: string,
+    answers: Record<string, any>,
+  ): Promise<{
+    quizId: string;
+    score: number;
+    passed: boolean;
+    answers: Record<string, any>;
+  }> {
+    try {
+      // Vérifier l'inscription avant soumission
+      const result = await QuizApi.submitQuiz(quizId, answers);
+      return result;
+    } catch (error) {
+      // Re-throw COURSE_NOT_ENROLLED error for UI handling - check error.code
+      const apiError = error as any;
+      if (apiError && apiError.code === 'COURSE_NOT_ENROLLED') {
+        throw error;
+      }
+      throw error;
+    }
+  }
+
   static async getQuizAttempts(quizId: number): Promise<QuizAttempt[]> {
     return QuizApi.getQuizAttempts(quizId);
   }

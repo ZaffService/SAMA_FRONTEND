@@ -1,0 +1,407 @@
+/**
+ * Centralized Error Mapping System
+ * Maps backend error codes to user-friendly UI messages
+ * 
+ * Rules:
+ * - Always match error.code, never raw message text
+ * - Business errors (4xx) show explicit user messages
+ * - Server errors (500) show fallback only if no mapping exists
+ * - Backend is source of truth, frontend handles UX
+ */
+
+export type ErrorAction = 
+  | 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+  | 'REDIRECT_TO_PAYMENT'
+  | 'REDIRECT_TO_RESULTS'
+  | 'RETRY'
+  | 'LOGOUT'
+  | 'NONE';
+
+export interface ErrorMapping {
+  title: string;
+  message: string;
+  action: ErrorAction;
+}
+
+export interface ParsedApiError {
+  code: string;
+  message: string;
+  timestamp?: string;
+  path?: string;
+  status?: number;
+}
+
+export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
+  // Course enrollment errors
+  COURSE_NOT_ENROLLED: {
+    title: "Accès refusé",
+    message: "Vous devez vous inscrire ou acheter ce cours pour continuer.",
+    action: 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+  },
+
+  COURSE_PAID_REQUIRED: {
+    title: "Cours payant",
+    message: "Ce cours est payant. Veuillez procéder au paiement pour accéder au contenu.",
+    action: 'REDIRECT_TO_PAYMENT'
+  },
+
+  COURSE_ALREADY_ENROLLED: {
+    title: "Déjà inscrit",
+    message: "Vous êtes déjà inscrit à ce cours.",
+    action: 'NONE'
+  },
+
+  // Quiz errors
+  QUIZ_NOT_AVAILABLE: {
+    title: "Quiz indisponible",
+    message: "Ce quiz n'est pas encore disponible.",
+    action: 'NONE'
+  },
+
+  QUIZ_ALREADY_SUBMITTED: {
+    title: "Quiz déjà soumis",
+    message: "Vous avez déjà soumis ce quiz.",
+    action: 'REDIRECT_TO_RESULTS'
+  },
+
+  QUIZ_ATTEMPT_LIMIT_REACHED: {
+    title: "Limite de tentatives atteinte",
+    message: "Vous avez atteint le nombre maximum de tentatives pour ce quiz.",
+    action: 'NONE'
+  },
+
+  QUIZ_NOT_STARTED: {
+    title: "Quiz non commencé",
+    message: "Vous devez démarrer le quiz avant de soumettre vos réponses.",
+    action: 'NONE'
+  },
+
+  // Enrollment errors
+  ENROLLMENT_NOT_FOUND: {
+    title: "Inscription non trouvée",
+    message: "Aucune inscription active pour ce cours.",
+    action: 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+  },
+
+  ENROLLMENT_EXPIRED: {
+    title: "Inscription expirée",
+    message: "Votre inscription à ce cours a expiré.",
+    action: 'REDIRECT_TO_PAYMENT'
+  },
+
+  // Payment errors
+  PAYMENT_FAILED: {
+    title: "Échec du paiement",
+    message: "Le paiement n'a pas pu être traité. Veuillez réessayer.",
+    action: 'RETRY'
+  },
+
+  PAYMENT_ALREADY_PROCESSED: {
+    title: "Paiement déjà effectué",
+    message: "Ce paiement a déjà été traité.",
+    action: 'NONE'
+  },
+
+  INVALID_PAYMENT_AMOUNT: {
+    title: "Montant invalide",
+    message: "Le montant du paiement ne correspond pas au prix du cours.",
+    action: 'RETRY'
+  },
+
+  // Authentication errors
+  UNAUTHORIZED: {
+    title: "Session expirée",
+    message: "Veuillez vous reconnecter.",
+    action: 'LOGOUT'
+  },
+
+  INVALID_TOKEN: {
+    title: "Session invalide",
+    message: "Votre session n'est plus valide. Veuillez vous reconnecter.",
+    action: 'LOGOUT'
+  },
+
+  TOKEN_EXPIRED: {
+    title: "Session expirée",
+    message: "Votre session a expiré. Veuillez vous reconnecter.",
+    action: 'LOGOUT'
+  },
+
+  // Validation errors
+  VALIDATION_ERROR: {
+    title: "Données invalides",
+    message: "Les informations fournies ne sont pas valides. Veuillez vérifier et réessayer.",
+    action: 'RETRY'
+  },
+
+  MISSING_REQUIRED_FIELD: {
+    title: "Champ manquant",
+    message: "Certains champs obligatoires sont manquants.",
+    action: 'RETRY'
+  },
+
+  // Resource not found errors
+  COURSE_NOT_FOUND: {
+    title: "Cours non trouvé",
+    message: "Ce cours n'existe pas ou a été supprimé.",
+    action: 'NONE'
+  },
+
+  MODULE_NOT_FOUND: {
+    title: "Module non trouvé",
+    message: "Ce module n'existe pas.",
+    action: 'NONE'
+  },
+
+  LESSON_NOT_FOUND: {
+    title: "Leçon non trouvée",
+    message: "Cette leçon n'existe pas.",
+    action: 'NONE'
+  },
+
+  QUIZ_NOT_FOUND: {
+    title: "Quiz non trouvé",
+    message: "Ce quiz n'existe pas.",
+    action: 'NONE'
+  },
+
+  // Permission errors
+  FORBIDDEN: {
+    title: "Accès refusé",
+    message: "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
+    action: 'NONE'
+  },
+
+  INSUFFICIENT_PERMISSIONS: {
+    title: "Permissions insuffisantes",
+    message: "Vous n'avez pas les permissions nécessaires pour effectuer cette action.",
+    action: 'NONE'
+  },
+
+  // Rate limiting
+  RATE_LIMIT_EXCEEDED: {
+    title: "Trop de requêtes",
+    message: "Vous avez effectué trop de requêtes. Veuillez patienter avant de réessayer.",
+    action: 'RETRY'
+  },
+
+  // Server errors (fallback)
+  INTERNAL_SERVER_ERROR: {
+    title: "Erreur serveur",
+    message: "Une erreur inattendue est survenue. Veuillez réessayer plus tard.",
+    action: 'RETRY'
+  },
+
+  DATABASE_ERROR: {
+    title: "Erreur de base de données",
+    message: "Une erreur est survenue avec la base de données. Veuillez réessayer.",
+    action: 'RETRY'
+  },
+
+  // Network errors
+  NETWORK_ERROR: {
+    title: "Erreur de connexion",
+    message: "Impossible de se connecter au serveur. Vérifiez votre connexion.",
+    action: 'RETRY'
+  },
+
+  TIMEOUT_ERROR: {
+    title: "Délai dépassé",
+    message: "La requête a expiré. Veuillez réessayer.",
+    action: 'RETRY'
+  }
+};
+
+/**
+ * Fallback error for unknown error codes
+ */
+const FALLBACK_ERROR: ErrorMapping = {
+  title: "Erreur inattendue",
+  message: "Une erreur inattendue est survenue. Veuillez réessayer.",
+  action: 'RETRY'
+};
+
+/**
+ * Parse API error response into structured format
+ */
+export function parseApiError(error: unknown): ParsedApiError {
+  // Handle Error objects
+  if (error instanceof Error) {
+    const apiError = error as any;
+    return {
+      code: apiError.code || 'UNKNOWN_ERROR',
+      message: apiError.message || 'Une erreur est survenue',
+      timestamp: apiError.timestamp,
+      path: apiError.path,
+      status: apiError.status
+    };
+  }
+
+  // Handle API response objects
+  if (error && typeof error === 'object') {
+    const errorObj = error as any;
+    
+    // Check for standard API error format
+    if (errorObj.error && errorObj.error.code) {
+      return {
+        code: errorObj.error.code,
+        message: errorObj.error.message || 'Une erreur est survenue',
+        timestamp: errorObj.error.timestamp,
+        path: errorObj.error.path,
+        status: errorObj.status || errorObj.statusCode
+      };
+    }
+
+    // Check for simple error object
+    if (errorObj.code) {
+      return {
+        code: errorObj.code,
+        message: errorObj.message || 'Une erreur est survenue',
+        timestamp: errorObj.timestamp,
+        path: errorObj.path,
+        status: errorObj.status
+      };
+    }
+
+    // Check for status-based errors
+    if (errorObj.status === 401 || errorObj.statusCode === 401) {
+      return {
+        code: 'UNAUTHORIZED',
+        message: 'Session expirée',
+        status: 401
+      };
+    }
+
+    if (errorObj.status === 403 || errorObj.statusCode === 403) {
+      return {
+        code: 'FORBIDDEN',
+        message: 'Accès refusé',
+        status: 403
+      };
+    }
+
+    if (errorObj.status === 404 || errorObj.statusCode === 404) {
+      return {
+        code: 'NOT_FOUND',
+        message: 'Ressource non trouvée',
+        status: 404
+      };
+    }
+
+    if (errorObj.status >= 500 || errorObj.statusCode >= 500) {
+      return {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Erreur serveur',
+        status: errorObj.status
+      };
+    }
+  }
+
+  // Default fallback
+  return {
+    code: 'UNKNOWN_ERROR',
+    message: 'Une erreur est survenue'
+  };
+}
+
+/**
+ * Get user-friendly error mapping from error code
+ */
+export function getErrorMapping(error: unknown): ErrorMapping {
+  const parsed = parseApiError(error);
+  
+  // Check if we have a mapping for this code
+  if (ERROR_UI_MAPPING[parsed.code]) {
+    return ERROR_UI_MAPPING[parsed.code];
+  }
+
+  // Handle status-based errors without specific code
+  if (parsed.status) {
+    if (parsed.status === 401) {
+      return ERROR_UI_MAPPING.UNAUTHORIZED;
+    }
+    if (parsed.status === 403) {
+      return ERROR_UI_MAPPING.FORBIDDEN;
+    }
+    if (parsed.status === 404) {
+      return ERROR_UI_MAPPING.COURSE_NOT_FOUND;
+    }
+    if (parsed.status >= 500) {
+      return ERROR_UI_MAPPING.INTERNAL_SERVER_ERROR;
+    }
+  }
+
+  // Check for common error patterns in message
+  const message = parsed.message.toLowerCase();
+  if (message.includes('enroll') || message.includes('inscription')) {
+    return ERROR_UI_MAPPING.COURSE_NOT_ENROLLED;
+  }
+  if (message.includes('payment') || message.includes('paiement')) {
+    return ERROR_UI_MAPPING.PAYMENT_FAILED;
+  }
+  if (message.includes('quiz')) {
+    if (message.includes('already') || message.includes('déjà')) {
+      return ERROR_UI_MAPPING.QUIZ_ALREADY_SUBMITTED;
+    }
+    if (message.includes('not available') || message.includes('indisponible')) {
+      return ERROR_UI_MAPPING.QUIZ_NOT_AVAILABLE;
+    }
+  }
+
+  // Return fallback for unknown errors
+  return FALLBACK_ERROR;
+}
+
+/**
+ * Check if error requires specific action
+ */
+export function getErrorAction(error: unknown): ErrorAction {
+  return getErrorMapping(error).action;
+}
+
+/**
+ * Check if error is retryable (should show retry option)
+ */
+export function isRetryableError(error: unknown): boolean {
+  const action = getErrorAction(error);
+  return action === 'RETRY' || action === 'REDIRECT_TO_PAYMENT_OR_ENROLL';
+}
+
+/**
+ * Check if error is authentication-related (should logout)
+ */
+export function isAuthError(error: unknown): boolean {
+  const action = getErrorAction(error);
+  return action === 'LOGOUT';
+}
+
+/**
+ * Check if error is payment/enrollment related
+ */
+export function isPaymentRequiredError(error: unknown): boolean {
+  const action = getErrorAction(error);
+  return action === 'REDIRECT_TO_PAYMENT' || action === 'REDIRECT_TO_PAYMENT_OR_ENROLL';
+}
+
+/**
+ * Create error display object for UI components
+ */
+export function createErrorDisplay(error: unknown): {
+  title: string;
+  message: string;
+  action: ErrorAction;
+  showRetry: boolean;
+  showLogout: boolean;
+  showPayment: boolean;
+} {
+  const mapping = getErrorMapping(error);
+  return {
+    title: mapping.title,
+    message: mapping.message,
+    action: mapping.action,
+    showRetry: mapping.action === 'RETRY',
+    showLogout: mapping.action === 'LOGOUT',
+    showPayment: mapping.action === 'REDIRECT_TO_PAYMENT' || mapping.action === 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+  };
+}
+

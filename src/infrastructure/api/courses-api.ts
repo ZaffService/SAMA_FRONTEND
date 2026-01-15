@@ -724,6 +724,106 @@ export class CoursesApi {
   }
 
   /**
+   * Vérifier l'inscription à un cours et inscrire automatiquement si gratuit
+   */
+  static async checkAndEnrollIfFree(courseId: string): Promise<{
+    enrolled: boolean;
+    isFree: boolean;
+    paymentRequired: boolean;
+    paymentUrl?: string;
+  }> {
+    console.log(`🔍 API: Vérification d'inscription pour le cours ${courseId}`);
+
+    try {
+      // D'abord, vérifier si l'utilisateur est déjà inscrit
+      const enrolledResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (enrolledResponse.ok) {
+        console.log("✅ Utilisateur déjà inscrit au cours");
+        return {
+          enrolled: true,
+          isFree: false, // Peu importe, il est déjà inscrit
+          paymentRequired: false,
+        };
+      }
+
+      // Si pas inscrit, récupérer les détails du cours pour vérifier s'il est gratuit
+      const courseDetails = await this.getCourseDetails(courseId);
+      const isFree = courseDetails.course.price === 0 || courseDetails.course.price === undefined;
+
+      if (isFree) {
+        console.log("💰 Cours gratuit détecté, inscription automatique");
+
+        // Tenter l'inscription automatique
+        const enrollResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (enrollResponse.ok) {
+          console.log("✅ Inscription automatique réussie");
+          return {
+            enrolled: true,
+            isFree: true,
+            paymentRequired: false,
+          };
+        } else {
+          console.error("❌ Échec de l'inscription automatique");
+          return {
+            enrolled: false,
+            isFree: true,
+            paymentRequired: false,
+          };
+        }
+      } else {
+        console.log("💳 Cours payant détecté, redirection paiement");
+
+        // Pour les cours payants, obtenir l'URL de paiement
+        const followResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (followResponse.ok) {
+          const followData = await followResponse.json();
+          return {
+            enrolled: false,
+            isFree: false,
+            paymentRequired: true,
+            paymentUrl: followData.payment_url,
+          };
+        } else {
+          console.error("❌ Impossible d'obtenir l'URL de paiement");
+          return {
+            enrolled: false,
+            isFree: false,
+            paymentRequired: true,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors de la vérification d'inscription:", error);
+      return {
+        enrolled: false,
+        isFree: false,
+        paymentRequired: false,
+      };
+    }
+  }
+
+  /**
    * Mapper pour les cours de la liste (léger)
    */
   private static mapBackendCourseToFrontend(
