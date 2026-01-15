@@ -1,7 +1,7 @@
 /**
  * Centralized Error Mapping System
  * Maps backend error codes to user-friendly UI messages
- * 
+ *
  * Rules:
  * - Always match error.code, never raw message text
  * - Business errors (4xx) show explicit user messages
@@ -9,13 +9,13 @@
  * - Backend is source of truth, frontend handles UX
  */
 
-export type ErrorAction = 
-  | 'REDIRECT_TO_PAYMENT_OR_ENROLL'
-  | 'REDIRECT_TO_PAYMENT'
-  | 'REDIRECT_TO_RESULTS'
-  | 'RETRY'
-  | 'LOGOUT'
-  | 'NONE';
+export type ErrorAction =
+  | "REDIRECT_TO_PAYMENT_OR_ENROLL"
+  | "REDIRECT_TO_PAYMENT"
+  | "REDIRECT_TO_RESULTS"
+  | "RETRY"
+  | "LOGOUT"
+  | "NONE";
 
 export interface ErrorMapping {
   title: string;
@@ -36,180 +36,186 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
   COURSE_NOT_ENROLLED: {
     title: "Accès refusé",
     message: "Vous devez vous inscrire ou acheter ce cours pour continuer.",
-    action: 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+    action: "REDIRECT_TO_PAYMENT_OR_ENROLL",
   },
 
   COURSE_PAID_REQUIRED: {
     title: "Cours payant",
-    message: "Ce cours est payant. Veuillez procéder au paiement pour accéder au contenu.",
-    action: 'REDIRECT_TO_PAYMENT'
+    message:
+      "Ce cours est payant. Veuillez procéder au paiement pour accéder au contenu.",
+    action: "REDIRECT_TO_PAYMENT",
   },
 
   COURSE_ALREADY_ENROLLED: {
     title: "Déjà inscrit",
     message: "Vous êtes déjà inscrit à ce cours.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   // Quiz errors
   QUIZ_NOT_AVAILABLE: {
     title: "Quiz indisponible",
     message: "Ce quiz n'est pas encore disponible.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   QUIZ_ALREADY_SUBMITTED: {
     title: "Quiz déjà soumis",
     message: "Vous avez déjà soumis ce quiz.",
-    action: 'REDIRECT_TO_RESULTS'
+    action: "REDIRECT_TO_RESULTS",
   },
 
   QUIZ_ATTEMPT_LIMIT_REACHED: {
     title: "Limite de tentatives atteinte",
     message: "Vous avez atteint le nombre maximum de tentatives pour ce quiz.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   QUIZ_NOT_STARTED: {
     title: "Quiz non commencé",
     message: "Vous devez démarrer le quiz avant de soumettre vos réponses.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   // Enrollment errors
   ENROLLMENT_NOT_FOUND: {
     title: "Inscription non trouvée",
     message: "Aucune inscription active pour ce cours.",
-    action: 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+    action: "REDIRECT_TO_PAYMENT_OR_ENROLL",
   },
 
   ENROLLMENT_EXPIRED: {
     title: "Inscription expirée",
     message: "Votre inscription à ce cours a expiré.",
-    action: 'REDIRECT_TO_PAYMENT'
+    action: "REDIRECT_TO_PAYMENT",
   },
 
   // Payment errors
   PAYMENT_FAILED: {
     title: "Échec du paiement",
     message: "Le paiement n'a pas pu être traité. Veuillez réessayer.",
-    action: 'RETRY'
+    action: "RETRY",
   },
 
   PAYMENT_ALREADY_PROCESSED: {
     title: "Paiement déjà effectué",
     message: "Ce paiement a déjà été traité.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   INVALID_PAYMENT_AMOUNT: {
     title: "Montant invalide",
     message: "Le montant du paiement ne correspond pas au prix du cours.",
-    action: 'RETRY'
+    action: "RETRY",
   },
 
   // Authentication errors
   UNAUTHORIZED: {
     title: "Session expirée",
     message: "Veuillez vous reconnecter.",
-    action: 'LOGOUT'
+    action: "LOGOUT",
   },
 
   INVALID_TOKEN: {
     title: "Session invalide",
     message: "Votre session n'est plus valide. Veuillez vous reconnecter.",
-    action: 'LOGOUT'
+    action: "LOGOUT",
   },
 
   TOKEN_EXPIRED: {
     title: "Session expirée",
     message: "Votre session a expiré. Veuillez vous reconnecter.",
-    action: 'LOGOUT'
+    action: "LOGOUT",
   },
 
   // Validation errors
   VALIDATION_ERROR: {
     title: "Données invalides",
-    message: "Les informations fournies ne sont pas valides. Veuillez vérifier et réessayer.",
-    action: 'RETRY'
+    message:
+      "Les informations fournies ne sont pas valides. Veuillez vérifier et réessayer.",
+    action: "RETRY",
   },
 
   MISSING_REQUIRED_FIELD: {
     title: "Champ manquant",
     message: "Certains champs obligatoires sont manquants.",
-    action: 'RETRY'
+    action: "RETRY",
   },
 
   // Resource not found errors
   COURSE_NOT_FOUND: {
     title: "Cours non trouvé",
     message: "Ce cours n'existe pas ou a été supprimé.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   MODULE_NOT_FOUND: {
     title: "Module non trouvé",
     message: "Ce module n'existe pas.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   LESSON_NOT_FOUND: {
     title: "Leçon non trouvée",
     message: "Cette leçon n'existe pas.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   QUIZ_NOT_FOUND: {
     title: "Quiz non trouvé",
     message: "Ce quiz n'existe pas.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   // Permission errors
   FORBIDDEN: {
     title: "Accès refusé",
     message: "Vous n'avez pas l'autorisation d'accéder à cette ressource.",
-    action: 'NONE'
+    action: "NONE",
   },
 
   INSUFFICIENT_PERMISSIONS: {
     title: "Permissions insuffisantes",
-    message: "Vous n'avez pas les permissions nécessaires pour effectuer cette action.",
-    action: 'NONE'
+    message:
+      "Vous n'avez pas les permissions nécessaires pour effectuer cette action.",
+    action: "NONE",
   },
 
   // Rate limiting
   RATE_LIMIT_EXCEEDED: {
     title: "Trop de requêtes",
-    message: "Vous avez effectué trop de requêtes. Veuillez patienter avant de réessayer.",
-    action: 'RETRY'
+    message:
+      "Vous avez effectué trop de requêtes. Veuillez patienter avant de réessayer.",
+    action: "RETRY",
   },
 
   // Server errors (fallback)
   INTERNAL_SERVER_ERROR: {
     title: "Erreur serveur",
-    message: "Une erreur inattendue est survenue. Veuillez réessayer plus tard.",
-    action: 'RETRY'
+    message:
+      "Une erreur inattendue est survenue. Veuillez réessayer plus tard.",
+    action: "RETRY",
   },
 
   DATABASE_ERROR: {
     title: "Erreur de base de données",
-    message: "Une erreur est survenue avec la base de données. Veuillez réessayer.",
-    action: 'RETRY'
+    message:
+      "Une erreur est survenue avec la base de données. Veuillez réessayer.",
+    action: "RETRY",
   },
 
   // Network errors
   NETWORK_ERROR: {
     title: "Erreur de connexion",
     message: "Impossible de se connecter au serveur. Vérifiez votre connexion.",
-    action: 'RETRY'
+    action: "RETRY",
   },
 
   TIMEOUT_ERROR: {
     title: "Délai dépassé",
     message: "La requête a expiré. Veuillez réessayer.",
-    action: 'RETRY'
-  }
+    action: "RETRY",
+  },
 };
 
 /**
@@ -218,7 +224,7 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
 const FALLBACK_ERROR: ErrorMapping = {
   title: "Erreur inattendue",
   message: "Une erreur inattendue est survenue. Veuillez réessayer.",
-  action: 'RETRY'
+  action: "RETRY",
 };
 
 /**
@@ -229,26 +235,26 @@ export function parseApiError(error: unknown): ParsedApiError {
   if (error instanceof Error) {
     const apiError = error as any;
     return {
-      code: apiError.code || 'UNKNOWN_ERROR',
-      message: apiError.message || 'Une erreur est survenue',
+      code: apiError.code || "UNKNOWN_ERROR",
+      message: apiError.message || "Une erreur est survenue",
       timestamp: apiError.timestamp,
       path: apiError.path,
-      status: apiError.status
+      status: apiError.status,
     };
   }
 
   // Handle API response objects
-  if (error && typeof error === 'object') {
+  if (error && typeof error === "object") {
     const errorObj = error as any;
-    
+
     // Check for standard API error format
     if (errorObj.error && errorObj.error.code) {
       return {
         code: errorObj.error.code,
-        message: errorObj.error.message || 'Une erreur est survenue',
+        message: errorObj.error.message || "Une erreur est survenue",
         timestamp: errorObj.error.timestamp,
         path: errorObj.error.path,
-        status: errorObj.status || errorObj.statusCode
+        status: errorObj.status || errorObj.statusCode,
       };
     }
 
@@ -256,51 +262,51 @@ export function parseApiError(error: unknown): ParsedApiError {
     if (errorObj.code) {
       return {
         code: errorObj.code,
-        message: errorObj.message || 'Une erreur est survenue',
+        message: errorObj.message || "Une erreur est survenue",
         timestamp: errorObj.timestamp,
         path: errorObj.path,
-        status: errorObj.status
+        status: errorObj.status,
       };
     }
 
     // Check for status-based errors
     if (errorObj.status === 401 || errorObj.statusCode === 401) {
       return {
-        code: 'UNAUTHORIZED',
-        message: 'Session expirée',
-        status: 401
+        code: "UNAUTHORIZED",
+        message: "Session expirée",
+        status: 401,
       };
     }
 
     if (errorObj.status === 403 || errorObj.statusCode === 403) {
       return {
-        code: 'FORBIDDEN',
-        message: 'Accès refusé',
-        status: 403
+        code: "FORBIDDEN",
+        message: "Accès refusé",
+        status: 403,
       };
     }
 
     if (errorObj.status === 404 || errorObj.statusCode === 404) {
       return {
-        code: 'NOT_FOUND',
-        message: 'Ressource non trouvée',
-        status: 404
+        code: "NOT_FOUND",
+        message: "Ressource non trouvée",
+        status: 404,
       };
     }
 
     if (errorObj.status >= 500 || errorObj.statusCode >= 500) {
       return {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Erreur serveur',
-        status: errorObj.status
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Erreur serveur",
+        status: errorObj.status,
       };
     }
   }
 
   // Default fallback
   return {
-    code: 'UNKNOWN_ERROR',
-    message: 'Une erreur est survenue'
+    code: "UNKNOWN_ERROR",
+    message: "Une erreur est survenue",
   };
 }
 
@@ -309,7 +315,7 @@ export function parseApiError(error: unknown): ParsedApiError {
  */
 export function getErrorMapping(error: unknown): ErrorMapping {
   const parsed = parseApiError(error);
-  
+
   // Check if we have a mapping for this code
   if (ERROR_UI_MAPPING[parsed.code]) {
     return ERROR_UI_MAPPING[parsed.code];
@@ -333,17 +339,17 @@ export function getErrorMapping(error: unknown): ErrorMapping {
 
   // Check for common error patterns in message
   const message = parsed.message.toLowerCase();
-  if (message.includes('enroll') || message.includes('inscription')) {
+  if (message.includes("enroll") || message.includes("inscription")) {
     return ERROR_UI_MAPPING.COURSE_NOT_ENROLLED;
   }
-  if (message.includes('payment') || message.includes('paiement')) {
+  if (message.includes("payment") || message.includes("paiement")) {
     return ERROR_UI_MAPPING.PAYMENT_FAILED;
   }
-  if (message.includes('quiz')) {
-    if (message.includes('already') || message.includes('déjà')) {
+  if (message.includes("quiz")) {
+    if (message.includes("already") || message.includes("déjà")) {
       return ERROR_UI_MAPPING.QUIZ_ALREADY_SUBMITTED;
     }
-    if (message.includes('not available') || message.includes('indisponible')) {
+    if (message.includes("not available") || message.includes("indisponible")) {
       return ERROR_UI_MAPPING.QUIZ_NOT_AVAILABLE;
     }
   }
@@ -364,7 +370,7 @@ export function getErrorAction(error: unknown): ErrorAction {
  */
 export function isRetryableError(error: unknown): boolean {
   const action = getErrorAction(error);
-  return action === 'RETRY' || action === 'REDIRECT_TO_PAYMENT_OR_ENROLL';
+  return action === "RETRY" || action === "REDIRECT_TO_PAYMENT_OR_ENROLL";
 }
 
 /**
@@ -372,7 +378,7 @@ export function isRetryableError(error: unknown): boolean {
  */
 export function isAuthError(error: unknown): boolean {
   const action = getErrorAction(error);
-  return action === 'LOGOUT';
+  return action === "LOGOUT";
 }
 
 /**
@@ -380,7 +386,10 @@ export function isAuthError(error: unknown): boolean {
  */
 export function isPaymentRequiredError(error: unknown): boolean {
   const action = getErrorAction(error);
-  return action === 'REDIRECT_TO_PAYMENT' || action === 'REDIRECT_TO_PAYMENT_OR_ENROLL';
+  return (
+    action === "REDIRECT_TO_PAYMENT" ||
+    action === "REDIRECT_TO_PAYMENT_OR_ENROLL"
+  );
 }
 
 /**
@@ -399,9 +408,10 @@ export function createErrorDisplay(error: unknown): {
     title: mapping.title,
     message: mapping.message,
     action: mapping.action,
-    showRetry: mapping.action === 'RETRY',
-    showLogout: mapping.action === 'LOGOUT',
-    showPayment: mapping.action === 'REDIRECT_TO_PAYMENT' || mapping.action === 'REDIRECT_TO_PAYMENT_OR_ENROLL'
+    showRetry: mapping.action === "RETRY",
+    showLogout: mapping.action === "LOGOUT",
+    showPayment:
+      mapping.action === "REDIRECT_TO_PAYMENT" ||
+      mapping.action === "REDIRECT_TO_PAYMENT_OR_ENROLL",
   };
 }
-

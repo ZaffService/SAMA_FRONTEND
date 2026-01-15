@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { LessonManager } from "./LessonManager";
 import { Module, Lesson } from "@/domain/entities/module";
@@ -16,23 +21,27 @@ interface ModuleManagerProps {
   courseId?: string;
 }
 
-export function ModuleManager({ modules, onModulesChange, courseId }: ModuleManagerProps) {
+export function ModuleManager({
+  modules,
+  onModulesChange,
+  courseId,
+}: ModuleManagerProps) {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const addModule = () => {
     const newModule: Module = {
       id: `temp-${Date.now()}`,
-      title: '',
-      orderIndex: modules.length + 1,  // ✅ COMMENCE À 1, pas 0 !
+      title: "",
+      orderIndex: modules.length + 1, // ✅ COMMENCE À 1, pas 0 !
       lessons: [],
     };
     onModulesChange([...modules, newModule]);
-    console.log('➕ Module ajouté avec orderIndex:', newModule.orderIndex);
+    console.log("➕ Module ajouté avec orderIndex:", newModule.orderIndex);
   };
 
   const updateModule = (index: number, updates: Partial<Module>) => {
     const updatedModules = modules.map((module, i) =>
-      i === index ? { ...module, ...updates } : module
+      i === index ? { ...module, ...updates } : module,
     );
     onModulesChange(updatedModules);
   };
@@ -42,7 +51,7 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
     // Recalculer les orderIndex
     const reorderedModules = updatedModules.map((module, i) => ({
       ...module,
-      orderIndex: i + 1,  // ✅ COMMENCE À 1, pas 0 !
+      orderIndex: i + 1, // ✅ COMMENCE À 1, pas 0 !
     }));
     onModulesChange(reorderedModules);
   };
@@ -67,7 +76,7 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
     // Recalculer les orderIndex
     const reorderedModules = newModules.map((module, i) => ({
       ...module,
-      orderIndex: i + 1,  // ✅ COMMENCE À 1, pas 0 !
+      orderIndex: i + 1, // ✅ COMMENCE À 1, pas 0 !
     }));
 
     onModulesChange(reorderedModules);
@@ -84,7 +93,8 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
         <div>
           <h2 className="text-xl font-semibold">Modules du cours</h2>
           <p className="text-sm text-gray-600">
-            Organisez votre cours en modules et ajoutez des leçons à chaque module.
+            Organisez votre cours en modules et ajoutez des leçons à chaque
+            module.
           </p>
         </div>
         <Button
@@ -101,12 +111,11 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
         <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
           <div className="space-y-2">
             <h3 className="text-lg font-medium">Aucun module créé</h3>
-            <p>Commencez par ajouter votre premier module pour structurer votre cours.</p>
-            <Button
-              type="button"
-              onClick={addModule}
-              className="mt-4"
-            >
+            <p>
+              Commencez par ajouter votre premier module pour structurer votre
+              cours.
+            </p>
+            <Button type="button" onClick={addModule} className="mt-4">
               Créer le premier module
             </Button>
           </div>
@@ -130,10 +139,11 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
                   />
                   <div className="text-left">
                     <h3 className="font-semibold">
-                      Module {index + 1}: {module.title || 'Sans titre'}
+                      Module {index + 1}: {module.title || "Sans titre"}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {module.lessons.length} leçon{module.lessons.length !== 1 ? 's' : ''}
+                      {module.lessons.length} leçon
+                      {module.lessons.length !== 1 ? "s" : ""}
                     </p>
                   </div>
                 </div>
@@ -149,7 +159,9 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
                 >
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Détails du module</CardTitle>
+                      <CardTitle className="text-lg">
+                        Détails du module
+                      </CardTitle>
                       <Button
                         type="button"
                         variant="outline"
@@ -170,7 +182,9 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
                       </label>
                       <Input
                         value={module.title}
-                        onChange={(e) => updateModule(index, { title: e.target.value })}
+                        onChange={(e) =>
+                          updateModule(index, { title: e.target.value })
+                        }
                         placeholder="Entrez le titre du module"
                         required
                       />
@@ -181,8 +195,10 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
                         Description du module (optionnel)
                       </label>
                       <Textarea
-                        value={module.description || ''}
-                        onChange={(e) => updateModule(index, { description: e.target.value })}
+                        value={module.description || ""}
+                        onChange={(e) =>
+                          updateModule(index, { description: e.target.value })
+                        }
                         placeholder="Décrivez le contenu de ce module..."
                         rows={3}
                       />
@@ -191,7 +207,9 @@ export function ModuleManager({ modules, onModulesChange, courseId }: ModuleMana
                     <div className="border-t pt-6">
                       <LessonManager
                         lessons={module.lessons}
-                        onLessonsChange={(lessons) => handleLessonsChange(index, lessons)}
+                        onLessonsChange={(lessons) =>
+                          handleLessonsChange(index, lessons)
+                        }
                         courseId={courseId}
                       />
                     </div>

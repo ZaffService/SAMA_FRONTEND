@@ -68,4 +68,3 @@ export default function CreateCoursePage() {
     </ProtectedRoute>
   );
 }
-

@@ -81,7 +81,11 @@ export function useStudentDashboard(options: {
         console.log("✅ Cours chargés:", coursesResult.length, "cours");
 
         // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE
-        console.log("📊 [useStudentDashboard] Début récupération progression pour", coursesResult.length, "cours");
+        console.log(
+          "📊 [useStudentDashboard] Début récupération progression pour",
+          coursesResult.length,
+          "cours",
+        );
         const coursesWithProgress = await Promise.all(
           coursesResult.map(async (course) => {
             try {
@@ -91,16 +95,21 @@ export function useStudentDashboard(options: {
                 return course;
               }
 
-              console.log(`📚 [useStudentDashboard] Récupération progression pour cours ID: ${courseId} - ${course.title || 'sans titre'}`);
+              console.log(
+                `📚 [useStudentDashboard] Récupération progression pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
+              );
               const progressData = await StudentApi.getCourseProgress(courseId);
-              
-              console.log(`✅ [useStudentDashboard] Progression reçue pour cours ${courseId}:`, {
-                progress: progressData.progress,
-                completed_lessons: progressData.completed_lessons,
-                total_lessons: progressData.total_lessons,
-                last_accessed: progressData.last_accessed,
-                timestamp: new Date().toISOString()
-              });
+
+              console.log(
+                `✅ [useStudentDashboard] Progression reçue pour cours ${courseId}:`,
+                {
+                  progress: progressData.progress,
+                  completed_lessons: progressData.completed_lessons,
+                  total_lessons: progressData.total_lessons,
+                  last_accessed: progressData.last_accessed,
+                  timestamp: new Date().toISOString(),
+                },
+              );
 
               return {
                 ...course,
@@ -110,7 +119,10 @@ export function useStudentDashboard(options: {
                 lastAccessed: progressData.last_accessed,
               };
             } catch (error) {
-              console.error(`❌ [useStudentDashboard] Erreur récupération progression pour cours ${course.id}:`, error);
+              console.error(
+                `❌ [useStudentDashboard] Erreur récupération progression pour cours ${course.id}:`,
+                error,
+              );
               // Return course with default progress if API fails
               return {
                 ...course,
@@ -119,21 +131,27 @@ export function useStudentDashboard(options: {
                 totalLessons: course.totalLessons || 0,
               };
             }
-          })
+          }),
         );
 
-        console.log("✅ [useStudentDashboard] Progression chargée pour tous les cours");
+        console.log(
+          "✅ [useStudentDashboard] Progression chargée pour tous les cours",
+        );
         console.log("📊 [useStudentDashboard] Résumé des progressions:");
-        coursesWithProgress.forEach(course => {
-          console.log(`  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons)`);
+        coursesWithProgress.forEach((course) => {
+          console.log(
+            `  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons)`,
+          );
         });
 
         // ✅ CALCULER LES COURS TERMINÉS BASÉ SUR LA PROGRESSION RÉELLE
         const completedCoursesCount = coursesWithProgress.filter(
-          (course) => course.progressPercentage === 100
+          (course) => course.progressPercentage === 100,
         ).length;
 
-        console.log(`✅ [useStudentDashboard] Cours terminés calculés: ${completedCoursesCount} (basé sur progressPercentage === 100)`);
+        console.log(
+          `✅ [useStudentDashboard] Cours terminés calculés: ${completedCoursesCount} (basé sur progressPercentage === 100)`,
+        );
 
         const endTime = performance.now();
         console.log(
@@ -180,7 +198,9 @@ export function useStudentDashboard(options: {
   // Fonction pour rafraîchir les données
   const refreshData = async () => {
     try {
-      console.log("🔄 [useStudentDashboard] Début rafraîchissement des données...");
+      console.log(
+        "🔄 [useStudentDashboard] Début rafraîchissement des données...",
+      );
       const [dashboardResult, coursesResult, quizStats] = await Promise.all([
         StudentApi.getStudentDashboard(),
         StudentApi.getEnrolledCourses(),
@@ -188,26 +208,38 @@ export function useStudentDashboard(options: {
       ]);
 
       // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE
-      console.log("📊 [useStudentDashboard] Rafraîchissement progression pour", coursesResult.length, "cours");
+      console.log(
+        "📊 [useStudentDashboard] Rafraîchissement progression pour",
+        coursesResult.length,
+        "cours",
+      );
       const coursesWithProgress = await Promise.all(
         coursesResult.map(async (course) => {
           try {
             const courseId = course.id || course.course_id;
             if (!courseId) {
-              console.log("⚠️ [useStudentDashboard] Cours sans ID lors du refresh:", course);
+              console.log(
+                "⚠️ [useStudentDashboard] Cours sans ID lors du refresh:",
+                course,
+              );
               return course;
             }
 
-            console.log(`📚 [useStudentDashboard] Refresh progression pour cours ID: ${courseId} - ${course.title || 'sans titre'}`);
+            console.log(
+              `📚 [useStudentDashboard] Refresh progression pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
+            );
             const progressData = await StudentApi.getCourseProgress(courseId);
-            
-            console.log(`✅ [useStudentDashboard] Progression rafraîchie pour cours ${courseId}:`, {
-              progress: progressData.progress,
-              completed_lessons: progressData.completed_lessons,
-              total_lessons: progressData.total_lessons,
-              last_accessed: progressData.last_accessed,
-              timestamp: new Date().toISOString()
-            });
+
+            console.log(
+              `✅ [useStudentDashboard] Progression rafraîchie pour cours ${courseId}:`,
+              {
+                progress: progressData.progress,
+                completed_lessons: progressData.completed_lessons,
+                total_lessons: progressData.total_lessons,
+                last_accessed: progressData.last_accessed,
+                timestamp: new Date().toISOString(),
+              },
+            );
 
             return {
               ...course,
@@ -217,7 +249,10 @@ export function useStudentDashboard(options: {
               lastAccessed: progressData.last_accessed,
             };
           } catch (error) {
-            console.error(` [useStudentDashboard] Erreur refresh progression pour cours ${course.id}:`, error);
+            console.error(
+              ` [useStudentDashboard] Erreur refresh progression pour cours ${course.id}:`,
+              error,
+            );
             // Return course with default progress if API fails
             return {
               ...course,
@@ -226,21 +261,29 @@ export function useStudentDashboard(options: {
               totalLessons: course.totalLessons || 0,
             };
           }
-        })
+        }),
       );
 
-      console.log("✅ [useStudentDashboard] Progression rafraîchie pour tous les cours");
-      console.log("📊 [useStudentDashboard] Résumé des progressions après refresh:");
-      coursesWithProgress.forEach(course => {
-        console.log(`  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons) - Dernier accès: ${course.lastAccessed || 'N/A'}`);
+      console.log(
+        "✅ [useStudentDashboard] Progression rafraîchie pour tous les cours",
+      );
+      console.log(
+        "📊 [useStudentDashboard] Résumé des progressions après refresh:",
+      );
+      coursesWithProgress.forEach((course) => {
+        console.log(
+          `  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons) - Dernier accès: ${course.lastAccessed || "N/A"}`,
+        );
       });
 
       // ✅ CALCULER LES COURS TERMINÉS BASÉ SUR LA PROGRESSION RÉELLE (REFRESH)
       const completedCoursesCount = coursesWithProgress.filter(
-        (course) => course.progressPercentage === 100
+        (course) => course.progressPercentage === 100,
       ).length;
 
-      console.log(`✅ [useStudentDashboard] Cours terminés recalculés après refresh: ${completedCoursesCount} (basé sur progressPercentage === 100)`);
+      console.log(
+        `✅ [useStudentDashboard] Cours terminés recalculés après refresh: ${completedCoursesCount} (basé sur progressPercentage === 100)`,
+      );
 
       // Adapter les données pour correspondre aux types attendus
       const adaptedDashboard = {
@@ -258,10 +301,13 @@ export function useStudentDashboard(options: {
       const adaptedCourses = {
         enrolled_courses: coursesWithProgress,
         completed_courses: coursesWithProgress.filter(
-          (course) => course.status === "COMPLETED" || course.progressPercentage === 100,
+          (course) =>
+            course.status === "COMPLETED" || course.progressPercentage === 100,
         ),
         in_progress_courses: coursesWithProgress.filter(
-          (course) => course.status === "ACTIVE" && (course.progressPercentage ?? 0) < 100,
+          (course) =>
+            course.status === "ACTIVE" &&
+            (course.progressPercentage ?? 0) < 100,
         ),
       };
 

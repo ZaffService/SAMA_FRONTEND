@@ -1,6 +1,6 @@
 // src/infrastructure/api/StudentApi.ts
 
-import { buildApiUrl, API_ENDPOINTS } from './baseConfig';
+import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface Student {
   id: number;
@@ -42,7 +42,6 @@ export interface StudentDashboard {
 }
 
 export class StudentApi {
-
   static async getCurrentStudent(): Promise<Student> {
     // This should get user info from auth context or another source
     // For now, return a basic structure
@@ -51,10 +50,13 @@ export class StudentApi {
 
   static async getStudentDashboard(): Promise<StudentDashboard> {
     try {
-      const enrolledResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED), {
-        method: "GET",
-        credentials: "include",
-      });
+      const enrolledResponse = await fetch(
+        buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED),
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
 
       let enrolledCourses: Enrollment[] = [];
 
@@ -118,12 +120,18 @@ export class StudentApi {
   static async getEnrolledCourses(): Promise<Enrollment[]> {
     try {
       console.log("🔍 [StudentApi] Appel getEnrolledCourses");
-      console.log("🔍 [StudentApi] URL:", buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED));
+      console.log(
+        "🔍 [StudentApi] URL:",
+        buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED),
+      );
 
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED), {
-        method: "GET",
-        credentials: "include",
-      });
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED),
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
 
       console.log("🔍 [StudentApi] Réponse status:", response.status);
 
@@ -135,19 +143,32 @@ export class StudentApi {
       }
 
       const data = await response.json();
-      console.log("🔍 [StudentApi] Données brutes reçues:", JSON.stringify(data, null, 2));
+      console.log(
+        "🔍 [StudentApi] Données brutes reçues:",
+        JSON.stringify(data, null, 2),
+      );
 
       const courses = data.courses ?? data.data ?? data ?? [];
       console.log("🔍 [StudentApi] Cours extraits:", courses);
       console.log("🔍 [StudentApi] Nombre de cours:", courses.length);
 
       // 🔥 DEBUG spécifique pour Leadership
-      const leadershipCourse = courses.find((c: any) => c.title?.includes("Leadership"));
+      const leadershipCourse = courses.find((c: any) =>
+        c.title?.includes("Leadership"),
+      );
       if (leadershipCourse) {
-        console.log("🎯 [StudentApi] Cours Leadership trouvé dans enrolled:", leadershipCourse);
-        console.log("🆔 ID du cours Leadership:", leadershipCourse.id || leadershipCourse.course_id);
+        console.log(
+          "🎯 [StudentApi] Cours Leadership trouvé dans enrolled:",
+          leadershipCourse,
+        );
+        console.log(
+          "🆔 ID du cours Leadership:",
+          leadershipCourse.id || leadershipCourse.course_id,
+        );
       } else {
-        console.log("❌ [StudentApi] Cours Leadership NON trouvé dans enrolled");
+        console.log(
+          "❌ [StudentApi] Cours Leadership NON trouvé dans enrolled",
+        );
       }
 
       return courses;
@@ -166,29 +187,39 @@ export class StudentApi {
     // PROGRESS est une fonction dans API_ENDPOINTS, on doit l'appeler avec le courseId
     const endpoint = API_ENDPOINTS.COURSES.PROGRESS(courseId);
     const url = buildApiUrl(endpoint);
-    console.log(`🌐 [StudentApi] Appel API getCourseProgress pour cours ID: ${courseId}`);
+    console.log(
+      `🌐 [StudentApi] Appel API getCourseProgress pour cours ID: ${courseId}`,
+    );
     console.log(`🌐 [StudentApi] URL: ${url}`);
-    
+
     const response = await fetch(url, {
       method: "GET",
       credentials: "include",
     });
 
-    console.log(`🌐 [StudentApi] Réponse status: ${response.status} ${response.statusText}`);
+    console.log(
+      `🌐 [StudentApi] Réponse status: ${response.status} ${response.statusText}`,
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ [StudentApi] Erreur getCourseProgress pour cours ${courseId}:`, {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      });
+      console.error(
+        `❌ [StudentApi] Erreur getCourseProgress pour cours ${courseId}:`,
+        {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+        },
+      );
       throw new Error("Erreur lors de la récupération de la progression");
     }
 
     // ✅ RÉCUPÉRATION DE LA RÉPONSE BRUTE DU BACKEND
     const backendData = await response.json();
-    console.log(`🔍 [StudentApi] RÉPONSE BRUTE DU BACKEND:`, JSON.stringify(backendData, null, 2));
+    console.log(
+      `🔍 [StudentApi] RÉPONSE BRUTE DU BACKEND:`,
+      JSON.stringify(backendData, null, 2),
+    );
 
     // ✅ MAPPING CORRECT: Backend → Frontend
     // Backend retourne:
@@ -200,22 +231,27 @@ export class StudentApi {
     //   "currentLesson": "lessonId",
     //   "lessonsProgress": [...]
     // }
-    
+
     // ✅ Calculer le nombre total de leçons depuis lessonsProgress
     // lessonsProgress est un tableau de modules, chaque module contient un tableau de lessons
     let totalLessons = 0;
     if (Array.isArray(backendData.lessonsProgress)) {
-      totalLessons = backendData.lessonsProgress.reduce((total: number, module: any) => {
-        return total + (Array.isArray(module.lessons) ? module.lessons.length : 0);
-      }, 0);
+      totalLessons = backendData.lessonsProgress.reduce(
+        (total: number, module: any) => {
+          return (
+            total + (Array.isArray(module.lessons) ? module.lessons.length : 0)
+          );
+        },
+        0,
+      );
     }
 
     const mappedData = {
       progress: backendData.progressPercentage || 0,
-      completed_lessons: Array.isArray(backendData.completedLessons) 
-        ? backendData.completedLessons.length  // ✅ Convertir tableau en nombre
+      completed_lessons: Array.isArray(backendData.completedLessons)
+        ? backendData.completedLessons.length // ✅ Convertir tableau en nombre
         : 0,
-      total_lessons: totalLessons,  // ✅ Calculer en parcourant tous les modules
+      total_lessons: totalLessons, // ✅ Calculer en parcourant tous les modules
       last_accessed: backendData.currentLesson || null,
     };
 
@@ -224,9 +260,9 @@ export class StudentApi {
       completed_lessons: mappedData.completed_lessons,
       total_lessons: mappedData.total_lessons,
       last_accessed: mappedData.last_accessed,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     return mappedData;
   }
 
@@ -258,14 +294,17 @@ export class StudentApi {
     correct_answers: number;
     passed: boolean;
   }> {
-    const response = await fetch(buildApiUrl(`${API_ENDPOINTS.QUIZ.SUBMIT}/${quizId}`), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      buildApiUrl(`${API_ENDPOINTS.QUIZ.SUBMIT}/${quizId}`),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ answers }),
       },
-      credentials: "include",
-      body: JSON.stringify({ answers }),
-    });
+    );
 
     if (!response.ok) {
       throw new Error("Erreur lors de la soumission du quiz");
@@ -336,10 +375,13 @@ export class StudentApi {
     }[]
   > {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES), {
-        method: "GET",
-        credentials: "include",
-      });
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES),
+        {
+          method: "GET",
+          credentials: "include",
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`Erreur HTTP: ${response.status}`);
@@ -364,7 +406,9 @@ export class StudentApi {
       );
 
       if (!response.ok) {
-        throw new Error(`Erreur lors de la récupération des détails du cours: ${response.status}`);
+        throw new Error(
+          `Erreur lors de la récupération des détails du cours: ${response.status}`,
+        );
       }
 
       return response.json();
@@ -377,22 +421,24 @@ export class StudentApi {
   static async getQuizAttempts(quizId: string): Promise<any[]> {
     try {
       // Utiliser l'endpoint /course/quizzes/attempts et filtrer par quizId côté frontend
-      const response = await fetch(
-        buildApiUrl(API_ENDPOINTS.QUIZ.ATTEMPTS),
-        {
-          method: "GET",
-          credentials: "include",
-        },
-      );
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.QUIZ.ATTEMPTS), {
+        method: "GET",
+        credentials: "include",
+      });
 
       if (!response.ok) {
-        throw new Error(`Erreur lors de la récupération des tentatives: ${response.status}`);
+        throw new Error(
+          `Erreur lors de la récupération des tentatives: ${response.status}`,
+        );
       }
 
       const data = await response.json();
       const attempts = data.attempts || data || [];
       // Filtrer par quizId
-      return attempts.filter((attempt: any) => attempt.quizId === quizId || attempt.quiz_id === quizId);
+      return attempts.filter(
+        (attempt: any) =>
+          attempt.quizId === quizId || attempt.quiz_id === quizId,
+      );
     } catch (error) {
       console.error("Erreur getQuizAttempts:", error);
       return [];
@@ -402,7 +448,9 @@ export class StudentApi {
   static async getQuizQuestions(moduleId: string): Promise<any> {
     try {
       const response = await fetch(
-        buildApiUrl(`${API_ENDPOINTS.COURSES.QUIZ}/module/${moduleId}/questions`),
+        buildApiUrl(
+          `${API_ENDPOINTS.COURSES.QUIZ}/module/${moduleId}/questions`,
+        ),
         {
           method: "GET",
           credentials: "include",
@@ -410,7 +458,9 @@ export class StudentApi {
       );
 
       if (!response.ok) {
-        throw new Error(`Erreur lors de la récupération des questions: ${response.status}`);
+        throw new Error(
+          `Erreur lors de la récupération des questions: ${response.status}`,
+        );
       }
 
       return response.json();
@@ -451,7 +501,9 @@ export class StudentApi {
             const quiz = quizData.quiz;
             const passingScore = quiz.passingScore || 70; // Défaut 70 si non défini
 
-            console.log(`📊 Quiz: ${quiz.title}, passingScore: ${passingScore}`);
+            console.log(
+              `📊 Quiz: ${quiz.title}, passingScore: ${passingScore}`,
+            );
 
             // Obtenir les tentatives pour ce quiz
             const attempts = await this.getQuizAttempts(quiz.id);
@@ -481,7 +533,9 @@ export class StudentApi {
         }
       }
 
-      console.log(`📊 Total: ${passedQuizzes} passés, ${failedQuizzes} échoués`);
+      console.log(
+        `📊 Total: ${passedQuizzes} passés, ${failedQuizzes} échoués`,
+      );
 
       return {
         passedQuizzes,
@@ -521,13 +575,16 @@ export class StudentApi {
         // For now, we'll use a simple heuristic: if course is completed,
         // assume the student passed the quizzes (this is not accurate but
         // provides some data until the backend endpoint is implemented)
-        if (course.status === 'COMPLETED') {
+        if (course.status === "COMPLETED") {
           // Assume each completed course has at least one quiz that was passed
           passed_quizzes += 1;
           total_attempts += 1;
           total_score += 75; // Assume average passing score
           score_count += 1;
-        } else if (course.progressPercentage && course.progressPercentage > 50) {
+        } else if (
+          course.progressPercentage &&
+          course.progressPercentage > 50
+        ) {
           // For courses in progress with significant progress, assume some quiz attempts
           const progressRatio = course.progressPercentage / 100;
           const estimatedAttempts = Math.floor(progressRatio * 2); // Estimate 0-2 attempts

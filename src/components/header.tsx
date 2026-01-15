@@ -63,17 +63,17 @@ export function Header() {
     if (firstName && lastName) {
       return `${firstName} ${lastName}`;
     }
-    
+
     // Priorité 2: display_name de l'utilisateur
     if (user?.display_name && user.display_name.trim()) {
       return user.display_name;
     }
-    
+
     // Priorité 3: firstName seul
     if (firstName) {
       return firstName;
     }
-    
+
     // Priorité 4: fallback générique
     return "Utilisateur";
   };
@@ -82,7 +82,7 @@ export function Header() {
   const getInitials = () => {
     const displayName = getDisplayName();
     if (displayName === "Utilisateur") return "U";
-    
+
     const names = displayName.split(" ");
     if (names.length >= 2) {
       return `${names[0][0] || ""}${names[names.length - 1][0] || ""}`.toUpperCase();
@@ -128,7 +128,6 @@ export function Header() {
                 <div className="h-10 w-10 rounded-full bg-muted shimmer" />
               ) : isAuthenticated ? (
                 <>
-                
                   {/* User Avatar */}
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>

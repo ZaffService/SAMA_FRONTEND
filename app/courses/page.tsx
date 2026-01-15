@@ -8,6 +8,10 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  BookOpen,
+  Clock,
+  Bell,
+  Lightbulb,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -17,6 +21,8 @@ import type { Course, CourseFilter } from "@/domain/entities/course";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
+import EmptyCoursesState from "@/components/EmptyCoursesState";
+import { EmptyContent } from "@/components/ui/empty";
 
 const CoursesPage = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
@@ -192,6 +198,8 @@ const CoursesPage = () => {
     );
   }
 
+  console.log("📚 Cours récupérés:", courses, "longueur", courses.length);
+
   // ✅ Afficher la page de maintenance si le backend ne répond pas
   if (showMaintenance) {
     return <MaintenancePage onRetry={refetch} />;
@@ -263,7 +271,7 @@ const CoursesPage = () => {
         </div>
 
         {/* Section Explorez par domaine */}
-        {!filterLoading && filterData.categories.length > 0 && (
+        {!filterLoading && (
           <div className="mb-6 sm:mb-8">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -298,22 +306,52 @@ const CoursesPage = () => {
                 const isSelected = filters.categories.includes(category.id);
                 const getCategoryIcon = (name: string) => {
                   const lowerName = name.toLowerCase();
-                  if (lowerName.includes('développement') || lowerName.includes('web')) return '💻';
-                  if (lowerName.includes('intelligence') || lowerName.includes('ia')) return '🤖';
-                  if (lowerName.includes('marketing') || lowerName.includes('digital')) return '📈';
-                  if (lowerName.includes('contenu') || lowerName.includes('création')) return '🎨';
-                  if (lowerName.includes('gestion') || lowerName.includes('management')) return '👔';
-                  if (lowerName.includes('informatique') || lowerName.includes('bureautique')) return '💼';
-                  return '📚';
+                  if (
+                    lowerName.includes("développement") ||
+                    lowerName.includes("web")
+                  )
+                    return "💻";
+                  if (
+                    lowerName.includes("intelligence") ||
+                    lowerName.includes("ia")
+                  )
+                    return "🤖";
+                  if (
+                    lowerName.includes("marketing") ||
+                    lowerName.includes("digital")
+                  )
+                    return "📈";
+                  if (
+                    lowerName.includes("contenu") ||
+                    lowerName.includes("création")
+                  )
+                    return "🎨";
+                  if (
+                    lowerName.includes("gestion") ||
+                    lowerName.includes("management")
+                  )
+                    return "👔";
+                  if (
+                    lowerName.includes("informatique") ||
+                    lowerName.includes("bureautique")
+                  )
+                    return "💼";
+                  return "📚";
                 };
 
                 return (
                   <button
                     key={category.id}
                     onClick={() => {
-                      console.log("🖱️ Clic sur catégorie:", category.name, category.id);
-                      const newCategories = filters.categories.includes(category.id)
-                        ? filters.categories.filter(id => id !== category.id)
+                      console.log(
+                        "🖱️ Clic sur catégorie:",
+                        category.name,
+                        category.id,
+                      );
+                      const newCategories = filters.categories.includes(
+                        category.id,
+                      )
+                        ? filters.categories.filter((id) => id !== category.id)
                         : [...filters.categories, category.id];
                       console.log("📋 Nouvelles catégories:", newCategories);
 
@@ -332,7 +370,9 @@ const CoursesPage = () => {
                         : "bg-background text-muted-foreground hover:bg-muted border-border hover:border-primary/50"
                     }`}
                   >
-                    <span className="text-base">{getCategoryIcon(category.name)}</span>
+                    <span className="text-base">
+                      {getCategoryIcon(category.name)}
+                    </span>
                     <span>{category.name}</span>
                   </button>
                 );
@@ -393,11 +433,22 @@ const CoursesPage = () => {
                             type="checkbox"
                             checked={filters.categories.includes(category.id)}
                             onChange={() => {
-                              console.log("☑️ Checkbox catégorie:", category.name, category.id);
-                              const newCategories = filters.categories.includes(category.id)
-                                ? filters.categories.filter((c) => c !== category.id)
+                              console.log(
+                                "☑️ Checkbox catégorie:",
+                                category.name,
+                                category.id,
+                              );
+                              const newCategories = filters.categories.includes(
+                                category.id,
+                              )
+                                ? filters.categories.filter(
+                                    (c) => c !== category.id,
+                                  )
                                 : [...filters.categories, category.id];
-                              console.log("📋 Nouvelles catégories (checkbox):", newCategories);
+                              console.log(
+                                "📋 Nouvelles catégories (checkbox):",
+                                newCategories,
+                              );
 
                               // ✅ PREMIÈRE: Mettre à jour le hook
                               setFilterCategories(newCategories);
@@ -620,14 +671,22 @@ const CoursesPage = () => {
               </div>
             )}
           </div>
-        ) : (
+        ) : searchInputValue ? (
+          // ✅ Recherche sans résultat
           <div className="text-center py-12">
             <p className="text-muted-foreground">
-              {searchInputValue
-                ? `Aucun cours trouvé pour "${searchInputValue}"`
-                : "Aucun cours disponible pour le moment."}
+              {`Aucun cours trouvé pour "${searchInputValue}"`}
             </p>
+            <button
+              onClick={() => setSearchInputValue("")}
+              className="mt-4 px-4 py-2 text-primary hover:underline"
+            >
+              Effacer la recherche
+            </button>
           </div>
+        ) : (
+          // ✅ Aucun cours disponible - Afficher l'EmptyState
+          <EmptyContent />
         )}
       </main>
 

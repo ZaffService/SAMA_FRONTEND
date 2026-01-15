@@ -1,14 +1,14 @@
 import type { Course, CourseDetails } from "@/domain/entities/course";
 import type { Module, Lesson } from "@/domain/entities/module";
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 
 // Helper function to decode base64url
 function base64UrlDecode(str: string): string {
   // Replace URL-safe characters with base64 characters
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
   // Add padding if needed
   while (base64.length % 4 !== 0) {
-    base64 += '=';
+    base64 += "=";
   }
   return atob(base64);
 }
@@ -93,7 +93,6 @@ interface FollowCourseResult {
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export class CoursesApi {
-
   /**
    * Récupère la liste des cours pour l'affichage en grille avec pagination
    */
@@ -107,10 +106,11 @@ export class CoursesApi {
     pages: number;
     currentPage: number;
     limit: number;
+    hasCoursesInDatabase: boolean;
   }> {
     // Construire l'URL avec les paramètres de pagination
     const url = new URL(buildApiUrl(API_ENDPOINTS.COURSES.SEARCH));
-    url.searchParams.append("page", page  .toString());
+    url.searchParams.append("page", page.toString());
     url.searchParams.append("limit", perPage.toString());
 
     // Ajouter les paramètres de recherche si fournis
@@ -154,6 +154,7 @@ export class CoursesApi {
       pages: data.totalPages ?? Math.ceil(courses.length / perPage),
       currentPage: data.page ?? page,
       limit: data.limit ?? perPage,
+      hasCoursesInDatabase: data.hasCoursesInDatabase,
     };
   }
 
@@ -214,13 +215,16 @@ export class CoursesApi {
   static async getCourseWithProgress(courseId: string): Promise<any> {
     console.log(`🔍 API: Récupération du cours avec progression: ${courseId}`);
 
-    const response = await fetch(buildApiUrl(`${API_ENDPOINTS.COURSES.FOLLOW}/${courseId}`), {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      buildApiUrl(`${API_ENDPOINTS.COURSES.FOLLOW}/${courseId}`),
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
       },
-      credentials: "include",
-    });
+    );
 
     if (!response.ok) {
       throw new Error(
@@ -271,15 +275,22 @@ export class CoursesApi {
     console.log("🔍 [API] Récupération des catégories...");
     console.log("🔍 [API] URL:", buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES));
 
-    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES), {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES),
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // credentials: "include", // ❌ Pas nécessaire pour les catégories
       },
-      // credentials: "include", // ❌ Pas nécessaire pour les catégories
-    });
+    );
 
-    console.log("📡 [API] Statut de la réponse:", response.status, response.statusText);
+    console.log(
+      "📡 [API] Statut de la réponse:",
+      response.status,
+      response.statusText,
+    );
 
     if (!response.ok) {
       console.error("❌ [API] Erreur HTTP:", response.status);
@@ -289,8 +300,14 @@ export class CoursesApi {
     const data = await response.json();
 
     // DEBUG: Afficher la structure complète
-    console.log("📦 [API] Données brutes reçues:", JSON.stringify(data, null, 2));
-    console.log("📦 [API] Type de données:", Array.isArray(data) ? "Array" : typeof data);
+    console.log(
+      "📦 [API] Données brutes reçues:",
+      JSON.stringify(data, null, 2),
+    );
+    console.log(
+      "📦 [API] Type de données:",
+      Array.isArray(data) ? "Array" : typeof data,
+    );
 
     // Gérer les différents formats de réponse possibles
     let categories: Array<{ id: string; name: string }>;
@@ -313,178 +330,203 @@ export class CoursesApi {
     }
 
     console.log(`✅ [API] ${categories.length} catégories chargées`);
-    console.log("📋 [API] Liste des catégories:", categories.map(c => c.name).join(", "));
+    console.log(
+      "📋 [API] Liste des catégories:",
+      categories.map((c) => c.name).join(", "),
+    );
 
     return categories;
   }
 
   /**
-    * Sauvegarde un brouillon de cours
-    */
-   static async saveDraft(courseData: any): Promise<any> {
-     console.log('🚀 [CoursesApi] Début sauvegarde brouillon...');
+   * Sauvegarde un brouillon de cours
+   */
+  static async saveDraft(courseData: any): Promise<any> {
+    console.log("🚀 [CoursesApi] Début sauvegarde brouillon...");
 
-     // ✅ RÉCUPÉRER L'ID DE L'UTILISATEUR DEPUIS LE JWT
-     const accessToken = Cookies.get('access_token');
+    // ✅ RÉCUPÉRER L'ID DE L'UTILISATEUR DEPUIS LE JWT
+    const accessToken = Cookies.get("access_token");
 
-     if (!accessToken) {
-       console.error('❌ [CoursesApi] Token absent');
-       throw new Error('Session expirée. Veuillez vous reconnecter.');
-     }
+    if (!accessToken) {
+      console.error("❌ [CoursesApi] Token absent");
+      throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
 
-     // Décoder le JWT pour extraire userId
-     let userId: string;
-     try {
-       const payload = JSON.parse(base64UrlDecode(accessToken.split('.')[1]));
-       userId = payload.userId || payload.sub || payload.id;
+    // Décoder le JWT pour extraire userId
+    let userId: string;
+    try {
+      const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
+      userId = payload.userId || payload.sub || payload.id;
 
-       console.log('👤 [CoursesApi] User ID extrait:', userId);
+      console.log("👤 [CoursesApi] User ID extrait:", userId);
 
-       if (!userId) {
-         throw new Error('userId non trouvé dans le token');
-       }
+      if (!userId) {
+        throw new Error("userId non trouvé dans le token");
+      }
 
-       // Vérifier l'expiration
-       const now = Date.now() / 1000;
-       if (now > payload.exp) {
-         console.error('❌ [CoursesApi] Token expiré');
-         window.location.href = '/login';
-         throw new Error('Token expiré');
-       }
+      // Vérifier l'expiration
+      const now = Date.now() / 1000;
+      if (now > payload.exp) {
+        console.error("❌ [CoursesApi] Token expiré");
+        window.location.href = "/login";
+        throw new Error("Token expiré");
+      }
 
-     const timeLeft = Math.floor((payload.exp - now) / 60);
-       console.log(`⏰ [CoursesApi] Token valide encore ${timeLeft} minutes`);
-     } catch (err) {
-       console.error('❌ [CoursesApi] Erreur extraction userId:', err);
-       throw err;
-     }
+      const timeLeft = Math.floor((payload.exp - now) / 60);
+      console.log(`⏰ [CoursesApi] Token valide encore ${timeLeft} minutes`);
+    } catch (err) {
+      console.error("❌ [CoursesApi] Erreur extraction userId:", err);
+      throw err;
+    }
 
-     const formData = new FormData();
+    const formData = new FormData();
 
-     // ✅ Gestion du thumbnail : optionnel si URL valide
-     let thumbnailUrl: string | undefined;
+    // ✅ Gestion du thumbnail : optionnel si URL valide
+    let thumbnailUrl: string | undefined;
 
-     // Si c'est une URL string valide, on l'utilise
-     if (courseData.thumbnailUrl && typeof courseData.thumbnailUrl === 'string') {
-       thumbnailUrl = courseData.thumbnailUrl;
-     }
-     // Si c'est un fichier, thumbnailUrl reste undefined (sera envoyé séparément)
+    // Si c'est une URL string valide, on l'utilise
+    if (
+      courseData.thumbnailUrl &&
+      typeof courseData.thumbnailUrl === "string"
+    ) {
+      thumbnailUrl = courseData.thumbnailUrl;
+    }
+    // Si c'est un fichier, thumbnailUrl reste undefined (sera envoyé séparément)
 
-     // ✅ Format exact attendu par le backend
-     const courseJsonData: any = {
-       title: courseData.title,
-       description: courseData.description,
-       categoryId: courseData.categoryId,
-       level: courseData.level,
-       price: Number(courseData.price) || 0,
-       modules: courseData.modules.map((module: any) => ({
-         title: module.title,
-         orderIndex: Number(module.orderIndex) || 0,
-         description: module.description || undefined,
-         lessons: module.lessons?.map((lesson: any) => ({
-           tempId: lesson.tempId,
-           title: lesson.title,
-           content: lesson.content || '',
-           orderIndex: Number(lesson.orderIndex) || 0,
-           duration: Number(lesson.duration) || 0
-         })) || [],
-         quizzes: module.quizzes?.map((quiz: any) => ({
-           title: quiz.title,
-           description: quiz.description || undefined,
-           passingScore: Number(quiz.passingScore) || undefined,
-           questions: quiz.questions?.map((q: any) => ({
-             question: q.question,
-             questionType: q.questionType || 'MULTIPLE_CHOICE',
-             options: q.options || [],
-             correctAnswer: q.correctAnswer,
-             points: Number(q.points) || undefined
-           })) || []
-         })) || []
-       }))
-     };
+    // ✅ Format exact attendu par le backend
+    const courseJsonData: any = {
+      title: courseData.title,
+      description: courseData.description,
+      categoryId: courseData.categoryId,
+      level: courseData.level,
+      price: Number(courseData.price) || 0,
+      modules: courseData.modules.map((module: any) => ({
+        title: module.title,
+        orderIndex: Number(module.orderIndex) || 0,
+        description: module.description || undefined,
+        lessons:
+          module.lessons?.map((lesson: any) => ({
+            tempId: lesson.tempId,
+            title: lesson.title,
+            content: lesson.content || "",
+            orderIndex: Number(lesson.orderIndex) || 0,
+            duration: Number(lesson.duration) || 0,
+          })) || [],
+        quizzes:
+          module.quizzes?.map((quiz: any) => ({
+            title: quiz.title,
+            description: quiz.description || undefined,
+            passingScore: Number(quiz.passingScore) || undefined,
+            questions:
+              quiz.questions?.map((q: any) => ({
+                question: q.question,
+                questionType: q.questionType || "MULTIPLE_CHOICE",
+                options: q.options || [],
+                correctAnswer: q.correctAnswer,
+                points: Number(q.points) || undefined,
+              })) || [],
+          })) || [],
+      })),
+    };
 
-     // Ajouter thumbnailUrl seulement si c'est une URL valide
-     if (thumbnailUrl) {
-       courseJsonData.thumbnailUrl = thumbnailUrl;
-     }
+    // Ajouter thumbnailUrl seulement si c'est une URL valide
+    if (thumbnailUrl) {
+      courseJsonData.thumbnailUrl = thumbnailUrl;
+    }
 
-     // ✅ Le champ "data" contient le JSON stringifié
-     formData.append('data', JSON.stringify(courseJsonData));
-     console.log('📦 [CoursesApi] Données JSON:', JSON.stringify(courseJsonData, null, 2));
-     console.log('🖼️ [CoursesApi] Thumbnail:', thumbnailUrl);
+    // ✅ Le champ "data" contient le JSON stringifié
+    formData.append("data", JSON.stringify(courseJsonData));
+    console.log(
+      "📦 [CoursesApi] Données JSON:",
+      JSON.stringify(courseJsonData, null, 2),
+    );
+    console.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
 
-     // ✅ Ajouter le fichier thumbnail si c'est un File
-     if (courseData.thumbnail && typeof courseData.thumbnail !== 'string') {
-       formData.append('thumbnail', courseData.thumbnail);
-       console.log('🖼️ [CoursesApi] Fichier thumbnail ajouté');
-     }
+    // ✅ Ajouter le fichier thumbnail si c'est un File
+    if (courseData.thumbnail && typeof courseData.thumbnail !== "string") {
+      formData.append("thumbnail", courseData.thumbnail);
+      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
+    }
 
-     // Ajouter les vidéos
-     let videoCount = 0;
-     courseData.modules.forEach((module: Module) => {
-       module.lessons.forEach((lesson: Lesson) => {
-         if (lesson.videoFile) {
-           const videoKey = `lessonVideos[${lesson.tempId}]`;
-           formData.append(videoKey, lesson.videoFile);
-           videoCount++;
-           console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
-         }
-       });
-     });
-     console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+    // Ajouter les vidéos
+    let videoCount = 0;
+    courseData.modules.forEach((module: Module) => {
+      module.lessons.forEach((lesson: Lesson) => {
+        if (lesson.videoFile) {
+          const videoKey = `lessonVideos[${lesson.tempId}]`;
+          formData.append(videoKey, lesson.videoFile);
+          videoCount++;
+          console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
+        }
+      });
+    });
+    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
-     // ⚠️ CRITIQUE : Envoyer la requête avec credentials
-     console.log('📡 [CoursesApi] Envoi vers:', buildApiUrl(API_ENDPOINTS.COURSES.CREATE));
-     console.log('🔐 [CoursesApi] Credentials: include');
+    // ⚠️ CRITIQUE : Envoyer la requête avec credentials
+    console.log(
+      "📡 [CoursesApi] Envoi vers:",
+      buildApiUrl(API_ENDPOINTS.COURSES.CREATE),
+    );
+    console.log("🔐 [CoursesApi] Credentials: include");
 
-     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CREATE), {
-       method: 'POST',
-       credentials: 'include',  // ✅ CRITIQUE : Envoyer les cookies (JWT)
-       body: formData,
-       // ⚠️ NE PAS METTRE Content-Type avec FormData (fetch le fait automatiquement)
-     });
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CREATE), {
+      method: "POST",
+      credentials: "include", // ✅ CRITIQUE : Envoyer les cookies (JWT)
+      body: formData,
+      // ⚠️ NE PAS METTRE Content-Type avec FormData (fetch le fait automatiquement)
+    });
 
-     console.log('📡 [CoursesApi] Statut réponse:', response.status, response.statusText);
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
 
-     if (!response.ok) {
-       let errorMessage = `Erreur ${response.status}`;
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
 
-       try {
-         const errorData = await response.json();
-         console.error('❌ [CoursesApi] Erreur backend:', errorData);
-         errorMessage = errorData.error?.message || errorData.message || errorMessage;
-       } catch (err) {
-         console.error('❌ [CoursesApi] Impossible de parser l\'erreur');
-       }
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
 
-       // Si 401, proposer de se reconnecter
-       if (response.status === 401) {
-         window.location.href = '/login';
-       }
+      // Si 401, proposer de se reconnecter
+      if (response.status === 401) {
+        window.location.href = "/login";
+      }
 
-       throw new Error(errorMessage);
-     }
+      throw new Error(errorMessage);
+    }
 
-     const responseData = await response.json();
-     console.log('✅ [CoursesApi] Brouillon sauvegardé:', responseData);
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Brouillon sauvegardé:", responseData);
 
-     return responseData;
-   }
+    return responseData;
+  }
 
   /**
    * Vérifie si l'utilisateur est inscrit à un cours
    */
   static async checkEnrollmentStatus(courseId: string): Promise<boolean> {
-    console.log(`🔍 API: Vérification du statut d'inscription pour le cours ${courseId}`);
+    console.log(
+      `🔍 API: Vérification du statut d'inscription pour le cours ${courseId}`,
+    );
 
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)),
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
         },
-        credentials: "include",
-      });
+      );
 
       if (response.ok) {
         console.log("✅ Utilisateur inscrit au cours");
@@ -493,11 +535,17 @@ export class CoursesApi {
         console.log("ℹ️ Utilisateur non inscrit ou accès refusé");
         return false;
       } else {
-        console.error("❌ Erreur inattendue lors de la vérification:", response.status);
+        console.error(
+          "❌ Erreur inattendue lors de la vérification:",
+          response.status,
+        );
         return false;
       }
     } catch (error) {
-      console.error("💥 Erreur lors de la vérification du statut d'inscription:", error);
+      console.error(
+        "💥 Erreur lors de la vérification du statut d'inscription:",
+        error,
+      );
       return false;
     }
   }
@@ -524,19 +572,22 @@ export class CoursesApi {
       };
     }
 
-    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
       },
-      credentials: "include",
-    });
+    );
 
     // ✅ GESTION DES ERREURS DE DUPLICATION
     if (response.status === 409 || response.status === 400) {
       // L'utilisateur est peut-être déjà inscrit (race condition)
       console.log("⚠️ Erreur 409/400, vérification de l'état actuel...");
-      
+
       // Vérifier si l'utilisateur est maintenant inscrit
       const checkResult = await this.checkEnrollmentStatus(courseId);
       if (checkResult) {
@@ -551,7 +602,7 @@ export class CoursesApi {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      
+
       // ✅ GESTION SPÉCIFIQUE DES ERREURS
       if (response.status === 409) {
         console.log("⚠️ Inscription duplicate détectée");
@@ -560,14 +611,17 @@ export class CoursesApi {
           course: { id: courseId },
         };
       }
-      
+
       throw new Error(
-        errorData.message || `Erreur lors de l'inscription: ${response.status}`
+        errorData.message || `Erreur lors de l'inscription: ${response.status}`,
       );
     }
 
     const data = await response.json();
-    console.log("📦 API: Réponse du suivi de cours:", JSON.stringify(data, null, 2));
+    console.log(
+      "📦 API: Réponse du suivi de cours:",
+      JSON.stringify(data, null, 2),
+    );
 
     // Retourner un objet cohérent avec des propriétés optionnelles
     return {
@@ -596,134 +650,154 @@ export class CoursesApi {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `Erreur lors de l'inscription: ${response.status}`
+        errorData.message || `Erreur lors de l'inscription: ${response.status}`,
       );
     }
 
     const data = await response.json();
-    console.log("📦 API: Réponse de l'inscription:", JSON.stringify(data, null, 2));
+    console.log(
+      "📦 API: Réponse de l'inscription:",
+      JSON.stringify(data, null, 2),
+    );
 
     return data;
   }
 
   /**
-    * Crée un nouveau cours
-    */
-    static async createCourse(courseData: any): Promise<any> {
-     console.log('🚀 [CoursesApi] Début création cours...');
+   * Crée un nouveau cours
+   */
+  static async createCourse(courseData: any): Promise<any> {
+    console.log("🚀 [CoursesApi] Début création cours...");
 
-     const formData = new FormData();
+    const formData = new FormData();
 
-     // ✅ Gestion du thumbnail : optionnel si URL valide
-     let thumbnailUrl: string | undefined;
+    // ✅ Gestion du thumbnail : optionnel si URL valide
+    let thumbnailUrl: string | undefined;
 
-     // Si c'est une URL string valide, on l'utilise
-     if (courseData.thumbnailUrl && typeof courseData.thumbnailUrl === 'string') {
-       thumbnailUrl = courseData.thumbnailUrl;
-     }
-     // Si c'est un fichier, thumbnailUrl reste undefined (sera envoyé séparément)
+    // Si c'est une URL string valide, on l'utilise
+    if (
+      courseData.thumbnailUrl &&
+      typeof courseData.thumbnailUrl === "string"
+    ) {
+      thumbnailUrl = courseData.thumbnailUrl;
+    }
+    // Si c'est un fichier, thumbnailUrl reste undefined (sera envoyé séparément)
 
-     // ✅ Format exact attendu par le backend
-     const courseJsonData: any = {
-       title: courseData.title,
-       description: courseData.description,
-       categoryId: courseData.categoryId,
-       level: courseData.level,
-       price: Number(courseData.price) || 0,
-       modules: courseData.modules.map((module: any) => ({
-         title: module.title,
-         orderIndex: Number(module.orderIndex) || 0,
-         description: module.description || undefined,
-         lessons: module.lessons?.map((lesson: any) => ({
-           tempId: lesson.tempId,
-           title: lesson.title,
-           content: lesson.content || '',
-           orderIndex: Number(lesson.orderIndex) || 0,
-           duration: Number(lesson.duration) || 0
-         })) || [],
-         quizzes: module.quizzes?.map((quiz: any) => ({
-           title: quiz.title,
-           description: quiz.description || undefined,
-           passingScore: Number(quiz.passingScore) || undefined,
-           questions: quiz.questions?.map((q: any) => ({
-             question: q.question,
-             questionType: q.questionType || 'MULTIPLE_CHOICE',
-             options: q.options || [],
-             correctAnswer: q.correctAnswer,
-             points: Number(q.points) || undefined
-           })) || []
-         })) || []
-       }))
-     };
+    // ✅ Format exact attendu par le backend
+    const courseJsonData: any = {
+      title: courseData.title,
+      description: courseData.description,
+      categoryId: courseData.categoryId,
+      level: courseData.level,
+      price: Number(courseData.price) || 0,
+      modules: courseData.modules.map((module: any) => ({
+        title: module.title,
+        orderIndex: Number(module.orderIndex) || 0,
+        description: module.description || undefined,
+        lessons:
+          module.lessons?.map((lesson: any) => ({
+            tempId: lesson.tempId,
+            title: lesson.title,
+            content: lesson.content || "",
+            orderIndex: Number(lesson.orderIndex) || 0,
+            duration: Number(lesson.duration) || 0,
+          })) || [],
+        quizzes:
+          module.quizzes?.map((quiz: any) => ({
+            title: quiz.title,
+            description: quiz.description || undefined,
+            passingScore: Number(quiz.passingScore) || undefined,
+            questions:
+              quiz.questions?.map((q: any) => ({
+                question: q.question,
+                questionType: q.questionType || "MULTIPLE_CHOICE",
+                options: q.options || [],
+                correctAnswer: q.correctAnswer,
+                points: Number(q.points) || undefined,
+              })) || [],
+          })) || [],
+      })),
+    };
 
-     // ✅ Le champ "data" contient le JSON stringifié
-     formData.append('data', JSON.stringify(courseJsonData));
-     console.log('📦 [CoursesApi] Données JSON:', JSON.stringify(courseJsonData, null, 2));
-     console.log('🖼️ [CoursesApi] Thumbnail:', thumbnailUrl);
+    // ✅ Le champ "data" contient le JSON stringifié
+    formData.append("data", JSON.stringify(courseJsonData));
+    console.log(
+      "📦 [CoursesApi] Données JSON:",
+      JSON.stringify(courseJsonData, null, 2),
+    );
+    console.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
 
-     // ✅ Ajouter le fichier thumbnail si c'est un File
-     if (courseData.thumbnail && typeof courseData.thumbnail !== 'string') {
-       formData.append('thumbnail', courseData.thumbnail);
-       console.log('🖼️ [CoursesApi] Fichier thumbnail ajouté');
-     }
+    // ✅ Ajouter le fichier thumbnail si c'est un File
+    if (courseData.thumbnail && typeof courseData.thumbnail !== "string") {
+      formData.append("thumbnail", courseData.thumbnail);
+      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
+    }
 
-     // Ajouter les vidéos
-     let videoCount = 0;
-     courseData.modules.forEach((module: Module) => {
-       module.lessons.forEach((lesson: Lesson) => {
-         if (lesson.videoFile) {
-           const videoKey = `lessonVideos[${lesson.tempId}]`;
-           formData.append(videoKey, lesson.videoFile);
-           videoCount++;
-           console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
-         }
-       });
-     });
-     console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+    // Ajouter les vidéos
+    let videoCount = 0;
+    courseData.modules.forEach((module: Module) => {
+      module.lessons.forEach((lesson: Lesson) => {
+        if (lesson.videoFile) {
+          const videoKey = `lessonVideos[${lesson.tempId}]`;
+          formData.append(videoKey, lesson.videoFile);
+          videoCount++;
+          console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
+        }
+      });
+    });
+    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
-     // Ajouter les fichiers joints
-     let attachmentCount = 0;
-     if (courseData.attachments && courseData.attachments.length > 0) {
-       courseData.attachments.forEach((attachment: any) => {
-         formData.append('attachments', attachment.file);
-         attachmentCount++;
-         console.log(`📎 [CoursesApi] Fichier joint ajouté: ${attachment.file.name}`);
-       });
-     }
-     console.log(`📎 [CoursesApi] Total fichiers joints: ${attachmentCount}`);
+    // Ajouter les fichiers joints
+    let attachmentCount = 0;
+    if (courseData.attachments && courseData.attachments.length > 0) {
+      courseData.attachments.forEach((attachment: any) => {
+        formData.append("attachments", attachment.file);
+        attachmentCount++;
+        console.log(
+          `📎 [CoursesApi] Fichier joint ajouté: ${attachment.file.name}`,
+        );
+      });
+    }
+    console.log(`📎 [CoursesApi] Total fichiers joints: ${attachmentCount}`);
 
-     console.log('📡 [CoursesApi] Envoi vers:', buildApiUrl(API_ENDPOINTS.COURSES.CREATE));
-     console.log('🔐 [CoursesApi] Credentials: include');
+    console.log(
+      "📡 [CoursesApi] Envoi vers:",
+      buildApiUrl(API_ENDPOINTS.COURSES.CREATE),
+    );
+    console.log("🔐 [CoursesApi] Credentials: include");
 
-     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CREATE), {
-       method: 'POST',
-       credentials: 'include',  // ✅ Les cookies HttpOnly sont envoyés automatiquement
-       body: formData,
-     });
+    const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CREATE), {
+      method: "POST",
+      credentials: "include", // ✅ Les cookies HttpOnly sont envoyés automatiquement
+      body: formData,
+    });
 
-     console.log('📡 [CoursesApi] Statut réponse:', response.status, response.statusText);
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
 
-     if (!response.ok) {
-       let errorMessage = `Erreur ${response.status}`;
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
 
-       try {
-         const errorData = await response.json();
-         console.error('❌ [CoursesApi] Erreur backend:', errorData);
-         errorMessage = errorData.error?.message || errorData.message || errorMessage;
-       } catch (err) {
-         console.error('❌ [CoursesApi] Impossible de parser l\'erreur');
-       }
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
 
-       throw new Error(errorMessage);
-     }
+      throw new Error(errorMessage);
+    }
 
-     const responseData = await response.json();
-     console.log('✅ [CoursesApi] Succès:', responseData);
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Succès:", responseData);
 
-     return responseData;
-   }
-
-
+    return responseData;
+  }
 
   /**
    * Récupère les cours auxquels l'utilisateur est inscrit
@@ -740,7 +814,10 @@ export class CoursesApi {
     });
 
     if (!response.ok) {
-      console.error("❌ Erreur lors de la récupération des cours inscrits:", response.status);
+      console.error(
+        "❌ Erreur lors de la récupération des cours inscrits:",
+        response.status,
+      );
       return [];
     }
 
@@ -774,13 +851,16 @@ export class CoursesApi {
 
     try {
       // D'abord, vérifier si l'utilisateur est déjà inscrit
-      const enrolledResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      const enrolledResponse = await fetch(
+        buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)),
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
         },
-        credentials: "include",
-      });
+      );
 
       if (enrolledResponse.ok) {
         console.log("✅ Utilisateur déjà inscrit au cours");
@@ -793,19 +873,24 @@ export class CoursesApi {
 
       // Si pas inscrit, récupérer les détails du cours pour vérifier s'il est gratuit
       const courseDetails = await this.getCourseDetails(courseId);
-      const isFree = courseDetails.course.price === 0 || courseDetails.course.price === undefined;
+      const isFree =
+        courseDetails.course.price === 0 ||
+        courseDetails.course.price === undefined;
 
       if (isFree) {
         console.log("💰 Cours gratuit détecté, inscription automatique");
 
         // Tenter l'inscription automatique
-        const enrollResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const enrollResponse = await fetch(
+          buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)),
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
           },
-          credentials: "include",
-        });
+        );
 
         if (enrollResponse.ok) {
           console.log("✅ Inscription automatique réussie");
@@ -826,13 +911,16 @@ export class CoursesApi {
         console.log("💳 Cours payant détecté, redirection paiement");
 
         // Pour les cours payants, obtenir l'URL de paiement
-        const followResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const followResponse = await fetch(
+          buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)),
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
           },
-          credentials: "include",
-        });
+        );
 
         if (followResponse.ok) {
           const followData = await followResponse.json();
@@ -868,7 +956,8 @@ export class CoursesApi {
     backendCourse: BackendCourse,
   ): Course {
     // ✅ CORRECTION: Utiliser id du backend (comme retourné par l'API)
-    const id = backendCourse.id || backendCourse.courseId || backendCourse._id || "";
+    const id =
+      backendCourse.id || backendCourse.courseId || backendCourse._id || "";
 
     const title = backendCourse.title || backendCourse._title || "";
     const description =
@@ -880,9 +969,13 @@ export class CoursesApi {
       "/Fallback.png";
 
     // ✅ Extraction du categoryId pour le filtrage
-    const categoryId = backendCourse.categoryId || backendCourse._category?.id || backendCourse._category?._id;
+    const categoryId =
+      backendCourse.categoryId ||
+      backendCourse._category?.id ||
+      backendCourse._category?._id;
 
-    const category = backendCourse._category?._name ||
+    const category =
+      backendCourse._category?._name ||
       backendCourse._category?.name ||
       backendCourse.category ||
       "Non catégorisé";

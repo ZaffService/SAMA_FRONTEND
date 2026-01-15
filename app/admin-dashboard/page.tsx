@@ -25,22 +25,22 @@ import {
 } from "lucide-react";
 import { CourseWizard } from "@/components/CourseWizard";
 
-type DashboardView = 'overview' | 'create-course';
+type DashboardView = "overview" | "create-course";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, logout } = useLocalAuth();
-  const [currentView, setCurrentView] = useState<DashboardView>('overview');
+  const [currentView, setCurrentView] = useState<DashboardView>("overview");
 
   const handleCreateCourse = () => {
-    setCurrentView('create-course');
+    setCurrentView("create-course");
   };
 
   const handleBackToDashboard = () => {
-    setCurrentView('overview');
+    setCurrentView("overview");
   };
 
-  if (currentView === 'create-course') {
+  if (currentView === "create-course") {
     return (
       <ProtectedRoute requiredRole="ADMIN">
         <div className="min-h-screen bg-gray-50">
@@ -143,10 +143,7 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button
-                    className="w-full"
-                    onClick={handleCreateCourse}
-                  >
+                  <Button className="w-full" onClick={handleCreateCourse}>
                     Créer un cours
                   </Button>
                 </CardContent>
@@ -227,8 +224,7 @@ export default function AdminDashboard() {
 
             {/* Message d'information */}
             <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex">
-              </div>
+              <div className="flex"></div>
             </div>
           </div>
         </main>

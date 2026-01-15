@@ -1,6 +1,6 @@
 // src/infrastructure/api/course-details-api.ts
 
-import { buildApiUrl, API_ENDPOINTS } from './baseConfig';
+import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface CourseDetails {
   course: {

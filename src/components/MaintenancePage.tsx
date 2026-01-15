@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  ServerCrash,
-  RefreshCw,
-  Mail,
-  Activity,
-  Clock,
-} from "lucide-react";
+import { ServerCrash, RefreshCw, Mail, Activity, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface MaintenancePageProps {
@@ -52,7 +46,6 @@ export default function MaintenancePage({ onRetry }: MaintenancePageProps) {
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="max-w-4xl w-full space-y-12">
-          
           {/* Hero Section */}
           <div className="text-center space-y-8">
             {/* Icon principale avec animation */}
@@ -78,8 +71,9 @@ export default function MaintenancePage({ onRetry }: MaintenancePageProps) {
             {/* Messages informatifs */}
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-200 shadow-lg max-w-2xl mx-auto">
               <p className="text-gray-700 leading-relaxed">
-                Notre équipe technique travaille actuellement sur la plateforme pour vous offrir de nouvelles fonctionnalités. 
-                Le service sera rétabli dans les plus brefs délais. Merci pour votre patience.
+                Notre équipe technique travaille actuellement sur la plateforme
+                pour vous offrir de nouvelles fonctionnalités. Le service sera
+                rétabli dans les plus brefs délais. Merci pour votre patience.
               </p>
             </div>
           </div>
@@ -97,7 +91,9 @@ export default function MaintenancePage({ onRetry }: MaintenancePageProps) {
                     <h3 className="text-lg font-semibold text-gray-900">
                       Besoin d&apos;aide ?
                     </h3>
-                    <p className="text-sm text-gray-600">Contactez notre support</p>
+                    <p className="text-sm text-gray-600">
+                      Contactez notre support
+                    </p>
                     <a
                       href="mailto:bibocomdigital.com"
                       className="inline-block text-blue-600 hover:text-blue-700 font-medium transition-colors text-sm"
@@ -120,7 +116,9 @@ export default function MaintenancePage({ onRetry }: MaintenancePageProps) {
                     <h3 className="text-lg font-semibold text-gray-900">
                       Reconnexion auto
                     </h3>
-                    <p className="text-sm text-gray-600">Vérification en cours...</p>
+                    <p className="text-sm text-gray-600">
+                      Vérification en cours...
+                    </p>
                     <p className="text-indigo-600 font-semibold text-sm">
                       Dans {countdown} secondes
                     </p>
@@ -140,14 +138,19 @@ export default function MaintenancePage({ onRetry }: MaintenancePageProps) {
               className={`
                 group relative flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-white text-lg
                 transition-all duration-300 shadow-lg
-                ${isRetrying 
-                  ? "bg-gray-400 cursor-not-allowed" 
-                  : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl"
+                ${
+                  isRetrying
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-2xl"
                 }
               `}
             >
-              <RefreshCw className={`w-5 h-5 ${isRetrying || isHovered ? "animate-spin" : ""}`} />
-              <span>{isRetrying ? "Connexion en cours..." : "Réessayer maintenant"}</span>
+              <RefreshCw
+                className={`w-5 h-5 ${isRetrying || isHovered ? "animate-spin" : ""}`}
+              />
+              <span>
+                {isRetrying ? "Connexion en cours..." : "Réessayer maintenant"}
+              </span>
             </button>
 
             {/* Progress Bar */}
@@ -157,7 +160,7 @@ export default function MaintenancePage({ onRetry }: MaintenancePageProps) {
                 <span>Reconnexion automatique dans {countdown}s</span>
               </div>
               <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000 ease-linear rounded-full"
                   style={{ width: `${((30 - countdown) / 30) * 100}%` }}
                 />

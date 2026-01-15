@@ -12,8 +12,15 @@ import Swal from "sweetalert2";
 import { LockedVideoOverlay } from "@/components/LockedVideoOverlay";
 import { QuizModal } from "@/components/QuizModal";
 import { TEXTS } from "@/lib/constants";
-import {Play,ArrowLeft,ChevronDown,X,CheckCircle,Lock} from "lucide-react";
-import Cookies from 'js-cookie';
+import {
+  Play,
+  ArrowLeft,
+  ChevronDown,
+  X,
+  CheckCircle,
+  Lock,
+} from "lucide-react";
+import Cookies from "js-cookie";
 
 interface CourseDetailsData {
   course: {
@@ -52,8 +59,7 @@ function CourseDetailsPageComponent() {
   const { verifyPayment } = usePayment();
   const courseId = params?.id as string;
 
-
-  if (!courseId || courseId === 'undefined') {
+  if (!courseId || courseId === "undefined") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center px-4">
@@ -88,7 +94,7 @@ function CourseDetailsPageComponent() {
   const [isPaid, setIsPaid] = useState(false);
   const [isFree, setIsFree] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
-  
+
   // ✅ NOUVEAU: Flag pour éviter les requêtes d'enrollment multiples
   const [enrollmentCheckComplete, setEnrollmentCheckComplete] = useState(false);
 
@@ -103,12 +109,17 @@ function CourseDetailsPageComponent() {
   // Quiz states
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
-  const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, boolean>>({});
-  const [checkingQuizzes, setCheckingQuizzes] = useState<Set<string>>(new Set());
+  const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [checkingQuizzes, setCheckingQuizzes] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Helper function to validate UUID format (defined before useEffects)
   const isValidUUID = (id: string): boolean => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(id);
   };
 
@@ -126,67 +137,67 @@ function CourseDetailsPageComponent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-
-
-useEffect(() => {
-  const fetchCourseDetails = async () => {
-    if (!courseId) {
-      console.log(" Pas d'ID de cours fourni");
-      return;
-    }
-
-    console.log(`🔄 Composant: Chargement du cours ${courseId}`);
-
-    try {
-      setLoading(true);
-      const data = await CoursesApi.getCourseDetails(courseId);
-      console.log("✅ Composant: Données reçues:", data);
-
-      setCourseData(data);
-
-      const courseIsFree =
-        data.course.price === 0 || data.course.isFree === true;
-      setIsFree(courseIsFree);
-
-      if (data.modules && data.modules.length > 0) {
-        // ✅ Ouvrir le premier module par défaut
-        setExpandedModules(new Set([data.modules[0].id]));
-        
-        // ✅ CORRECTION: Récupérer TOUTES les leçons de TOUS les modules
-        const allLessons = data.modules.flatMap((module) =>
-          module.lessons.map(lesson => ({
-            ...lesson,
-            moduleId: module.id,
-            moduleOrderIndex: module.orderIndex
-          }))
-        );
-
-        // ✅ Filtrer les leçons avec vidéo et trier correctement
-        const lessonsWithVideo = allLessons
-          .filter((lesson) => lesson.videoUrl && lesson.videoUrl.trim() !== '')
-          .sort((a, b) => {
-            // Trier d'abord par module, puis par leçon
-            if (a.moduleOrderIndex !== b.moduleOrderIndex) {
-              return a.moduleOrderIndex - b.moduleOrderIndex;
-            }
-            return a.orderIndex - b.orderIndex;
-          });
-
-        // ✅ Sélectionner la première leçon avec vidéo
-        if (lessonsWithVideo.length > 0) {
-          setSelectedLessonId(lessonsWithVideo[0].id);
-        }
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      if (!courseId) {
+        console.log(" Pas d'ID de cours fourni");
+        return;
       }
-    } catch (err) {
-      console.error("❌ Composant: Erreur lors du chargement:", err);
-      setError("Impossible de charger les détails du cours");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  fetchCourseDetails();
-}, [courseId]);
+      console.log(`🔄 Composant: Chargement du cours ${courseId}`);
+
+      try {
+        setLoading(true);
+        const data = await CoursesApi.getCourseDetails(courseId);
+        console.log("✅ Composant: Données reçues:", data);
+
+        setCourseData(data);
+
+        const courseIsFree =
+          data.course.price === 0 || data.course.isFree === true;
+        setIsFree(courseIsFree);
+
+        if (data.modules && data.modules.length > 0) {
+          // ✅ Ouvrir le premier module par défaut
+          setExpandedModules(new Set([data.modules[0].id]));
+
+          // ✅ CORRECTION: Récupérer TOUTES les leçons de TOUS les modules
+          const allLessons = data.modules.flatMap((module) =>
+            module.lessons.map((lesson) => ({
+              ...lesson,
+              moduleId: module.id,
+              moduleOrderIndex: module.orderIndex,
+            })),
+          );
+
+          // ✅ Filtrer les leçons avec vidéo et trier correctement
+          const lessonsWithVideo = allLessons
+            .filter(
+              (lesson) => lesson.videoUrl && lesson.videoUrl.trim() !== "",
+            )
+            .sort((a, b) => {
+              // Trier d'abord par module, puis par leçon
+              if (a.moduleOrderIndex !== b.moduleOrderIndex) {
+                return a.moduleOrderIndex - b.moduleOrderIndex;
+              }
+              return a.orderIndex - b.orderIndex;
+            });
+
+          // ✅ Sélectionner la première leçon avec vidéo
+          if (lessonsWithVideo.length > 0) {
+            setSelectedLessonId(lessonsWithVideo[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("❌ Composant: Erreur lors du chargement:", err);
+        setError("Impossible de charger les détails du cours");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourseDetails();
+  }, [courseId]);
 
   // Vérifier le statut d'inscription au chargement et quand l'utilisateur change
   useEffect(() => {
@@ -198,7 +209,9 @@ useEffect(() => {
       }
 
       if (!user?.id || !courseId) {
-        console.log("ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription");
+        console.log(
+          "ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription",
+        );
         setIsEnrolled(false);
         setIsPaid(false);
         setEnrollmentCheckComplete(true);
@@ -290,7 +303,10 @@ useEffect(() => {
           // Vérifier si c'est une erreur "not enrolled"
           try {
             const errorData = await response.json();
-            if (errorData.message && errorData.message.includes("not enrolled")) {
+            if (
+              errorData.message &&
+              errorData.message.includes("not enrolled")
+            ) {
               console.log("ℹ️ Utilisateur non inscrit, progression vide");
               setLessonProgress({});
               setIsEnrolled(false);
@@ -365,7 +381,12 @@ useEffect(() => {
         const allLessonsCompleted = moduleLessons.every(
           (lesson) => lessonProgress[lesson.id],
         );
-        return allLessonsCompleted && moduleLessons.length > 0 && moduleQuizzes[module.id] === undefined && !checkingQuizzes.has(module.id);
+        return (
+          allLessonsCompleted &&
+          moduleLessons.length > 0 &&
+          moduleQuizzes[module.id] === undefined &&
+          !checkingQuizzes.has(module.id)
+        );
       });
 
       for (const module of modulesToCheck) {
@@ -428,7 +449,7 @@ useEffect(() => {
       if (result.status === "DUPLICATE") {
         // L'inscription existe déjà (ou a été créée entre-temps)
         console.log("⚠️ Inscription duplicate, vérification de l'état...");
-        
+
         // Vérifier si l'utilisateur est maintenant inscrit
         const checkResult = await CoursesApi.checkEnrollmentStatus(courseId);
         if (checkResult) {
@@ -445,10 +466,10 @@ useEffect(() => {
         }
       }
 
-      if (result && 'payment_url' in result && result.payment_url) {
+      if (result && "payment_url" in result && result.payment_url) {
         // 🔄 Redirection vers le paiement (cours payant)
         console.log("💳 Redirection vers le paiement:", result.payment_url);
-        Cookies.set('pendingCourseId', courseId, { expires: 1 });
+        Cookies.set("pendingCourseId", courseId, { expires: 1 });
         window.location.href = result.payment_url;
       } else if (result && result.course && result.status === "ACTIVE") {
         // ✅ Inscription réussie (cours gratuit)
@@ -471,10 +492,17 @@ useEffect(() => {
       console.error("❌ Erreur lors du suivi du cours:", error);
 
       // ✅ Vérifier si l'erreur est due à une duplication
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes("409") || errorMessage.includes("duplicate") || errorMessage.includes("already enrolled")) {
-        console.log("⚠️ Inscription duplicate détectée, vérification de l'état...");
-        
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (
+        errorMessage.includes("409") ||
+        errorMessage.includes("duplicate") ||
+        errorMessage.includes("already enrolled")
+      ) {
+        console.log(
+          "⚠️ Inscription duplicate détectée, vérification de l'état...",
+        );
+
         // Vérifier si l'utilisateur est maintenant inscrit
         const checkResult = await CoursesApi.checkEnrollmentStatus(courseId);
         if (checkResult) {
@@ -498,8 +526,12 @@ useEffect(() => {
         displayMessage = "Accès refusé. Vérifiez vos permissions.";
       } else if (errorMessage.includes("500")) {
         displayMessage = "Erreur serveur. Veuillez réessayer plus tard.";
-      } else if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
-        displayMessage = "Erreur de connexion. Vérifiez votre connexion internet.";
+      } else if (
+        errorMessage.includes("network") ||
+        errorMessage.includes("fetch")
+      ) {
+        displayMessage =
+          "Erreur de connexion. Vérifiez votre connexion internet.";
       }
 
       Swal.fire({
@@ -515,9 +547,13 @@ useEffect(() => {
   };
 
   // Vérifier s'il y a un paiement en cours pour ce cours
-  const checkPendingPayment = async (courseId: string): Promise<string | null> => {
+  const checkPendingPayment = async (
+    courseId: string,
+  ): Promise<string | null> => {
     try {
-      console.log(`🔍 Vérification paiement en cours pour le cours ${courseId}`);
+      console.log(
+        `🔍 Vérification paiement en cours pour le cours ${courseId}`,
+      );
       // Cette fonction pourrait appeler une API dédiée si nécessaire
       // Pour l'instant, on s'appuie sur la logique backend
       return null; // Le backend gère cette logique
@@ -588,7 +624,6 @@ useEffect(() => {
     }
   };
 
-
   const modules = courseData?.modules || [];
   const course = courseData?.course;
 
@@ -601,11 +636,9 @@ useEffect(() => {
           ...lesson,
           moduleId: module.id,
           moduleOrderIndex: module.orderIndex,
-        }))
+        })),
       )
-      .filter(
-        (lesson) => lesson.videoUrl && lesson.videoUrl.trim() !== ""
-      )
+      .filter((lesson) => lesson.videoUrl && lesson.videoUrl.trim() !== "")
       .sort((a, b) => {
         if (a.moduleOrderIndex !== b.moduleOrderIndex) {
           return a.moduleOrderIndex - b.moduleOrderIndex;
@@ -651,10 +684,12 @@ useEffect(() => {
       return false; // Already checking
     }
 
-    setCheckingQuizzes(prev => new Set(prev).add(moduleId));
+    setCheckingQuizzes((prev) => new Set(prev).add(moduleId));
 
     try {
-      console.log(`🔍 Vérification de l'existence du quiz pour le module: ${moduleId}`);
+      console.log(
+        `🔍 Vérification de l'existence du quiz pour le module: ${moduleId}`,
+      );
       const response = await fetch(
         buildApiUrl(`course/quiz/module/${moduleId}/questions`),
         {
@@ -667,20 +702,27 @@ useEffect(() => {
         const data = await response.json();
         // Vérifier si le quiz existe réellement (pas null)
         const exists = data.quiz !== null && data.quiz !== undefined;
-        setModuleQuizzes(prev => ({ ...prev, [moduleId]: exists }));
-        console.log(`✅ Quiz ${exists ? 'existe' : 'n\'existe pas'} pour le module ${moduleId}`);
+        setModuleQuizzes((prev) => ({ ...prev, [moduleId]: exists }));
+        console.log(
+          `✅ Quiz ${exists ? "existe" : "n'existe pas"} pour le module ${moduleId}`,
+        );
         return exists;
       } else {
-        setModuleQuizzes(prev => ({ ...prev, [moduleId]: false }));
-        console.log(`❌ Quiz n'existe pas pour le module ${moduleId} (réponse non-ok)`);
+        setModuleQuizzes((prev) => ({ ...prev, [moduleId]: false }));
+        console.log(
+          `❌ Quiz n'existe pas pour le module ${moduleId} (réponse non-ok)`,
+        );
         return false;
       }
     } catch (error) {
-      console.error(`❌ Erreur lors de la vérification du quiz pour le module ${moduleId}:`, error);
-      setModuleQuizzes(prev => ({ ...prev, [moduleId]: false }));
+      console.error(
+        `❌ Erreur lors de la vérification du quiz pour le module ${moduleId}:`,
+        error,
+      );
+      setModuleQuizzes((prev) => ({ ...prev, [moduleId]: false }));
       return false;
     } finally {
-      setCheckingQuizzes(prev => {
+      setCheckingQuizzes((prev) => {
         const newSet = new Set(prev);
         newSet.delete(moduleId);
         return newSet;
@@ -724,7 +766,9 @@ useEffect(() => {
   // ✅ Gestion du clic sur la vidéo pour cours gratuit non inscrit
   const handleVideoClick = async () => {
     if (isFree && isEnrolled === false && !enrolling) {
-      console.log("🖱️ Clic sur vidéo pour cours gratuit - déclenchement de l'inscription");
+      console.log(
+        "🖱️ Clic sur vidéo pour cours gratuit - déclenchement de l'inscription",
+      );
       await handleEnrollClick();
     }
   };
@@ -966,7 +1010,7 @@ useEffect(() => {
             className={`${hasVideoContent ? "lg:col-span-2" : ""} space-y-4 lg:space-y-6`}
           >
             {hasVideo && hasVideoContent && (
-              <div 
+              <div
                 className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg cursor-pointer"
                 onClick={handleVideoClick}
               >
@@ -1001,7 +1045,8 @@ useEffect(() => {
                         Commencer le visionnage
                       </h3>
                       <p className="text-white/70 mb-6 text-sm lg:text-base">
-                        Ce cours est gratuit. Cliquez pour commencer à apprendre !
+                        Ce cours est gratuit. Cliquez pour commencer à apprendre
+                        !
                       </p>
                       <button
                         onClick={(e) => {
@@ -1029,7 +1074,7 @@ useEffect(() => {
                     <LockedVideoOverlay onUnlockClick={handleEnrollClick} />
                   )}
                 </div>
-                
+
                 {/* ✅ Overlay pour indiquer que c'est cliquable */}
                 {isFree && isEnrolled === false && !enrolling && (
                   <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -1379,7 +1424,11 @@ useEffect(() => {
                                                       );
                                                       const response =
                                                         await fetch(
-                                                          buildApiUrl(API_ENDPOINTS.LESSONS.COMPLETE(lesson.id)),
+                                                          buildApiUrl(
+                                                            API_ENDPOINTS.LESSONS.COMPLETE(
+                                                              lesson.id,
+                                                            ),
+                                                          ),
                                                           {
                                                             method: "POST",
                                                             credentials:
@@ -1403,7 +1452,11 @@ useEffect(() => {
                                                       );
                                                       const response =
                                                         await fetch(
-                                                          buildApiUrl(API_ENDPOINTS.LESSONS.UNCOMPLETE(lesson.id)),
+                                                          buildApiUrl(
+                                                            API_ENDPOINTS.LESSONS.UNCOMPLETE(
+                                                              lesson.id,
+                                                            ),
+                                                          ),
                                                           {
                                                             method: "POST",
                                                             credentials:
@@ -1487,9 +1540,12 @@ useEffect(() => {
                                 (lesson) => isLessonCompleted(lesson.id),
                               );
                               const quizExists = moduleQuizzes[module.id];
-                              const isCheckingQuiz = checkingQuizzes.has(module.id);
+                              const isCheckingQuiz = checkingQuizzes.has(
+                                module.id,
+                              );
 
-                              return (isEnrolled === true || isFree) && allLessonsCompleted ? (
+                              return (isEnrolled === true || isFree) &&
+                                allLessonsCompleted ? (
                                 <div className="mt-3 mx-2 p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 border-2 border-emerald-200 rounded-xl shadow-sm">
                                   <div className="flex items-center gap-3">
                                     {/* Badge avec icône CheckCircle */}
@@ -1517,7 +1573,9 @@ useEffect(() => {
                                         disabled={isCheckingQuiz}
                                         className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                                       >
-                                        {isCheckingQuiz ? "Vérification..." : TEXTS.QUIZ_BUTTON}
+                                        {isCheckingQuiz
+                                          ? "Vérification..."
+                                          : TEXTS.QUIZ_BUTTON}
                                       </button>
                                     )}
                                   </div>
@@ -1557,7 +1615,6 @@ useEffect(() => {
           )}
         </div>
       </main>
-
 
       {/* Modal d'inscription retiré - causait des boucles d'affichage */}
 

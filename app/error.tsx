@@ -101,13 +101,15 @@ export default function Error({ error, reset }: ErrorProps) {
           {/* Messages */}
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-               Maintenance en cours
+              Maintenance en cours
             </h1>
             <p className="text-lg md:text-xl text-gray-600 mb-6">
               Nous améliorons votre expérience d&apos;apprentissage
             </p>
             <div className="text-gray-500 space-y-2 max-w-2xl mx-auto">
-              <p>Notre équipe technique travaille actuellement sur la plateforme</p>
+              <p>
+                Notre équipe technique travaille actuellement sur la plateforme
+              </p>
               <p>Nous ajoutons de nouvelles fonctionnalités pour vous</p>
               <p>Le service sera rétabli dans les plus brefs délais</p>
               <p>Merci pour votre patience et votre compréhension</p>
@@ -155,7 +157,9 @@ export default function Error({ error, reset }: ErrorProps) {
                   </h3>
                 </div>
               </div>
-              <p className="text-gray-600 mb-2">Vérification automatique en cours...</p>
+              <p className="text-gray-600 mb-2">
+                Vérification automatique en cours...
+              </p>
               <p className="text-indigo-600 font-medium">
                 Prochaine tentative dans {countdown}s
               </p>
@@ -205,9 +209,10 @@ export default function Error({ error, reset }: ErrorProps) {
             className={`
               group relative flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-white
               transition-all duration-300
-              ${isRetrying 
-                ? "bg-blue-400 cursor-not-allowed" 
-                : "bg-blue-600 hover:bg-blue-700 hover:scale-105 hover:shadow-xl"
+              ${
+                isRetrying
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 hover:scale-105 hover:shadow-xl"
               }
             `}
           >
@@ -218,7 +223,9 @@ export default function Error({ error, reset }: ErrorProps) {
               </>
             ) : (
               <>
-                <RefreshCw className={`w-5 h-5 ${isHovered ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`w-5 h-5 ${isHovered ? "animate-spin" : ""}`}
+                />
                 <span>Réessayer la connexion</span>
               </>
             )}
@@ -234,7 +241,7 @@ export default function Error({ error, reset }: ErrorProps) {
             <span>Reconnexion automatique dans: {countdown}s</span>
           </div>
           <div className="w-full max-w-md h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-blue-600 transition-all duration-1000 ease-linear"
               style={{ width: `${((30 - countdown) / 30) * 100}%` }}
             />
@@ -249,25 +256,36 @@ export default function Error({ error, reset }: ErrorProps) {
             {/* Logo */}
             <div className="flex items-center gap-2">
               <Globe className="w-6 h-6 text-blue-600" />
-              <span className="text-gray-900 font-semibold">Bibocom Digital</span>
+              <span className="text-gray-900 font-semibold">
+                Bibocom Digital
+              </span>
             </div>
-            
+
             {/* Copyright */}
             <p className="text-sm text-gray-500">
               © 2026 Bibocom Digital - Plateforme d&apos;e-learning
             </p>
-            
+
             {/* Links */}
             <div className="flex items-center gap-6 text-sm">
-              <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1">
+              <a
+                href="#"
+                className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1"
+              >
                 <Signal className="w-4 h-4" />
                 Statut
               </a>
-              <a href="/contact" className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1">
+              <a
+                href="/contact"
+                className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1"
+              >
                 <Headphones className="w-4 h-4" />
                 Support
               </a>
-              <a href="/faq" className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1">
+              <a
+                href="/faq"
+                className="text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1"
+              >
                 <Info className="w-4 h-4" />
                 FAQ
               </a>
@@ -278,4 +296,3 @@ export default function Error({ error, reset }: ErrorProps) {
     </div>
   );
 }
-

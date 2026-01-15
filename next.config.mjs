@@ -35,8 +35,8 @@ const nextConfig = {
   },
 
   // ✅ Recommandé pour Vercel
-  output: 'standalone', // Optimise le bundle pour production
-  
+  output: "standalone", // Optimise le bundle pour production
+
   // ✅ Compression automatique
   compress: true,
 
@@ -52,9 +52,10 @@ const nextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: process.env.NODE_ENV === 'production' 
-              ? "https://bibocom-api.cloud" // Sécurisez en prod
-              : "*", // Permissif en dev
+            value:
+              process.env.NODE_ENV === "production"
+                ? "https://bibocom-api.cloud" // Sécurisez en prod
+                : "*", // Permissif en dev
           },
           {
             key: "Access-Control-Allow-Methods",

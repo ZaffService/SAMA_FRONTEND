@@ -49,7 +49,7 @@ export class QuizUseCases {
     } catch (error) {
       // Re-throw COURSE_NOT_ENROLLED error for UI handling - check error.code
       const apiError = error as any;
-      if (apiError && apiError.code === 'COURSE_NOT_ENROLLED') {
+      if (apiError && apiError.code === "COURSE_NOT_ENROLLED") {
         throw error;
       }
       throw error;

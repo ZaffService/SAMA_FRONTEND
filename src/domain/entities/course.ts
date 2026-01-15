@@ -95,7 +95,10 @@ export function transformApiCourse(apiCourse: any): Course {
       apiCourse._category?._name ||
       apiCourse.category ||
       "Non catégorisé",
-    categoryId: apiCourse.categoryId || apiCourse._category?.id || apiCourse._category?._id,
+    categoryId:
+      apiCourse.categoryId ||
+      apiCourse._category?.id ||
+      apiCourse._category?._id,
     thumbnailUrl:
       apiCourse.thumbnailUrl || apiCourse._thumbnailUrl || "/placeholder.jpg",
     thumbnail:

@@ -20,12 +20,15 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     return module.id || module.tempId || `module-${index}`;
   };
 
-  const getLessonKey = (lesson: { id?: string; tempId?: string }, index: number): string => {
+  const getLessonKey = (
+    lesson: { id?: string; tempId?: string },
+    index: number,
+  ): string => {
     return lesson.id || lesson.tempId || `lesson-${index}`;
   };
 
   const addQuestionToQuiz = (moduleKey: string, quizIndex: number) => {
-    const updatedModules = modules.map(module => {
+    const updatedModules = modules.map((module) => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
@@ -36,16 +39,16 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                   questions: [
                     ...quiz.questions,
                     {
-                      question: '',
-                      questionType: 'MULTIPLE_CHOICE' as const,
-                      options: ['', '', '', ''],
-                      correctAnswer: '',
-                      points: 10
-                    }
-                  ]
+                      question: "",
+                      questionType: "MULTIPLE_CHOICE" as const,
+                      options: ["", "", "", ""],
+                      correctAnswer: "",
+                      points: 10,
+                    },
+                  ],
                 }
-              : quiz
-          )
+              : quiz,
+          ),
         };
       }
       return module;
@@ -53,8 +56,12 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-  const removeQuestion = (moduleKey: string, quizIndex: number, qIndex: number) => {
-    const updatedModules = modules.map(module => {
+  const removeQuestion = (
+    moduleKey: string,
+    quizIndex: number,
+    qIndex: number,
+  ) => {
+    const updatedModules = modules.map((module) => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
@@ -62,10 +69,10 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
             index === quizIndex
               ? {
                   ...quiz,
-                  questions: quiz.questions.filter((_, idx) => idx !== qIndex)
+                  questions: quiz.questions.filter((_, idx) => idx !== qIndex),
                 }
-              : quiz
-          )
+              : quiz,
+          ),
         };
       }
       return module;
@@ -73,8 +80,14 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-  const updateQuestion = (moduleKey: string, quizIndex: number, qIndex: number, field: string, value: any) => {
-    const updatedModules = modules.map(module => {
+  const updateQuestion = (
+    moduleKey: string,
+    quizIndex: number,
+    qIndex: number,
+    field: string,
+    value: any,
+  ) => {
+    const updatedModules = modules.map((module) => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleKey) {
         return {
           ...module,
@@ -83,11 +96,11 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
               ? {
                   ...quiz,
                   questions: quiz.questions.map((question, idx) =>
-                    idx === qIndex ? { ...question, [field]: value } : question
-                  )
+                    idx === qIndex ? { ...question, [field]: value } : question,
+                  ),
                 }
-              : quiz
-          )
+              : quiz,
+          ),
         };
       }
       return module;
@@ -96,25 +109,25 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
   };
 
   const addQuizToModule = (moduleId: string) => {
-    const updatedModules = modules.map(module => {
+    const updatedModules = modules.map((module) => {
       if (getModuleKey(module, modules.indexOf(module)) === moduleId) {
         const newQuiz: Quiz = {
           title: `Quiz pour ${module.title}`,
-          description: '',
+          description: "",
           passingScore: 70,
           questions: [
             {
-              question: '',
-              questionType: 'MULTIPLE_CHOICE',
-              options: ['', '', '', ''],
-              correctAnswer: '',
-              points: 10
-            }
-          ]
+              question: "",
+              questionType: "MULTIPLE_CHOICE",
+              options: ["", "", "", ""],
+              correctAnswer: "",
+              points: 10,
+            },
+          ],
         };
         return {
           ...module,
-          quizzes: [...(module.quizzes || []), newQuiz]
+          quizzes: [...(module.quizzes || []), newQuiz],
         };
       }
       return module;
@@ -122,13 +135,13 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
     onQuizzesChange(updatedModules);
   };
 
-
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-lg font-semibold mb-2">Gestion des Quiz</h3>
         <p className="text-gray-600">
-          Créez des quiz d&apos;évaluation pour tester les connaissances des étudiants.
+          Créez des quiz d&apos;évaluation pour tester les connaissances des
+          étudiants.
         </p>
       </div>
 
@@ -138,7 +151,9 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
             <CardTitle className="flex items-center justify-between">
               <span>{module.title}</span>
               <Button
-                onClick={() => addQuizToModule(getModuleKey(module, moduleIndex))}
+                onClick={() =>
+                  addQuizToModule(getModuleKey(module, moduleIndex))
+                }
                 size="sm"
                 variant="outline"
               >
@@ -150,7 +165,10 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
           <CardContent>
             {/* Lessons */}
             {module.lessons.map((lesson, lessonIndex) => (
-              <div key={getLessonKey(lesson, lessonIndex)} className="mb-4 p-4 border rounded-lg">
+              <div
+                key={getLessonKey(lesson, lessonIndex)}
+                className="mb-4 p-4 border rounded-lg"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium">{lesson.title}</h4>
                 </div>
@@ -160,7 +178,9 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
             {/* Quizzes */}
             {module.quizzes && module.quizzes.length > 0 && (
               <div className="mt-6 p-4 bg-purple-50 border rounded-lg">
-                <h4 className="font-medium text-purple-900 mb-4">Quiz du module</h4>
+                <h4 className="font-medium text-purple-900 mb-4">
+                  Quiz du module
+                </h4>
                 {module.quizzes.map((quiz, quizIndex) => (
                   <div key={quizIndex} className="space-y-4">
                     <div>
@@ -170,13 +190,18 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                       <Input
                         value={quiz.title}
                         onChange={(e) => {
-                          const updatedModules = modules.map(m => {
-                            if (getModuleKey(m, modules.indexOf(m)) === getModuleKey(module, moduleIndex)) {
+                          const updatedModules = modules.map((m) => {
+                            if (
+                              getModuleKey(m, modules.indexOf(m)) ===
+                              getModuleKey(module, moduleIndex)
+                            ) {
                               return {
                                 ...m,
                                 quizzes: m.quizzes?.map((q, idx) =>
-                                  idx === quizIndex ? { ...q, title: e.target.value } : q
-                                )
+                                  idx === quizIndex
+                                    ? { ...q, title: e.target.value }
+                                    : q,
+                                ),
                               };
                             }
                             return m;
@@ -191,7 +216,12 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                       <div className="flex items-center justify-between mb-2">
                         <h5 className="font-medium">Questions</h5>
                         <Button
-                          onClick={() => addQuestionToQuiz(getModuleKey(module, moduleIndex), quizIndex)}
+                          onClick={() =>
+                            addQuestionToQuiz(
+                              getModuleKey(module, moduleIndex),
+                              quizIndex,
+                            )
+                          }
                           size="sm"
                           variant="outline"
                         >
@@ -204,9 +234,17 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                         <Card key={qIndex} className="mb-4">
                           <CardContent className="pt-4">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">Question {qIndex + 1}</span>
+                              <span className="font-medium">
+                                Question {qIndex + 1}
+                              </span>
                               <Button
-                                onClick={() => removeQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex)}
+                                onClick={() =>
+                                  removeQuestion(
+                                    getModuleKey(module, moduleIndex),
+                                    quizIndex,
+                                    qIndex,
+                                  )
+                                }
                                 size="sm"
                                 variant="destructive"
                               >
@@ -216,13 +254,23 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
 
                             <Textarea
                               value={question.question}
-                              onChange={(e) => updateQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex, 'question', e.target.value)}
+                              onChange={(e) =>
+                                updateQuestion(
+                                  getModuleKey(module, moduleIndex),
+                                  quizIndex,
+                                  qIndex,
+                                  "question",
+                                  e.target.value,
+                                )
+                              }
                               placeholder="Entrez la question"
                               className="mb-2"
                             />
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium">Options</label>
+                              <label className="block text-sm font-medium">
+                                Options
+                              </label>
                               {question.options.map((option, oIndex) => (
                                 <Input
                                   key={oIndex}
@@ -230,7 +278,13 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                                   onChange={(e) => {
                                     const newOptions = [...question.options];
                                     newOptions[oIndex] = e.target.value;
-                                    updateQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex, 'options', newOptions);
+                                    updateQuestion(
+                                      getModuleKey(module, moduleIndex),
+                                      quizIndex,
+                                      qIndex,
+                                      "options",
+                                      newOptions,
+                                    );
                                   }}
                                   placeholder={`Option ${oIndex + 1}`}
                                 />
@@ -243,10 +297,20 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                               </label>
                               <select
                                 value={question.correctAnswer}
-                                onChange={(e) => updateQuestion(getModuleKey(module, moduleIndex), quizIndex, qIndex, 'correctAnswer', e.target.value)}
+                                onChange={(e) =>
+                                  updateQuestion(
+                                    getModuleKey(module, moduleIndex),
+                                    quizIndex,
+                                    qIndex,
+                                    "correctAnswer",
+                                    e.target.value,
+                                  )
+                                }
                                 className="w-full p-2 border rounded"
                               >
-                                <option value="">Sélectionnez la réponse correcte</option>
+                                <option value="">
+                                  Sélectionnez la réponse correcte
+                                </option>
                                 {question.options.map((option, oIndex) => (
                                   <option key={oIndex} value={option}>
                                     {option || `Option ${oIndex + 1}`}

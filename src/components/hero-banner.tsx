@@ -336,11 +336,7 @@ export const HeroBanner = () => {
               <Button
                 size="lg"
                 className="group bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-lg font-bold rounded-xl transition-all hover:scale-105"
-                onClick={() =>
-                  document
-                    .getElementById("formations-section")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
+                onClick={() => window.location.href = "/register"}
               >
                 Commencer maintenant
                 <svg

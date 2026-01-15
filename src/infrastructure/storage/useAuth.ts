@@ -22,19 +22,24 @@ export function useProvideAuth(): AuthContextType {
   );
 
   useEffect(() => {
-    console.log('🎬 [useAuth] useEffect déclenché - App montée');
+    console.log("🎬 [useAuth] useEffect déclenché - App montée");
 
     const initAuth = async () => {
-      console.log('🔄 [useAuth] Début initAuth()');
+      console.log("🔄 [useAuth] Début initAuth()");
       setIsLoading(true);
 
       try {
-        console.log('🔄 [useAuth] Appel AuthApi.validateSession()...');
+        console.log("🔄 [useAuth] Appel AuthApi.validateSession()...");
         const currentUser = await AuthApi.validateSession();
-        console.log('🔄 [useAuth] Résultat validateSession:', currentUser);
+        console.log("🔄 [useAuth] Résultat validateSession:", currentUser);
 
         if (currentUser && currentUser.id && currentUser.email) {
-          console.log('✅ [useAuth] User trouvé:', currentUser.email, 'Role:', currentUser.role);
+          console.log(
+            "✅ [useAuth] User trouvé:",
+            currentUser.email,
+            "Role:",
+            currentUser.role,
+          );
           const mappedUser: User = {
             id: currentUser.id,
             email: currentUser.email,
@@ -50,16 +55,16 @@ export function useProvideAuth(): AuthContextType {
           setUser(mappedUser);
           setIsAuthenticated(true);
         } else {
-          console.log('❌ [useAuth] Aucun user trouvé (session invalide)');
+          console.log("❌ [useAuth] Aucun user trouvé (session invalide)");
           setUser(null);
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('❌ [useAuth] Erreur initAuth:', error);
+        console.error("❌ [useAuth] Erreur initAuth:", error);
         setUser(null);
         setIsAuthenticated(false);
       } finally {
-        console.log('🔄 [useAuth] Fin initAuth, isLoading = false');
+        console.log("🔄 [useAuth] Fin initAuth, isLoading = false");
         setIsLoading(false);
       }
     };

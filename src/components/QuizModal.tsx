@@ -77,9 +77,7 @@ export function QuizModal({
       setTimeLeft(null);
     } catch (error) {
       console.error("Erreur lors du chargement du quiz:", error);
-      setError(
-        "Aucun quiz disponible pour ce module.",
-      );
+      setError("Aucun quiz disponible pour ce module.");
     } finally {
       setLoading(false);
     }
@@ -283,7 +281,8 @@ export function QuizModal({
                     </span>
                     <span className="text-blue-600 font-medium">
                       {Math.round(
-                        ((currentQuestionIndex + 1) / quizData.questions.length) *
+                        ((currentQuestionIndex + 1) /
+                          quizData.questions.length) *
                           100,
                       )}
                       %
@@ -324,10 +323,11 @@ export function QuizModal({
             {/* Progress counter - Mobile */}
             <div className="px-4 py-2 sm:hidden">
               <div className="text-xs text-gray-500 text-center">
-                {Object.keys(answers).length} / {quizData.questions.length} répondues
+                {Object.keys(answers).length} / {quizData.questions.length}{" "}
+                répondues
               </div>
             </div>
-            
+
             {/* Footer buttons */}
             <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
               <button
@@ -340,7 +340,8 @@ export function QuizModal({
 
               {/* Progress counter - Desktop */}
               <div className="hidden sm:block text-xs sm:text-sm text-gray-500">
-                {Object.keys(answers).length} / {quizData.questions.length} répondues
+                {Object.keys(answers).length} / {quizData.questions.length}{" "}
+                répondues
               </div>
 
               {isLastQuestion ? (

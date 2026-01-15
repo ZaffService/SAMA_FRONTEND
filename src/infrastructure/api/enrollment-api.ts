@@ -55,7 +55,9 @@ export class EnrollmentApi {
       );
 
       const response = await fetch(
-        buildApiUrl(`${API_ENDPOINTS.COURSES.ENROLLED}?page=${page}&limit=${limit}`),
+        buildApiUrl(
+          `${API_ENDPOINTS.COURSES.ENROLLED}?page=${page}&limit=${limit}`,
+        ),
         {
           method: "GET",
           headers: {
@@ -72,7 +74,7 @@ export class EnrollmentApi {
 
       const data = await response.json();
       console.log(`✅ [ENROLLMENT-API] ${data.total} cours récupérés`);
-      
+
       // DEBUG: Afficher les données brutes pour diagnostiquer la catégorisation
       console.log(
         "🔍 [ENROLLMENT-API] Données brutes:",
@@ -84,7 +86,7 @@ export class EnrollmentApi {
         // Extraire la catégorie du backend avec différents formats possibles
         // Si pas de catégorie du backend, laisser undefined pour que le fallback fonctionne
         let category: string | undefined;
-        
+
         if (course._category?.name) {
           category = course._category.name;
         } else if (course._category?._name) {
@@ -94,15 +96,17 @@ export class EnrollmentApi {
         } else if (course.category) {
           category = course.category;
         }
-        
+
         // Utiliser le niveau du backend
-        let level = course._level || course.level || 'BEGINNER';
-        
+        let level = course._level || course.level || "BEGINNER";
+
         // Utiliser la durée du backend
         let duration = course._duration || course.duration;
-        
-        console.log(`📚 [ENROLLMENT-API] Cours "${course.title || course._title}" -> Catégorie backend: ${category || 'AUCUNE'}`);
-        
+
+        console.log(
+          `📚 [ENROLLMENT-API] Cours "${course.title || course._title}" -> Catégorie backend: ${category || "AUCUNE"}`,
+        );
+
         return {
           ...course,
           category,
@@ -133,17 +137,20 @@ export class EnrollmentApi {
         `📤 [ENROLLMENT-API] Mise à jour progression ${enrollmentId}: ${progressPercentage}%`,
       );
 
-      const response = await fetch(buildApiUrl(`${API_ENDPOINTS.COURSES.PROGRESS(enrollmentId)}`), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        buildApiUrl(`${API_ENDPOINTS.COURSES.PROGRESS(enrollmentId)}`),
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            enrollmentId,
+            progressPercentage,
+          }),
         },
-        credentials: "include",
-        body: JSON.stringify({
-          enrollmentId,
-          progressPercentage,
-        }),
-      });
+      );
 
       if (!response.ok) {
         console.error("❌ [ENROLLMENT-API] Erreur:", response.status);

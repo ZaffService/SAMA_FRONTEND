@@ -26,8 +26,8 @@ export class CategoriesApi {
     console.log("🔍 API getCategories - Données brutes:", data);
 
     // Gérer différents formats de réponse
-    const categories = Array.isArray(data) 
-      ? data 
+    const categories = Array.isArray(data)
+      ? data
       : data.categories || data.data || [];
 
     // Mapper les catégories pour assurer une structure cohérente

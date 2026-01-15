@@ -35,7 +35,11 @@ const StudentDashboard = () => {
   const recentActivities =
     courses?.enrolled_courses?.slice(0, 5).map((course, index) => {
       console.log("🎨 [Dashboard UI] Cours à afficher:", course);
-      console.log("🎨 [Dashboard UI] Progression:", course.progressPercentage, course.progress);
+      console.log(
+        "🎨 [Dashboard UI] Progression:",
+        course.progressPercentage,
+        course.progress,
+      );
 
       return {
         id: course.id || index,

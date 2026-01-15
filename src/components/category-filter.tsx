@@ -17,7 +17,11 @@ const getCategoryIcon = (categoryName: string) => {
   if (name.includes("développement") || name.includes("web")) {
     return <Code className="w-5 h-5" />;
   }
-  if (name.includes("data") || name.includes("intelligence") || name.includes("ia")) {
+  if (
+    name.includes("data") ||
+    name.includes("intelligence") ||
+    name.includes("ia")
+  ) {
     return <Zap className="w-5 h-5" />;
   }
   if (name.includes("contenu") || name.includes("création")) {

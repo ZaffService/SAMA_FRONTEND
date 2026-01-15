@@ -2,7 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlayCircle, FileText, HelpCircle, Clock, Users, Star } from "lucide-react";
+import {
+  PlayCircle,
+  FileText,
+  HelpCircle,
+  Clock,
+  Users,
+  Star,
+} from "lucide-react";
 import { Module } from "@/domain/entities/module";
 
 interface CourseFormData {
@@ -10,7 +17,7 @@ interface CourseFormData {
   description: string;
   categoryId: string;
   category?: { id: string; name: string };
-  level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   price: number;
   modules: Module[];
   thumbnailUrl?: string;
@@ -23,37 +30,42 @@ interface CoursePreviewProps {
 }
 
 const levelLabels: Record<string, string> = {
-  BEGINNER: 'Débutant',
-  INTERMEDIATE: 'Intermédiaire',
-  ADVANCED: 'Avancé',
+  BEGINNER: "Débutant",
+  INTERMEDIATE: "Intermédiaire",
+  ADVANCED: "Avancé",
 };
 
 const levelColors: Record<string, string> = {
-  BEGINNER: 'bg-green-100 text-green-800',
-  INTERMEDIATE: 'bg-yellow-100 text-yellow-800',
-  ADVANCED: 'bg-red-100 text-red-800',
+  BEGINNER: "bg-green-100 text-green-800",
+  INTERMEDIATE: "bg-yellow-100 text-yellow-800",
+  ADVANCED: "bg-red-100 text-red-800",
 };
 
 export function CoursePreview({
   courseData,
   thumbnailUrl,
-  instructorName = 'Votre nom',
+  instructorName = "Votre nom",
 }: CoursePreviewProps) {
   const totalLessons = courseData.modules.reduce(
     (acc, module) => acc + module.lessons.length,
-    0
+    0,
   );
-  
+
   const totalQuizzes = courseData.modules.reduce(
     (acc, module) => acc + (module.quizzes?.length || 0),
-    0
+    0,
   );
 
   const totalQuestions = courseData.modules.reduce(
-    (acc, module) => acc + (module.quizzes?.reduce((qAcc, quiz) => qAcc + quiz.questions.length, 0) || 0),
-    0
+    (acc, module) =>
+      acc +
+      (module.quizzes?.reduce(
+        (qAcc, quiz) => qAcc + quiz.questions.length,
+        0,
+      ) || 0),
+    0,
   );
-  
+
   const totalDuration = courseData.modules.reduce((acc, module) => {
     return (
       acc +
@@ -118,10 +130,10 @@ export function CoursePreview({
           {/* Title & Category */}
           <div className="mb-4">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {courseData.title || 'Titre du cours'}
+              {courseData.title || "Titre du cours"}
             </h1>
             <p className="text-sm text-gray-500">
-              Catégorie: {courseData.category?.name || 'Non catégorisé'}
+              Catégorie: {courseData.category?.name || "Non catégorisé"}
             </p>
           </div>
 
@@ -178,7 +190,7 @@ export function CoursePreview({
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Description</h3>
             <p className="text-gray-600 text-sm whitespace-pre-wrap">
-              {courseData.description || 'Aucune description'}
+              {courseData.description || "Aucune description"}
             </p>
           </div>
 
@@ -188,7 +200,7 @@ export function CoursePreview({
               <span className="text-gray-600">Prix du cours</span>
               <span className="text-2xl font-bold text-gray-900">
                 {courseData.price === 0
-                  ? 'Gratuit'
+                  ? "Gratuit"
                   : `${courseData.price.toLocaleString()} XOF`}
               </span>
             </div>
@@ -203,7 +215,7 @@ export function CoursePreview({
             <span>Structure du cours</span>
             <Badge variant="secondary">
               {courseData.modules.length} module
-              {courseData.modules.length !== 1 ? 's' : ''}
+              {courseData.modules.length !== 1 ? "s" : ""}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -225,7 +237,9 @@ export function CoursePreview({
                         <h4 className="font-medium">{module.title}</h4>
                         <p className="text-sm text-gray-500">
                           {module.lessons.length} leçon(s)
-                          {module.quizzes && module.quizzes.length > 0 ? ` + ${module.quizzes.length} quiz` : ''}
+                          {module.quizzes && module.quizzes.length > 0
+                            ? ` + ${module.quizzes.length} quiz`
+                            : ""}
                         </p>
                       </div>
                     </div>
@@ -237,7 +251,9 @@ export function CoursePreview({
                   <div className="divide-y">
                     {module.lessons.map((lesson, lessonIndex) => (
                       <div
-                        key={lesson.id || lesson.tempId || `lesson-${lessonIndex}`}
+                        key={
+                          lesson.id || lesson.tempId || `lesson-${lessonIndex}`
+                        }
                         className="flex items-center justify-between p-4 hover:bg-gray-50"
                       >
                         <div className="flex items-center space-x-3">
@@ -273,7 +289,8 @@ export function CoursePreview({
                             {module.quizzes[0].title}
                           </p>
                           <p className="text-sm text-purple-700">
-                            {module.quizzes[0].questions.length} questions • Score de passage: {module.quizzes[0].passingScore}%
+                            {module.quizzes[0].questions.length} questions •
+                            Score de passage: {module.quizzes[0].passingScore}%
                           </p>
                         </div>
                       </div>
@@ -313,4 +330,3 @@ export function CoursePreview({
     </div>
   );
 }
-

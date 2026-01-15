@@ -5,7 +5,15 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { PaymentApi } from "@/infrastructure/api/payment-api";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import Swal from "sweetalert2";
-import { CheckCircle, XCircle, Loader2, ArrowLeft, RefreshCw, Home, MessageCircle } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Loader2,
+  ArrowLeft,
+  RefreshCw,
+  Home,
+  MessageCircle,
+} from "lucide-react";
 import Cookies from "js-cookie";
 import type { PaymentStatus, VerificationState } from "@/types/enrollment";
 
@@ -18,13 +26,13 @@ export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const [state, setState] = useState<VerificationState>({
-    status: 'VERIFYING',
+    status: "VERIFYING",
     attemptCount: 0,
     maxAttempts: MAX_ATTEMPTS,
     courseId: undefined,
-    error: undefined
+    error: undefined,
   });
 
   const token = searchParams.get("token");
@@ -43,78 +51,97 @@ export default function PaymentSuccessPage() {
   /**
    * Verify payment with backend
    */
-  const verifyPayment = useCallback(async (paymentToken: string): Promise<{
-    success: boolean;
-    status: string;
-    courseId?: string;
-    message?: string;
-  }> => {
-    try {
-      console.log(`🔍 [PaymentSuccess] Vérification paiement, tentative ${state.attemptCount + 1}/${MAX_ATTEMPTS}`);
-      
-      const result = await PaymentApi.verifyPayment(paymentToken);
-      
-      console.log("✅ [PaymentSuccess] Réponse vérification:", result);
-      
-      return {
-        success: result.status === "success",
-        status: result.status,
-        courseId: result.courseId,
-        message: result.message
-      };
-    } catch (error) {
-      console.error("❌ [PaymentSuccess] Erreur vérification:", error);
-      throw error;
-    }
-  }, [state.attemptCount]);
+  const verifyPayment = useCallback(
+    async (
+      paymentToken: string,
+    ): Promise<{
+      success: boolean;
+      status: string;
+      courseId?: string;
+      message?: string;
+    }> => {
+      try {
+        console.log(
+          `🔍 [PaymentSuccess] Vérification paiement, tentative ${state.attemptCount + 1}/${MAX_ATTEMPTS}`,
+        );
+
+        const result = await PaymentApi.verifyPayment(paymentToken);
+
+        console.log("✅ [PaymentSuccess] Réponse vérification:", result);
+
+        return {
+          success: result.status === "success",
+          status: result.status,
+          courseId: result.courseId,
+          message: result.message,
+        };
+      } catch (error) {
+        console.error("❌ [PaymentSuccess] Erreur vérification:", error);
+        throw error;
+      }
+    },
+    [state.attemptCount],
+  );
 
   /**
    * Check enrollment status directly
    */
-  const checkEnrollmentStatus = useCallback(async (courseId: string): Promise<boolean> => {
-    try {
-      const isEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
-      console.log(`📊 [PaymentSuccess] Statut inscription pour ${courseId}:`, isEnrolled);
-      return isEnrolled;
-    } catch (error) {
-      console.error("❌ [PaymentSuccess] Erreur vérification inscription:", error);
-      return false;
-    }
-  }, []);
+  const checkEnrollmentStatus = useCallback(
+    async (courseId: string): Promise<boolean> => {
+      try {
+        const isEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
+        console.log(
+          `📊 [PaymentSuccess] Statut inscription pour ${courseId}:`,
+          isEnrolled,
+        );
+        return isEnrolled;
+      } catch (error) {
+        console.error(
+          "❌ [PaymentSuccess] Erreur vérification inscription:",
+          error,
+        );
+        return false;
+      }
+    },
+    [],
+  );
 
   /**
    * Handle successful payment
    */
-  const handleSuccess = useCallback((courseId?: string) => {
-    console.log("✅ [PaymentSuccess] Paiement réussi!");
-    clearPendingEnrollment();
-    
-    setState(prev => ({
-      ...prev,
-      status: 'COMPLETED',
-      courseId: courseId || prev.courseId
-    }));
+  const handleSuccess = useCallback(
+    (courseId?: string) => {
+      console.log("✅ [PaymentSuccess] Paiement réussi!");
+      clearPendingEnrollment();
 
-    // Auto-redirect after delay
-    setTimeout(() => {
-      if (courseId) {
-        router.push(`/course-details/${courseId}`);
-      } else {
-        router.push("/mes-apprentissages");
-      }
-    }, AUTO_REDIRECT_DELAY);
-  }, [clearPendingEnrollment, router]);
+      setState((prev) => ({
+        ...prev,
+        status: "COMPLETED",
+        courseId: courseId || prev.courseId,
+      }));
+
+      // Auto-redirect after delay
+      setTimeout(() => {
+        if (courseId) {
+          router.push(`/course-details/${courseId}`);
+        } else {
+          router.push("/mes-apprentissages");
+        }
+      }, AUTO_REDIRECT_DELAY);
+    },
+    [clearPendingEnrollment, router],
+  );
 
   /**
    * Handle payment failure
    */
   const handleError = useCallback((errorMessage: string) => {
     console.error("❌ [PaymentSuccess] Erreur paiement:", errorMessage);
-    
-    setState(prev => ({
+
+    setState((prev) => ({
       ...prev,
-      status: 'ERROR',
-      error: errorMessage
+      status: "ERROR",
+      error: errorMessage,
     }));
   }, []);
 
@@ -123,10 +150,10 @@ export default function PaymentSuccessPage() {
    */
   const handleTimeout = useCallback(() => {
     console.log("⏰ [PaymentSuccess] Délai dépassé");
-    
-    setState(prev => ({
+
+    setState((prev) => ({
       ...prev,
-      status: 'TIMEOUT'
+      status: "TIMEOUT",
     }));
   }, []);
 
@@ -135,8 +162,15 @@ export default function PaymentSuccessPage() {
    */
   const verificationLoop = useCallback(async () => {
     // Check if we should stop
-    if (state.status === 'COMPLETED' || state.status === 'ERROR' || state.status === 'TIMEOUT') {
-      console.log("🛑 [PaymentSuccess] Arrêt du polling - statut:", state.status);
+    if (
+      state.status === "COMPLETED" ||
+      state.status === "ERROR" ||
+      state.status === "TIMEOUT"
+    ) {
+      console.log(
+        "🛑 [PaymentSuccess] Arrêt du polling - statut:",
+        state.status,
+      );
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -152,28 +186,31 @@ export default function PaymentSuccessPage() {
     }
 
     // Increment attempt count
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      attemptCount: prev.attemptCount + 1
+      attemptCount: prev.attemptCount + 1,
     }));
 
     try {
       // If we have a token, verify with backend
       if (token) {
         const result = await verifyPayment(token);
-        
+
         if (result.success) {
           handleSuccess(result.courseId);
-        } else if (result.status === 'pending' || result.status === 'processing') {
+        } else if (
+          result.status === "pending" ||
+          result.status === "processing"
+        ) {
           // Continue polling
           console.log("⏳ [PaymentSuccess] Paiement en attente...");
         } else {
           handleError(result.message || "Le paiement n'a pas pu être confirmé");
         }
-      } else if (statusParam === 'completed') {
+      } else if (statusParam === "completed") {
         // Payment completed via webhook (no token)
-        const pendingCourseId = Cookies.get("pendingEnrollment") 
-          ? JSON.parse(Cookies.get("pendingEnrollment")!).courseId 
+        const pendingCourseId = Cookies.get("pendingEnrollment")
+          ? JSON.parse(Cookies.get("pendingEnrollment")!).courseId
           : sessionStorage.getItem("pendingCourseId");
 
         if (pendingCourseId) {
@@ -198,7 +235,7 @@ export default function PaymentSuccessPage() {
             handleError("Erreur lors de la vérification de votre inscription.");
           }
         }
-      } else if (statusParam === 'cancelled') {
+      } else if (statusParam === "cancelled") {
         handleError("Le paiement a été annulé. Vous pouvez réessayer.");
       } else {
         // No token or status - check pending enrollment
@@ -208,7 +245,9 @@ export default function PaymentSuccessPage() {
           if (isEnrolled) {
             handleSuccess(pendingCourseId);
           } else {
-            handleError("Inscription non trouvée. Veuillez contacter le support.");
+            handleError(
+              "Inscription non trouvée. Veuillez contacter le support.",
+            );
           }
         } else {
           handleError("Statut de paiement inconnu.");
@@ -216,25 +255,39 @@ export default function PaymentSuccessPage() {
       }
     } catch (error) {
       console.error("❌ [PaymentSuccess] Erreur dans la boucle:", error);
-      
+
       // On network error, continue polling unless we've exceeded max attempts
       if (state.attemptCount >= MAX_ATTEMPTS - 1) {
         handleError("Erreur de connexion. Le serveur ne répond pas.");
       }
     }
-  }, [state.status, state.attemptCount, token, statusParam, verifyPayment, handleSuccess, handleError, handleTimeout, checkEnrollmentStatus]);
+  }, [
+    state.status,
+    state.attemptCount,
+    token,
+    statusParam,
+    verifyPayment,
+    handleSuccess,
+    handleError,
+    handleTimeout,
+    checkEnrollmentStatus,
+  ]);
 
   /**
    * Start verification on mount
    */
   useEffect(() => {
     console.log("🔄 [PaymentSuccess] Montage du composant, début vérification");
-    
+
     // Initial verification
     verificationLoop();
 
     // Start polling if not completed
-    if (state.status !== 'COMPLETED' && state.status !== 'ERROR' && state.status !== 'TIMEOUT') {
+    if (
+      state.status !== "COMPLETED" &&
+      state.status !== "ERROR" &&
+      state.status !== "TIMEOUT"
+    ) {
       console.log("🔄 [PaymentSuccess] Démarrage du polling");
       pollingRef.current = setInterval(verificationLoop, POLLING_INTERVAL);
     }
@@ -255,11 +308,11 @@ export default function PaymentSuccessPage() {
   const handleRetry = () => {
     console.log("🔄 [PaymentSuccess] Nouvelle tentative");
     setState({
-      status: 'VERIFYING',
+      status: "VERIFYING",
       attemptCount: 0,
       maxAttempts: MAX_ATTEMPTS,
       courseId: undefined,
-      error: undefined
+      error: undefined,
     });
   };
 
@@ -298,16 +351,16 @@ export default function PaymentSuccessPage() {
    * Calculate estimated time remaining
    */
   const getEstimatedTimeRemaining = () => {
-    const remaining = (MAX_ATTEMPTS - state.attemptCount) * (POLLING_INTERVAL / 1000);
+    const remaining =
+      (MAX_ATTEMPTS - state.attemptCount) * (POLLING_INTERVAL / 1000);
     return remaining > 0 ? remaining : 0;
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
-        
         {/* VERIFYING STATE */}
-        {state.status === 'VERIFYING' && (
+        {state.status === "VERIFYING" && (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-indigo-100 flex items-center justify-center">
               <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
@@ -318,21 +371,25 @@ export default function PaymentSuccessPage() {
             <p className="text-gray-600 mb-6">
               Nous vérifions votre paiement auprès de PayDunya.
             </p>
-            
+
             {/* Progress indicator */}
             <div className="bg-gray-100 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <span>Tentative {state.attemptCount}/{MAX_ATTEMPTS}</span>
+                <span>
+                  Tentative {state.attemptCount}/{MAX_ATTEMPTS}
+                </span>
                 <span>≈ {getEstimatedTimeRemaining()}s restantes</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${(state.attemptCount / MAX_ATTEMPTS) * 100}%` }}
+                  style={{
+                    width: `${(state.attemptCount / MAX_ATTEMPTS) * 100}%`,
+                  }}
                 />
               </div>
             </div>
-            
+
             <p className="text-sm text-gray-500">
               Veuillez patienter pendant que nous confirmons votre paiement.
             </p>
@@ -340,7 +397,7 @@ export default function PaymentSuccessPage() {
         )}
 
         {/* COMPLETED STATE */}
-        {state.status === 'COMPLETED' && (
+        {state.status === "COMPLETED" && (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
               <CheckCircle className="w-10 h-10 text-green-600" />
@@ -349,18 +406,20 @@ export default function PaymentSuccessPage() {
               Paiement confirmé !
             </h2>
             <p className="text-gray-600 mb-6">
-              Votre inscription a été créée avec succès. Redirection vers votre cours...
+              Votre inscription a été créée avec succès. Redirection vers votre
+              cours...
             </p>
-            
+
             <div className="flex items-center justify-center gap-2 text-sm text-green-600 mb-4">
               <CheckCircle className="w-5 h-5" />
               <span>Inscription réussie</span>
             </div>
-            
+
             <button
-              onClick={() => state.courseId 
-                ? router.push(`/course-details/${state.courseId}`) 
-                : router.push("/mes-apprentissages")
+              onClick={() =>
+                state.courseId
+                  ? router.push(`/course-details/${state.courseId}`)
+                  : router.push("/mes-apprentissages")
               }
               className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
             >
@@ -370,7 +429,7 @@ export default function PaymentSuccessPage() {
         )}
 
         {/* TIMEOUT STATE */}
-        {state.status === 'TIMEOUT' && (
+        {state.status === "TIMEOUT" && (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-yellow-100 flex items-center justify-center">
               <RefreshCw className="w-10 h-10 text-yellow-600" />
@@ -379,17 +438,17 @@ export default function PaymentSuccessPage() {
               Vérification en attente
             </h2>
             <p className="text-gray-600 mb-6">
-              Le serveur met plus de temps que prévu pour confirmer votre paiement. 
-              Votre paiement a peut-être déjà été traité.
+              Le serveur met plus de temps que prévu pour confirmer votre
+              paiement. Votre paiement a peut-être déjà été traité.
             </p>
-            
+
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-yellow-800">
-                💡 Votre inscription a probablement été créée. 
-                Cliquez sur "Vérifier à nouveau" pour vérifier votre statut.
+                💡 Votre inscription a probablement été créée. Cliquez sur
+                "Vérifier à nouveau" pour vérifier votre statut.
               </p>
             </div>
-            
+
             <div className="space-y-3">
               <button
                 onClick={handleRetry}
@@ -410,7 +469,7 @@ export default function PaymentSuccessPage() {
         )}
 
         {/* ERROR STATE */}
-        {state.status === 'ERROR' && (
+        {state.status === "ERROR" && (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
               <XCircle className="w-10 h-10 text-red-600" />
@@ -419,16 +478,17 @@ export default function PaymentSuccessPage() {
               Problème avec le paiement
             </h2>
             <p className="text-gray-600 mb-6">
-              {state.error || "Une erreur s'est produite lors de la vérification de votre paiement."}
+              {state.error ||
+                "Une erreur s'est produite lors de la vérification de votre paiement."}
             </p>
-            
+
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-red-800">
-                💡 Si vous avez effectué un paiement, ne vous inquiétez pas. 
+                💡 Si vous avez effectué un paiement, ne vous inquiétez pas.
                 Notre équipe va vérifier manuellement votre transaction.
               </p>
             </div>
-            
+
             <div className="space-y-3">
               <button
                 onClick={() => router.back()}
@@ -456,7 +516,7 @@ export default function PaymentSuccessPage() {
         )}
 
         {/* CANCELLED STATE */}
-        {statusParam === 'cancelled' && state.status === 'VERIFYING' && (
+        {statusParam === "cancelled" && state.status === "VERIFYING" && (
           <>
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-orange-100 flex items-center justify-center">
               <XCircle className="w-10 h-10 text-orange-600" />
@@ -465,10 +525,10 @@ export default function PaymentSuccessPage() {
               Paiement annulé
             </h2>
             <p className="text-gray-600 mb-6">
-              Vous avez annulé le processus de paiement. 
-              Vous pouvez réessayer quand vous le souhaitez.
+              Vous avez annulé le processus de paiement. Vous pouvez réessayer
+              quand vous le souhaitez.
             </p>
-            
+
             <div className="space-y-3">
               <button
                 onClick={() => router.back()}
@@ -486,9 +546,7 @@ export default function PaymentSuccessPage() {
             </div>
           </>
         )}
-
       </div>
     </div>
   );
 }
-

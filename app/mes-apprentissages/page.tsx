@@ -30,7 +30,13 @@ type TabType = "all" | "active" | "completed";
 export default function MesApprentissagesPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useLocalAuth();
-  const [courses, setCourses] = useState<(EnrolledCourse & { completedLessons?: number; totalLessons?: number; lastAccessed?: string })[]>([]);
+  const [courses, setCourses] = useState<
+    (EnrolledCourse & {
+      completedLessons?: number;
+      totalLessons?: number;
+      lastAccessed?: string;
+    })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("all");
 
@@ -54,10 +60,16 @@ export default function MesApprentissagesPage() {
       console.log("📚 [Mes Apprentissages] Chargement des cours inscrits...");
 
       const data = await EnrollmentApi.getEnrolledCourses();
-      console.log(`📚 [Mes Apprentissages] ${data.courses.length} cours récupérés depuis enrollment`);
+      console.log(
+        `📚 [Mes Apprentissages] ${data.courses.length} cours récupérés depuis enrollment`,
+      );
 
       // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE - COMME LE DASHBOARD
-      console.log("📊 [Mes Apprentissages] Début récupération progression pour", data.courses.length, "cours");
+      console.log(
+        "📊 [Mes Apprentissages] Début récupération progression pour",
+        data.courses.length,
+        "cours",
+      );
       const coursesWithProgress = await Promise.all(
         data.courses.map(async (course) => {
           try {
@@ -67,16 +79,21 @@ export default function MesApprentissagesPage() {
               return course;
             }
 
-            console.log(`📚 [Mes Apprentissages] Récupération progression pour cours ID: ${courseId} - ${course.title}`);
+            console.log(
+              `📚 [Mes Apprentissages] Récupération progression pour cours ID: ${courseId} - ${course.title}`,
+            );
             const progressData = await StudentApi.getCourseProgress(courseId);
 
-            console.log(`✅ [Mes Apprentissages] Progression reçue pour cours ${courseId}:`, {
-              progress: progressData.progress,
-              completed_lessons: progressData.completed_lessons,
-              total_lessons: progressData.total_lessons,
-              last_accessed: progressData.last_accessed,
-              timestamp: new Date().toISOString()
-            });
+            console.log(
+              `✅ [Mes Apprentissages] Progression reçue pour cours ${courseId}:`,
+              {
+                progress: progressData.progress,
+                completed_lessons: progressData.completed_lessons,
+                total_lessons: progressData.total_lessons,
+                last_accessed: progressData.last_accessed,
+                timestamp: new Date().toISOString(),
+              },
+            );
 
             return {
               ...course,
@@ -86,7 +103,10 @@ export default function MesApprentissagesPage() {
               lastAccessed: progressData.last_accessed,
             };
           } catch (error) {
-            console.error(`❌ [Mes Apprentissages] Erreur récupération progression pour cours ${course.id}:`, error);
+            console.error(
+              `❌ [Mes Apprentissages] Erreur récupération progression pour cours ${course.id}:`,
+              error,
+            );
             // Return course with default progress if API fails
             return {
               ...course,
@@ -95,18 +115,25 @@ export default function MesApprentissagesPage() {
               totalLessons: (course as any).totalLessons || 0,
             };
           }
-        })
+        }),
       );
 
-      console.log("✅ [Mes Apprentissages] Progression chargée pour tous les cours");
+      console.log(
+        "✅ [Mes Apprentissages] Progression chargée pour tous les cours",
+      );
       console.log("📊 [Mes Apprentissages] Résumé des progressions:");
-      coursesWithProgress.forEach(course => {
-        console.log(`  - Cours ${course.id}: ${course.progressPercentage}% (${(course as any).completedLessons}/${(course as any).totalLessons} leçons)`);
+      coursesWithProgress.forEach((course) => {
+        console.log(
+          `  - Cours ${course.id}: ${course.progressPercentage}% (${(course as any).completedLessons}/${(course as any).totalLessons} leçons)`,
+        );
       });
 
       setCourses(coursesWithProgress);
     } catch (error) {
-      console.error("❌ [Mes Apprentissages] Erreur globale chargement des cours:", error);
+      console.error(
+        "❌ [Mes Apprentissages] Erreur globale chargement des cours:",
+        error,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +184,9 @@ export default function MesApprentissagesPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-          <p className="text-slate-600 font-medium">Chargement de vos cours...</p>
+          <p className="text-slate-600 font-medium">
+            Chargement de vos cours...
+          </p>
         </div>
       </div>
     );
@@ -174,10 +203,10 @@ export default function MesApprentissagesPage() {
             href="/"
             className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors font-medium group"
           >
-           <div className="flex items-center gap-2">
-             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Retour à l'accueil
-           </div>
+            <div className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Retour à l'accueil
+            </div>
           </Link>
 
           <div className="flex items-center gap-4">
@@ -409,8 +438,8 @@ export default function MesApprentissagesPage() {
                                 isCompleted
                                   ? "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-md"
                                   : isActive
-                                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-600/25"
-                                  : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-600/25"
+                                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-600/25"
+                                    : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-lg hover:shadow-blue-600/25"
                               }`}
                             >
                               {isCompleted ? (

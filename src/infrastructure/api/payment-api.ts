@@ -1,7 +1,6 @@
 import { buildApiUrl } from "./baseConfig";
 
 export class PaymentApi {
-
   // PAS DE setTimeout, PAS DE mock, PAS DE simulation
   static async createPaymentIntent(userId: string, courseId: string) {
     const response = await fetch(buildApiUrl("course/payments/create-intent"), {
@@ -29,7 +28,7 @@ export class PaymentApi {
     const response = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-      credentials: "include"
+      credentials: "include",
     });
 
     console.log(`🔍 Statut réponse: ${response.status} ${response.statusText}`);
@@ -43,7 +42,7 @@ export class PaymentApi {
         console.log(`⚠️ Endpoint de vérification manquant, on assume succès`);
         return {
           status: "success",
-          courseId: undefined // Sera récupéré depuis les cookies
+          courseId: undefined, // Sera récupéré depuis les cookies
         };
       }
 

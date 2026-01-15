@@ -3,7 +3,16 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, File, X, AlertCircle, CheckCircle, FileText, Image, Archive } from "lucide-react";
+import {
+  Upload,
+  File,
+  X,
+  AlertCircle,
+  CheckCircle,
+  FileText,
+  Image,
+  Archive,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Attachment {
@@ -20,26 +29,26 @@ interface AttachmentManagerProps {
 }
 
 const ALLOWED_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/zip',
-  'application/x-rar-compressed',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'text/plain'
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/zip",
+  "application/x-rar-compressed",
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "text/plain",
 ];
 
 export function AttachmentManager({
   attachments,
   onAttachmentsChange,
   maxFiles = 10,
-  maxFileSize = 50
+  maxFileSize = 50,
 }: AttachmentManagerProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,40 +68,48 @@ export function AttachmentManager({
 
   const getFileIcon = (file: File) => {
     const type = file.type;
-    if (type.startsWith('image/')) return <Image className="h-5 w-5 text-blue-500" />;
-    if (type === 'application/pdf') return <FileText className="h-5 w-5 text-red-500" />;
-    if (type.includes('zip') || type.includes('rar')) return <Archive className="h-5 w-5 text-yellow-500" />;
+    if (type.startsWith("image/"))
+      return <Image className="h-5 w-5 text-blue-500" />;
+    if (type === "application/pdf")
+      return <FileText className="h-5 w-5 text-red-500" />;
+    if (type.includes("zip") || type.includes("rar"))
+      return <Archive className="h-5 w-5 text-yellow-500" />;
     return <File className="h-5 w-5 text-gray-500" />;
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const handleFiles = useCallback((files: FileList | File[]) => {
-    setError(null);
-    const fileArray = Array.from(files);
+  const handleFiles = useCallback(
+    (files: FileList | File[]) => {
+      setError(null);
+      const fileArray = Array.from(files);
 
-    for (const file of fileArray) {
-      const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
-        return;
+      for (const file of fileArray) {
+        const validationError = validateFile(file);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
       }
-    }
 
-    const newAttachments = fileArray.map(file => ({
-      file,
-      id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
-    }));
+      const newAttachments = fileArray.map((file) => ({
+        file,
+        id: `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        preview: file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : undefined,
+      }));
 
-    onAttachmentsChange([...attachments, ...newAttachments]);
-  }, [attachments, onAttachmentsChange, maxFiles, maxFileSize]);
+      onAttachmentsChange([...attachments, ...newAttachments]);
+    },
+    [attachments, onAttachmentsChange, maxFiles, maxFileSize],
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -104,15 +121,18 @@ export function AttachmentManager({
     setIsDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
 
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-  }, [handleFiles]);
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFiles(files);
+      }
+    },
+    [handleFiles],
+  );
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -120,13 +140,13 @@ export function AttachmentManager({
       handleFiles(files);
     }
     // Reset input
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const removeAttachment = (id: string) => {
-    const updated = attachments.filter(att => att.id !== id);
+    const updated = attachments.filter((att) => att.id !== id);
     // Clean up preview URLs
-    const removed = attachments.find(att => att.id === id);
+    const removed = attachments.find((att) => att.id === id);
     if (removed?.preview) {
       URL.revokeObjectURL(removed.preview);
     }
@@ -139,7 +159,8 @@ export function AttachmentManager({
         <div>
           <h3 className="text-lg font-semibold">Fichiers joints au cours</h3>
           <p className="text-sm text-gray-600">
-            Ajoutez des ressources supplémentaires pour vos étudiants (PDF, documents, archives, etc.)
+            Ajoutez des ressources supplémentaires pour vos étudiants (PDF,
+            documents, archives, etc.)
           </p>
         </div>
         <div className="text-sm text-gray-500">
@@ -161,32 +182,39 @@ export function AttachmentManager({
         onDrop={handleDrop}
         className={`
           border-2 border-dashed rounded-lg p-8 text-center transition-colors
-          ${isDragOver
-            ? 'border-blue-400 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
+          ${
+            isDragOver
+              ? "border-blue-400 bg-blue-50"
+              : "border-gray-300 hover:border-gray-400"
           }
         `}
       >
-        <Upload className={`h-12 w-12 mx-auto mb-4 ${isDragOver ? 'text-blue-500' : 'text-gray-400'}`} />
+        <Upload
+          className={`h-12 w-12 mx-auto mb-4 ${isDragOver ? "text-blue-500" : "text-gray-400"}`}
+        />
         <div className="space-y-2">
           <p className="text-lg font-medium text-gray-900">
             Glissez-déposez vos fichiers ici
           </p>
           <p className="text-sm text-gray-600">
-            ou{' '}
-            <label htmlFor="attachment-upload" className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium">
+            ou{" "}
+            <label
+              htmlFor="attachment-upload"
+              className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+            >
               parcourez vos fichiers
             </label>
           </p>
           <p className="text-xs text-gray-500">
-            Formats acceptés: PDF, Word, Excel, PowerPoint, ZIP, images • Max {maxFileSize}MB par fichier
+            Formats acceptés: PDF, Word, Excel, PowerPoint, ZIP, images • Max{" "}
+            {maxFileSize}MB par fichier
           </p>
         </div>
         <input
           id="attachment-upload"
           type="file"
           multiple
-          accept={ALLOWED_TYPES.join(',')}
+          accept={ALLOWED_TYPES.join(",")}
           onChange={handleFileInput}
           className="hidden"
         />
@@ -195,7 +223,9 @@ export function AttachmentManager({
       {/* Attachments List */}
       {attachments.length > 0 && (
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">Fichiers ajoutés ({attachments.length})</h4>
+          <h4 className="font-medium text-gray-900">
+            Fichiers ajoutés ({attachments.length})
+          </h4>
           {attachments.map((attachment) => (
             <Card key={attachment.id} className="p-4">
               <div className="flex items-center justify-between">
@@ -206,7 +236,8 @@ export function AttachmentManager({
                       {attachment.file.name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {formatFileSize(attachment.file.size)} • {attachment.file.type}
+                      {formatFileSize(attachment.file.size)} •{" "}
+                      {attachment.file.type}
                     </p>
                   </div>
                 </div>
@@ -242,7 +273,8 @@ export function AttachmentManager({
           <File className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p className="text-sm">Aucun fichier joint pour le moment</p>
           <p className="text-xs text-gray-400 mt-1">
-            Les fichiers joints sont optionnels mais peuvent enrichir l'expérience d'apprentissage
+            Les fichiers joints sont optionnels mais peuvent enrichir
+            l'expérience d'apprentissage
           </p>
         </div>
       )}

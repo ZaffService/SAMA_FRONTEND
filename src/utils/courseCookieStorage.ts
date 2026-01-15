@@ -1,6 +1,6 @@
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 
-const COOKIE_KEY = 'bibocom_course_draft';
+const COOKIE_KEY = "bibocom_course_draft";
 const COOKIE_EXPIRY_DAYS = 7; // 7 jours d'expiration
 
 export interface CourseCookieDraft {
@@ -11,7 +11,7 @@ export interface CourseCookieDraft {
   price: number;
   modules: any[];
   quizzes?: any[];
-  lastSaved: string;  // Timestamp
+  lastSaved: string; // Timestamp
 }
 
 export const CourseCookieStorage = {
@@ -22,20 +22,23 @@ export const CourseCookieStorage = {
       const updatedDraft = {
         ...existingDraft,
         ...draftData,
-        lastSaved: new Date().toISOString()
+        lastSaved: new Date().toISOString(),
       };
 
       // Sauvegarder dans un cookie (expires après 7 jours)
       Cookies.set(COOKIE_KEY, JSON.stringify(updatedDraft), {
         expires: COOKIE_EXPIRY_DAYS,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production' // HTTPS en production
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production", // HTTPS en production
       });
 
-      console.log('🍪 [Cookies] Brouillon sauvegardé:', new Date().toISOString());
+      console.log(
+        "🍪 [Cookies] Brouillon sauvegardé:",
+        new Date().toISOString(),
+      );
       return true;
     } catch (err) {
-      console.error('❌ [Cookies] Erreur sauvegarde:', err);
+      console.error("❌ [Cookies] Erreur sauvegarde:", err);
       return false;
     }
   },
@@ -47,10 +50,10 @@ export const CourseCookieStorage = {
       if (!draft) return null;
 
       const parsed = JSON.parse(draft);
-      console.log('📂 [Cookies] Brouillon récupéré:', parsed.lastSaved);
+      console.log("📂 [Cookies] Brouillon récupéré:", parsed.lastSaved);
       return parsed;
     } catch (err) {
-      console.error('❌ [Cookies] Erreur récupération:', err);
+      console.error("❌ [Cookies] Erreur récupération:", err);
       return null;
     }
   },
@@ -59,10 +62,10 @@ export const CourseCookieStorage = {
   clearDraft: (): boolean => {
     try {
       Cookies.remove(COOKIE_KEY);
-      console.log('🗑️ [Cookies] Brouillon supprimé');
+      console.log("🗑️ [Cookies] Brouillon supprimé");
       return true;
     } catch (err) {
-      console.error('❌ [Cookies] Erreur suppression:', err);
+      console.error("❌ [Cookies] Erreur suppression:", err);
       return false;
     }
   },
@@ -70,5 +73,5 @@ export const CourseCookieStorage = {
   // Vérifier si un brouillon existe
   hasDraft: (): boolean => {
     return Cookies.get(COOKIE_KEY) !== undefined;
-  }
+  },
 };

@@ -2,11 +2,9 @@ import type { User, LoginData, AuthResponse } from "@/domain/entities/user";
 import type { RegisterData } from "@/types/auth";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
-
-
 export class AuthApi {
   static async login(credentials: LoginData): Promise<AuthResponse> {
-    console.log('🔐 [AuthApi] Login pour:', credentials.email);
+    console.log("🔐 [AuthApi] Login pour:", credentials.email);
     const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.LOGIN), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,28 +39,33 @@ export class AuthApi {
   }
 
   static async validateSession(): Promise<User | null> {
-    console.log('🔍 [AuthApi] Début validateSession()');
-    console.log('🔍 [AuthApi] URL appelée:', buildApiUrl(API_ENDPOINTS.USER.PROFILE));
+    console.log("🔍 [AuthApi] Début validateSession()");
+    console.log(
+      "🔍 [AuthApi] URL appelée:",
+      buildApiUrl(API_ENDPOINTS.USER.PROFILE),
+    );
 
     try {
-      console.log('🔍 [AuthApi] Envoi requête GET /user/profile avec credentials: "include"');
+      console.log(
+        '🔍 [AuthApi] Envoi requête GET /user/profile avec credentials: "include"',
+      );
       const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
         method: "GET",
         credentials: "include",
       });
 
-      console.log('🔍 [AuthApi] Réponse reçue:', res.status, res.statusText);
+      console.log("🔍 [AuthApi] Réponse reçue:", res.status, res.statusText);
 
       if (!res.ok) {
-        console.log('❌ [AuthApi] Réponse non-ok:', res.status, res.statusText);
+        console.log("❌ [AuthApi] Réponse non-ok:", res.status, res.statusText);
         return null;
       }
 
       const userData = await res.json();
-      console.log('✅ [AuthApi] User profile récupéré:', userData);
+      console.log("✅ [AuthApi] User profile récupéré:", userData);
       return userData;
     } catch (error) {
-      console.error('❌ [AuthApi] Erreur validateSession:', error);
+      console.error("❌ [AuthApi] Erreur validateSession:", error);
       return null;
     }
   }
@@ -76,8 +79,6 @@ export class AuthApi {
       });
     } catch {}
   }
-
-
 
   static async verifyEmail(token: string): Promise<{ message: string }> {
     const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.VERIFY_EMAIL), {
@@ -105,11 +106,14 @@ export class AuthApi {
   static async requestPasswordReset(
     email: string,
   ): Promise<{ message: string }> {
-    const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.REQUEST_PASSWORD_RESET), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    const res = await fetch(
+      buildApiUrl(API_ENDPOINTS.USER.REQUEST_PASSWORD_RESET),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      },
+    );
 
     const data = await res.json();
 

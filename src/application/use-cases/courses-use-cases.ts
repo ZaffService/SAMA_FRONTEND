@@ -18,6 +18,7 @@ export class CoursesUseCases {
     courses: Course[];
     total: number;
     pages: number;
+    hasCoursesInDatabase: boolean;
   }> {
     try {
       console.log("🔄 Récupération des cours depuis l'API...", {
@@ -201,7 +202,9 @@ export class CoursesUseCases {
    * Récupérer les catégories disponibles
    * @returns Liste des catégories
    */
-  static async getCategories(): Promise<Array<{ id: string; name: string; description?: string }>> {
+  static async getCategories(): Promise<
+    Array<{ id: string; name: string; description?: string }>
+  > {
     try {
       console.log("🔄 Récupération des catégories depuis l'API...");
 

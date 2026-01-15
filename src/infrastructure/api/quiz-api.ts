@@ -1,4 +1,4 @@
-import { buildApiUrl, API_ENDPOINTS } from './baseConfig';
+import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface Question {
   id: number;
@@ -62,7 +62,6 @@ export interface QuizResult {
 }
 
 export class QuizApi {
-
   /**
    * Récupérer les questions d'un quiz
    */
@@ -82,33 +81,37 @@ export class QuizApi {
     }>;
   }> {
     try {
-      console.log(`📡 API: Récupération des questions du quiz pour le module: ${moduleId}`);
-      
+      console.log(
+        `📡 API: Récupération des questions du quiz pour le module: ${moduleId}`,
+      );
+
       // Correction: La route backend est /course/quiz/module/:moduleId/questions
       const endpoint = `course/quiz/module/${moduleId}/questions`;
       console.log(`📡 API: Endpoint utilisé: ${endpoint}`);
-      
-      const response = await fetch(
-        buildApiUrl(endpoint),
-        {
-          method: "GET",
-          credentials: "include",
-        },
-      );
+
+      const response = await fetch(buildApiUrl(endpoint), {
+        method: "GET",
+        credentials: "include",
+      });
 
       console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ API: Erreur ${response.status}: ${errorText}`);
-        throw new Error(`Erreur ${response.status}: Impossible de charger le quiz pour ce module`);
+        throw new Error(
+          `Erreur ${response.status}: Impossible de charger le quiz pour ce module`,
+        );
       }
 
       const data = await response.json();
       console.log(`✅ API: Données reçues:`, data);
       return data;
     } catch (error) {
-      console.error(`❌ API: Erreur lors de la récupération des questions:`, error);
+      console.error(
+        `❌ API: Erreur lors de la récupération des questions:`,
+        error,
+      );
       throw error;
     }
   }
@@ -126,7 +129,10 @@ export class QuizApi {
     answers: Record<string, any>;
   }> {
     try {
-      console.log(`📤 API: Soumission du quiz ${quizId} avec les réponses:`, answers);
+      console.log(
+        `📤 API: Soumission du quiz ${quizId} avec les réponses:`,
+        answers,
+      );
 
       // Correction: La route backend est /course/quiz/:quizId
       const endpoint = `course/quiz/${quizId}`;
@@ -143,7 +149,9 @@ export class QuizApi {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ API: Erreur ${response.status} lors de la soumission: ${errorText}`);
+        console.error(
+          `❌ API: Erreur ${response.status} lors de la soumission: ${errorText}`,
+        );
 
         // Gestion spécifique des erreurs d'inscription - Parser le JSON pour obtenir error.code
         if (response.status === 403 || response.status === 401) {
@@ -151,16 +159,21 @@ export class QuizApi {
             const errorJson = JSON.parse(errorText);
             if (errorJson.error && errorJson.error.code) {
               // Créer une erreur avec le code pour le mapping centralisé
-              const error = new Error(errorJson.error.message || 'Erreur d\'autorisation') as any;
+              const error = new Error(
+                errorJson.error.message || "Erreur d'autorisation",
+              ) as any;
               error.code = errorJson.error.code;
               error.status = response.status;
               throw error;
             }
           } catch (parseError) {
             // Si le parsing échoue, utiliser le code générique
-            if (errorText.includes('not enrolled') || errorText.includes('enrolled')) {
-              const error = new Error('Non inscrit à ce cours') as any;
-              error.code = 'COURSE_NOT_ENROLLED';
+            if (
+              errorText.includes("not enrolled") ||
+              errorText.includes("enrolled")
+            ) {
+              const error = new Error("Non inscrit à ce cours") as any;
+              error.code = "COURSE_NOT_ENROLLED";
               error.status = 403;
               throw error;
             }
@@ -168,14 +181,16 @@ export class QuizApi {
         }
 
         // Pour les autres erreurs 4xx/5xx, créer une erreur avec le code approprié
-        const error = new Error(`Erreur ${response.status}: Impossible de soumettre le quiz`) as any;
+        const error = new Error(
+          `Erreur ${response.status}: Impossible de soumettre le quiz`,
+        ) as any;
         error.status = response.status;
         if (response.status >= 500) {
-          error.code = 'INTERNAL_SERVER_ERROR';
+          error.code = "INTERNAL_SERVER_ERROR";
         } else if (response.status === 404) {
-          error.code = 'QUIZ_NOT_FOUND';
+          error.code = "QUIZ_NOT_FOUND";
         } else if (response.status === 400) {
-          error.code = 'VALIDATION_ERROR';
+          error.code = "VALIDATION_ERROR";
         }
         throw error;
       }
@@ -207,10 +222,13 @@ export class QuizApi {
   }
 
   static async getQuizById(quizId: number): Promise<Quiz> {
-    const response = await fetch(buildApiUrl(`${API_ENDPOINTS.QUIZ.SUBMIT}/${quizId}`), {
-      method: "GET",
-      credentials: "include",
-    });
+    const response = await fetch(
+      buildApiUrl(`${API_ENDPOINTS.QUIZ.SUBMIT}/${quizId}`),
+      {
+        method: "GET",
+        credentials: "include",
+      },
+    );
 
     if (!response.ok) {
       throw new Error("Erreur lors de la récupération du quiz");
@@ -225,10 +243,15 @@ export class QuizApi {
     quiz: Quiz;
     time_started: string;
   }> {
-    const response = await fetch(buildApiUrl(`${API_ENDPOINTS.QUIZ.ID}/${quizId}${API_ENDPOINTS.QUIZ.START}`), {
-      method: "POST",
-      credentials: "include",
-    });
+    const response = await fetch(
+      buildApiUrl(
+        `${API_ENDPOINTS.QUIZ.ID}/${quizId}${API_ENDPOINTS.QUIZ.START}`,
+      ),
+      {
+        method: "POST",
+        credentials: "include",
+      },
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -264,7 +287,9 @@ export class QuizApi {
 
   static async getQuizAttempts(quizId: number): Promise<QuizAttempt[]> {
     const response = await fetch(
-      buildApiUrl(`${API_ENDPOINTS.QUIZ.ID}/${quizId}${API_ENDPOINTS.QUIZ.ATTEMPTS}`),
+      buildApiUrl(
+        `${API_ENDPOINTS.QUIZ.ID}/${quizId}${API_ENDPOINTS.QUIZ.ATTEMPTS}`,
+      ),
       {
         method: "GET",
         credentials: "include",
@@ -325,7 +350,9 @@ export class QuizApi {
     max_attempts: number;
   }> {
     const response = await fetch(
-      buildApiUrl(`${API_ENDPOINTS.QUIZ.ID}/${quizId}${API_ENDPOINTS.QUIZ.RETRY_STATUS}`),
+      buildApiUrl(
+        `${API_ENDPOINTS.QUIZ.ID}/${quizId}${API_ENDPOINTS.QUIZ.RETRY_STATUS}`,
+      ),
       {
         method: "GET",
         credentials: "include",

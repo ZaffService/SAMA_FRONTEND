@@ -20,15 +20,19 @@ export function ThumbnailUploader({
   existingThumbnailUrl,
 }: ThumbnailUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(existingThumbnailUrl || null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(
+    existingThumbnailUrl || null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith("image/")) {
       showErrorToast("Erreur", "Veuillez sélectionner un fichier image valide");
       return;
     }
@@ -48,7 +52,7 @@ export function ThumbnailUploader({
       setThumbnailUrl(localUrl);
       onThumbnailUploaded(file);
     } catch (error) {
-      console.error('Error uploading thumbnail:', error);
+      console.error("Error uploading thumbnail:", error);
       showErrorToast("Erreur", "Impossible de charger l'image");
     } finally {
       setIsUploading(false);
@@ -56,13 +60,13 @@ export function ThumbnailUploader({
   };
 
   const handleRemove = () => {
-    if (thumbnailUrl && thumbnailUrl.startsWith('blob:')) {
+    if (thumbnailUrl && thumbnailUrl.startsWith("blob:")) {
       URL.revokeObjectURL(thumbnailUrl);
     }
     setThumbnailUrl(null);
     onThumbnailRemoved();
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 

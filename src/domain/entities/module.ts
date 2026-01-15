@@ -21,7 +21,7 @@ export interface Quiz {
 export interface Question {
   id?: string;
   question: string;
-  questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER';
+  questionType: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
   options: string[];
   correctAnswer: string;
   points?: number;
