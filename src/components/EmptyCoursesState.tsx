@@ -1,5 +1,14 @@
 import React from "react";
-import { BookOpen, Clock, Bell, Search, X } from "lucide-react";
+import {
+  BookOpen,
+  Star,
+  Bell,
+  Gift,
+  ArrowRight,
+  Clock,
+  Lightbulb
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function EmptyCoursesState() {
   return (
@@ -10,20 +19,20 @@ export default function EmptyCoursesState() {
           Découvrez nos formations
         </h2>
 
-        {/* Card principale - Incitation à l'inscription */}
+        {/* Card principale */}
         <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl p-8 md:p-12 text-white">
           <div className="max-w-3xl mx-auto text-center">
-            {/* Icône */}
+            {/* Icône principale */}
             <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full mb-6">
               <BookOpen className="w-12 h-12 text-white" />
             </div>
 
-            {/* Titre accrocheur */}
+            {/* Titre */}
             <h3 className="text-2xl md:text-4xl font-bold mb-4">
               Soyez parmi les premiers à accéder à nos formations exclusives !
             </h3>
 
-            {/* Description engageante */}
+            {/* Description */}
             <p className="text-blue-50 text-base md:text-lg mb-10 leading-relaxed">
               Nos experts préparent des cours exceptionnels qui transformeront
               votre parcours d&apos;apprentissage. Créez votre compte dès
@@ -32,11 +41,11 @@ export default function EmptyCoursesState() {
 
             {/* Cards informatives */}
             <div className="grid md:grid-cols-3 gap-6 mb-8">
-              {/* Card Accès prioritaire */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-left border border-white/20">
+              {/* Accès prioritaire */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="w-14 h-14 bg-yellow-400 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">🌟</span>
+                    <Star className="w-7 h-7 text-yellow-900" />
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2 text-lg">
@@ -50,8 +59,8 @@ export default function EmptyCoursesState() {
                 </div>
               </div>
 
-              {/* Card Notification instantanée */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-left border border-white/20">
+              {/* Alertes */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="w-14 h-14 bg-green-400 rounded-lg flex items-center justify-center">
                     <Bell className="w-7 h-7 text-green-900" />
@@ -68,11 +77,11 @@ export default function EmptyCoursesState() {
                 </div>
               </div>
 
-              {/* Card Offres exclusives */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-left border border-white/20">
+              {/* Offres exclusives */}
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
                 <div className="flex flex-col items-center text-center gap-3">
                   <div className="w-14 h-14 bg-purple-400 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">🎁</span>
+                    <Gift className="w-7 h-7 text-purple-900" />
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2 text-lg">
@@ -86,37 +95,42 @@ export default function EmptyCoursesState() {
               </div>
             </div>
 
-            {/* Boutons CTA principaux */}
+            {/* Boutons CTA */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-              <a
-                href="/register"
-                className="px-10 py-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg text-center"
+              <Button
+                size="lg"
+                className="bg-blue-50 hover:bg-blue-700 hover:text-white text-blue-600 px-6 py-3 text-base font-semibold rounded-lg transition-all"
+                onClick={() => (window.location.href = "/register")}
               >
                 Créer mon compte gratuitement
-              </a>
-              <a
-                href="/login"
-                className="px-10 py-4 bg-transparent text-white border-2 border-white rounded-lg font-semibold hover:bg-white/10 transition-all text-center"
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              <Button
+                size="lg"
+                className="bg-blue-50 hover:bg-blue-700 hover:text-white text-blue-600 px-6 py-3 text-base font-semibold rounded-lg transition-all"
+                onClick={() => (window.location.href = "/login")}
               >
                 J&apos;ai déjà un compte
-              </a>
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
             </div>
 
-            {/* Petit texte rassurant */}
+            {/* Texte rassurant */}
             <p className="text-blue-100 text-sm">
-              ✨ Inscription gratuite • Sans engagement • Accès immédiat
+              Inscription gratuite • Sans engagement • Accès immédiat
             </p>
           </div>
         </div>
 
-        {/* Card Compteur d'attente / Urgence */}
+        {/* Urgence */}
         <div className="mt-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-6 border-2 border-orange-200">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
               <Clock className="w-6 h-6 text-white" />
             </div>
-            <div className="flex-1">
-              <h4 className="font-bold text-gray-900 mb-2 text-lg flex items-center gap-2">
+            <div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">
                 Lancement imminent !
               </h4>
               <p className="text-gray-700 leading-relaxed mb-3">
@@ -126,33 +140,30 @@ export default function EmptyCoursesState() {
                   {" "}
                   Ne ratez pas le lancement
                 </strong>{" "}
-                - inscrivez-vous maintenant et complétez votre profil pour être
-                100% prêt !
+                – inscrivez-vous maintenant !
               </p>
               <div className="flex items-center gap-2 text-sm text-orange-700 font-medium">
-                <span className="inline-block w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
                 Déjà <strong>247 personnes</strong> en liste d&apos;attente
               </div>
             </div>
           </div>
         </div>
 
-        {/* Card Pendant que vous attendez */}
+        {/* Préparation */}
         <div className="mt-6 bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 text-xl">
-              💡
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <Lightbulb className="w-5 h-5 text-blue-600" />
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 mb-2 text-lg">
                 En attendant, préparez-vous !
               </h4>
               <p className="text-gray-700 leading-relaxed">
-                Créez votre compte en 2 minutes, complétez votre profil
-                d&apos;apprenant, définissez vos objectifs et explorez notre
-                catalogue. Vous serez ainsi
-                <strong> prêt à démarrer</strong> dès la publication du premier
-                cours !
+                Créez votre compte, complétez votre profil et définissez vos
+                objectifs. Vous serez <strong>prêt à démarrer</strong> dès la
+                publication du premier cours !
               </p>
             </div>
           </div>
@@ -161,3 +172,4 @@ export default function EmptyCoursesState() {
     </section>
   );
 }
+

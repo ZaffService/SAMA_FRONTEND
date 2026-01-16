@@ -221,21 +221,14 @@ export function Header() {
                   </DropdownMenu.Root>
                 </>
               ) : (
-                <>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="h-10 px-4 rounded-xl text-base"
-                  >
-                    <Link href="/login">Se connecter</Link>
-                  </Button>
-                  <Button
-                    asChild
-                    className="h-10 px-5 rounded-xl font-semibold text-base"
-                  >
-                    <Link href="/register">Créer un compte</Link>
-                  </Button>
-                </>
+                <div className="flex flex-row items-center justify-center gap-3 sm:gap-4">
+                 <Link 
+                    className="px-6 py-3 rounded-xl text-base bg-transparent font-medium hover:bg-muted/50 transition-all"
+                    href="/login">Se connecter</Link>
+                  <Link  
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
+                    href="/register">Créer un compte</Link>
+                </div>
               )}
             </div>
 
