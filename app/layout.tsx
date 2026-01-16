@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "../styles/responsive-mobile.css";
 import { Providers } from "@/components/providers";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Bibocom digital - Plateforme E-Learning",
@@ -34,6 +35,7 @@ export default function RootLayout({
         }}
       >
         <Providers>{children}</Providers>
+        <Toaster />
         {/* <Analytics /> */}
       </body>
     </html>

@@ -66,13 +66,13 @@ export function Footer() {
                   </Link>
                 </li>
                 <li className="group">
-                  <Link
+                  {/* <Link
                     href="/courses"
                     className="text-sm text-muted-foreground hover:text-primary transition-all duration-300 inline-flex items-center gap-2 group-hover:translate-x-1"
                   >
                     <span className="w-1 h-1 rounded-full bg-primary group-hover:w-2 transition-all duration-300" />
                     Tous les cours
-                  </Link>
+                  </Link> */}
                 </li>
               </ul>
             </div>

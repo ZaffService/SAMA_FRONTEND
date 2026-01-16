@@ -71,3 +71,4 @@ export const API_ENDPOINTS = {
     UNCOMPLETE: (lessonId: string) => `/course/lesson/${lessonId}/uncomplete`,
   },
 } as const;
+

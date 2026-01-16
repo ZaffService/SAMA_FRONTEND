@@ -24,6 +24,9 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { CourseWizard } from "@/components/CourseWizard";
+import { CategoryDialog } from "@/components/category-dialog";
+import { useCategories } from "@/application/use-cases/useCategories";
+import { toast } from "sonner";
 
 type DashboardView = "overview" | "create-course";
 
@@ -31,6 +34,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { user, logout } = useLocalAuth();
   const [currentView, setCurrentView] = useState<DashboardView>("overview");
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const { refresh: refreshCategories } = useCategories();
 
   const handleCreateCourse = () => {
     setCurrentView("create-course");
@@ -38,6 +43,15 @@ export default function AdminDashboard() {
 
   const handleBackToDashboard = () => {
     setCurrentView("overview");
+  };
+
+  const handleOpenCategoryDialog = () => {
+    setIsCategoryDialogOpen(true);
+  };
+
+  const handleCategoryCreated = async () => {
+    await refreshCategories();
+    toast.success("Catégorie créée avec succès!");
   };
 
   if (currentView === "create-course") {
@@ -215,8 +229,11 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" disabled>
-                    Gérer catégories (Bientôt disponible)
+                  <Button
+                    className="w-full"
+                    onClick={handleOpenCategoryDialog}
+                  >
+                    Gérer catégories
                   </Button>
                 </CardContent>
               </Card>
@@ -228,7 +245,15 @@ export default function AdminDashboard() {
             </div>
           </div>
         </main>
+
+        {/* Dialog pour créer une catégorie */}
+        <CategoryDialog
+          open={isCategoryDialogOpen}
+          onOpenChange={setIsCategoryDialogOpen}
+          onCategoryCreated={handleCategoryCreated}
+        />
       </div>
     </ProtectedRoute>
   );
 }
+
