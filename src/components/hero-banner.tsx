@@ -386,7 +386,7 @@ export const HeroBanner = () => {
           <div className="relative animate-fade-in-right">
             <div className="relative bg-gradient-to-br from-cyan-100 to-blue-200 rounded-3xl overflow-hidden">
               <Image
-                src="/african-woman-professional-with-tablet-smiling--mo.jpg"
+                src="/afrique.png"
                 alt="Femme professionnelle étudiant le marketing digital"
                 width={600}
                 height={700}
