@@ -386,7 +386,7 @@ export const HeroBanner = () => {
           <div className="relative animate-fade-in-right">
             <div className="relative bg-gradient-to-br from-cyan-100 to-blue-200 rounded-3xl overflow-hidden">
               <Image
-                src="/afrique.png"
+                src="/F.png"
                 alt="Femme professionnelle étudiant le marketing digital"
                 width={600}
                 height={700}
@@ -409,14 +409,14 @@ export const HeroBanner = () => {
                       />
                     </svg>
                   </div>
-                  <div>
+                  {/* <div>
                     <div className="text-sm font-bold text-slate-900">
                       Formation validée
                     </div>
                     <div className="text-xs text-green-600 font-semibold">
                       98% de satisfaction
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
