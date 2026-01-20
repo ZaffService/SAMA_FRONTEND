@@ -94,6 +94,70 @@ import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export class CoursesApi {
   /**
+   * Récupère tous les cours pour les administrateurs (tous statuts confondus)
+   */
+  static async getAdminCourses(
+    page: number = 1,
+    perPage: number = 100,
+    searchOptions?: any,
+  ): Promise<{
+    courses: Course[];
+    total: number;
+    pages: number;
+    currentPage: number;
+    limit: number;
+    hasCoursesInDatabase: boolean;
+  }> {
+    // Utiliser l'endpoint admin qui retourne tous les cours
+    const url = new URL(buildApiUrl(API_ENDPOINTS.COURSES.ADMIN_COURSES));
+    url.searchParams.append("page", page.toString());
+    url.searchParams.append("limit", perPage.toString());
+
+    // Ajouter les paramètres de recherche si fournis
+    if (searchOptions?.query) {
+      url.searchParams.append("query", searchOptions.query);
+    }
+    if (searchOptions?.categoryId) {
+      url.searchParams.append("categoryId", searchOptions.categoryId);
+    }
+    if (searchOptions?.level) {
+      url.searchParams.append("level", searchOptions.level);
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch admin courses: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    console.log(
+      "🔍 API getAdminCourses - Données brutes:",
+      JSON.stringify(data, null, 2),
+    );
+
+    const courses = (data.courses || []).map((backendCourse: BackendCourse) =>
+      this.mapBackendCourseToFrontend(backendCourse),
+    );
+
+    return {
+      courses,
+      total: data.total ?? courses.length,
+      pages: data.totalPages ?? Math.ceil(courses.length / perPage),
+      currentPage: data.page ?? page,
+      limit: data.limit ?? perPage,
+      hasCoursesInDatabase: data.hasCoursesInDatabase,
+    };
+  }
+
+  /**
    * Récupère la liste des cours pour l'affichage en grille avec pagination
    */
   static async getCourses(
@@ -122,6 +186,12 @@ export class CoursesApi {
     }
     if (searchOptions?.level) {
       url.searchParams.append("level", searchOptions.level);
+    }
+    if (searchOptions?.userRole) {
+      url.searchParams.append("userRole", searchOptions.userRole);
+    }
+    if (searchOptions?.status) {
+      url.searchParams.append("status", searchOptions.status);
     }
 
     const response = await fetch(url.toString(), {
@@ -947,6 +1017,68 @@ export class CoursesApi {
         paymentRequired: false,
       };
     }
+  }
+
+  /**
+   * Met à jour le statut d'un cours
+   */
+  static async updateCourseStatus(
+    courseId: string,
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
+  ): Promise<any> {
+    console.log(`🔄 API: Mise à jour du statut du cours ${courseId} vers ${status}`);
+
+    const response = await fetch(
+      buildApiUrl(`${API_ENDPOINTS.COURSES.UPDATE_STATUS(courseId)}`),
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Erreur lors de la mise à jour du statut: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ Statut mis à jour:", data);
+    return data;
+  }
+
+  /**
+   * Supprime un cours
+   */
+  static async deleteCourse(courseId: string): Promise<any> {
+    console.log(`🗑️ API: Suppression du cours ${courseId}`);
+
+    const response = await fetch(
+      buildApiUrl(`${API_ENDPOINTS.COURSES.DELETE(courseId)}`),
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `Erreur lors de la suppression: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("✅ Cours supprimé:", data);
+    return data;
   }
 
   /**

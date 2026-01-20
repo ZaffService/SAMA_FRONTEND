@@ -39,6 +39,12 @@ import {
 } from "@/shared/helpers/sweet-alert";
 import { Module } from "@/domain/entities/module";
 
+// Course status enum
+export enum CourseStatus {
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+}
+
 interface Category {
   id: string;
   name: string;
@@ -50,6 +56,7 @@ interface CourseFormData {
   categoryId: string;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   price: number;
+  status: CourseStatus;
   modules: Module[];
   attachments: Array<{ file: File; id: string; preview?: string }>;
 }
@@ -79,6 +86,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     categoryId: "",
     level: "BEGINNER",
     price: 0,
+    status: CourseStatus.DRAFT,
     modules: [],
     attachments: [],
   });
@@ -574,6 +582,29 @@ function Step1BasicInfo({
             step="100"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Statut du cours *
+          </label>
+          <Select
+            value={formData.status}
+            onValueChange={(value: CourseStatus) =>
+              updateFormData({ status: value })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={CourseStatus.DRAFT}>Brouillon</SelectItem>
+              <SelectItem value={CourseStatus.PUBLISHED}>Publié</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500 mt-1">
+            Le cours sera créé en tant que brouillon par défaut
+          </p>
         </div>
       </div>
 

@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import {
   GraduationCap,
-  BookOpen,
   Users,
   BarChart3,
   Plus,
@@ -22,14 +21,16 @@ import {
   Settings,
   Shield,
   ArrowLeft,
+  List,
 } from "lucide-react";
 import { CourseWizard } from "@/components/CourseWizard";
+import { CourseManagement } from "@/components/CourseManagement";
 import { CategoryDialog } from "@/components/category-dialog";
 import { UserCreationForm } from "@/components/UserCreationForm";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { toast } from "sonner";
 
-type DashboardView = "overview" | "create-course" | "manage-users";
+type DashboardView = "overview" | "create-course" | "manage-courses" | "manage-users";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -40,6 +41,10 @@ export default function AdminDashboard() {
 
   const handleCreateCourse = () => {
     setCurrentView("create-course");
+  };
+
+  const handleManageCourses = () => {
+    setCurrentView("manage-courses");
   };
 
   const handleManageUsers = () => {
@@ -92,6 +97,59 @@ export default function AdminDashboard() {
           {/* Formulaire de création */}
           <main className="py-6">
             <CourseWizard />
+          </main>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (currentView === "manage-courses") {
+    return (
+      <ProtectedRoute requiredRole="ADMIN">
+        <div className="min-h-screen bg-gray-50">
+          {/* Header avec bouton retour */}
+          <header className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center py-4">
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="ghost"
+                    onClick={handleBackToDashboard}
+                    className="flex items-center space-x-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Retour au dashboard</span>
+                  </Button>
+                </div>
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Déconnexion</span>
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          {/* Gestion des cours */}
+          <main className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gestion des Cours
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Gérez, modifiez et supervisez tous les cours de la plateforme
+              </p>
+            </div>
+            <CourseManagement
+              onEditCourse={(courseId) => {
+                // Pour l'instant, on redirige vers la création avec pré-remplissage
+                // Dans une version ultérieure, on pourrait avoir une page d'édition
+                router.push(`/admin/create-course?edit=${courseId}`);
+              }}
+            />
           </main>
         </div>
       </ProtectedRoute>
@@ -175,16 +233,16 @@ export default function AdminDashboard() {
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
+                    <List className="h-5 w-5 text-blue-600" />
                     <span>Gestion des Cours</span>
                   </CardTitle>
                   <CardDescription>
-                    Créer, modifier et gérer tous les cours de la plateforme
+                    Lister, modifier et gérer tous les cours de la plateforme
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" disabled>
-                    Voir tous les cours (Bientôt disponible)
+                  <Button className="w-full" onClick={handleManageCourses}>
+                    Gérer les cours
                   </Button>
                 </CardContent>
               </Card>

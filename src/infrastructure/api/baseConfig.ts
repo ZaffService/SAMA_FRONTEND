@@ -30,8 +30,12 @@ export interface CourseSearchOptions {
 export const API_ENDPOINTS = {
   COURSES: {
     SEARCH: "/course/search",
+    ADMIN_COURSES: "/course/admin/all",
     DETAILS: "/course/details",
     CREATE: "/course/create",
+    UPDATE: "/course/update",
+    DELETE: (courseId: string) => `/course/delete/${courseId}`,
+    UPDATE_STATUS: (courseId: string) => `/course/${courseId}/status`,
     ENROLL: "/course/enrollment",
     ENROLLMENT: "/course/enrollment",
     FOLLOW: (courseId: string) => `/course/follow/${courseId}`,
