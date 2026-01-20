@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AlertCircle, CheckCircle, UserPlus } from "lucide-react";
-import { AuthApi } from "@/infrastructure/api/auth-api";
+import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
 import { toast } from "sonner";
 
 const userCreationSchema = z.object({
@@ -68,7 +68,7 @@ export function UserCreationForm() {
     try {
       const password = generatePassword();
 
-      await AuthApi.adminCreateAccount({
+      await AuthUseCases.adminCreateUser({
         email: data.email,
         password,
         firstName: data.firstName,

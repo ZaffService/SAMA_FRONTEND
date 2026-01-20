@@ -271,16 +271,16 @@ export const HeroBanner = () => {
             </div>
 
             <p className="text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed">
-              Devenez un expert du digital grâce à nos formations premium.
+              Devenez un expert du numérique, des industries culturelles & créatives et de l'entrepreneuriat grâce à nos formations premium.
             </p>
 
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-3">
-                Formations pratiques pour réussir en ligne
+                 Apprendre localement, Réussir globalement...
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                Apprenez les stratégies qui fonctionnent vraiment pour booster
-                votre présence en ligne.
+               BIBOCOM DiGiTAL permet aux étudiants, diplômés, professionnels et particuliers d’acquérir des compétences pratiques grâce à des formations compréhensibles, dispensées en langues locales. 
+
               </p>
             </div>
 

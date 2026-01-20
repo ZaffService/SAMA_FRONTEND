@@ -51,6 +51,10 @@ export default function AdminDashboard() {
     setCurrentView("manage-users");
   };
 
+  const handleCreateUser = () => {
+    router.push("/admin/create-user");
+  };
+
   const handleBackToDashboard = () => {
     setCurrentView("overview");
   };
@@ -265,12 +269,30 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Gestion des Utilisateurs */}
+              {/* Créer un Utilisateur */}
               <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
+                    <Plus className="h-5 w-5 text-blue-600" />
+                    <span>Créer un Utilisateur</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Ajouter un nouvel utilisateur à la plateforme
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" onClick={handleCreateUser}>
+                    Créer un utilisateur
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Gestion des Utilisateurs */}
+              {/* <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-purple-600" />
-                    <span>Utilisateurs</span>
+                    <span>Gérer les Utilisateurs</span>
                   </CardTitle>
                   <CardDescription>
                     Gérer les comptes utilisateurs, rôles et permissions
@@ -281,7 +303,7 @@ export default function AdminDashboard() {
                     Gérer utilisateurs
                   </Button>
                 </CardContent>
-              </Card>
+              </Card> */}
 
               {/* Statistiques Globales */}
               <Card className="hover:shadow-lg transition-shadow">

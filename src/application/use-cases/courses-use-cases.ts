@@ -233,15 +233,63 @@ export class CoursesUseCases {
   }
 
   /**
-   * Helper pour créer un hook React optimisé
-   * Cette méthode retourne la configuration nécessaire pour créer un hook
+   * Récupérer les données de filtrage pour les cours
+   * @returns Objet contenant les catégories, niveaux et plages de prix avec leurs comptes
    */
+  static async getCourseFilters(): Promise<{
+    categories: Array<{ id: string; name: string; count: number }>;
+    levels: Array<{ id: string; name: string; count: number }>;
+    priceRanges: Array<{ id: string; name: string; count: number }>;
+  }> {
+    try {
+      console.log("🔄 Récupération des données de filtrage...");
+
+      // Récupérer toutes les catégories
+      const categories = await this.getCategories();
+
+      // Pour les niveaux, on utilise des valeurs prédéfinies
+      const levels = [
+        { id: "BEGINNER", name: "Débutant", count: 0 },
+        { id: "INTERMEDIATE", name: "Intermédiaire", count: 0 },
+        { id: "ADVANCED", name: "Avancé", count: 0 },
+      ];
+
+      // Pour les plages de prix, on utilise des valeurs prédéfinies
+      const priceRanges = [
+        { id: "0-50", name: "0 - 50€", count: 0 },
+        { id: "50-100", name: "50 - 100€", count: 0 },
+        { id: "100-200", name: "100 - 200€", count: 0 },
+        { id: "200+", name: "200€+", count: 0 },
+      ];
+
+      // TODO: Implémenter le comptage réel en récupérant les cours et en comptant
+      // Pour l'instant, on retourne les structures avec count = 0
+
+      console.log(`✅ Données de filtrage récupérées`);
+      return {
+        categories: categories.map(cat => ({ id: cat.id, name: cat.name, count: 0 })),
+        levels,
+        priceRanges,
+      };
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération des filtres:", error);
+
+      throw new Error(
+        `Erreur lors du chargement des filtres: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
+    }
+  }
+
+  /**
+    * Helper pour créer un hook React optimisé
+    * Cette méthode retourne la configuration nécessaire pour créer un hook
+    */
   static getCoursesHookConfig() {
     return {
       /**
-       * Configuration pour le hook useAllCourses
-       * Retourne les méthodes et la logique métier sans les hooks React
-       */
+        * Configuration pour le hook useAllCourses
+        * Retourne les méthodes et la logique métier sans les hooks React
+        */
       useAllCourses: () => {
         // Cette méthode sera implémentée dans un hook séparé
         // Ici on retourne juste la structure pour l'instant

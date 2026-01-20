@@ -3,6 +3,16 @@ import { CoursesUseCases } from "./courses-use-cases";
 import { Course } from "@/domain/entities/course";
 import { CourseSearchOptions } from "@/infrastructure/api/baseConfig";
 
+/* =====================================================
+   TYPES
+===================================================== */
+
+interface FiltersState {
+  page: number;
+  query: string;
+  categories: string[];
+}
+
 interface UseCoursesState {
   courses: Course[];
   loading: boolean;
@@ -25,302 +35,190 @@ interface UseCoursesActions {
   setPage: (page: number) => void;
   setSearchQuery: (query: string) => void;
   setFilterCategories: (categoryIds: string[]) => void;
-  refresh: () => Promise<void>;
+  refresh: () => void;
+  refetch: () => void;
   clearError: () => void;
-  refetch: () => Promise<void>;
 }
+
+/* =====================================================
+   HOOK
+===================================================== */
 
 export function useCourses(
   initialPage: number = 1,
   initialPerPage: number = 8,
 ): UseCoursesState & UseCoursesActions {
+  /* =======================
+     STATES
+  ======================= */
+
   const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMaintenance, setShowMaintenance] = useState(false);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
   const [hasCoursesInDatabase, setHasCoursesInDatabase] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-
-  const [filterData, setFilterData] = useState<{
-    categories: Array<{ id: string; name: string; count: number }>;
-    levels: Array<{ id: string; name: string; count: number }>;
-    priceRanges: Array<{ id: string; name: string; count: number }>;
-  }>({
-    categories: [],
-    levels: [],
-    priceRanges: [],
+  const [filterData, setFilterData] = useState({
+    categories: [] as Array<{ id: string; name: string; count: number }>,
+    levels: [] as Array<{ id: string; name: string; count: number }>,
+    priceRanges: [] as Array<{ id: string; name: string; count: number }>,
   });
   const [filterLoading, setFilterLoading] = useState(false);
 
+  /* =======================
+     FILTRES (SOURCE UNIQUE)
+  ======================= */
+
+  const [filters, setFilters] = useState<FiltersState>({
+    page: initialPage,
+    query: "",
+    categories: [],
+  });
+
   const perPage = useRef(initialPerPage);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const isInitialMount = useRef(true); // ✅ Track initial mount
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMount = useRef(true);
 
-  /**
-   * ✅ Fonction stable de récupération
-   */
-  const fetchCourses = useCallback(
-    async (page: number, query: string, categories: string[] = []) => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+  /* =====================================================
+     FETCH COURSES (API ONLY)
+  ===================================================== */
+
+  const fetchCourses = useCallback(async (currentFilters: FiltersState) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const searchOptions: CourseSearchOptions | undefined =
+        currentFilters.query || currentFilters.categories.length > 0
+          ? {
+              query: currentFilters.query || undefined,
+              categoryId: currentFilters.categories[0] || undefined, // 1 catégorie assumée
+            }
+          : undefined;
+
+      const result = await CoursesUseCases.getCourses(
+        currentFilters.page,
+        perPage.current,
+        searchOptions,
+      );
+
+      if (!controller.signal.aborted) {
+        setCourses(result.courses);
+        setTotal(result.total);
+        setPages(result.pages);
+        setHasCoursesInDatabase(result.hasCoursesInDatabase);
+        setShowMaintenance(false);
       }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
 
-      abortControllerRef.current = new AbortController();
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        console.log("🔄 fetchCourses appelé:", {
-          page,
-          query,
-          categories,
-          perPage: perPage.current,
-        });
-
-        // Construire les options de recherche
-        const searchOptions: CourseSearchOptions | undefined =
-          query || categories.length > 0
-            ? {
-                query: query || undefined,
-                categoryId: categories.length > 0 ? categories[0] : undefined, // API accepte une catégorie à la fois
-              }
-            : undefined;
-
-        const result = await CoursesUseCases.getCourses(
-          page,
-          perPage.current,
-          searchOptions,
-        );
-
-        if (!abortControllerRef.current.signal.aborted) {
-          setShowMaintenance(false); // ✅ Backend répond, cacher la page maintenance
-          setCourses(result.courses);
-          setTotal(result.total);
-          setPages(result.pages);
-          setHasCoursesInDatabase(result.hasCoursesInDatabase);
-          // ✅ Mettre à jour currentPage ici aussi pour sync
-          setCurrentPage(page);
-          console.log(
-            `✅ ${result.courses.length} cours chargés (page ${page}/${result.pages})`,
-          );
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          console.log("🚫 Requête annulée");
-          return;
-        }
-
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Erreur inconnue lors du chargement";
-        setError(errorMessage);
-        setShowMaintenance(true); // ✅ Afficher la page maintenance
-        console.error("❌ Erreur dans useCourses:", err);
-      } finally {
-        if (!abortControllerRef.current?.signal.aborted) {
-          setLoading(false);
-        }
+      setError(err instanceof Error ? err.message : "Erreur de chargement");
+      setShowMaintenance(true);
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
-  /**
-   * ✅ Debounce pour la recherche
-   */
+  /* =====================================================
+     FETCH COURSES (DEBOUNCED)
+  ===================================================== */
+
   useEffect(() => {
-    // Skip si c'est le montage initial
     if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchCourses(filters);
       return;
     }
 
-    console.log("🔍 Recherche modifiée:", searchQuery);
-    const timeoutId = setTimeout(() => {
-      setCurrentPage(1); // Reset à page 1
-      fetchCourses(1, searchQuery, selectedCategories);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(() => {
+      fetchCourses(filters);
     }, 300);
 
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, fetchCourses, selectedCategories]);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [filters, fetchCourses]);
 
-  /**
-   * ✅ Écouter les changements de catégories
-   */
-  useEffect(() => {
-    if (isInitialMount.current) {
-      return;
-    }
+  /* =====================================================
+     FILTER DATA — API ONLY (NO MOCK)
+  ===================================================== */
 
-    console.log("🎯 Catégories modifiées:", selectedCategories);
-    fetchCourses(1, searchQuery, selectedCategories);
-  }, [selectedCategories, fetchCourses, searchQuery]);
-
-  /**
-   * ✅ Changement de page
-   */
-  useEffect(() => {
-    // Skip le montage initial
-    if (isInitialMount.current) {
-      return;
-    }
-
-    console.log("📄 useEffect [currentPage]:", currentPage);
-    fetchCourses(currentPage, searchQuery, selectedCategories);
-  }, [currentPage, fetchCourses, searchQuery, selectedCategories]);
-
-  /**
-   * ✅ Fonction pour charger les données de filtrage
-   */
   const loadFilterData = useCallback(async () => {
     try {
-      console.log(
-        "🔄 [loadFilterData] Début chargement des données de filtrage",
-      );
       setFilterLoading(true);
-
-      // Fetch real categories from API
-      console.log(
-        "🔍 [loadFilterData] Appel à CoursesUseCases.getCategories()",
-      );
-      const categories = await CoursesUseCases.getCategories();
-      console.log("✅ [loadFilterData] Catégories reçues:", categories);
-
-      // Mock data for levels and price ranges (can be updated later if API provides them)
-      const mockFilterData = {
-        categories: categories.map((cat) => ({
-          id: cat.id,
-          name: cat.name,
-          count: 0, // TODO: Get count from API if available
-        })),
-        levels: [
-          { id: "beginner", name: "Débutant", count: 35 },
-          { id: "intermediate", name: "Intermédiaire", count: 28 },
-          { id: "advanced", name: "Avancé", count: 15 },
-        ],
-        priceRanges: [
-          { id: "free", name: "Gratuit", count: 8 },
-          { id: "under-5000", name: "Moins de 5 000 FCFA", count: 22 },
-          { id: "5000-10000", name: "5 000 - 10 000 FCFA", count: 18 },
-          { id: "over-10000", name: "Plus de 10 000 FCFA", count: 12 },
-        ],
-      };
-
-      setFilterData(mockFilterData);
+      const data = await CoursesUseCases.getCourseFilters();
+      setFilterData(data);
     } catch (err) {
-      console.error("❌ Erreur chargement données filtrage:", err);
-      console.error(
-        "❌ Détails de l'erreur:",
-        err instanceof Error ? err.message : err,
-      );
-      // Fallback temporaire avec vraies données pour que ça fonctionne
-      console.log("⚠️ Utilisation du fallback temporaire");
+      console.error("❌ Erreur chargement filtres", err);
       setFilterData({
-        categories: [
-          {
-            id: "3d4b99d6-1d8f-4dab-b20f-9f7a791a48c1",
-            name: "Gestion",
-            count: 2,
-          },
-          {
-            id: "75adc1cb-a5b6-497f-bb28-a55c36b995eb",
-            name: "Développement web",
-            count: 2,
-          },
-          {
-            id: "432bfdae-6f51-4248-aec9-8f2fec204c58",
-            name: "Création de contenu",
-            count: 2,
-          },
-          {
-            id: "fa93ca42-66e5-4bd7-87ae-ca921df46f04",
-            name: "Marketing digital",
-            count: 2,
-          },
-          {
-            id: "af9f5bc7-b055-4851-8190-7b73c6aeb41a",
-            name: "Intelligence Artificielle",
-            count: 2,
-          },
-          {
-            id: "ea7b4c15-e7cd-456e-bd09-5749d3d32367",
-            name: "Informatique bureautique",
-            count: 0,
-          },
-        ],
-        levels: [
-          { id: "beginner", name: "Débutant", count: 35 },
-          { id: "intermediate", name: "Intermédiaire", count: 28 },
-          { id: "advanced", name: "Avancé", count: 15 },
-        ],
-        priceRanges: [
-          { id: "free", name: "Gratuit", count: 8 },
-          { id: "under-5000", name: "Moins de 5 000 FCFA", count: 22 },
-          { id: "5000-10000", name: "5 000 - 10 000 FCFA", count: 18 },
-          { id: "over-10000", name: "Plus de 10 000 FCFA", count: 12 },
-        ],
+        categories: [],
+        levels: [],
+        priceRanges: [],
       });
     } finally {
       setFilterLoading(false);
     }
   }, []);
 
-  /**
-   * ✅ Chargement initial
-   */
   useEffect(() => {
-    console.log("🏁 Montage initial du hook");
-    fetchCourses(initialPage, "");
     loadFilterData();
+  }, [loadFilterData]);
 
-    // Marquer la fin du montage initial
-    isInitialMount.current = false;
-  }, [fetchCourses, loadFilterData, initialPage]);
+  /* =====================================================
+     ACTIONS (NO DIRECT FETCH)
+  ===================================================== */
 
-  /**
-   * ✅ setPage SANS dépendances (fonction stable)
-   */
   const setPage = useCallback((page: number) => {
-    console.log("🔧 setPage appelé avec page:", page);
-    console.log("🔧 setCurrentPage va être appelé");
-    setCurrentPage(page);
-    console.log(
-      "🔧 setCurrentPage appelé - page devrait passer de",
-      currentPage,
-      "à",
-      page,
-    );
-  }, []); // ✅ AUCUNE dépendance !
+    setFilters((prev) => ({ ...prev, page }));
+  }, []);
 
-  const refresh = useCallback(async () => {
-    await fetchCourses(1, searchQuery, selectedCategories);
-  }, [fetchCourses, searchQuery, selectedCategories]);
-
-  const refetch = useCallback(async () => {
-    await fetchCourses(currentPage, searchQuery, selectedCategories);
-  }, [fetchCourses, currentPage, searchQuery, selectedCategories]);
+  const setSearchQuery = useCallback((query: string) => {
+    setFilters((prev) => ({ ...prev, query, page: 1 }));
+  }, []);
 
   const setFilterCategories = useCallback((categoryIds: string[]) => {
-    console.log("🎯 [setFilterCategories] Catégories:", categoryIds);
-    setSelectedCategories(categoryIds);
-    setCurrentPage(1);
-    // ✅ Laisser le useEffect de selectedCategories appeler fetchCourses
+    setFilters((prev) => ({ ...prev, categories: categoryIds, page: 1 }));
+  }, []);
+
+  const refresh = useCallback(() => {
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  }, []);
+
+  const refetch = useCallback(() => {
+    setFilters((prev) => ({ ...prev }));
   }, []);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const hasMore = currentPage < pages && !loading;
+  /* =====================================================
+     DERIVED STATE
+  ===================================================== */
 
-  // ✅ Debug: logger chaque render
-  console.log("🔄 useCourses render - currentPage:", currentPage);
+  const hasMore = filters.page < pages && !loading;
+
+  /* =====================================================
+     RETURN
+  ===================================================== */
 
   return {
     courses,
@@ -330,15 +228,15 @@ export function useCourses(
     total,
     pages,
     hasMore,
-    currentPage,
+    currentPage: filters.page,
     filterData,
     filterLoading,
     setPage,
     setSearchQuery,
     setFilterCategories,
     refresh,
-    clearError,
     refetch,
+    clearError,
     hasCoursesInDatabase,
   };
 }
