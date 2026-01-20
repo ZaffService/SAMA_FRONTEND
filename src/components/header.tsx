@@ -93,6 +93,22 @@ export function Header() {
   const displayName = getDisplayName();
   const initials = getInitials();
 
+  // Get the correct dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (!user?.role) return "/student-dashboard";
+    switch (user.role) {
+      case "ADMIN":
+        return "/admin-dashboard";
+      case "INSTRUCTOR":
+        return "/instructor-dashboard";
+      case "STUDENT":
+      default:
+        return "/student-dashboard";
+    }
+  };
+
+  const dashboardUrl = getDashboardUrl();
+
   return (
     <>
       <header
@@ -184,7 +200,7 @@ export function Header() {
                         <div className="p-2 flex flex-col gap-1">
                           <DropdownMenu.Item className="focus:outline-none">
                             <Link
-                              href="/student-dashboard"
+                              href={dashboardUrl}
                               className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors cursor-pointer w-full"
                             >
                               <div className="flex items-center gap-2">
@@ -299,7 +315,7 @@ export function Header() {
                   </Link>
 
                   <Link
-                    href="/student-dashboard"
+                    href={dashboardUrl}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-4 px-4 py-4 text-base rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
                   >
