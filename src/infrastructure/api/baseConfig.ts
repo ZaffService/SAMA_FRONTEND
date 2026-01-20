@@ -35,7 +35,7 @@ export const API_ENDPOINTS = {
     CREATE: "/course/create",
     UPDATE: "/course/update",
     DELETE: (courseId: string) => `/course/delete/${courseId}`,
-    UPDATE_STATUS: (courseId: string) => `/course/${courseId}/status`,
+    UPDATE_STATUS: (courseId: string) => `/course/update-status/${courseId}`,
     ENROLL: "/course/enrollment",
     ENROLLMENT: "/course/enrollment",
     FOLLOW: (courseId: string) => `/course/follow/${courseId}`,

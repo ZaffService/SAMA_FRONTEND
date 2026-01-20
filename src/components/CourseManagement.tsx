@@ -28,21 +28,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   MoreVertical,
-  Edit,
-  Trash2,
-  Eye,
   Search,
   RefreshCw,
   CheckCircle,
@@ -65,16 +54,10 @@ export function CourseManagement({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCourses = async () => {
     setIsLoading(true);
     try {
-      console.log("🔍 [CourseManagement] Rôle utilisateur:", user?.role);
-      console.log("🔍 [CourseManagement] Status filter:", statusFilter);
-
       const searchOptions: any = {
         query: searchQuery || undefined,
       };
@@ -82,7 +65,6 @@ export function CourseManagement({
       // Pour les admins, forcer le rôle dans les paramètres pour s'assurer que le backend applique la logique admin
       if (user?.role === "ADMIN") {
         searchOptions.userRole = "ADMIN";
-        console.log("🔍 [CourseManagement] Mode admin activé, userRole forcé à ADMIN");
       } else {
         // Pour les autres rôles, appliquer le filtrage de statut côté client si nécessaire
         if (statusFilter !== "all") {
@@ -90,11 +72,7 @@ export function CourseManagement({
         }
       }
 
-      console.log("🔍 [CourseManagement] Options de recherche:", searchOptions);
       const result = await CoursesApi.getCourses(1, 100, searchOptions);
-      console.log("🔍 [CourseManagement] Cours reçus:", result.courses.length, "cours");
-      console.log("🔍 [CourseManagement] Statuts des cours:", result.courses.map(c => ({ title: c.title, status: c.status })));
-
       setCourses(result.courses);
     } catch (error) {
       console.error("Erreur lors de la récupération des cours:", error);
@@ -124,29 +102,6 @@ export function CourseManagement({
     }
   };
 
-  const handleDeleteClick = (course: Course) => {
-    setCourseToDelete(course);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!courseToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      await CoursesApi.deleteCourse(courseToDelete.id);
-      toast.success("Cours supprimé avec succès");
-      setDeleteDialogOpen(false);
-      setCourseToDelete(null);
-      fetchCourses();
-      onCourseUpdated?.();
-    } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
-      toast.error("Erreur lors de la suppression du cours");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -289,16 +244,6 @@ export function CourseManagement({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => onEditCourse?.(course.id)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Voir le cours
-                            </DropdownMenuItem>
                             {course.status !== "PUBLISHED" && (
                               <DropdownMenuItem
                                 onClick={() =>
@@ -329,13 +274,6 @@ export function CourseManagement({
                                 Archiver
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => handleDeleteClick(course)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -348,42 +286,6 @@ export function CourseManagement({
         </CardContent>
       </Card>
 
-      {/* Dialog de confirmation de suppression */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
-            <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer le cours "
-              {courseToDelete?.title}" ? Cette action est irréversible.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
-              Annuler
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Suppression...
-                </>
-              ) : (
-                "Supprimer"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-

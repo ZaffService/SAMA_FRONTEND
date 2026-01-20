@@ -1029,9 +1029,9 @@ export class CoursesApi {
     console.log(`🔄 API: Mise à jour du statut du cours ${courseId} vers ${status}`);
 
     const response = await fetch(
-      buildApiUrl(`${API_ENDPOINTS.COURSES.UPDATE_STATUS(courseId)}`),
+      buildApiUrl(API_ENDPOINTS.COURSES.UPDATE_STATUS(courseId)),
       {
-        method: "PATCH",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
