@@ -25,10 +25,11 @@ import {
 } from "lucide-react";
 import { CourseWizard } from "@/components/CourseWizard";
 import { CategoryDialog } from "@/components/category-dialog";
+import { UserCreationForm } from "@/components/UserCreationForm";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { toast } from "sonner";
 
-type DashboardView = "overview" | "create-course";
+type DashboardView = "overview" | "create-course" | "manage-users";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -39,6 +40,10 @@ export default function AdminDashboard() {
 
   const handleCreateCourse = () => {
     setCurrentView("create-course");
+  };
+
+  const handleManageUsers = () => {
+    setCurrentView("manage-users");
   };
 
   const handleBackToDashboard = () => {
@@ -87,6 +92,45 @@ export default function AdminDashboard() {
           {/* Formulaire de création */}
           <main className="py-6">
             <CourseWizard />
+          </main>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (currentView === "manage-users") {
+    return (
+      <ProtectedRoute requiredRole="ADMIN">
+        <div className="min-h-screen bg-gray-50">
+          {/* Header avec bouton retour */}
+          <header className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center py-4">
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="ghost"
+                    onClick={handleBackToDashboard}
+                    className="flex items-center space-x-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Retour au dashboard</span>
+                  </Button>
+                </div>
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Déconnexion</span>
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          {/* Formulaire de création d'utilisateur */}
+          <main className="py-6">
+            <UserCreationForm />
           </main>
         </div>
       </ProtectedRoute>
@@ -175,8 +219,8 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" disabled>
-                    Gérer utilisateurs (Bientôt disponible)
+                  <Button className="w-full" onClick={handleManageUsers}>
+                    Gérer utilisateurs
                   </Button>
                 </CardContent>
               </Card>
@@ -256,4 +300,3 @@ export default function AdminDashboard() {
     </ProtectedRoute>
   );
 }
-

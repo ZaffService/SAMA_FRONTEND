@@ -148,6 +148,36 @@ export class AuthApi {
     return data;
   }
 
+ static async adminCreateAccount(data: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: "STUDENT" | "INSTRUCTOR" | "ADMIN";
+}): Promise<User> {
+  const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.CREATE_ACCOUNT), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include", // JWT admin
+    body: JSON.stringify({
+      ...data,
+
+      // 🔑 FLAGS CRITIQUES
+      emailVerified: true,        // pas d’email de vérification
+      adminCreation: true,        // compte créé par admin
+      sendWelcomeEmail: true,     // email de bienvenue avec mot de passe
+    }),
+  });
+
+  const responseData = await res.json();
+
+  if (!res.ok) {
+    throw new Error(responseData.message || "Échec de la création du compte");
+  }
+
+  return responseData;
+}
+
   static getGoogleAuthUrl(): string {
     // TODO: Implement Google auth URL
     return "";
