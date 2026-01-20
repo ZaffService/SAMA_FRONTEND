@@ -109,6 +109,9 @@ export function Header() {
 
   const dashboardUrl = getDashboardUrl();
 
+  // Check if user is a student (can see "Mes Apprentissages")
+  const isStudent = user?.role === "STUDENT";
+
   return (
     <>
       <header
@@ -128,8 +131,8 @@ export function Header() {
 
             {/* Desktop Navigation - Hidden on mobile */}
             <div className="hidden lg:flex items-center gap-6 flex-1 justify-center">
-              {/* Mes Apprentissages - Only for authenticated users */}
-              {isAuthenticated && (
+              {/* Mes Apprentissages - Only for STUDENTS */}
+              {isAuthenticated && isStudent && (
                 <Link href="/mes-apprentissages">
                   <span className="text-base font-semibold text-primary hover:text-primary/80 transition-colors">
                     Mes Apprentissages
@@ -306,13 +309,16 @@ export function Header() {
 
                 {/* Navigation Links for authenticated users */}
                 <nav className="space-y-2 flex flex-col">
-                  <Link
-                    href="/mes-apprentissages"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-4 px-4 py-4 text-base font-semibold rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
-                  >
-                    <span>Mes Apprentissages</span>
-                  </Link>
+                  {/* Mes Apprentissages - Only for STUDENTS */}
+                  {isStudent && (
+                    <Link
+                      href="/mes-apprentissages"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-4 px-4 py-4 text-base font-semibold rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
+                    >
+                      <span>Mes Apprentissages</span>
+                    </Link>
+                  )}
 
                   <Link
                     href={dashboardUrl}
