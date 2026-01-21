@@ -13,6 +13,7 @@ import {
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
 import { useStudentDashboard } from "@/application/use-cases/useStudentDashboard";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
@@ -89,8 +90,9 @@ const StudentDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
       <Header />
+      <ProfileCompletionBanner />
 
-      <main className="container mx-auto px-4 pt-24 pb-12 space-y-8">
+      <main className="container mx-auto px-4 pt-6 pb-12 space-y-8">
         {/* En-tête avec salutation */}
         <div className="space-y-2">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">

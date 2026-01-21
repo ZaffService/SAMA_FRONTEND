@@ -17,6 +17,7 @@ export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isProfileComplete: boolean | null;
   login: (
     email: string,
     password: string,
@@ -26,4 +27,5 @@ export interface AuthContextType {
   canAccessCourse: (courseId: number, isPaid: boolean) => boolean;
   redirectAfterLogin: string | null;
   setRedirectAfterLogin: (url: string | null) => void;
+  setProfileComplete: (complete: boolean) => void;
 }

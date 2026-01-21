@@ -213,7 +213,7 @@ export function Header() {
                             </Link>
                           </DropdownMenu.Item>
 
-                          {/* <DropdownMenu.Item className="focus:outline-none">
+                          <DropdownMenu.Item className="focus:outline-none">
                             <Link
                               href="/user-profile"
                               className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors cursor-pointer w-full"
@@ -223,7 +223,7 @@ export function Header() {
                                 <span>Mon profil</span>
                               </div>
                             </Link>
-                          </DropdownMenu.Item> */}
+                          </DropdownMenu.Item>
                         </div>
 
                         <div className="border-t p-2">

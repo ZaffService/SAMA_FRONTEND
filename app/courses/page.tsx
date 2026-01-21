@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 import Swal from "sweetalert2";
 import { useCourses } from "@/application/use-cases/useCourses";
 import type { Course, CourseFilter } from "@/domain/entities/course";
@@ -238,6 +239,7 @@ const CoursesPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <ProfileCompletionBanner />
 
       <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 pt-20 sm:pt-24 lg:pt-28">
         <div className="mb-6 sm:mb-8">

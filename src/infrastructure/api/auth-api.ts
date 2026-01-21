@@ -33,9 +33,35 @@ export class AuthApi {
       credentials: "include",
       body: JSON.stringify(payload),
     });
-    if (!res.ok)
-      throw new Error((await res.json()).message || "Échec de l'inscription");
-    return res.json();
+
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      if (responseData?.error?.message) {
+        throw new Error(responseData.error.message);
+      }
+      throw new Error(responseData.message || "Échec de l'inscription");
+    }
+
+    return responseData;
+  }
+
+  static async getProfile(): Promise<User | null> {
+    try {
+      const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      return await res.json();
+    } catch (error) {
+      console.error("Erreur lors de la récupération du profil:", error);
+      return null;
+    }
   }
 
   static async validateSession(): Promise<User | null> {
@@ -68,6 +94,32 @@ export class AuthApi {
       console.error("❌ [AuthApi] Erreur validateSession:", error);
       return null;
     }
+  }
+
+  static async completeProfile(data: {
+    firstName?: string;
+    lastName?: string;
+    sexe?: "M" | "F" | "O" | "NOT_SPECIFIED";
+    region?: string;
+    residenceType?: "URBAN" | "RURAL";
+    disability?: boolean;
+    disabilityType?: "VISUAL" | "HEARING" | "MOTOR" | "COGNITIVE" | "OTHER";
+    disabilityDetails?: string;
+    consentGiven?: boolean;
+  }): Promise<User> {
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || "Échec de la mise à jour du profil");
+    }
+
+    return res.json();
   }
 
   static async logout(): Promise<void> {

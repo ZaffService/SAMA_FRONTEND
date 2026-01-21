@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
     LOGIN: "/user/login",
     LOGOUT: "/user/logout",
     PROFILE: "/user/profile",
+    COMPLETE_PROFILE: "/user/complete-profile",
     CREATE_ACCOUNT: "/user/create-account",
     VERIFY_EMAIL: "/user/verify-email",
     BY_ROLE: "/user/by-role",

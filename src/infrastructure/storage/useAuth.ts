@@ -3,6 +3,7 @@
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import { UserApi } from "@/infrastructure/api/user-api";
 import type { AuthContextType, RegisterData } from "@/types/auth";
 import type { User } from "@/domain/entities/user";
 
@@ -17,6 +18,7 @@ export function useProvideAuth(): AuthContextType {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(
     null,
   );
@@ -54,15 +56,27 @@ export function useProvideAuth(): AuthContextType {
 
           setUser(mappedUser);
           setIsAuthenticated(true);
+
+          // Fetch user profile to get isProfileComplete
+          try {
+            const profile = await UserApi.getUserProfile();
+            console.log("🔄 [useAuth] Profile fetched:", profile);
+            setIsProfileComplete(profile?.isProfileComplete ?? null);
+          } catch (error) {
+            console.error("❌ [useAuth] Error fetching profile:", error);
+            setIsProfileComplete(null);
+          }
         } else {
           console.log("❌ [useAuth] Aucun user trouvé (session invalide)");
           setUser(null);
           setIsAuthenticated(false);
+          setIsProfileComplete(null);
         }
       } catch (error) {
         console.error("❌ [useAuth] Erreur initAuth:", error);
         setUser(null);
         setIsAuthenticated(false);
+        setIsProfileComplete(null);
       } finally {
         console.log("🔄 [useAuth] Fin initAuth, isLoading = false");
         setIsLoading(false);
@@ -77,6 +91,13 @@ export function useProvideAuth(): AuthContextType {
 
     try {
       const response = await AuthApi.login({ email, password });
+      console.log("🔐 [useAuth] Login response:", response);
+      console.log("🔐 [useAuth] Login response.user:", response.user);
+      
+      // Check if isProfileComplete exists in the response
+      const isComplete = (response.user as any).isProfileComplete;
+      console.log("🔐 [useAuth] isProfileComplete from response:", isComplete);
+      
       const mappedUser: User = {
         id: response.user.id,
         email: response.user.email,
@@ -91,6 +112,10 @@ export function useProvideAuth(): AuthContextType {
 
       setUser(mappedUser);
       setIsAuthenticated(true);
+      // Capture isProfileComplete from login response
+      setIsProfileComplete(isComplete ?? null);
+
+      console.log("🔐 [useAuth] isProfileComplete state set to:", isComplete);
 
       let redirectUrl: string | undefined;
       switch (mappedUser.role) {
@@ -115,6 +140,7 @@ export function useProvideAuth(): AuthContextType {
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
+      setIsProfileComplete(null);
       throw error;
     } finally {
       setIsLoading(false);
@@ -136,6 +162,7 @@ export function useProvideAuth(): AuthContextType {
   const logout = async () => {
     setUser(null);
     setIsAuthenticated(false);
+    setIsProfileComplete(null);
     setIsLoading(true);
 
     try {
@@ -154,15 +181,21 @@ export function useProvideAuth(): AuthContextType {
     return user?.role === "ADMIN" || user?.role === "INSTRUCTOR";
   };
 
+  const setProfileComplete = (complete: boolean) => {
+    setIsProfileComplete(complete);
+  };
+
   return {
     user,
     isLoading,
     isAuthenticated,
+    isProfileComplete,
     login,
     register,
     logout,
     canAccessCourse,
     redirectAfterLogin,
     setRedirectAfterLogin,
+    setProfileComplete,
   };
 }

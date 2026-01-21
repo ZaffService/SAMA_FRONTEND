@@ -24,6 +24,7 @@ import { HeroBanner } from "@/components/hero-banner";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
 import { useCourses } from "@/application/use-cases/useCourses";
 import { useEnrolledCourses } from "@/application/use-cases/useEnrolledCourses";
@@ -300,6 +301,7 @@ const Index = () => {
               id="formations-section"
               className="pt-12"
             >
+              <ProfileCompletionBanner />
               {/* Barre de recherche avec titre - Layout mobile en colonne */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">

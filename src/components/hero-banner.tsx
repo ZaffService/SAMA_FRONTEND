@@ -280,7 +280,6 @@ export const HeroBanner = () => {
               </h2>
               <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
                BIBOCOM DiGiTAL permet aux étudiants, diplômés, professionnels et particuliers d’acquérir des compétences pratiques grâce à des formations compréhensibles, dispensées en langues locales. 
-
               </p>
             </div>
 

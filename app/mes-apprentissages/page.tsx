@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/header";
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
 type TabType = "all" | "active" | "completed";
 
@@ -195,8 +196,9 @@ export default function MesApprentissagesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
       <Header />
+      <ProfileCompletionBanner />
 
-      <main className="container mx-auto px-4 pt-24 pb-12 space-y-8">
+      <main className="container mx-auto px-4 pt-6 pb-12 space-y-8">
         {/* En-tête avec bouton retour */}
         <div className="space-y-4">
           <Link

@@ -12,10 +12,10 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
 import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { Checkbox } from "@/components/ui/checkbox";
-import Swal from "sweetalert2";
 
 export default function ClientLogin() {
   const router = useRouter();
@@ -33,6 +33,8 @@ export default function ClientLogin() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   useEffect(() => {
     // Gérer le paramètre de redirection depuis l'URL
@@ -54,52 +56,36 @@ export default function ClientLogin() {
   }, [isAuthenticated, redirectAfterLogin, router]);
 
   // Fonctions de validation personnalisées
-  const validateEmail = (email: string): boolean => {
-    return (
-      email.includes("@") &&
-      email.includes(".") &&
-      email.indexOf("@") < email.lastIndexOf(".")
-    );
+  const validateEmail = (email: string): string | null => {
+    if (!email.trim()) return "Email requis";
+    if (!email.includes("@") || !email.includes(".") || email.indexOf("@") >= email.lastIndexOf(".")) {
+      return "Format email invalide";
+    }
+    return null;
   };
 
-  const validatePassword = (password: string): boolean => {
-    return password.trim().length > 0;
-  };
-
-  // Fonction pour afficher les erreurs avec SweetAlert2
-  const showError = (title: string, text: string) => {
-    Swal.fire({
-      icon: "error",
-      title: title,
-      text: text,
-      confirmButtonText: "Fermer",
-      confirmButtonColor: "#2563eb",
-      backdrop: true,
-      allowOutsideClick: true,
-      allowEscapeKey: true,
-      customClass: {
-        popup: "swal-responsive",
-        title: "swal-title",
-        htmlContainer: "swal-text",
-        confirmButton: "swal-button",
-      },
-    });
+  const validatePassword = (password: string): string | null => {
+    if (!password.trim()) return "Mot de passe requis";
+    return null;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation personnalisée avec SweetAlert2
-    if (!validateEmail(email)) {
-      showError(
-        "Email invalide",
-        "L'adresse email doit contenir '@' et un point",
-      );
+    // Réinitialiser les erreurs
+    setEmailError("");
+    setPasswordError("");
+
+    // Validation personnalisée
+    const emailValidation = validateEmail(email);
+    if (emailValidation) {
+      setEmailError(emailValidation);
       return;
     }
 
-    if (!validatePassword(password)) {
-      showError("Mot de passe requis", "Veuillez entrer votre mot de passe");
+    const passwordValidation = validatePassword(password);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
       return;
     }
 
@@ -120,24 +106,18 @@ export default function ClientLogin() {
     } catch (err: any) {
       console.error("Erreur login:", err);
 
-      // Gestion spécifique des erreurs backend avec SweetAlert2
-      if (err.message === "EMAIL_NOT_FOUND") {
-        showError("Email introuvable", "Cette adresse email n'existe pas");
-      } else if (err.message === "INCORRECT_PASSWORD") {
-        showError(
-          "Mot de passe incorrect",
-          "Le mot de passe saisi est incorrect",
-        );
-      } else if (err.message === "EMAIL_NOT_VERIFIED") {
-        showError(
-          "Email non vérifié",
-          "Veuillez vérifier votre email avant de vous connecter",
-        );
+      // Utiliser le système de mapping d'erreurs pour traduire en français
+      const errorMessage = getAuthErrorMessage(err);
+
+      // Déterminer si l'erreur concerne l'email ou le mot de passe
+      const message = err.message?.toLowerCase() || "";
+      if (message.includes("email") && (message.includes("not found") || message.includes("not verified"))) {
+        setEmailError(errorMessage);
+      } else if (message.includes("password") && message.includes("incorrect")) {
+        setPasswordError(errorMessage);
       } else {
-        showError(
-          "Erreur de connexion",
-          err.message || "Une erreur s'est produite lors de la connexion",
-        );
+        // Par défaut, afficher sur le champ email
+        setEmailError(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -146,53 +126,6 @@ export default function ClientLogin() {
 
   return (
     <>
-      <style jsx global>{`
-        /* Styles SweetAlert2 responsifs */
-        .swal-responsive {
-          width: 90% !important;
-          max-width: 400px !important;
-          padding: 1.5rem !important;
-          border-radius: 1rem !important;
-        }
-
-        .swal-title {
-          font-size: 1.25rem !important;
-          font-weight: 700 !important;
-          color: #1f2937 !important;
-        }
-
-        .swal-text {
-          font-size: 0.95rem !important;
-          color: #6b7280 !important;
-        }
-
-        .swal-button {
-          padding: 0.65rem 2rem !important;
-          font-size: 0.95rem !important;
-          font-weight: 600 !important;
-          border-radius: 0.5rem !important;
-        }
-
-        @media (max-width: 640px) {
-          .swal-responsive {
-            width: 95% !important;
-            padding: 1.25rem !important;
-          }
-
-          .swal-title {
-            font-size: 1.1rem !important;
-          }
-
-          .swal-text {
-            font-size: 0.875rem !important;
-          }
-
-          .swal-button {
-            padding: 0.6rem 1.5rem !important;
-            font-size: 0.875rem !important;
-          }
-        }
-      `}</style>
 
       <div className="min-h-screen flex flex-col lg:flex-row overflow-hidden">
         {/* Header Mobile avec padding réduit */}
@@ -231,9 +164,19 @@ export default function ClientLogin() {
                   type="text"
                   placeholder="votre@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1.5 h-10 lg:h-12 text-sm lg:text-base"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError("");
+                  }}
+                  className={`mt-1.5 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
+                    emailError ? "border-red-500" : ""
+                  }`}
                 />
+                {emailError && (
+                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -249,8 +192,13 @@ export default function ClientLogin() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10 h-10 lg:h-12 text-sm lg:text-base"
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError("");
+                    }}
+                    className={`pr-10 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
+                      passwordError ? "border-red-500" : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -264,6 +212,11 @@ export default function ClientLogin() {
                     )}
                   </button>
                 </div>
+                {passwordError && (
+                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                    {passwordError}
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between py-1 lg:py-2">

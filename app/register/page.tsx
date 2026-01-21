@@ -14,7 +14,7 @@ import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
-import Swal from "sweetalert2";
+import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +59,14 @@ export default function Register() {
   });
   const [showPasswordFeedback, setShowPasswordFeedback] = useState(false);
 
+  // États d'erreur pour chaque champ
+  const [firstNameError, setFirstNameError] = useState("");
+  const [lastNameError, setLastNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [termsError, setTermsError] = useState("");
+
   // Analyse de la force du mot de passe en temps réel
   useEffect(() => {
     const pwd = formData.password;
@@ -101,68 +109,52 @@ export default function Register() {
     return null;
   };
 
-  // Fonction pour afficher les erreurs avec SweetAlert2
-  const showError = (title: string, text: string) => {
-    Swal.fire({
-      icon: "error",
-      title: title,
-      text: text,
-      confirmButtonText: "Fermer",
-      confirmButtonColor: "#2563eb",
-      backdrop: true,
-      allowOutsideClick: true,
-      allowEscapeKey: true,
-      customClass: {
-        popup: "swal-responsive",
-        title: "swal-title",
-        htmlContainer: "swal-text",
-        confirmButton: "swal-button",
-      },
-    });
-  };
-
   const validateForm = () => {
-    const firstNameError = validateName(formData.firstName, "Prénom");
-    if (firstNameError) {
-      showError("Prénom invalide", firstNameError);
-      return false;
+    // Réinitialiser toutes les erreurs
+    setFirstNameError("");
+    setLastNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
+    setTermsError("");
+
+    let hasErrors = false;
+
+    const firstNameValidation = validateName(formData.firstName, "Prénom");
+    if (firstNameValidation) {
+      setFirstNameError(firstNameValidation);
+      hasErrors = true;
     }
 
-    const lastNameError = validateName(formData.lastName, "Nom");
-    if (lastNameError) {
-      showError("Nom invalide", lastNameError);
-      return false;
+    const lastNameValidation = validateName(formData.lastName, "Nom");
+    if (lastNameValidation) {
+      setLastNameError(lastNameValidation);
+      hasErrors = true;
     }
 
-    const emailError = validateEmail(formData.email);
-    if (emailError) {
-      showError("Email invalide", emailError);
-      return false;
+    const emailValidation = validateEmail(formData.email);
+    if (emailValidation) {
+      setEmailError(emailValidation);
+      hasErrors = true;
     }
 
-    const passwordError = validatePassword(formData.password);
-    if (passwordError) {
-      showError("Mot de passe invalide", passwordError);
-      return false;
+    const passwordValidation = validatePassword(formData.password);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
+      hasErrors = true;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      showError(
-        "Mots de passe différents",
-        "Les mots de passe ne correspondent pas",
-      );
-      return false;
+      setConfirmPasswordError("Les mots de passe ne correspondent pas");
+      hasErrors = true;
     }
 
     if (!formData.acceptTerms) {
-      showError(
-        "Conditions non acceptées",
-        "Vous devez accepter les conditions d'utilisation",
-      );
-      return false;
+      setTermsError("Vous devez accepter les conditions d'utilisation");
+      hasErrors = true;
     }
 
-    return true;
+    return !hasErrors;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,10 +186,16 @@ export default function Register() {
         throw new Error("Réponse inattendue du serveur");
       }
     } catch (err) {
-      showError(
-        "Erreur d'inscription",
-        err instanceof Error ? err.message : "Impossible de créer le compte",
-      );
+      // Utiliser le système de mapping d'erreurs pour traduire en français
+      const errorMessage = getAuthErrorMessage(err);
+
+      // Déterminer si l'erreur concerne l'email
+      const originalMessage = (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
+      if (originalMessage.includes("email") || originalMessage.includes("user")) {
+        setEmailError(errorMessage);
+      } else {
+        setEmailError(errorMessage); // Par défaut sur email
+      }
     } finally {
       setIsLoading(false);
     }
@@ -263,53 +261,6 @@ export default function Register() {
 
   return (
     <>
-      <style jsx global>{`
-        /* Styles SweetAlert2 responsifs */
-        .swal-responsive {
-          width: 90% !important;
-          max-width: 400px !important;
-          padding: 1.5rem !important;
-          border-radius: 1rem !important;
-        }
-
-        .swal-title {
-          font-size: 1.25rem !important;
-          font-weight: 700 !important;
-          color: #1f2937 !important;
-        }
-
-        .swal-text {
-          font-size: 0.95rem !important;
-          color: #6b7280 !important;
-        }
-
-        .swal-button {
-          padding: 0.65rem 2rem !important;
-          font-size: 0.95rem !important;
-          font-weight: 600 !important;
-          border-radius: 0.5rem !important;
-        }
-
-        @media (max-width: 640px) {
-          .swal-responsive {
-            width: 95% !important;
-            padding: 1.25rem !important;
-          }
-
-          .swal-title {
-            font-size: 1.1rem !important;
-          }
-
-          .swal-text {
-            font-size: 0.875rem !important;
-          }
-
-          .swal-button {
-            padding: 0.6rem 1.5rem !important;
-            font-size: 0.875rem !important;
-          }
-        }
-      `}</style>
 
       <div className="min-h-screen flex flex-col lg:flex-row overflow-hidden">
         {/* Header Mobile */}
@@ -351,9 +302,17 @@ export default function Register() {
                     value={formData.firstName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setFormData({ ...formData, firstName: e.target.value });
+                      if (firstNameError) setFirstNameError("");
                     }}
-                    className="mt-0.5 h-8 lg:h-12 text-xs lg:text-base"
+                    className={`mt-0.5 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                      firstNameError ? "border-red-500" : ""
+                    }`}
                   />
+                  {firstNameError && (
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {firstNameError}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label
@@ -368,9 +327,17 @@ export default function Register() {
                     value={formData.lastName}
                     onChange={(e) => {
                       setFormData({ ...formData, lastName: e.target.value });
+                      if (lastNameError) setLastNameError("");
                     }}
-                    className="mt-0.5 h-8 lg:h-12 text-xs lg:text-base"
+                    className={`mt-0.5 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                      lastNameError ? "border-red-500" : ""
+                    }`}
                   />
+                  {lastNameError && (
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {lastNameError}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -389,9 +356,17 @@ export default function Register() {
                   value={formData.email}
                   onChange={(e) => {
                     setFormData({ ...formData, email: e.target.value });
+                    if (emailError) setEmailError("");
                   }}
-                  className="mt-0.5 h-8 lg:h-12 text-xs lg:text-base"
+                  className={`mt-0.5 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                    emailError ? "border-red-500" : ""
+                  }`}
                 />
+                {emailError && (
+                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               {/* Mot de passe avec feedback dynamique */}
@@ -411,8 +386,11 @@ export default function Register() {
                     onFocus={() => setShowPasswordFeedback(true)}
                     onChange={(e) => {
                       setFormData({ ...formData, password: e.target.value });
+                      if (passwordError) setPasswordError("");
                     }}
-                    className="pr-10 h-8 lg:h-12 text-xs lg:text-base"
+                    className={`pr-10 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                      passwordError ? "border-red-500" : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -426,6 +404,11 @@ export default function Register() {
                     )}
                   </button>
                 </div>
+                {passwordError && (
+                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                    {passwordError}
+                  </p>
+                )}
 
                 {/* Feedback dynamique du mot de passe */}
                 {showPasswordFeedback && formData.password && (
@@ -517,8 +500,11 @@ export default function Register() {
                         ...formData,
                         confirmPassword: e.target.value,
                       });
+                      if (confirmPasswordError) setConfirmPasswordError("");
                     }}
-                    className="pr-10 h-8 lg:h-12 text-xs lg:text-base"
+                    className={`pr-10 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                      confirmPasswordError ? "border-red-500" : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -532,26 +518,41 @@ export default function Register() {
                     )}
                   </button>
                 </div>
+                {confirmPasswordError && (
+                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                    {confirmPasswordError}
+                  </p>
+                )}
               </div>
 
-              <div className="flex items-start gap-2 lg:gap-2.5 py-0.5 lg:py-1.5">
-                <Checkbox
-                  id="terms"
-                  checked={formData.acceptTerms}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      acceptTerms: checked as boolean,
-                    })
-                  }
-                  className="mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5"
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
-                >
-                  J'accepte les conditions d'utilisation
-                </label>
+              <div className="flex flex-col gap-1 py-0.5 lg:py-1.5">
+                <div className="flex items-start gap-2 lg:gap-2.5">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.acceptTerms}
+                    onCheckedChange={(checked) => {
+                      setFormData({
+                        ...formData,
+                        acceptTerms: checked as boolean,
+                      });
+                      if (termsError) setTermsError("");
+                    }}
+                    className={`mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5 ${
+                      termsError ? "border-red-500" : ""
+                    }`}
+                  />
+                  <label
+                    htmlFor="terms"
+                    className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
+                  >
+                    J'accepte les conditions d'utilisation
+                  </label>
+                </div>
+                {termsError && (
+                  <p className="text-red-600 text-xs ml-6 animate-in slide-in-from-top-1 duration-200">
+                    {termsError}
+                  </p>
+                )}
               </div>
 
               <Button

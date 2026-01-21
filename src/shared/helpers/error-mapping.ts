@@ -110,6 +110,42 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
   },
 
   // Authentication errors
+  USER_ALREADY_EXISTS: {
+    title: "Utilisateur déjà inscrit",
+    message: "Cet email est déjà utilisé.",
+    action: "NONE",
+  },
+
+  CONFLICTING_OPERATION: {
+    title: "Utilisateur déjà inscrit",
+    message: "Cet email est déjà utilisé.",
+    action: "NONE",
+  },
+
+  EMAIL_NOT_FOUND: {
+    title: "Email introuvable",
+    message: "Cette adresse email n'existe pas.",
+    action: "NONE",
+  },
+
+  INCORRECT_PASSWORD: {
+    title: "Mot de passe incorrect",
+    message: "Le mot de passe saisi est incorrect.",
+    action: "NONE",
+  },
+
+  EMAIL_NOT_VERIFIED: {
+    title: "Email non vérifié",
+    message: "Veuillez vérifier votre email avant de vous connecter.",
+    action: "NONE",
+  },
+
+  INVALID_CREDENTIALS: {
+    title: "Identifiants invalides",
+    message: "Email ou mot de passe incorrect.",
+    action: "NONE",
+  },
+
   UNAUTHORIZED: {
     title: "Session expirée",
     message: "Veuillez vous reconnecter.",
@@ -414,4 +450,70 @@ export function createErrorDisplay(error: unknown): {
       mapping.action === "REDIRECT_TO_PAYMENT" ||
       mapping.action === "REDIRECT_TO_PAYMENT_OR_ENROLL",
   };
+}
+
+/**
+ * Get authentication error message for inline display
+ * Maps common backend error messages/codes to French error messages
+ */
+export function getAuthErrorMessage(error: unknown): string {
+  if (!error) return "";
+
+  // First, try to parse the error using the standard error parsing
+  const parsedError = parseApiError(error);
+
+  // Check if we have a mapping for the parsed error code
+  if (parsedError.code && ERROR_UI_MAPPING[parsedError.code]) {
+    return ERROR_UI_MAPPING[parsedError.code].message;
+  }
+
+  // Fallback: Handle Error objects with message-based mapping
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+
+    // Map common English error messages to French
+    if (message.includes("user with this email already exists")) {
+      return "Cet email est déjà utilisé.";
+    }
+    if (message.includes("email not found")) {
+      return "Cette adresse email n'existe pas.";
+    }
+    if (message.includes("incorrect password")) {
+      return "Le mot de passe saisi est incorrect.";
+    }
+    if (message.includes("email not verified")) {
+      return "Veuillez vérifier votre email avant de vous connecter.";
+    }
+    if (message.includes("invalid credentials")) {
+      return "Email ou mot de passe incorrect.";
+    }
+
+    // Return the original message if it's already in French or unknown
+    return error.message;
+  }
+
+  // Handle string errors
+  if (typeof error === "string") {
+    const message = error.toLowerCase();
+
+    if (message.includes("user with this email already exists")) {
+      return "Cet email est déjà utilisé.";
+    }
+    if (message.includes("email not found")) {
+      return "Cette adresse email n'existe pas.";
+    }
+    if (message.includes("incorrect password")) {
+      return "Le mot de passe saisi est incorrect.";
+    }
+    if (message.includes("email not verified")) {
+      return "Veuillez vérifier votre email avant de vous connecter.";
+    }
+    if (message.includes("invalid credentials")) {
+      return "Email ou mot de passe incorrect.";
+    }
+
+    return error;
+  }
+
+  return "Une erreur s'est produite.";
 }
