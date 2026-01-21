@@ -551,7 +551,7 @@ export default function CompleteProfile() {
                       className="text-sm font-medium cursor-pointer leading-relaxed"
                     >
                       J&apos;accepte que mes données soient utilisées pour améliorer mon
-                      expérience sur la plateforme SAMA. Je peux retirer mon consentement
+                      expérience sur la plateforme. Je peux retirer mon consentement
                       à tout moment. <span className="text-red-500">*</span>
                     </Label>
                   </div>
