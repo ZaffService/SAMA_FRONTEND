@@ -4,6 +4,7 @@ import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { UserApi } from "@/infrastructure/api/user-api";
+import { clearTokens } from "@/shared/helpers/auth";
 import type { AuthContextType, RegisterData } from "@/types/auth";
 import type { User } from "@/domain/entities/user";
 
@@ -160,17 +161,23 @@ export function useProvideAuth(): AuthContextType {
   };
 
   const logout = async () => {
+    console.log("🚪 [useAuth] Début logout - Réinitialisation état local");
     setUser(null);
     setIsAuthenticated(false);
     setIsProfileComplete(null);
+    clearTokens(); // Vider les tokens locaux immédiatement
     setIsLoading(true);
 
     try {
+      console.log("🚪 [useAuth] Appel AuthApi.logout()");
       await AuthApi.logout();
+      console.log("🚪 [useAuth] AuthApi.logout() terminé");
     } catch (error) {
+      console.error("🚪 [useAuth] Erreur lors de AuthApi.logout():", error);
       // Continue même en cas d'erreur
     } finally {
       setIsLoading(false);
+      console.log("🚪 [useAuth] Redirection vers /");
       window.location.href = "/";
     }
   };

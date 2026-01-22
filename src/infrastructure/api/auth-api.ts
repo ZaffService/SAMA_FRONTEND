@@ -123,13 +123,20 @@ export class AuthApi {
   }
 
   static async logout(): Promise<void> {
+    console.log("🚪 [AuthApi] Début logout - Envoi requête POST /logout");
     try {
-      await fetch(buildApiUrl(API_ENDPOINTS.USER.LOGOUT), {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.LOGOUT), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-    } catch {}
+      console.log("🚪 [AuthApi] Réponse logout:", response.status, response.statusText);
+      if (!response.ok) {
+        console.error("🚪 [AuthApi] Erreur logout - Status non-ok:", response.status);
+      }
+    } catch (error) {
+      console.error("🚪 [AuthApi] Erreur réseau lors du logout:", error);
+    }
   }
 
   static async verifyEmail(token: string): Promise<{ message: string }> {
