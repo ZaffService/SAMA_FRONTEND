@@ -422,24 +422,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         <CardContent className="pt-6">{renderStep()}</CardContent>
       </Card>
 
-      <div className="flex justify-between items-center pt-6 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => handleSaveDraft(false)}
-          disabled={isSubmitting || isSavingDraft}
-          className="flex items-center space-x-2"
-        >
-          {isSavingDraft ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          <span>
-            {isSavingDraft ? "Sauvegarde..." : "Sauvegarder le brouillon"}
-          </span>
-        </Button>
-
+      <div className="flex justify-end items-center pt-6 border-t">
         <div className="flex space-x-4">
           {currentStep > 1 && (
             <Button
