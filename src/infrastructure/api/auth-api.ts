@@ -15,9 +15,9 @@ export class AuthApi {
     const data = await res.json();
 
     if (!res.ok) {
-      // Propager les codes d'erreur spécifiques
-      if (data?.error?.code) {
-        throw new Error(data.error.code);
+      // Propager l'objet d'erreur complet pour permettre le mapping par code
+      if (data?.error) {
+        throw data.error;
       }
       throw new Error(data.message || "Échec de la connexion");
     }
@@ -37,8 +37,8 @@ export class AuthApi {
     const responseData = await res.json();
 
     if (!res.ok) {
-      if (responseData?.error?.message) {
-        throw new Error(responseData.error.message);
+      if (responseData?.error) {
+        throw responseData.error;
       }
       throw new Error(responseData.message || "Échec de l'inscription");
     }
