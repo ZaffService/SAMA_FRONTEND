@@ -78,7 +78,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   const [error, setError] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [draftId, setDraftId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<CourseFormData>({
     title: "",
@@ -108,17 +107,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     };
     loadCategories();
   }, []);
-
-  // Auto-save draft every 30 seconds
-  useEffect(() => {
-    const autoSaveInterval = setInterval(() => {
-      if (formData.title.trim() && !isSubmitting && !isSavingDraft) {
-        handleSaveDraft(true);
-      }
-    }, 30000);
-
-    return () => clearInterval(autoSaveInterval);
-  }, [formData, isSubmitting, isSavingDraft]);
 
   const updateFormData = (updates: Partial<CourseFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -235,10 +223,11 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     }
   };
 
-  const prepareCourseData = () => {
+  const prepareCourseData = (statusOverride?: CourseStatus) => {
     // instructorId sera null et récupéré par le backend depuis les cookies JWT
     return {
       ...formData,
+      status: statusOverride || formData.status,
       instructorId: null, // Le backend extrait l'instructorId réel des cookies
       thumbnail: thumbnailFile || undefined,
       attachments: formData.attachments || [],
@@ -264,13 +253,10 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       closeLoading();
 
       // ✅ IMPORTANT: Récupérer les détails du cours pour obtenir l'URL de la miniature mise à jour
-      // L'upload de la miniature est asynchrone, donc on doit attendre un peu ou récupérer les détails
       let updatedThumbnailUrl = result.course?.thumbnailUrl;
 
       if (!updatedThumbnailUrl && result.courseId) {
-        // Attendre un peu pour l'upload asynchrone
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        // Récupérer les détails du cours
         try {
           const details = await CoursesApi.getCourseDetails(result.courseId);
           updatedThumbnailUrl = details.course.thumbnailUrl;
@@ -300,38 +286,40 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     }
   };
 
-  const handleSaveDraft = async (isAutoSave = false) => {
+  const handleSaveDraft = async () => {
     if (!formData.title.trim()) {
-      if (!isAutoSave) {
-        setError("Le titre du cours est requis pour sauvegarder un brouillon");
-        showCourseCreationError("Le titre du cours est requis");
-      }
+      setError("Le titre du cours est requis pour sauvegarder un brouillon");
+      showCourseCreationError("Le titre du cours est requis");
       return;
     }
 
     setIsSavingDraft(true);
+    showLoadingToast("Sauvegarde du brouillon en cours...");
 
     try {
-      const result = await CoursesApi.saveDraft(prepareCourseData());
-
-      setDraftId(result.courseId || result.course?.id || draftId);
-
-      if (!isAutoSave) {
-        showDraftSavedSuccess(formData.title);
-      }
-
+      // Utiliser la même logique que createCourse mais avec status: "DRAFT"
+      const result = await CoursesApi.createCourse(prepareCourseData(CourseStatus.DRAFT));
+      closeLoading();
+      showDraftSavedSuccess(formData.title);
       console.log("✅ Brouillon sauvegardé:", result);
     } catch (err) {
-      if (!isAutoSave) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Erreur lors de la sauvegarde du brouillon";
-        setError(errorMessage);
-        showCourseCreationError(errorMessage);
-      }
+      closeLoading();
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de la sauvegarde du brouillon";
+      setError(errorMessage);
+      showCourseCreationError(errorMessage);
     } finally {
       setIsSavingDraft(false);
+    }
+  };
+
+  const handleFinalAction = () => {
+    if (formData.status === CourseStatus.DRAFT) {
+      handleSaveDraft();
+    } else {
+      handleSubmit({ preventDefault: () => {} } as React.FormEvent);
     }
   };
 
@@ -346,7 +334,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
             thumbnailUrl={thumbnailUrl}
             onThumbnailUploaded={handleThumbnailUploaded}
             onThumbnailRemoved={handleThumbnailRemoved}
-            draftId={draftId}
           />
         );
       case 2:
@@ -396,12 +383,6 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         <p className="text-gray-600 mt-2">
           Suivez les étapes ci-dessous pour créer votre cours.
         </p>
-        {draftId && (
-          <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
-            <Save className="h-4 w-4 mr-2" />
-            Brouillon sauvegardé
-          </div>
-        )}
       </div>
 
       <StepIndicator
@@ -422,14 +403,14 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         <CardContent className="pt-6">{renderStep()}</CardContent>
       </Card>
 
-      <div className="flex justify-end items-center pt-6 border-t">
+      <div className="flex justify-between items-center pt-6 border-t">
         <div className="flex space-x-4">
           {currentStep > 1 && (
             <Button
               type="button"
               variant="outline"
               onClick={handlePrevStep}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSavingDraft}
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               Précédent
@@ -443,18 +424,26 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
             </Button>
           ) : (
             <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
+              type="button"
+              onClick={handleFinalAction}
+              disabled={isSubmitting || isSavingDraft}
               className="flex items-center space-x-2"
             >
-              {isSubmitting ? (
+              {isSubmitting || isSavingDraft ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : formData.status === CourseStatus.DRAFT ? (
+                <Save className="h-4 w-4" />
               ) : (
                 <Eye className="h-4 w-4" />
               )}
               <span>
-                {isSubmitting ? "Création en cours..." : "Publier le cours"}
+                {isSubmitting
+                  ? "Création en cours..."
+                  : isSavingDraft
+                  ? "Sauvegarde..."
+                  : formData.status === CourseStatus.DRAFT
+                  ? "Sauvegarder le brouillon"
+                  : "Publier le cours"}
               </span>
             </Button>
           )}
@@ -472,7 +461,6 @@ function Step1BasicInfo({
   thumbnailUrl,
   onThumbnailUploaded,
   onThumbnailRemoved,
-  draftId,
 }: {
   formData: CourseFormData;
   updateFormData: (updates: Partial<CourseFormData>) => void;
@@ -480,13 +468,11 @@ function Step1BasicInfo({
   thumbnailUrl: string | null;
   onThumbnailUploaded: (fileOrUrl: File | string) => void;
   onThumbnailRemoved: () => void;
-  draftId: string | null;
 }) {
   return (
     <div className="space-y-6">
       <div className="mb-6">
         <ThumbnailUploader
-          courseId={draftId || undefined}
           onThumbnailUploaded={onThumbnailUploaded}
           onThumbnailRemoved={onThumbnailRemoved}
           existingThumbnailUrl={thumbnailUrl || undefined}
@@ -667,3 +653,4 @@ function Step4Attachments({
     </div>
   );
 }
+

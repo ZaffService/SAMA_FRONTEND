@@ -470,6 +470,7 @@ export class CoursesApi {
       categoryId: courseData.categoryId,
       level: courseData.level,
       price: Number(courseData.price) || 0,
+      status: courseData.status || "DRAFT", // Inclure le statut (DRAFT ou PUBLISHED)
       modules: courseData.modules.map((module: any) => ({
         title: module.title,
         orderIndex: Number(module.orderIndex) || 0,
@@ -760,6 +761,7 @@ export class CoursesApi {
       categoryId: courseData.categoryId,
       level: courseData.level,
       price: Number(courseData.price) || 0,
+      status: courseData.status || "DRAFT", // Inclure le statut (DRAFT ou PUBLISHED)
       modules: courseData.modules.map((module: any) => ({
         title: module.title,
         orderIndex: Number(module.orderIndex) || 0,
