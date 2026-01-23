@@ -27,6 +27,7 @@ import { CourseWizard } from "@/components/CourseWizard";
 import { CourseManagement } from "@/components/CourseManagement";
 import { CategoryDialog } from "@/components/category-dialog";
 import { UserCreationForm } from "@/components/UserCreationForm";
+import UserManagement from "@/components/UserManagement";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { toast } from "sonner";
 
@@ -190,9 +191,9 @@ export default function AdminDashboard() {
             </div>
           </header>
 
-          {/* Formulaire de création d'utilisateur */}
-          <main className="py-6">
-            <UserCreationForm />
+          {/* Gestion des utilisateurs */}
+          <main className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <UserManagement />
           </main>
         </div>
       </ProtectedRoute>
@@ -288,7 +289,7 @@ export default function AdminDashboard() {
               </Card>
 
               {/* Gestion des Utilisateurs */}
-              {/* <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Users className="h-5 w-5 text-purple-600" />
@@ -303,7 +304,7 @@ export default function AdminDashboard() {
                     Gérer utilisateurs
                   </Button>
                 </CardContent>
-              </Card> */}
+              </Card>
 
               {/* Statistiques Globales */}
               <Card className="hover:shadow-lg transition-shadow">
