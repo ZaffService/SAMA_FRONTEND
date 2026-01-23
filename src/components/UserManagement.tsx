@@ -21,10 +21,12 @@ const UserManagement: React.FC = () => {
 
   const limit = 10;
 
-  // Charger les statistiques au montage
+  // Charger les statistiques au montage (après que currentUser soit disponible)
   useEffect(() => {
-    loadStats();
-  }, []);
+    if (currentUser) {
+      loadStats();
+    }
+  }, [currentUser]);
 
   // Recharger les utilisateurs quand le filtre change
   useEffect(() => {
@@ -33,25 +35,12 @@ const UserManagement: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      // Fetch all users to calculate accurate stats excluding current admin
-      const [allResponse, studentsResponse, instructorsResponse, adminsResponse] = await Promise.all([
-        userService.getAllUsers({ limit: 1000 }),
-        userService.getUsersByRole({ role: 'STUDENT', limit: 1000 }),
-        userService.getUsersByRole({ role: 'INSTRUCTOR', limit: 1000 }),
-        userService.getUsersByRole({ role: 'ADMIN', limit: 1000 }),
-      ]);
-
-      // Filter out current admin from all statistics
-      const filteredAll = allResponse.users.filter(user => user.id !== currentUser?.id);
-      const filteredStudents = studentsResponse.users.filter(user => user.id !== currentUser?.id);
-      const filteredInstructors = instructorsResponse.users.filter(user => user.id !== currentUser?.id);
-      const filteredAdmins = adminsResponse.users.filter(user => user.id !== currentUser?.id);
-
+      const stats = await userService.getUserStats();
       setStats({
-        total: filteredAll.length,
-        students: filteredStudents.length,
-        instructors: filteredInstructors.length,
-        admins: filteredAdmins.length,
+        total: stats.total - 1,
+        students: currentUser?.role === 'STUDENT' ? stats.students - 1 : stats.students,
+        instructors: currentUser?.role === 'INSTRUCTOR' ? stats.instructors - 1 : stats.instructors,
+        admins: currentUser?.role === 'ADMIN' ? stats.admins - 1 : stats.admins,
       });
     } catch (error) {
       console.error('Erreur chargement stats:', error);
@@ -69,9 +58,12 @@ const UserManagement: React.FC = () => {
 
       const response: UsersResponse = await userService.getUsersByRole(params);
       
+      // Get current admin ID as string for comparison
+      const currentAdminId = currentUser?.id?.toString();
+      
       // Filter out the current admin user from the list
       const filteredUsers = response.users.filter(
-        (user) => user.id !== currentUser?.id
+        (user) => user.id.toString() !== currentAdminId
       );
       
       setUsers(filteredUsers);
