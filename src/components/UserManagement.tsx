@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '@/services/userService';
 import type { User, UsersResponse } from '@/types/user';
+import { useLocalAuth } from '@/infrastructure/storage/useAuth';
 
 type Role = 'STUDENT' | 'INSTRUCTOR' | 'ADMIN';
 
 const UserManagement: React.FC = () => {
+  const { user: currentUser } = useLocalAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | 'ALL'>('ALL');
@@ -31,8 +33,26 @@ const UserManagement: React.FC = () => {
 
   const loadStats = async () => {
     try {
-      const statsData = await userService.getUserStats();
-      setStats(statsData);
+      // Fetch all users to calculate accurate stats excluding current admin
+      const [allResponse, studentsResponse, instructorsResponse, adminsResponse] = await Promise.all([
+        userService.getAllUsers({ limit: 1000 }),
+        userService.getUsersByRole({ role: 'STUDENT', limit: 1000 }),
+        userService.getUsersByRole({ role: 'INSTRUCTOR', limit: 1000 }),
+        userService.getUsersByRole({ role: 'ADMIN', limit: 1000 }),
+      ]);
+
+      // Filter out current admin from all statistics
+      const filteredAll = allResponse.users.filter(user => user.id !== currentUser?.id);
+      const filteredStudents = studentsResponse.users.filter(user => user.id !== currentUser?.id);
+      const filteredInstructors = instructorsResponse.users.filter(user => user.id !== currentUser?.id);
+      const filteredAdmins = adminsResponse.users.filter(user => user.id !== currentUser?.id);
+
+      setStats({
+        total: filteredAll.length,
+        students: filteredStudents.length,
+        instructors: filteredInstructors.length,
+        admins: filteredAdmins.length,
+      });
     } catch (error) {
       console.error('Erreur chargement stats:', error);
     }
@@ -48,8 +68,14 @@ const UserManagement: React.FC = () => {
       };
 
       const response: UsersResponse = await userService.getUsersByRole(params);
-      setUsers(response.users);
-      setTotalUsers(response.total);
+      
+      // Filter out the current admin user from the list
+      const filteredUsers = response.users.filter(
+        (user) => user.id !== currentUser?.id
+      );
+      
+      setUsers(filteredUsers);
+      setTotalUsers(response.total - 1); // Adjust total since we removed one user
     } catch (error) {
       console.error('Erreur chargement utilisateurs:', error);
     } finally {
