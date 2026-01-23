@@ -191,15 +191,11 @@ export function useProvideAuth(): AuthContextType {
   };
 
   const logout = async () => {
-    console.log("🚪 [useAuth] Début logout - Réinitialisation état local - Page:", window.location.pathname);
-    console.log("🚪 [useAuth] Cookies avant clearTokens:", document.cookie);
-
+    console.log("🚪 [useAuth] Début logout - Réinitialisation état local");
     setUser(null);
     setIsAuthenticated(false);
     setIsProfileComplete(null);
     clearTokens(); // Vider les tokens locaux immédiatement
-    console.log("🚪 [useAuth] Après clearTokens:", document.cookie);
-
     setIsLoading(true);
 
     try {
@@ -211,9 +207,7 @@ export function useProvideAuth(): AuthContextType {
       // Continue même en cas d'erreur
     } finally {
       // Nettoyage forcé des cookies pour la compatibilité mobile
-      console.log("🚪 [useAuth] Avant clearAuthCookies:", document.cookie);
       clearAuthCookies();
-      console.log("🚪 [useAuth] Après clearAuthCookies:", document.cookie);
 
       setIsLoading(false);
       console.log("🚪 [useAuth] Redirection vers /");
@@ -221,7 +215,6 @@ export function useProvideAuth(): AuthContextType {
       // Redirection avec prévention du cache pour mobile
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const redirectUrl = isMobile ? `/?logout=${Date.now()}` : '/';
-      console.log("🚪 [useAuth] Redirection URL:", redirectUrl);
       window.location.href = redirectUrl;
     }
   };

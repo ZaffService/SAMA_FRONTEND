@@ -978,26 +978,7 @@ function CourseDetailsPageComponent() {
             </span>
           </button>
 
-          {/* ✅ Bouton CTA pour cours gratuit non inscrit */}
-          {isFree && isEnrolled === false && (
-            <button
-              onClick={handleEnrollClick}
-              disabled={enrolling}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {enrolling ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Inscription...
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  Commencer le visionnage
-                </>
-              )}
-            </button>
-          )}
+
         </div>
       </header>
 
@@ -1042,7 +1023,7 @@ function CourseDetailsPageComponent() {
                         <Play className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
                       </div>
                       <h3 className="text-xl lg:text-2xl font-bold text-white mb-2">
-                        Commencer le visionnage
+                        Aperçu du cours
                       </h3>
                       <p className="text-white/70 mb-6 text-sm lg:text-base">
                         Ce cours est gratuit. Cliquez pour commencer à apprendre

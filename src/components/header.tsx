@@ -53,15 +53,7 @@ export function Header() {
   }, [mobileMenuOpen]);
 
   const handleLogout = () => {
-    console.log("🔴 [Header] handleLogout called - Page:", window.location.pathname);
-    console.log("🔴 [Header] Cookies before logout:", document.cookie);
-
-    try {
-      logout();
-      console.log("🔴 [Header] logout() function called successfully");
-    } catch (error) {
-      console.error("🔴 [Header] Error during logout:", error);
-    }
+    logout();
   };
 
   // Calculer le nom complet avec logique robuste
