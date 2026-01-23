@@ -97,7 +97,7 @@ export function CoursePreview({
       {/* Course Card Preview */}
       <Card className="overflow-hidden">
         {/* Thumbnail */}
-        <div className="relative h-48 md:h-64 bg-gradient-to-br from-blue-500 to-purple-600">
+        <div className="relative h-48 md:h-64 bg-white">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
@@ -106,12 +106,11 @@ export function CoursePreview({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-                  <PlayCircle className="w-10 h-10" />
-                </div>
-                <p className="text-lg font-medium">Pas de miniature</p>
-              </div>
+              <img
+                src="/logo.png"
+                alt="Site Logo"
+                className="w-24 h-24 object-contain"
+              />
             </div>
           )}
           <div className="absolute top-4 left-4">
