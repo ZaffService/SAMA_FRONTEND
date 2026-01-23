@@ -8,6 +8,36 @@ import { clearTokens } from "@/shared/helpers/auth";
 import type { AuthContextType, RegisterData } from "@/types/auth";
 import type { User } from "@/domain/entities/user";
 
+// Fonction utilitaire pour forcer la suppression des cookies d'authentification
+function clearAuthCookies(): void {
+  // Liste des noms de cookies potentiels à supprimer
+  const cookiesToClear = [
+    'access_token',
+    'refresh_token',
+    'auth_token',
+    'session_id',
+    'jwt',
+    'token',
+    // Ajoutez ici d'autres noms de cookies si nécessaire
+  ];
+
+  cookiesToClear.forEach(cookieName => {
+    // Supprimer le cookie du domaine actuel
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+
+    // Supprimer aussi du sous-domaine si nécessaire
+    try {
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
+    } catch (e) {
+      // Ignore les erreurs de domaine
+    }
+
+    // Pour les cookies sécurisés
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict;`;
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=lax;`;
+  });
+}
+
 export function useLocalAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context)
@@ -176,9 +206,16 @@ export function useProvideAuth(): AuthContextType {
       console.error("🚪 [useAuth] Erreur lors de AuthApi.logout():", error);
       // Continue même en cas d'erreur
     } finally {
+      // Nettoyage forcé des cookies pour la compatibilité mobile
+      clearAuthCookies();
+
       setIsLoading(false);
       console.log("🚪 [useAuth] Redirection vers /");
-      window.location.href = "/";
+
+      // Redirection avec prévention du cache pour mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const redirectUrl = isMobile ? `/?logout=${Date.now()}` : '/';
+      window.location.href = redirectUrl;
     }
   };
 
