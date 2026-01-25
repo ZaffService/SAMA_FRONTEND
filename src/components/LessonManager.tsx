@@ -228,7 +228,7 @@ export function LessonManager({
       ) : (
         <div className="space-y-4">
           {lessons.map((lesson, index) => (
-            <Card
+            <div
               key={lesson.id || lesson.tempId || `lesson-${index}`}
               draggable
               onDragStart={() => handleDragStart(index)}
@@ -236,6 +236,7 @@ export function LessonManager({
               onDragEnd={handleDragEnd}
               className="cursor-move"
             >
+              <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center space-x-2">
@@ -244,6 +245,9 @@ export function LessonManager({
                       Leçon {index + 1}: {lesson.title || "Sans titre"}
                     </span>
                   </CardTitle>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Glissez pour réorganiser
+                  </p>
                   <Button
                     type="button"
                     variant="outline"
@@ -434,6 +438,7 @@ export function LessonManager({
                 </div>
               </CardContent>
             </Card>
+            </div>
           ))}
         </div>
       )}

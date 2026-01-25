@@ -181,6 +181,8 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       case 4: // Attachments (optional)
         break;
       case 5: // Preview
+        // Cette validation est maintenant faite côté backend avec isComplete
+        // Mais on garde une vérification côté frontend pour l'UX
         break;
     }
     return null;
@@ -269,10 +271,26 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         }
       }
 
-      showCourseCreatedSuccess(formData.title, () => {
-        onCourseCreated?.();
-        router.push("/admin-dashboard");
-      });
+      // Vérifier si le cours est complet (toutes vidéos uploadées)
+      const isComplete = result.course?.isComplete ?? true;
+
+      if (isComplete) {
+        // Cours entièrement prêt
+        showCourseCreatedSuccess(formData.title, () => {
+          onCourseCreated?.();
+          router.push("/admin-dashboard");
+        });
+      } else {
+        // Cours créé mais vidéos en cours d'upload
+        showCourseCreatedSuccess(
+          `${formData.title} - Vidéos en cours d'upload`,
+          () => {
+            onCourseCreated?.();
+            router.push("/admin-dashboard");
+          },
+          "Le cours a été créé avec succès ! Les vidéos sont en cours d'upload en arrière-plan. Vous pourrez publier le cours une fois toutes les vidéos uploadées."
+        );
+      }
     } catch (err) {
       closeLoading();
       const errorMessage =

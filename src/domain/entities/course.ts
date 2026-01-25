@@ -55,6 +55,7 @@ export interface BaseCourse {
   attachment?: string;
   createdAt?: string;
   updatedAt?: string;
+  isComplete?: boolean;
   _id?: string;
   _title?: string;
   _thumbnailUrl?: string;

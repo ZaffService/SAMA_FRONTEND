@@ -28,16 +28,18 @@ import { CourseManagement } from "@/components/CourseManagement";
 import { CategoryDialog } from "@/components/category-dialog";
 import { UserCreationForm } from "@/components/UserCreationForm";
 import UserManagement from "@/components/UserManagement";
+import { VideoStatusIndicator } from "@/components/VideoStatusIndicator";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { toast } from "sonner";
 
-type DashboardView = "overview" | "create-course" | "manage-courses" | "manage-users";
+type DashboardView = "overview" | "create-course" | "manage-courses" | "manage-users" | "video-status";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, logout } = useLocalAuth();
   const [currentView, setCurrentView] = useState<DashboardView>("overview");
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const { refresh: refreshCategories } = useCategories();
 
   const handleCreateCourse = () => {
@@ -67,6 +69,11 @@ export default function AdminDashboard() {
   const handleCategoryCreated = async () => {
     await refreshCategories();
     toast.success("Catégorie créée avec succès!");
+  };
+
+  const handleViewVideoStatus = (courseId: string) => {
+    setSelectedCourseId(courseId);
+    setCurrentView("video-status");
   };
 
   if (currentView === "create-course") {
@@ -154,6 +161,7 @@ export default function AdminDashboard() {
                 // Dans une version ultérieure, on pourrait avoir une page d'édition
                 router.push(`/admin/create-course?edit=${courseId}`);
               }}
+              onViewVideoStatus={handleViewVideoStatus}
             />
           </main>
         </div>
@@ -194,6 +202,59 @@ export default function AdminDashboard() {
           {/* Gestion des utilisateurs */}
           <main className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <UserManagement />
+          </main>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  if (currentView === "video-status" && selectedCourseId) {
+    return (
+      <ProtectedRoute requiredRole="ADMIN">
+        <div className="min-h-screen bg-gray-50">
+          {/* Header avec bouton retour */}
+          <header className="bg-white shadow-sm border-b">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center py-4">
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="ghost"
+                    onClick={handleBackToDashboard}
+                    className="flex items-center space-x-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Retour au dashboard</span>
+                  </Button>
+                </div>
+                <Button
+                  onClick={logout}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Déconnexion</span>
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          {/* Statut des vidéos */}
+          <main className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Statut des Vidéos
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Suivez l'état d'upload des vidéos de votre cours
+              </p>
+            </div>
+            <VideoStatusIndicator
+              courseId={selectedCourseId}
+              onStatusChange={(isComplete) => {
+                // Peut être utilisé pour mettre à jour l'interface si nécessaire
+                console.log("Statut du cours mis à jour:", isComplete);
+              }}
+            />
           </main>
         </div>
       </ProtectedRoute>

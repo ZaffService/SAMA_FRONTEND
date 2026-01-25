@@ -28,6 +28,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
@@ -38,22 +49,30 @@ import {
   XCircle,
   Archive,
   Loader2,
+  Trash2,
+  Edit3,
+  Video,
 } from "lucide-react";
+import { CourseEditor } from "./CourseEditor";
 
 interface CourseManagementProps {
   onCourseUpdated?: () => void;
   onEditCourse?: (courseId: string) => void;
+  onViewVideoStatus?: (courseId: string) => void;
 }
 
 export function CourseManagement({
   onCourseUpdated,
   onEditCourse,
+  onViewVideoStatus,
 }: CourseManagementProps) {
   const { user } = useLocalAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [courseToEdit, setCourseToEdit] = useState<Course | null>(null);
 
   const fetchCourses = async () => {
     setIsLoading(true);
@@ -99,6 +118,22 @@ export function CourseManagement({
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error);
       toast.error("Erreur lors de la mise à jour du statut");
+    }
+  };
+
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    try {
+      await CoursesApi.deleteCourse(courseToDelete.id);
+      toast.success("Cours supprimé avec succès");
+      setCourseToDelete(null);
+      fetchCourses();
+      onCourseUpdated?.();
+    } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
+      toast.error("Erreur lors de la suppression du cours");
+      setCourseToDelete(null);
     }
   };
 
@@ -274,6 +309,35 @@ export function CourseManagement({
                                 Archiver
                               </DropdownMenuItem>
                             )}
+                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && course.status === "DRAFT" && (
+                              <DropdownMenuItem
+                                onClick={() => setCourseToDelete(course)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            )}
+
+                            {/* Option Modifier - Visible pour ADMIN et INSTRUCTOR */}
+                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && (
+                              <DropdownMenuItem
+                                onClick={() => setCourseToEdit(course)}
+                              >
+                                <Edit3 className="h-4 w-4 mr-2 text-blue-600" />
+                                Modifier
+                              </DropdownMenuItem>
+                            )}
+
+                            {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
+                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && onViewVideoStatus && (
+                              <DropdownMenuItem
+                                onClick={() => onViewVideoStatus(course.id)}
+                              >
+                                <Video className="h-4 w-4 mr-2 text-purple-600" />
+                                Voir statut vidéos
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -285,6 +349,38 @@ export function CourseManagement({
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogue de confirmation de suppression */}
+      <AlertDialog open={!!courseToDelete} onOpenChange={() => setCourseToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer le cours "{courseToDelete?.title}" ?
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCourse}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal d'édition de cours */}
+      <CourseEditor
+        course={courseToEdit}
+        open={!!courseToEdit}
+        onOpenChange={(open) => {
+          if (!open) setCourseToEdit(null);
+        }}
+        onCourseUpdated={fetchCourses}
+      />
 
     </div>
   );

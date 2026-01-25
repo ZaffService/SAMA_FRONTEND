@@ -2,6 +2,13 @@ import type { Course, CourseDetails } from "@/domain/entities/course";
 import type { Module, Lesson } from "@/domain/entities/module";
 import Cookies from "js-cookie";
 
+// Lesson status enum
+export enum LessonStatus {
+  PENDING_VIDEO = "PENDING_VIDEO",
+  VIDEO_UPLOADED = "VIDEO_UPLOADED",
+  READY = "READY",
+}
+
 // Helper function to decode base64url
 function base64UrlDecode(str: string): string {
   // Replace URL-safe characters with base64 characters
@@ -48,6 +55,7 @@ interface BackendCourse {
   createdAt?: string;
   _updatedAt?: string;
   updatedAt?: string;
+  isComplete?: boolean;
   _modules?: any[];
   modules?: any[];
   lessons?: any[];
@@ -65,6 +73,7 @@ interface CourseDetailsResponse {
     price: number;
     thumbnailUrl?: string;
     isFree?: boolean;
+    isComplete?: boolean;
   };
   modules: Array<{
     id: string;
@@ -78,7 +87,7 @@ interface CourseDetailsResponse {
       videoUrl?: string;
       orderIndex: number;
       duration: number;
-      status: string;
+      status: LessonStatus | string;
     }>;
   }>;
   moduleCount: number;
@@ -872,6 +881,156 @@ export class CoursesApi {
   }
 
   /**
+   * Met à jour un cours existant
+   */
+  static async updateCourse(courseId: string, courseData: any): Promise<any> {
+    console.log(`🔄 [CoursesApi] Début mise à jour du cours ${courseId}...`);
+
+    const formData = new FormData();
+
+    // ✅ Gestion du thumbnail : optionnel si URL valide
+    let thumbnailUrl: string | undefined;
+
+    // Si c'est une URL string valide, on l'utilise
+    if (
+      courseData.thumbnailUrl &&
+      typeof courseData.thumbnailUrl === "string"
+    ) {
+      thumbnailUrl = courseData.thumbnailUrl;
+    }
+
+    // ✅ Format exact attendu par le backend
+    const courseJsonData: any = {
+      title: courseData.title,
+      description: courseData.description,
+      categoryId: courseData.categoryId,
+      level: courseData.level,
+      price: Number(courseData.price) || 0,
+      status: courseData.status || "DRAFT",
+      modules: courseData.modules.map((module: any) => ({
+        id: module.id || undefined,
+        title: module.title,
+        orderIndex: Number(module.orderIndex) || 0,
+        description: module.description || undefined,
+        lessons:
+          module.lessons?.map((lesson: any) => ({
+            id: lesson.id || undefined,
+            tempId: lesson.tempId,
+            title: lesson.title,
+            content: lesson.content || "",
+            orderIndex: Number(lesson.orderIndex) || 0,
+            duration: Number(lesson.duration) || 0,
+          })) || [],
+        quizzes:
+          module.quizzes?.map((quiz: any) => ({
+            id: quiz.id || undefined,
+            title: quiz.title,
+            description: quiz.description || undefined,
+            passingScore: Number(quiz.passingScore) || undefined,
+            questions:
+              quiz.questions?.map((q: any) => ({
+                id: q.id || undefined,
+                question: q.question,
+                questionType: q.questionType || "MULTIPLE_CHOICE",
+                options: q.options || [],
+                correctAnswer: q.correctAnswer,
+                points: Number(q.points) || undefined,
+              })) || [],
+          })) || [],
+      })),
+    };
+
+    // Ajouter thumbnailUrl seulement si c'est une URL valide
+    if (thumbnailUrl) {
+      courseJsonData.thumbnailUrl = thumbnailUrl;
+    }
+
+    // ✅ Le champ "data" contient le JSON stringifié
+    formData.append("data", JSON.stringify(courseJsonData));
+    console.log(
+      "📦 [CoursesApi] Données JSON:",
+      JSON.stringify(courseJsonData, null, 2),
+    );
+    console.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
+
+    // ✅ Ajouter le fichier thumbnail si c'est un File
+    if (courseData.thumbnail && typeof courseData.thumbnail !== "string") {
+      formData.append("thumbnail", courseData.thumbnail);
+      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
+    }
+
+    // Ajouter les vidéos
+    let videoCount = 0;
+    courseData.modules.forEach((module: any) => {
+      module.lessons?.forEach((lesson: any) => {
+        if (lesson.videoFile) {
+          const videoKey = `lessonVideos[${lesson.tempId}]`;
+          formData.append(videoKey, lesson.videoFile);
+          videoCount++;
+          console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
+        }
+      });
+    });
+    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+
+    // Ajouter les fichiers joints
+    let attachmentCount = 0;
+    if (courseData.attachments && courseData.attachments.length > 0) {
+      courseData.attachments.forEach((attachment: any) => {
+        if (attachment.file && typeof attachment.file !== "string") {
+          formData.append("attachments", attachment.file);
+          attachmentCount++;
+          console.log(
+            `📎 [CoursesApi] Fichier joint ajouté: ${attachment.file.name}`,
+          );
+        }
+      });
+    }
+    console.log(`📎 [CoursesApi] Total fichiers joints: ${attachmentCount}`);
+
+    console.log(
+      "📡 [CoursesApi] Envoi vers:",
+      buildApiUrl(API_ENDPOINTS.COURSES.UPDATE(courseId)),
+    );
+    console.log("🔐 [CoursesApi] Credentials: include");
+
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.COURSES.UPDATE(courseId)),
+      {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      }
+    );
+
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Cours mis à jour:", responseData);
+
+    return responseData;
+  }
+
+  /**
    * Récupère les cours auxquels l'utilisateur est inscrit
    */
   static async getEnrolledCourses(): Promise<any[]> {
@@ -1150,6 +1309,7 @@ export class CoursesApi {
       attachment: backendCourse._attachment || backendCourse.attachment,
       createdAt: backendCourse._createdAt || backendCourse.createdAt,
       updatedAt: backendCourse._updatedAt || backendCourse.updatedAt,
+      isComplete: backendCourse.isComplete ?? true, // Default to true for backward compatibility
       lessons:
         backendCourse._modules ||
         backendCourse.modules ||
