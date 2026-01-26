@@ -195,6 +195,8 @@ export function useProvideAuth(): AuthContextType {
     setUser(null);
     setIsAuthenticated(false);
     setIsProfileComplete(null);
+    // Clear profile cache
+    localStorage.removeItem('user_profile_cache');
     clearTokens(); // Vider les tokens locaux immédiatement
     setIsLoading(true);
 

@@ -319,16 +319,6 @@ export function CourseManagement({
                               </DropdownMenuItem>
                             )}
 
-                            {/* Option Modifier - Visible pour ADMIN et INSTRUCTOR */}
-                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && (
-                              <DropdownMenuItem
-                                onClick={() => setCourseToEdit(course)}
-                              >
-                                <Edit3 className="h-4 w-4 mr-2 text-blue-600" />
-                                Modifier
-                              </DropdownMenuItem>
-                            )}
-
                             {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
                             {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && onViewVideoStatus && (
                               <DropdownMenuItem

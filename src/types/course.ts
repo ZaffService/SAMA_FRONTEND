@@ -4,6 +4,7 @@ export interface Lesson {
   id: string;
   title: string;
   content?: string;
+  hasVideo: boolean;
   videoUrl?: string;
   orderIndex: number;
   duration?: number;
@@ -16,6 +17,7 @@ export interface Module {
   description?: string;
   orderIndex: number;
   lessons: Lesson[];
+  quiz?: Quiz[];
 }
 
 export interface CourseInstructor {
@@ -97,4 +99,51 @@ export interface LessonProgress {
   completed: boolean;
   quizPassed?: boolean;
   completedAt?: string;
+}
+
+// Signed video URL types
+export interface SignedVideoUrl {
+  url: string;
+  expiresAt: string;
+  lessonId: string;
+}
+
+// Video URL cache
+export interface VideoUrlCache {
+  [lessonId: string]: {
+    url: string;
+    expiresAt: Date;
+  };
+}
+
+// Course details data structure
+export interface CourseDetailsData {
+  course: {
+    id: string;
+    title: string;
+    description: string;
+    categoryId: string;
+    level: string;
+    price: number;
+    thumbnailUrl?: string;
+    isFree?: boolean;
+  };
+  modules: Array<{
+    id: string;
+    title: string;
+    description: string;
+    orderIndex: number;
+    lessons: Array<{
+      id: string;
+      title: string;
+      content: string;
+      hasVideo?: boolean;
+      videoUrl?: string;
+      orderIndex: number;
+      duration: number;
+      status: string;
+    }>;
+    quiz?: Quiz[];
+  }>;
+  moduleCount: number;
 }

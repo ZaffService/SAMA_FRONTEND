@@ -90,57 +90,33 @@ export function useCourseDetails(courseId: string) {
       if (!isMountedRef.current) return;
 
       const courseResult = courseData || null;
-      const topicsResult = (Array.isArray(topicsData) ? topicsData : [])
-        .map((topic: any) => ({
-          ID: topic.id,
-          post_title: topic.title,
-          post_content: topic.summary,
-          menu_order: topic.id,
-          lessons: topic.lessons || [],
-        }))
-        .sort((a: any, b: any) => a.ID - b.ID);
 
-      if (courseResult) {
-        console.log(
-          "test Cours chargé:",
-          courseResult?.course?.title || "Titre non disponible",
-        );
-      }
+      let topicsResult: any[] = [];
+      let allLessonsResult: any[] = [];
 
-      if (topicsResult?.length > 0) {
-        console.log(`test ${topicsResult.length} topics chargés`);
-      }
+      if (courseResult && (courseResult as any).course?.modules) {
+        // New structure with modules
+        console.log("test Avant tri:", JSON.stringify((courseResult as any).course.modules[0]?.lessons.map((l: any) => ({title: l.title, order: l.orderIndex}))));
+        
+        topicsResult = (courseResult as any).course.modules.map((module: any) => {
+          const sortedLessons = (module.lessons || []).sort((a: any, b: any) => {
+            const orderA = a.orderIndex || 999;
+            const orderB = b.orderIndex || 999;
+            return orderA - orderB;
+          });
+          
+          console.log("test Après tri module:", module.title, sortedLessons.map((l: any) => ({title: l.title, order: l.orderIndex})));
+          
+          return {
+            ID: module.id,
+            post_title: module.title,
+            orderIndex: module.orderIndex,
+            lessons: sortedLessons,
+          };
+        }).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
 
-      // 3. Pour chaque topic, charger les leçons
-      const allLessonsResult: any[] = [];
-
-      if (topicsResult.length > 0) {
-        const topicLessons: any[] = [];
-
-        for (const topic of topicsResult) {
-          if (!isMountedRef.current) return;
-
-          try {
-            const res = await CoursesApi.getLessons(topic.ID);
-            topicLessons.push({
-              topicId: topic.ID,
-              topicTitle: topic.post_title,
-              topicOrder: topic.ID,
-              lessons: Array.isArray(res) ? res : [],
-            });
-          } catch (e) {
-            console.warn(`test Erreur lessons pour topic ${topic.ID}:`, e);
-            topicLessons.push({
-              topicId: topic.ID,
-              topicTitle: topic.post_title,
-              topicOrder: topic.ID,
-              lessons: [],
-            });
-          }
-        }
-
-        topicLessons.forEach((topicGroup) => {
-          topicGroup.lessons.forEach((lesson: any) => {
+        topicsResult.forEach((module) => {
+          module.lessons.forEach((lesson: any) => {
             let duration = "00:00";
             if (lesson.video && lesson.video.runtime) {
               const runtime = lesson.video.runtime;
@@ -160,12 +136,10 @@ export function useCourseDetails(courseId: string) {
               post_title: lesson.title,
               post_content: lesson.content || "",
               post_name: lesson.title?.toLowerCase().replace(/\//g, "-"),
-              topic_id: topicGroup.topicId,
-              topicTitle: topicGroup.topicTitle,
-              topicOrder: topicGroup.topicOrder,
-              menuOrder: lesson.order
-                ? Number.parseInt(lesson.order.toString())
-                : 999,
+              topic_id: module.ID,
+              topicTitle: module.post_title,
+              topicOrder: module.orderIndex,
+              menuOrder: lesson.orderIndex ? Number.parseInt(lesson.orderIndex.toString()) : 999,
               thumbnail: lesson.thumbnail,
               video: lesson.video || {},
               attachments: lesson.attachments || [],
@@ -182,7 +156,99 @@ export function useCourseDetails(courseId: string) {
           return 0;
         });
 
-        console.log(`test ${allLessonsResult.length} leçons trouvées`);
+        console.log(`test ${allLessonsResult.length} leçons trouvées (nouvelle structure)`);
+      } else {
+        // Old structure
+        topicsResult = (Array.isArray(topicsData) ? topicsData : [])
+          .map((topic: any) => ({
+            ID: topic.id,
+            post_title: topic.title,
+            post_content: topic.summary,
+            menu_order: topic.id,
+            orderIndex: topic.orderIndex,
+            lessons: topic.lessons || [],
+          }))
+          .sort((a: any, b: any) => (a.orderIndex || a.ID) - (b.orderIndex || b.ID));
+
+        if (topicsResult.length > 0) {
+          const topicLessons: any[] = [];
+
+          for (const topic of topicsResult) {
+            if (!isMountedRef.current) return;
+
+            try {
+              const res = await CoursesApi.getLessons(topic.ID);
+              topicLessons.push({
+                topicId: topic.ID,
+                topicTitle: topic.post_title,
+                topicOrder: topic.orderIndex || topic.ID,
+                lessons: Array.isArray(res) ? res : [],
+              });
+            } catch (e) {
+              console.warn(`test Erreur lessons pour topic ${topic.ID}:`, e);
+              topicLessons.push({
+                topicId: topic.ID,
+                topicTitle: topic.post_title,
+                topicOrder: topic.orderIndex || topic.ID,
+                lessons: [],
+              });
+            }
+          }
+
+          topicLessons.forEach((topicGroup) => {
+            topicGroup.lessons.forEach((lesson: any) => {
+              let duration = "00:00";
+              if (lesson.video && lesson.video.runtime) {
+                const runtime = lesson.video.runtime;
+                const hours = Number.parseInt(runtime.hours || "0");
+                const minutes = Number.parseInt(runtime.minutes || "0");
+                const seconds = Number.parseInt(runtime.seconds || "0");
+
+                if (hours > 0) {
+                  duration = `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+                } else {
+                  duration = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+                }
+              }
+
+              allLessonsResult.push({
+                ID: lesson.id,
+                post_title: lesson.title,
+                post_content: lesson.content || "",
+                post_name: lesson.title?.toLowerCase().replace(/\//g, "-"),
+                topic_id: topicGroup.topicId,
+                topicTitle: topicGroup.topicTitle,
+                topicOrder: topicGroup.topicOrder,
+                menuOrder: lesson.orderIndex ? Number.parseInt(lesson.orderIndex.toString()) : (lesson.order ? Number.parseInt(lesson.order.toString()) : 999),
+                thumbnail: lesson.thumbnail,
+                video: lesson.video || {},
+                attachments: lesson.attachments || [],
+                duration: duration,
+              });
+            });
+          });
+
+          allLessonsResult.sort((a: any, b: any) => {
+            if (a.topicOrder < b.topicOrder) return -1;
+            if (a.topicOrder > b.topicOrder) return 1;
+            if (a.menuOrder < b.menuOrder) return -1;
+            if (a.menuOrder > b.menuOrder) return 1;
+            return 0;
+          });
+
+          console.log(`test ${allLessonsResult.length} leçons trouvées (ancienne structure)`);
+        }
+      }
+
+      if (courseResult) {
+        console.log(
+          "test Cours chargé:",
+          courseResult?.course?.title || "Titre non disponible",
+        );
+      }
+
+      if (topicsResult?.length > 0) {
+        console.log(`test ${topicsResult.length} topics/modules chargés`);
       }
 
       const end = performance.now();

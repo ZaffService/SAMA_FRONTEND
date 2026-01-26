@@ -207,3 +207,104 @@ export function validateVideoFile(
   return { valid: true };
 }
 
+/**
+ * Video API for signed URLs
+ * Handles fetching and caching of signed video URLs
+ */
+export class VideoApi {
+  /**
+   * Cache for signed video URLs
+   */
+  private static urlCache: Map<string, { url: string; expiresAt: Date }> = new Map();
+
+  /**
+   * Récupère une URL signée pour la vidéo d'une leçon
+   * Cache les URLs jusqu'à leur expiration
+   */
+  static async getSignedVideoUrl(lessonId: string): Promise<string> {
+    // Vérifier le cache
+    const cached = this.urlCache.get(lessonId);
+    if (cached && cached.expiresAt > new Date()) {
+      console.log(`✅ URL signée en cache pour leçon ${lessonId}`);
+      return cached.url;
+    }
+
+    try {
+      console.log(`🔍 Récupération URL signée pour leçon ${lessonId}...`);
+
+      const response = await fetch(
+        buildApiUrl(`/course/lesson/${lessonId}/video/signed`),
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("UNAUTHORIZED: Vous n'êtes pas inscrit à ce cours");
+        }
+        if (response.status === 404) {
+          throw new Error("LESSON_NOT_FOUND: Cette leçon n'existe pas");
+        }
+        if (response.status === 410) {
+          throw new Error("VIDEO_DELETED: La vidéo a été supprimée");
+        }
+        throw new Error(`Erreur ${response.status} lors de la récupération de la vidéo`);
+      }
+
+      const data = await response.json() as SignedVideoUrl;
+
+      // Mettre en cache
+      this.urlCache.set(lessonId, {
+        url: data.url,
+        expiresAt: new Date(data.expiresAt),
+      });
+
+      console.log(`✅ URL signée obtenue, expire à ${data.expiresAt}`);
+      return data.url;
+    } catch (error) {
+      console.error(`❌ Erreur récupération URL vidéo:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Invalide le cache pour une leçon
+   * (À appeler après suppression/modification)
+   */
+  static invalidateCache(lessonId: string): void {
+    this.urlCache.delete(lessonId);
+    console.log(`🗑️ Cache invalidé pour leçon ${lessonId}`);
+  }
+
+  /**
+   * Nettoie les URLs expirées du cache
+   */
+  static cleanExpiredCache(): void {
+    const now = new Date();
+    let cleaned = 0;
+
+    for (const [lessonId, { expiresAt }] of this.urlCache.entries()) {
+      if (expiresAt <= now) {
+        this.urlCache.delete(lessonId);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      console.log(`🧹 ${cleaned} URL(s) expirée(s) supprimée(s) du cache`);
+    }
+  }
+}
+
+// Types for signed URLs
+export interface SignedVideoUrl {
+  url: string;
+  expiresAt: string;
+  lessonId: string;
+}
+

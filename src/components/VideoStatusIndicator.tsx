@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { CoursesApi, LessonStatus } from "@/infrastructure/api/courses-api";
+import { VideoStatusItem } from "./VideoStatusItem";
 
 interface Lesson {
   id: string;
@@ -51,6 +52,7 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(null);
 
   const loadCourseStatus = async () => {
     try {
@@ -97,31 +99,6 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
     }
   }, [course?.isComplete]);
 
-  const getStatusIcon = (status: LessonStatus) => {
-    switch (status) {
-      case LessonStatus.VIDEO_UPLOADED:
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case LessonStatus.PENDING_VIDEO:
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      case LessonStatus.READY:
-        return <FileText className="h-4 w-4 text-blue-500" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusBadge = (status: LessonStatus) => {
-    switch (status) {
-      case LessonStatus.VIDEO_UPLOADED:
-        return <Badge variant="default" className="bg-green-100 text-green-800">Uploadé</Badge>;
-      case LessonStatus.PENDING_VIDEO:
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">En attente</Badge>;
-      case LessonStatus.READY:
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Prêt</Badge>;
-      default:
-        return <Badge variant="outline">Inconnu</Badge>;
-    }
-  };
 
   const getLessonStats = () => {
     if (!course) return { total: 0, uploaded: 0, pending: 0, ready: 0 };
@@ -230,13 +207,14 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
               <h4 className="font-medium text-gray-900 mb-2">{module.title}</h4>
               <div className="space-y-2 ml-4">
                 {module.lessons.map((lesson) => (
-                  <div key={lesson.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      {getStatusIcon(lesson.status)}
-                      <span className="text-sm font-medium">{lesson.title}</span>
-                    </div>
-                    {getStatusBadge(lesson.status)}
-                  </div>
+                  <VideoStatusItem
+                    key={lesson.id}
+                    lesson={lesson}
+                    onUploadSuccess={loadCourseStatus}
+                    isUploading={uploadingLessonId === lesson.id}
+                    onUploadStart={() => setUploadingLessonId(lesson.id)}
+                    onUploadEnd={() => setUploadingLessonId(null)}
+                  />
                 ))}
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import { ThumbnailUploader } from "./ThumbnailUploader";
 import { QuizManager } from "./QuizManager";
 import { CoursePreview } from "./CoursePreview";
 import { AttachmentManager } from "./AttachmentManager";
+import { VideoUploadManager } from "./VideoUploadManager";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import {
   showCourseCreatedSuccess,
@@ -38,6 +39,7 @@ import {
   closeLoading,
 } from "@/shared/helpers/sweet-alert";
 import { Module } from "@/domain/entities/module";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 // Course status enum
 export enum CourseStatus {
@@ -59,13 +61,14 @@ interface CourseFormData {
   status: CourseStatus;
   modules: Module[];
   attachments: Array<{ file: File; id: string; preview?: string }>;
+  uploadedVideos: Record<string, string>; // tempId -> videoUrl
 }
 
 interface CourseWizardProps {
   onCourseCreated?: () => void;
 }
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   const router = useRouter();
@@ -88,6 +91,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     status: CourseStatus.DRAFT,
     modules: [],
     attachments: [],
+    uploadedVideos: {},
   });
 
   // Load categories on mount
@@ -134,6 +138,20 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     setThumbnailUrl(null);
     setThumbnailFile(null);
   };
+
+  const handleVideoUploadSuccess = useCallback((tempId: string, videoUrl: string) => {
+    updateFormData({
+      uploadedVideos: {
+        ...formData.uploadedVideos,
+        [tempId]: videoUrl,
+      },
+    });
+  }, [formData.uploadedVideos]);
+
+  const handleVideoUploadError = useCallback((tempId: string, error: string) => {
+    console.error(`Erreur d'upload pour la vidéo ${tempId}:`, error);
+    // Ici, on pourrait ajouter une gestion d'erreur plus sophistiquée
+  }, []);
 
   const validateStep = (step: number): string | null => {
     switch (step) {
@@ -341,6 +359,24 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     }
   };
 
+  // Fonction pour obtenir la liste des vidéos à uploader
+  const getVideosToUpload = useCallback(() => {
+    const videos = [];
+    for (const module of formData.modules) {
+      for (const lesson of module.lessons) {
+        if (lesson.videoFile && lesson.tempId) {
+          videos.push({
+            id: lesson.tempId,
+            file: lesson.videoFile,
+            lessonTitle: lesson.title,
+            endpoint: `/api/upload/video`, // À adapter selon l'endpoint réel
+          });
+        }
+      }
+    }
+    return videos;
+  }, [formData.modules]);
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -376,6 +412,14 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
           />
         );
       case 5:
+        return (
+          <Step5VideoUploads
+            videos={getVideosToUpload()}
+            onVideoSuccess={handleVideoUploadSuccess}
+            onVideoError={handleVideoUploadError}
+          />
+        );
+      case 6:
         return (
           <CoursePreview
             courseData={formData}
@@ -667,6 +711,39 @@ function Step4Attachments({
       <AttachmentManager
         attachments={attachments}
         onAttachmentsChange={onAttachmentsChange}
+      />
+    </div>
+  );
+}
+
+// Step 5: Video Uploads
+function Step5VideoUploads({
+  videos,
+  onVideoSuccess,
+  onVideoError,
+}: {
+  videos: Array<{
+    id: string;
+    file: File;
+    lessonTitle: string;
+    endpoint: string;
+  }>;
+  onVideoSuccess: (tempId: string, videoUrl: string) => void;
+  onVideoError: (tempId: string, error: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-gray-600 mb-4">
+        Uploadez les vidéos de vos leçons. Cette étape est nécessaire avant de publier votre cours.
+      </p>
+      <VideoUploadManager
+        videos={videos}
+        onVideoSuccess={onVideoSuccess}
+        onVideoError={onVideoError}
+        onRemoveVideo={(videoId) => {
+          // Pour l'instant, on ne permet pas la suppression depuis cette étape
+          // Cela pourrait être ajouté plus tard si nécessaire
+        }}
       />
     </div>
   );

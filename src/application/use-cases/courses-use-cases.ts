@@ -104,7 +104,7 @@ export class CoursesUseCases {
             title: lesson.title,
             content: lesson.content,
             order: lesson.orderIndex,
-            videoUrl: lesson.videoUrl,
+            videoUrl: undefined, // Pas disponible dans la réponse API actuelle
             duration: lesson.duration?.toString(),
           }));
         }),

@@ -55,6 +55,7 @@ import {
   DisabilityType,
 } from "@/infrastructure/api/user-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 // Initial form data pre-filled with user info
 const getInitialFormData = (user: any): ProfileFormData => ({
@@ -72,7 +73,8 @@ const getInitialFormData = (user: any): ProfileFormData => ({
 
 export default function CompleteProfile() {
   const router = useRouter();
-  const { isProfileComplete, setProfileComplete, user } = useLocalAuth();
+  const { user } = useLocalAuth();
+  const { completeProfile, isComplete } = useProfile();
 
   const {
     canAccess,
@@ -89,7 +91,7 @@ export default function CompleteProfile() {
 
   // Redirect if profile is already complete
   useEffect(() => {
-    if (!protectLoading && isProfileComplete === true) {
+    if (!protectLoading && isComplete === true) {
       // Redirect based on user role
       if (user?.role === "ADMIN") {
         router.push("/admin-dashboard");
@@ -99,7 +101,7 @@ export default function CompleteProfile() {
         router.push("/student-dashboard");
       }
     }
-  }, [protectLoading, isProfileComplete, user, router]);
+  }, [protectLoading, isComplete, user, router]);
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -163,7 +165,7 @@ export default function CompleteProfile() {
 
     setIsSaving(true);
     try {
-      const result = await UserApi.completeProfile({
+      const result = await completeProfile({
         sexe: formData.sexe as SexeType,
         region: formData.region as RegionType,
         residenceType: formData.residenceType as ResidenceType,
@@ -173,21 +175,20 @@ export default function CompleteProfile() {
         consentGiven: formData.consentGiven,
       });
 
-      // Update the profile complete state
-      setProfileComplete(true);
+      if (result) {
+        toast.success("Félicitations ! Votre profil a été complété avec succès !");
 
-      toast.success("Félicitations ! Votre profil a été complété avec succès !");
-
-      // Redirect based on user role
-      setTimeout(() => {
-        if (user?.role === "ADMIN") {
-          router.push("/admin-dashboard");
-        } else if (user?.role === "INSTRUCTOR") {
-          router.push("/instructor-dashboard");
-        } else {
-          router.push("/student-dashboard");
-        }
-      }, 1500);
+        // Redirect based on user role
+        setTimeout(() => {
+          if (user?.role === "ADMIN") {
+            router.push("/admin-dashboard");
+          } else if (user?.role === "INSTRUCTOR") {
+            router.push("/instructor-dashboard");
+          } else {
+            router.push("/student-dashboard");
+          }
+        }, 1500);
+      }
     } catch (error) {
       console.error("Erreur lors de la completion du profil:", error);
       toast.error(

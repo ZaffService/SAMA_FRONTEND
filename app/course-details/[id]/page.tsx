@@ -7,11 +7,14 @@ import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { usePayment } from "@/application/use-cases/usePayment";
-import { VideoPlayer } from "@/components/video-player";
+import { SecureVideoPlayer } from "@/components/secure-video-player";
+import { transformCourseDetails } from "@/lib/transformers/course-transformer";
+import { VideoApi } from "@/infrastructure/api/video-api";
 import Swal from "sweetalert2";
 import { LockedVideoOverlay } from "@/components/LockedVideoOverlay";
 import { QuizModal } from "@/components/QuizModal";
 import { TEXTS } from "@/lib/constants";
+import type { CourseDetailsData, Quiz } from "@/types/course";
 import {
   Play,
   ArrowLeft,
@@ -19,37 +22,20 @@ import {
   X,
   CheckCircle,
   Lock,
+  Star,
+  Users,
+  Clock,
+  BookOpen,
+  Target,
+  Award,
+  User,
+  Check,
+  PlayCircle,
+  FileText,
+  HelpCircle,
 } from "lucide-react";
 import Cookies from "js-cookie";
 
-interface CourseDetailsData {
-  course: {
-    id: string;
-    title: string;
-    description: string;
-    categoryId: string;
-    level: string;
-    price: number;
-    thumbnailUrl?: string;
-    isFree?: boolean;
-  };
-  modules: Array<{
-    id: string;
-    title: string;
-    description: string;
-    orderIndex: number;
-    lessons: Array<{
-      id: string;
-      title: string;
-      content: string;
-      videoUrl?: string;
-      orderIndex: number;
-      duration: number;
-      status: string;
-    }>;
-  }>;
-  moduleCount: number;
-}
 
 function CourseDetailsPageComponent() {
   const params = useParams();
@@ -109,6 +95,7 @@ function CourseDetailsPageComponent() {
   // Quiz states
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [currentQuizId, setCurrentQuizId] = useState<string | null>(null);
+  const [currentQuizData, setCurrentQuizData] = useState<Quiz | null>(null);
   const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, boolean>>(
     {},
   );
@@ -116,11 +103,30 @@ function CourseDetailsPageComponent() {
     new Set(),
   );
 
+
   // Helper function to validate UUID format (defined before useEffects)
   const isValidUUID = (id: string): boolean => {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(id);
+  };
+
+  // Helper function to get YouTube video ID
+  const getYouTubeVideoId = (url?: string | null): string | null => {
+    if (!url || typeof url !== "string") return null;
+    const iframeRegex =
+      /<iframe[^>]*src=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/embed\/|youtu\.be\/)([^"']{11})[^"']*["'][^>]*>/gi;
+    const iframeMatch = iframeRegex.exec(url);
+    if (iframeMatch && iframeMatch[1]) return iframeMatch[1];
+    const urlRegex =
+      /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/gi;
+    const urlMatch = urlRegex.exec(url);
+    if (urlMatch && urlMatch[1]) return urlMatch[1];
+    const simpleRegex =
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/gi;
+    const simpleMatch = simpleRegex.exec(url);
+    if (simpleMatch && simpleMatch[1]) return simpleMatch[1];
+    return null;
   };
 
   // Enrollment check states
@@ -137,6 +143,15 @@ function CourseDetailsPageComponent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Nettoyer le cache des URLs signées périodiquement
+  useEffect(() => {
+    const interval = setInterval(() => {
+      VideoApi.cleanExpiredCache();
+    }, 5 * 60 * 1000); // Toutes les 5 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const fetchCourseDetails = async () => {
       if (!courseId) {
@@ -148,8 +163,11 @@ function CourseDetailsPageComponent() {
 
       try {
         setLoading(true);
-        const data = await CoursesApi.getCourseDetails(courseId);
-        console.log("✅ Composant: Données reçues:", data);
+        const rawData = await CoursesApi.getCourseDetails(courseId);
+
+        // ✅ Transformer les données
+        const data = transformCourseDetails(rawData);
+        console.log("✅ Composant: Données transformées:", data);
 
         setCourseData(data);
 
@@ -172,9 +190,7 @@ function CourseDetailsPageComponent() {
 
           // ✅ Filtrer les leçons avec vidéo et trier correctement
           const lessonsWithVideo = allLessons
-            .filter(
-              (lesson) => lesson.videoUrl && lesson.videoUrl.trim() !== "",
-            )
+            .filter((lesson) => lesson.hasVideo)
             .sort((a, b) => {
               // Trier d'abord par module, puis par leçon
               if (a.moduleOrderIndex !== b.moduleOrderIndex) {
@@ -346,7 +362,7 @@ function CourseDetailsPageComponent() {
     const newCompletedModules = new Set<string>();
 
     courseData.modules.forEach((module) => {
-      const moduleLessons = module.lessons.filter((l) => l.videoUrl);
+      const moduleLessons = module.lessons.filter((l) => l.hasVideo);
       const allLessonsCompleted = moduleLessons.every(
         (lesson) => lessonProgress[lesson.id],
       );
@@ -377,7 +393,7 @@ function CourseDetailsPageComponent() {
 
     const checkQuizzesForCompletedModules = async () => {
       const modulesToCheck = courseData.modules.filter((module) => {
-        const moduleLessons = module.lessons.filter((l) => l.videoUrl);
+        const moduleLessons = module.lessons.filter((l) => l.hasVideo);
         const allLessonsCompleted = moduleLessons.every(
           (lesson) => lessonProgress[lesson.id],
         );
@@ -627,6 +643,17 @@ function CourseDetailsPageComponent() {
   const modules = courseData?.modules || [];
   const course = courseData?.course;
 
+  // ✅ Helper: Obtenir le quiz d'un module
+  const getModuleQuiz = (moduleId: string): Quiz | undefined => {
+    const module = courseData?.modules.find((m) => m.id === moduleId);
+    return module?.quiz?.[0];  // Prendre le premier quiz du module
+  };
+
+  // ✅ Vérifier si un quiz existe pour un module
+  const hasQuizForModule = (moduleId: string): boolean => {
+    return !!getModuleQuiz(moduleId);
+  };
+
   const lessonsWithVideos = useMemo(() => {
     if (!courseData?.modules) return [];
 
@@ -638,7 +665,7 @@ function CourseDetailsPageComponent() {
           moduleOrderIndex: module.orderIndex,
         })),
       )
-      .filter((lesson) => lesson.videoUrl && lesson.videoUrl.trim() !== "")
+      .filter((lesson) => lesson.hasVideo)
       .sort((a, b) => {
         if (a.moduleOrderIndex !== b.moduleOrderIndex) {
           return a.moduleOrderIndex - b.moduleOrderIndex;
@@ -669,10 +696,23 @@ function CourseDetailsPageComponent() {
     }
   }, [lessonsWithVideos, selectedLessonId, isMobile]);
 
+  // ✅ Handler quiz complété
   const handleQuizCompleted = useCallback((passed: boolean, score: number) => {
     setShowQuizModal(false);
     setCurrentQuizId(null);
-    console.log(`Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`);
+    setCurrentQuizData(null);
+
+    Swal.fire({
+      title: passed ? "Bravo ! 🎉" : "Dommage 😟",
+      text: `Vous avez obtenu ${score}%`,
+      icon: passed ? "success" : "warning",
+      confirmButtonText: "Continuer",
+      confirmButtonColor: "#6366f1",
+    });
+
+    console.log(
+      `Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`
+    );
   }, []);
 
   const checkQuizExists = async (moduleId: string): Promise<boolean> => {
@@ -730,64 +770,31 @@ function CourseDetailsPageComponent() {
     }
   };
 
-  const handleStartQuiz = async (moduleId: string) => {
-    console.log("Démarrage du quiz pour le module:", moduleId);
+  // ✅ Handler pour démarrer un quiz
+  const handleStartQuiz = (moduleId: string) => {
+    console.log("🎯 Démarrage du quiz pour le module:", moduleId);
 
-    try {
-      // Vérifier d'abord si le quiz existe
-      const quizExists = await checkQuizExists(moduleId);
-
-      if (!quizExists) {
-        await Swal.fire({
-          title: "Aucun quiz disponible",
-          text: "Ce module n'a pas de quiz pour le moment.",
-          icon: "info",
-          confirmButtonText: "Compris",
-          confirmButtonColor: "#6366f1",
-        });
-        return;
-      }
-
-      // Ouvrir le modal directement avec l'ID du module
-      setCurrentQuizId(moduleId);
-      setShowQuizModal(true);
-    } catch (error) {
-      console.error("Erreur lors du démarrage du quiz:", error);
-      await Swal.fire({
-        title: "Erreur",
-        text: "Impossible de démarrer le quiz",
-        icon: "error",
-        confirmButtonText: "Fermer",
+    const quiz = getModuleQuiz(moduleId);
+    if (!quiz) {
+      Swal.fire({
+        title: "Aucun quiz disponible",
+        text: "Ce module n'a pas de quiz pour le moment.",
+        icon: "info",
+        confirmButtonText: "Compris",
         confirmButtonColor: "#6366f1",
       });
-    }
-  };
-
-  // ✅ Gestion du clic sur la vidéo pour cours gratuit non inscrit
-  const handleVideoClick = async () => {
-    if (isFree && isEnrolled === false && !enrolling) {
-      console.log(
-        "🖱️ Clic sur vidéo pour cours gratuit - déclenchement de l'inscription",
-      );
-      await handleEnrollClick();
-    }
-  };
-
-  // Gestion du clic sur un module
-  const handleModuleClick = (moduleId: string) => {
-    // Si l'utilisateur n'est pas inscrit
-    if (isEnrolled === false) {
-      // Pour cours gratuit: auto-inscription
-      if (isFree) {
-        handleEnrollClick();
-        return;
-      }
-      // Pour cours payant: ouvrir popup d'inscription
-      handleEnrollClick();
       return;
     }
 
-    // Si l'utilisateur est inscrit, ouvrir le module
+    setCurrentQuizId(quiz.id);
+    setCurrentQuizData(quiz);
+    setShowQuizModal(true);
+  };
+
+
+  // Gestion du clic sur un module
+  const handleModuleClick = (moduleId: string) => {
+    // Pour tous les utilisateurs, permettre l'expansion du module (aperçu)
     console.log("Ouverture du module:", moduleId);
     toggleModule(moduleId);
   };
@@ -837,7 +844,7 @@ function CourseDetailsPageComponent() {
     return `${mins}min`;
   };
 
-  const hasVideo = !!selectedLesson?.videoUrl;
+  const hasVideo = !!selectedLesson?.hasVideo;
   const hasVideoContent = lessonsWithVideos.length > 0;
 
   const isLessonCompleted = (lessonId: string) => {
@@ -934,10 +941,11 @@ function CourseDetailsPageComponent() {
             </button>
 
             <div className="flex-1 flex items-center justify-center bg-black">
-              {selectedLesson?.videoUrl ? (
-                <VideoPlayer
+              {selectedLesson?.hasVideo ? (
+                <SecureVideoPlayer
+                  url={selectedLesson.videoUrl}
                   key={selectedLesson?.id}
-                  videoUrl={selectedLesson.videoUrl}
+                  lessonId={selectedLesson.id}
                   title={selectedLesson.title || course.title}
                   className="w-full h-full"
                 />
@@ -956,7 +964,7 @@ function CourseDetailsPageComponent() {
                 {selectedLesson?.title || course.title}
               </h3>
               <p className="text-white/70 text-sm">
-                {formatDuration(selectedLesson?.duration || 0)}
+                {selectedLesson?.duration && selectedLesson.duration > 0 ? formatDuration(selectedLesson.duration) : ""}
               </p>
             </div>
           </div>
@@ -992,42 +1000,58 @@ function CourseDetailsPageComponent() {
           >
             {hasVideo && hasVideoContent && (
               <div
-                className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg cursor-pointer"
-                onClick={handleVideoClick}
+                className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg"
               >
                 <div className="aspect-video relative">
-                  {isFree || isEnrolled === true ? (
+                  {isEnrolled === true ? (
+                    /* ✅ Utilisateur inscrit - Vérifier si videoUrl existe */
                     selectedLesson?.videoUrl ? (
-                      <VideoPlayer
+                      /* Afficher directement la vidéo YouTube */
+                      (() => {
+                        const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
+                        return videoId ? (
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0&autoplay=0`}
+                            title={selectedLesson.title || course.title}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 w-full h-full"
+                          />
+                        ) : (
+                          <SecureVideoPlayer
+                  url={selectedLesson.videoUrl}
+                            key={selectedLesson?.id}
+                            lessonId={selectedLesson.id}
+                            title={selectedLesson.title || course.title}
+                            className="w-full h-full"
+                          />
+                        );
+                      })()
+                    ) : (
+                      /* ✅ SecureVideoPlayer
+                  url={selectedLesson.videoUrl}
+                     - utiliser l'URL directe si disponible */
+                      <SecureVideoPlayer
+                      url={selectedLesson.videoUrl}
                         key={selectedLesson?.id}
-                        videoUrl={selectedLesson.videoUrl}
+                        lessonId={selectedLesson.id}
                         title={selectedLesson.title || course.title}
                         className="w-full h-full"
                       />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                        <div className="text-center text-white">
-                          <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-                            <Play className="w-8 h-8 lg:w-10 lg:h-10 text-gray-400" />
-                          </div>
-                          <p className="text-gray-400">
-                            Chargement de la vidéo...
-                          </p>
-                        </div>
-                      </div>
                     )
-                  ) : isFree && isEnrolled === false ? (
-                    // ✅ COURS Gratuit NON INSCRIT: Bouton pour s'inscrire automatiquement
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-900 to-purple-900">
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
                       <div className="w-20 h-20 lg:w-24 lg:h-24 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center">
-                        <Play className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+                        <Play className="w-10 h-10 lg:w-12 lg:h-12 text-white/50" />
                       </div>
                       <h3 className="text-xl lg:text-2xl font-bold text-white mb-2">
-                        Aperçu du cours
+                        Aperçu de la leçon
                       </h3>
-                      <p className="text-white/70 mb-6 text-sm lg:text-base">
-                        Ce cours est gratuit. Cliquez pour commencer à apprendre
-                        !
+                      <p className="text-white/70 mb-6 text-sm lg:text-base text-center max-w-md">
+                        Découvrez le contenu de ce cours. Inscrivez-vous pour accéder aux vidéos complètes.
                       </p>
                       <button
                         onClick={(e) => {
@@ -1035,37 +1059,24 @@ function CourseDetailsPageComponent() {
                           handleEnrollClick();
                         }}
                         disabled={enrolling}
-                        className="px-8 py-3 bg-white text-indigo-900 font-semibold rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="px-8 py-3 bg-indigo-600 text-white font-semibold rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                       >
                         {enrolling ? (
                           <>
-                            <div className="w-5 h-5 border-2 border-indigo-900 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                             Inscription...
                           </>
                         ) : (
                           <>
                             <Play className="w-5 h-5" />
-                            Commencer maintenant
+                            {isFree ? "Commencer maintenant" : "S'inscrire au cours"}
                           </>
                         )}
                       </button>
                     </div>
-                  ) : (
-                    // ✅ COURS PAYANT NON INSCRIT: Verrouillé avec message
-                    <LockedVideoOverlay onUnlockClick={handleEnrollClick} />
                   )}
                 </div>
 
-                {/* ✅ Overlay pour indiquer que c'est cliquable */}
-                {isFree && isEnrolled === false && !enrolling && (
-                  <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center">
-                    <div className="opacity-0 hover:opacity-100 transition-opacity">
-                      <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                        <Play className="w-8 h-8 text-indigo-900 ml-1" />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1082,27 +1093,175 @@ function CourseDetailsPageComponent() {
               </span>
             </div>
 
-            {/* Course Description */}
-            <div className="space-y-3 lg:space-y-4">
-              <h1 className="text-xl lg:text-2xl xl:text-3xl font-bold text-gray-900 leading-tight">
-                {course.title}
-              </h1>
+            {/* Course Header */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div className="flex-1">
+                  <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 leading-tight mb-4">
+                    {course.title}
+                  </h1>
 
-              <p className="text-sm lg:text-base text-gray-600 leading-relaxed">
-                {course.description}
-              </p>
-
-              {modules.map((module) => (
-                <div key={module.id} className="space-y-2">
-                  <h3 className="text-sm lg:text-base font-bold text-gray-900">
-                    {module.title}:
-                  </h3>
-                  <p className="text-sm lg:text-base text-gray-600">
-                    {module.description}
+                  <p className="text-base lg:text-lg text-gray-600 leading-relaxed mb-6 max-w-3xl">
+                    {course.description || "Découvrez ce cours complet et apprenez à votre rythme avec des vidéos de qualité professionnelle."}
                   </p>
+
+
+                  {/* Course Tags */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="px-4 py-2 bg-indigo-100 text-indigo-800 text-sm font-medium rounded-full">
+                      {getLevelLabel(course.level)}
+                    </span>
+                    <span className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                      Cours en Direct
+                    </span>
+                    <span className="px-4 py-2 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">
+                      {totalLessons} Leçons
+                    </span>
+                    <span className="px-4 py-2 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                      Français
+                    </span>
+                  </div>
                 </div>
-              ))}
+
+              </div>
             </div>
+
+            {/* What You Will Learn */}
+            <div className="w-full">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                  <Target className="w-6 h-6 text-indigo-600" />
+                  Ce que vous allez apprendre
+                </h2>
+
+                {/* Course Title and Description */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{course.title}</h3>
+                  <div className="prose prose-gray max-w-none">
+                    <p className="text-gray-700 leading-relaxed mb-4">
+                      {course.description || "Découvrez ce cours complet qui vous guidera pas à pas dans l'acquisition des compétences essentielles pour maîtriser ce domaine. À travers des leçons structurées et des exercices pratiques, vous développerez une compréhension approfondie des concepts fondamentaux et apprendrez à les appliquer dans des situations réelles."}
+                    </p>
+                    <p className="text-gray-700 leading-relaxed">
+                      Ce programme pédagogique a été conçu pour s'adapter à votre rythme d'apprentissage, que vous soyez débutant ou que vous souhaitiez perfectionner vos connaissances. Chaque module aborde des thèmes spécifiques avec des exemples concrets et des démonstrations pratiques.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Learning Objectives */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {modules.flatMap(module =>
+                    module.lessons
+                      .filter(lesson => lesson.hasVideo)
+                      .slice(0, 6) // Limit to 6 objectives
+                      .map((lesson, index) => (
+                        <div key={`${module.id}-${lesson.id}`} className="flex items-start gap-3">
+                          <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-700 leading-relaxed">
+                            {lesson.content || `Comprendre et maîtriser : ${lesson.title.toLowerCase()}`}
+                          </span>
+                        </div>
+                      ))
+                  ).slice(0, 8)} {/* Ensure max 8 items */}
+                </div>
+              </div>
+            </div>
+
+            {/* Course Content / Curriculum */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <BookOpen className="w-6 h-6 text-indigo-600" />
+                Contenu du cours
+              </h2>
+
+              <div className="space-y-4">
+                {modules.map((module, moduleIndex) => {
+                  const isExpanded = expandedModules.has(module.id);
+                  const lessonCount = module.lessons.filter(l => l.hasVideo).length;
+                  const totalDuration = module.lessons
+                    .filter(l => l.hasVideo)
+                    .reduce((sum, l) => sum + l.duration, 0);
+
+                  return (
+                    <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => toggleModule(module.id)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-indigo-600">{moduleIndex + 1}</span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{module.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{module.description}</p>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <PlayCircle className="w-4 h-4" />
+                                {lessonCount} leçons
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {formatDuration(totalDuration)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 bg-gray-50">
+                          {module.lessons
+                            .filter(lesson => lesson.hasVideo)
+                            .map((lesson, lessonIndex) => (
+                              <div key={lesson.id} className="flex items-center gap-4 p-4 border-b border-gray-100 last:border-b-0">
+                                <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <Play className="w-3 h-3 text-gray-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900">{lesson.title}</h4>
+                                  <p className="text-sm text-gray-600 mt-1">{lesson.content || "Découvrez cette leçon passionnante"}</p>
+                                </div>
+                                {lesson.duration > 0 && (
+                                  <div className="text-sm text-gray-500 flex items-center gap-1">
+                                    <Clock className="w-4 h-4" />
+                                    {formatDuration(lesson.duration)}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Prerequisites */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <HelpCircle className="w-6 h-6 text-indigo-600" />
+                Prérequis
+              </h2>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Aucune connaissance préalable requise</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Un ordinateur ou smartphone avec connexion internet</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">Motivation et envie d'apprendre</span>
+                </div>
+              </div>
+            </div>
+
+
           </div>
 
           {/* Sidebar - Lessons List */}
@@ -1161,26 +1320,21 @@ function CourseDetailsPageComponent() {
                         const isModuleCompleted = completedModules.has(
                           module.id,
                         );
+                        const moduleQuiz = getModuleQuiz(module.id);  // ✅ Récupérer le quiz
                         const totalModuleDuration = module.lessons
-                          .filter((l) => l.videoUrl)
+                          .filter((l) => l.hasVideo)
                           .reduce((sum, l) => sum + l.duration, 0);
 
                         return (
                           <div key={module.id} className="mb-2">
                             <button
                               onClick={() => {
-                                if (isEnrolled === true || isFree) {
-                                  toggleModule(module.id);
-                                } else {
-                                  handleModuleClick(module.id);
-                                }
+                                toggleModule(module.id);
                               }}
                               className={`w-full flex items-center justify-between p-2.5 lg:p-3 rounded-lg transition-all duration-300 text-left group ${
                                 isModuleCompleted
                                   ? "bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200"
-                                  : isEnrolled || isFree
-                                    ? "hover:bg-indigo-50"
-                                    : "opacity-60 cursor-not-allowed bg-gray-50"
+                                  : "hover:bg-indigo-50"
                               }`}
                             >
                               <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0">
@@ -1209,28 +1363,28 @@ function CourseDetailsPageComponent() {
                                   >
                                     <div className="flex items-center gap-2">
                                       {module.title}
-                                      {!isEnrolled && !isFree && (
-                                        <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                      )}
                                       {isModuleCompleted && (
                                         <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-medium">
                                           Terminé
                                         </span>
                                       )}
                                       {!isEnrolled && !isFree && (
-                                        <span className="ml-2 px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full font-medium">
-                                          Verrouillé
+                                        <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">
+                                          Aperçu
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                   <div className="text-xs text-gray-500 mt-0.5">
                                     {
-                                      module.lessons.filter((l) => l.videoUrl)
+                                      module.lessons.filter((l) => l.hasVideo)
                                         .length
                                     }{" "}
-                                    leçons ·{" "}
-                                    {formatDuration(totalModuleDuration)}
+                                    leçons
+                                    {moduleQuiz && " • 1 quiz"}  {/* ✅ Afficher si quiz existe */}
+                                    {totalModuleDuration > 0 && (
+                                      <> · {formatDuration(totalModuleDuration)}</>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1259,7 +1413,7 @@ function CourseDetailsPageComponent() {
                             {isExpanded && (
                               <div className="ml-3 lg:ml-4 mt-1 space-y-1 animate-in slide-in-from-top-2 duration-300">
                                 {module.lessons
-                                  .filter((lesson) => lesson.videoUrl)
+                                  .filter((lesson) => lesson.hasVideo)
                                   .map((lesson) => {
                                     const completed = isLessonCompleted(
                                       lesson.id,
@@ -1276,6 +1430,7 @@ function CourseDetailsPageComponent() {
                                         {/* Bouton pour sélectionner la leçon */}
                                         <button
                                           onClick={() => {
+                                            // Permettre la sélection pour tous les utilisateurs (aperçu)
                                             setSelectedLessonId(lesson.id);
                                             if (isMobile) {
                                               window.scrollTo({
@@ -1290,14 +1445,16 @@ function CourseDetailsPageComponent() {
                                             className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                                               completed
                                                 ? "bg-green-500"
-                                                : selectedLessonId === lesson.id
-                                                  ? "bg-gradient-to-r from-indigo-600 to-purple-600"
-                                                  : "bg-gradient-to-r from-indigo-100 to-purple-100"
+                                                : selectedLessonId === lesson.id && isEnrolled
+                                                ? "bg-gradient-to-r from-indigo-600 to-purple-600"
+                                                : isEnrolled
+                                                ? "bg-gradient-to-r from-indigo-100 to-purple-100"
+                                                : "bg-gray-200"
                                             }`}
                                           >
                                             {completed ? (
                                               <CheckCircle className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-white fill-current" />
-                                            ) : (
+                                            ) : isEnrolled ? (
                                               <Play
                                                 className={`w-3 h-3 lg:w-3.5 lg:h-3.5 ${
                                                   selectedLessonId === lesson.id
@@ -1305,6 +1462,8 @@ function CourseDetailsPageComponent() {
                                                     : "text-indigo-600"
                                                 } fill-current ml-0.5`}
                                               />
+                                            ) : (
+                                              <Lock className="w-3 h-3 lg:w-3.5 lg:h-3.5 text-amber-500" />
                                             )}
                                           </div>
                                           <div className="flex-1 min-w-0">
@@ -1320,11 +1479,11 @@ function CourseDetailsPageComponent() {
                                               {lesson.title}
                                             </div>
                                             <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
-                                              <span>
-                                                {formatDuration(
-                                                  lesson.duration,
-                                                )}
-                                              </span>
+                                              {lesson.duration > 0 && (
+                                                <span>
+                                                  {formatDuration(lesson.duration)}
+                                                </span>
+                                              )}
                                               {completed && (
                                                 <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
                                                   Terminée
@@ -1335,7 +1494,7 @@ function CourseDetailsPageComponent() {
                                         </button>
 
                                         {/* Checkbox pour marquer comme terminé */}
-                                        {(isEnrolled === true || isFree) && (
+                                        {(isEnrolled === true) && (
                                           <div className="px-3 lg:px-4 pb-2.5 lg:pb-3">
                                             <label
                                               className="flex items-center gap-2 cursor-pointer group/checkbox"
@@ -1512,57 +1671,18 @@ function CourseDetailsPageComponent() {
                               </div>
                             )}
 
-                            {/* 🎨 DESIGN AMÉLIORÉ - Module terminé + Quiz */}
-                            {(() => {
-                              const moduleLessons = module.lessons.filter(
-                                (l) => l.videoUrl,
-                              );
-                              const allLessonsCompleted = moduleLessons.every(
-                                (lesson) => isLessonCompleted(lesson.id),
-                              );
-                              const quizExists = moduleQuizzes[module.id];
-                              const isCheckingQuiz = checkingQuizzes.has(
-                                module.id,
-                              );
-
-                              return (isEnrolled === true || isFree) &&
-                                allLessonsCompleted ? (
-                                <div className="mt-3 mx-2 p-4 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50 border-2 border-emerald-200 rounded-xl shadow-sm">
-                                  <div className="flex items-center gap-3">
-                                    {/* Badge avec icône CheckCircle */}
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                                      <CheckCircle className="w-6 h-6 text-white" />
-                                    </div>
-
-                                    {/* Texte */}
-                                    <div className="flex-1 min-w-0">
-                                      <h6 className="font-bold text-emerald-900 text-sm mb-0.5">
-                                        Module terminé
-                                      </h6>
-                                    </div>
-
-                                    {/* Bouton Quiz avec gradient purple-indigo - Seulement si quiz existe */}
-                                    {quizExists !== false && (
-                                      <button
-                                        onClick={() => {
-                                          console.log(
-                                            "Bouton Quiz cliqué pour module:",
-                                            module.id,
-                                          );
-                                          handleStartQuiz(module.id);
-                                        }}
-                                        disabled={isCheckingQuiz}
-                                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {isCheckingQuiz
-                                          ? "Vérification..."
-                                          : TEXTS.QUIZ_BUTTON}
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : null;
-                            })()}
+                            {/* Bouton Quiz du Module (Si existe et tous les vidéos complétées) */}
+                            {moduleQuiz && isModuleCompleted && (
+                              <button
+                                onClick={() => handleStartQuiz(module.id)}
+                                className="w-full flex items-center gap-2 p-2 mt-2 rounded text-left transition-colors text-xs lg:text-sm bg-yellow-50 hover:bg-yellow-100 text-yellow-900 font-semibold border border-yellow-200"
+                              >
+                                <BookOpen className="w-4 h-4 flex-shrink-0" />
+                                <span className="truncate flex-1">
+                                  Quiz: {moduleQuiz.title}
+                                </span>
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -1594,6 +1714,7 @@ function CourseDetailsPageComponent() {
               </div>
             </div>
           )}
+          
         </div>
       </main>
 

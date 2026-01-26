@@ -102,7 +102,6 @@ const UserManagement: React.FC = () => {
         </div>
         <div className="bg-red-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold text-red-800">Admins</h3>
-          <p className="text-2xl font-bold text-red-600">{stats.admins}</p>
         </div>
       </div>
 

@@ -75,6 +75,8 @@ export const API_ENDPOINTS = {
   LESSONS: {
     COMPLETE: (lessonId: string) => `/course/lesson/${lessonId}/complete`,
     UNCOMPLETE: (lessonId: string) => `/course/lesson/${lessonId}/uncomplete`,
+    SIGNED_VIDEO: (lessonId: string) => `/course/lesson/${lessonId}/video/signed`,
+    UPLOAD_VIDEO: (lessonId: string) => `/course/lesson/${lessonId}/video`,
   },
 } as const;
 

@@ -1,29 +1,46 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 export function ProfileCompletionBanner() {
   const router = useRouter();
-  const { isProfileComplete, isAuthenticated, user } = useLocalAuth();
+  const { isAuthenticated, user } = useLocalAuth();
+  const { isComplete, checkProfile, isLoading } = useProfile();
+  const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
+
+  // Check profile status on mount and when user changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log("🔔 [ProfileCompletionBanner] Checking profile status...");
+      checkProfile().then(() => {
+        setHasCheckedProfile(true);
+      });
+    } else {
+      setHasCheckedProfile(false);
+    }
+  }, [isAuthenticated, user, checkProfile]);
 
   // Debug logging
   useEffect(() => {
     console.log("🔔 [ProfileCompletionBanner] Auth state:", {
       isAuthenticated,
-      isProfileComplete,
+      isComplete,
       userRole: user?.role,
       userEmail: user?.email,
+      hasCheckedProfile,
     });
-  }, [isAuthenticated, isProfileComplete, user]);
+  }, [isAuthenticated, isComplete, user, hasCheckedProfile]);
 
-  // Only show for authenticated STUDENT or INSTRUCTOR (not ADMIN)
+  // Only show for authenticated STUDENT or INSTRUCTOR (not ADMIN) and profile not complete
   const shouldShow =
     isAuthenticated &&
-    isProfileComplete === false &&
+    hasCheckedProfile &&
+    isComplete === false &&
     user?.role !== "ADMIN";
 
   useEffect(() => {

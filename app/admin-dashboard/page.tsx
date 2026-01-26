@@ -55,7 +55,9 @@ export default function AdminDashboard() {
   };
 
   const handleCreateUser = () => {
-    router.push("/admin/create-user");
+    // Temporairement désactivé
+    console.log("Fonctionnalité de création d'utilisateur temporairement désactivée");
+    // router.push("/admin/create-user");
   };
 
   const handleBackToDashboard = () => {
@@ -332,19 +334,19 @@ export default function AdminDashboard() {
               </Card>
 
               {/* Créer un Utilisateur */}
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="hover:shadow-lg transition-shadow opacity-60">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
-                    <Plus className="h-5 w-5 text-blue-600" />
-                    <span>Créer un Utilisateur</span>
+                    <Plus className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-500">Créer un Utilisateur</span>
                   </CardTitle>
-                  <CardDescription>
-                    Ajouter un nouvel utilisateur à la plateforme
+                  <CardDescription className="text-gray-400">
+                    Fonctionnalité temporairement désactivée - Maintenance en cours
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" onClick={handleCreateUser}>
-                    Créer un utilisateur
+                  <Button className="w-full" disabled>
+                    Indisponible pour le moment
                   </Button>
                 </CardContent>
               </Card>

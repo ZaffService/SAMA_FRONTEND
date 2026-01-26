@@ -84,7 +84,7 @@ interface CourseDetailsResponse {
       id: string;
       title: string;
       content: string;
-      videoUrl?: string;
+      hasVideo?: boolean;
       orderIndex: number;
       duration: number;
       status: LessonStatus | string;
@@ -1240,6 +1240,44 @@ export class CoursesApi {
     const data = await response.json();
     console.log("✅ Cours supprimé:", data);
     return data;
+  }
+
+  /**
+   * Upload une vidéo pour une leçon spécifique
+   */
+  static async uploadLessonVideo(lessonId: string, videoFile: File): Promise<any> {
+    console.log(`🎥 API: Upload de vidéo pour la leçon ${lessonId}`);
+
+    const formData = new FormData();
+    formData.append('video', videoFile);
+
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.LESSONS.UPLOAD_VIDEO(lessonId)),
+      {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur upload vidéo:", errorData);
+        errorMessage = errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Vidéo uploadée:", responseData);
+
+    return responseData;
   }
 
   /**
