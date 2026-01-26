@@ -331,15 +331,6 @@ export function CourseManagement({
                                 Archiver
                               </DropdownMenuItem>
                             )}
-                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && course.status === "DRAFT" && (
-                              <DropdownMenuItem
-                                onClick={() => setCourseToDelete(course)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            )}
 
                             {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
                             {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && onViewVideoStatus && (
