@@ -72,6 +72,7 @@ export function CourseManagement({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [courseToArchive, setCourseToArchive] = useState<Course | null>(null);
   const [courseToEdit, setCourseToEdit] = useState<Course | null>(null);
 
   const fetchCourses = async () => {
@@ -137,6 +138,22 @@ export function CourseManagement({
     }
   };
 
+  const handleArchiveCourse = async () => {
+    if (!courseToArchive) return;
+
+    try {
+      await CoursesApi.updateCourseStatus(courseToArchive.id, "ARCHIVED");
+      toast.success("Cours archivé avec succès");
+      setCourseToArchive(null);
+      fetchCourses();
+      onCourseUpdated?.();
+    } catch (error) {
+      console.error("Erreur lors de l'archivage:", error);
+      toast.error("Erreur lors de l'archivage du cours");
+      setCourseToArchive(null);
+    }
+  };
+
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -167,6 +184,10 @@ export function CourseManagement({
   };
 
   const filteredCourses = courses.filter((course) => {
+    // Masquer les cours archivés pour les utilisateurs non-admin
+    if (course.status === "ARCHIVED" && user?.role !== "ADMIN") {
+      return false;
+    }
     const matchesSearch =
       (course.title?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (course.description?.toLowerCase() || "").includes(searchQuery.toLowerCase());
@@ -197,7 +218,9 @@ export function CourseManagement({
               <SelectItem value="all">Tous les statuts</SelectItem>
               <SelectItem value="DRAFT">Brouillon</SelectItem>
               <SelectItem value="PUBLISHED">Publié</SelectItem>
-              <SelectItem value="ARCHIVED">Archivé</SelectItem>
+              {user?.role === "ADMIN" && (
+                <SelectItem value="ARCHIVED">Archivé</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -299,11 +322,10 @@ export function CourseManagement({
                                 Mettre en brouillon
                               </DropdownMenuItem>
                             )}
-                            {course.status !== "ARCHIVED" && (
+                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") &&
+                             (course.status === "PUBLISHED" || course.status === "DRAFT") && (
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleStatusChange(course.id, "ARCHIVED")
-                                }
+                                onClick={() => setCourseToArchive(course)}
                               >
                                 <Archive className="h-4 w-4 mr-2 text-gray-600" />
                                 Archiver
@@ -357,6 +379,28 @@ export function CourseManagement({
               className="bg-red-600 hover:bg-red-700"
             >
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialogue de confirmation d'archivage */}
+      <AlertDialog open={!!courseToArchive} onOpenChange={() => setCourseToArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer l'archivage</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir archiver le cours "{courseToArchive?.title}" ?
+              Le cours sera masqué de la liste principale mais pourra être consulté par les administrateurs.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleArchiveCourse}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Archiver
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
