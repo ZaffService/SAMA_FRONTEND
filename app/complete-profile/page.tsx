@@ -185,7 +185,7 @@ export default function CompleteProfile() {
           } else if (user?.role === "INSTRUCTOR") {
             router.push("/instructor-dashboard");
           } else {
-            router.push("/student-dashboard");
+            router.push("/courses");
           }
         }, 1500);
       }
