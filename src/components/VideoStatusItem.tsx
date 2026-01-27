@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LessonStatus, CoursesApi } from "@/infrastructure/api/courses-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
-import { Upload, FileText, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Upload, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Lesson {
@@ -36,6 +36,7 @@ export function VideoStatusItem({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const changeVideoFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -51,6 +52,41 @@ export function VideoStatusItem({
       }
       setSelectedFile(file);
       setUploadProgress(0);
+    }
+  };
+
+  const handleChangeVideoFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validation du fichier
+      if (!file.type.startsWith('video/')) {
+        toast.error('Veuillez sélectionner un fichier vidéo');
+        return;
+      }
+      if (file.size > 100 * 1024 * 1024) { // 100MB
+        toast.error('Le fichier ne doit pas dépasser 100MB');
+        return;
+      }
+      handleChangeVideoUpload(file);
+    }
+  };
+
+  const handleChangeVideoUpload = async (file: File) => {
+    onUploadStart();
+
+    try {
+      await CoursesApi.uploadLessonVideo(lesson.id, file);
+      toast.success('Vidéo changée avec succès !');
+      onUploadSuccess();
+    } catch (error) {
+      console.error('Erreur lors du changement de vidéo:', error);
+      toast.error(`Erreur lors du changement de vidéo: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      onUploadEnd();
+      // Reset the file input
+      if (changeVideoFileInputRef.current) {
+        changeVideoFileInputRef.current.value = '';
+      }
     }
   };
 
@@ -140,6 +176,34 @@ export function VideoStatusItem({
         <Badge variant="outline" className={getStatusColor(lesson.status)}>
           {getStatusText(lesson.status)}
         </Badge>
+
+        {/* Bouton Changer la vidéo pour les vidéos déjà uploadées ou prêtes */}
+        {(lesson.status === LessonStatus.VIDEO_UPLOADED || lesson.status === LessonStatus.READY) && (
+          <div className="flex items-center space-x-2">
+            <input
+              ref={changeVideoFileInputRef}
+              type="file"
+              accept="video/*"
+              onChange={handleChangeVideoFileSelect}
+              disabled={isUploading}
+              className="hidden"
+            />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => changeVideoFileInputRef.current?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              {isUploading ? 'Changement en cours...' : 'Changer la vidéo'}
+            </Button>
+          </div>
+        )}
 
         {/* Bouton Upload UNIQUEMENT pour les vidéos en attente */}
         {lesson.status === LessonStatus.PENDING_VIDEO && (

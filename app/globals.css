@@ -670,3 +670,45 @@ a {
     font-size: 1.25rem;
   }
 }
+
+/* ===== ADMIN DASHBOARD SIDEBAR STYLES ===== */
+
+@layer base {
+  :root {
+    /* Couleurs Bibom Digital */
+    --primary: 211 90% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Sidebar WordPress-style */
+    --sidebar: 220 20% 97%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 211 90% 50%;
+    --sidebar-accent: 220 14% 90%;
+    --sidebar-border: 220 14% 85%;
+
+    /* Couleurs admin */
+    --admin-success: 142 76% 36%;
+    --admin-warning: 38 92% 50%;
+    --admin-purple: 270 60% 55%;
+    --admin-indigo: 234 89% 64%;
+    --admin-orange: 25 95% 53%;
+
+    /* Backgrounds */
+    --background: 0 0% 100%;
+    --foreground: 220 20% 20%;
+
+    /* Cards */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 20%;
+
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Border */
+    --border: 220 14% 91%;
+
+    /* Radius */
+    --radius: 0.5rem;
+  }
+}
