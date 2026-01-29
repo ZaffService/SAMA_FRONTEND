@@ -10,6 +10,8 @@ export interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
+  telephone?: string;
+  indicatif?: string;
   acceptTerms: boolean;
 }
 

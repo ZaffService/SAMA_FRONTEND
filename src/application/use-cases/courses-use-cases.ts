@@ -1,4 +1,4 @@
-import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { BackendCourse, CoursesApi } from "@/infrastructure/api/courses-api";
 import { Course, CourseDetails } from "@/domain/entities/course";
 import { CourseSearchOptions } from "@/infrastructure/api/baseConfig";
 
@@ -15,7 +15,7 @@ export class CoursesUseCases {
     perPage: number = 10,
     searchOptions?: CourseSearchOptions,
   ): Promise<{
-    courses: Course[];
+    courses: BackendCourse[];
     total: number;
     pages: number;
     hasCoursesInDatabase: boolean;

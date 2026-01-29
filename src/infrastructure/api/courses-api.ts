@@ -2,6 +2,30 @@ import type { Course, CourseDetails } from "@/domain/entities/course";
 import type { Module, Lesson } from "@/domain/entities/module";
 import Cookies from "js-cookie";
 
+// {
+//     "courses": [
+//         {
+//             "id": "9c27de41-9ca3-4a0c-8098-69c5f48c06d3",
+//             "title": "Architecture Backend et APIs",
+//             "description": "Construisez des backends scalables avec Node.js/Express ou Python/Django. Maîtrisez les APIs REST/GraphQL, les bases de données SQL/NoSQL, les microservices, Docker, Kubernetes et la sécurité backend.",
+//             "thumbnailUrl": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&h=400&fit=crop",
+//             "price": 200,
+//             "level": "ADVANCED",
+//             "status": "DRAFT",
+//             "instructorName": "Alice Johnson",
+//             "categoryName": "Développement web",
+//             "previewAvailable": true,
+//             "enrollmentCount": 0
+//         },
+//       ]
+//     "total": 26,
+//     "page": 3,
+//     "limit": 8,
+//     "totalPages": 4,
+//     "hasCoursesInDatabase": true
+// }
+
+
 // Lesson status enum
 export enum LessonStatus {
   PENDING_VIDEO = "PENDING_VIDEO",
@@ -20,47 +44,28 @@ function base64UrlDecode(str: string): string {
   return atob(base64);
 }
 
-interface BackendCourse {
-  courseId?: string;
-  id?: string;
-  _id?: string;
-  title?: string;
-  _title?: string;
+export interface BackendCourse {
+  id: string;
+  title: string;
   description?: string;
-  _description?: string;
-  thumbnailUrl?: string;
-  _thumbnailUrl?: string;
-  price?: number;
-  _price?: number;
-  duration?: string;
-  _duration?: string;
-  level?: string;
-  _level?: string;
-  category?: any;
   categoryId?: string;
-  _category?: any;
-  instructor?: any;
-  _instructor?: any;
-  _enrollments?: any[];
-  enrollments?: any[];
-  rating?: number;
-  _rating?: number;
-  _tags?: string[];
-  tags?: string[];
-  _status?: string;
-  status?: string;
-  _attachment?: string;
-  attachment?: string;
-  _createdAt?: string;
-  createdAt?: string;
-  _updatedAt?: string;
-  updatedAt?: string;
-  isComplete?: boolean;
-  _modules?: any[];
-  modules?: any[];
-  lessons?: any[];
-  _quizzes?: any[];
-  quizzes?: any[];
+  categoryName?: string;
+  thumbnailUrl?: string;
+  price: number;
+  level: string;
+  status: string;
+  instructorName?: string;
+  previewAvailable?: boolean;
+  enrollmentCount?: number;
+}
+
+interface BackendResponse{
+  courses: BackendCourse[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  hasCoursesInDatabase: boolean;
 }
 
 interface CourseDetailsResponse {
@@ -110,7 +115,7 @@ export class CoursesApi {
     perPage: number = 100,
     searchOptions?: any,
   ): Promise<{
-    courses: Course[];
+    courses: BackendCourse[];
     total: number;
     pages: number;
     currentPage: number;
@@ -145,16 +150,14 @@ export class CoursesApi {
       throw new Error(`Failed to fetch admin courses: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as BackendResponse;
 
     console.log(
       "🔍 API getAdminCourses - Données brutes:",
       JSON.stringify(data, null, 2),
     );
 
-    const courses = (data.courses || []).map((backendCourse: BackendCourse) =>
-      this.mapBackendCourseToFrontend(backendCourse),
-    );
+    const courses = data.courses;
 
     return {
       courses,
@@ -174,7 +177,7 @@ export class CoursesApi {
     perPage: number = 8,
     searchOptions?: any,
   ): Promise<{
-    courses: Course[];
+    courses: BackendCourse[];
     total: number;
     pages: number;
     currentPage: number;
@@ -223,9 +226,7 @@ export class CoursesApi {
       JSON.stringify(data, null, 2),
     );
 
-    const courses = (data.courses || []).map((backendCourse: BackendCourse) =>
-      this.mapBackendCourseToFrontend(backendCourse),
-    );
+   const courses = data.courses;
 
     return {
       courses,
@@ -597,6 +598,23 @@ export class CoursesApi {
     );
 
     try {
+      // ✅ Vérifier si l'utilisateur est un admin (accès automatique à tous les cours)
+      const accessToken = Cookies.get("access_token");
+      if (accessToken) {
+        try {
+          const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
+          const userRole = payload.role;
+
+          if (userRole === "ADMIN") {
+            console.log("👑 Admin détecté - Accès automatique au cours");
+            return true;
+          }
+        } catch (err) {
+          console.error("❌ Erreur extraction rôle depuis token:", err);
+          // Continue avec la vérification normale
+        }
+      }
+
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)),
         {
@@ -650,6 +668,27 @@ export class CoursesApi {
         progress: 0,
         course: { id: courseId },
       };
+    }
+
+    // ✅ Vérifier si l'utilisateur est un admin (pas besoin d'inscription)
+    const accessToken = Cookies.get("access_token");
+    if (accessToken) {
+      try {
+        const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
+        const userRole = payload.role;
+
+        if (userRole === "ADMIN") {
+          console.log("👑 Admin détecté - Inscription automatique au cours");
+          return {
+            status: "ACTIVE",
+            progress: 0,
+            course: { id: courseId },
+          };
+        }
+      } catch (err) {
+        console.error("❌ Erreur extraction rôle depuis token:", err);
+        // Continue avec la procédure normale
+      }
     }
 
     const response = await fetch(
@@ -1081,6 +1120,27 @@ export class CoursesApi {
     console.log(`🔍 API: Vérification d'inscription pour le cours ${courseId}`);
 
     try {
+      // ✅ Vérifier si l'utilisateur est un admin (accès automatique)
+      const accessToken = Cookies.get("access_token");
+      if (accessToken) {
+        try {
+          const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
+          const userRole = payload.role;
+
+          if (userRole === "ADMIN") {
+            console.log("👑 Admin détecté - Accès automatique au cours");
+            return {
+              enrolled: true,
+              isFree: true,
+              paymentRequired: false,
+            };
+          }
+        } catch (err) {
+          console.error("❌ Erreur extraction rôle depuis token:", err);
+          // Continue avec la vérification normale
+        }
+      }
+
       // D'abord, vérifier si l'utilisateur est déjà inscrit
       const enrolledResponse = await fetch(
         buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)),
@@ -1283,77 +1343,77 @@ export class CoursesApi {
   /**
    * Mapper pour les cours de la liste (léger)
    */
-  private static mapBackendCourseToFrontend(
-    backendCourse: BackendCourse,
-  ): Course {
-    // ✅ CORRECTION: Utiliser id du backend (comme retourné par l'API)
-    const id =
-      backendCourse.id || backendCourse.courseId || backendCourse._id || "";
+  // private static mapBackendCourseToFrontend(
+  //   backendCourse: BackendCourse,
+  // ): Course {
+  //   // ✅ CORRECTION: Utiliser id du backend (comme retourné par l'API)
+  //   const id =
+  //     backendCourse.id || backendCourse.courseId || backendCourse._id || "";
 
-    const title = backendCourse.title || backendCourse._title || "";
-    const description =
-      backendCourse.description || backendCourse._description || "";
+  //   const title = backendCourse.title || backendCourse._title || "";
+  //   const description =
+  //     backendCourse.description || backendCourse._description || "";
 
-    const thumbnailUrl =
-      backendCourse.thumbnailUrl ||
-      backendCourse._thumbnailUrl ||
-      "/Fallback.png";
+  //   const thumbnailUrl =
+  //     backendCourse.thumbnailUrl ||
+  //     backendCourse._thumbnailUrl ||
+  //     "/Fallback.png";
 
-    // ✅ Extraction du categoryId pour le filtrage
-    const categoryId =
-      backendCourse.categoryId ||
-      backendCourse._category?.id ||
-      backendCourse._category?._id;
+  //   // ✅ Extraction du categoryId pour le filtrage
+  //   const categoryId =
+  //     backendCourse.categoryId ||
+  //     backendCourse._category?.id ||
+  //     backendCourse._category?._id;
 
-    const category =
-      backendCourse._category?._name ||
-      backendCourse._category?.name ||
-      backendCourse.category ||
-      "Non catégorisé";
+  //   const category =
+  //     backendCourse._category?._name ||
+  //     backendCourse._category?.name ||
+  //     backendCourse.category ||
+  //     "Non catégorisé";
 
-    return {
-      id,
-      title,
-      content: description,
-      category,
-      categoryId, // ✅ Ajout du categoryId pour le filtrage
-      thumbnailUrl,
-      thumbnail: thumbnailUrl,
-      price: backendCourse.price ?? backendCourse._price ?? 0,
-      duration: backendCourse.duration || backendCourse._duration,
-      instructor: {
-        id: backendCourse._instructor?._id || backendCourse.instructor?.id,
-        name: backendCourse._instructor
-          ? `${backendCourse._instructor._firstName || ""} ${backendCourse._instructor._lastName || ""}`.trim()
-          : "Instructeur",
-        firstName: backendCourse._instructor?._firstName,
-        lastName: backendCourse._instructor?._lastName,
-        email: backendCourse._instructor?._email,
-        role: backendCourse._instructor?._role,
-      },
-      studentsCount:
-        backendCourse._enrollments?.length ||
-        backendCourse.enrollments?.length ||
-        0,
-      rating: backendCourse.rating ?? backendCourse._rating ?? 0,
-      level: backendCourse.level || backendCourse._level || "BEGINNER",
-      description,
-      tags: backendCourse._tags || backendCourse.tags || [],
-      status: (backendCourse._status || backendCourse.status) as
-        | "DRAFT"
-        | "PUBLISHED"
-        | "ARCHIVED"
-        | undefined,
-      attachment: backendCourse._attachment || backendCourse.attachment,
-      createdAt: backendCourse._createdAt || backendCourse.createdAt,
-      updatedAt: backendCourse._updatedAt || backendCourse.updatedAt,
-      isComplete: backendCourse.isComplete ?? true, // Default to true for backward compatibility
-      lessons:
-        backendCourse._modules ||
-        backendCourse.modules ||
-        backendCourse.lessons ||
-        [],
-      quizzes: backendCourse._quizzes || backendCourse.quizzes || [],
-    };
-  }
+  //   return {
+  //     id,
+  //     title,
+  //     content: description,
+  //     categoryName: category,
+  //     categoryId, // ✅ Ajout du categoryId pour le filtrage
+  //     thumbnailUrl,
+  //     thumbnail: thumbnailUrl,
+  //     price: backendCourse.price ?? backendCourse._price ?? 0,
+  //     duration: backendCourse.duration || backendCourse._duration,
+  //     instructor: {
+  //       id: backendCourse._instructor?._id || backendCourse.instructor?.id,
+  //       name: backendCourse._instructor
+  //         ? `${backendCourse._instructor._firstName || ""} ${backendCourse._instructor._lastName || ""}`.trim()
+  //         : "Instructeur",
+  //       firstName: backendCourse._instructor?._firstName,
+  //       lastName: backendCourse._instructor?._lastName,
+  //       email: backendCourse._instructor?._email,
+  //       role: backendCourse._instructor?._role,
+  //     },
+  //     studentsCount:
+  //       backendCourse._enrollments?.length ||
+  //       backendCourse.enrollments?.length ||
+  //       0,
+  //     rating: backendCourse.rating ?? backendCourse._rating ?? 0,
+  //     level: backendCourse.level || backendCourse._level || "BEGINNER",
+  //     description,
+  //     tags: backendCourse._tags || backendCourse.tags || [],
+  //     status: (backendCourse._status || backendCourse.status) as
+  //       | "DRAFT"
+  //       | "PUBLISHED"
+  //       | "ARCHIVED"
+  //       | undefined,
+  //     attachment: backendCourse._attachment || backendCourse.attachment,
+  //     createdAt: backendCourse._createdAt || backendCourse.createdAt,
+  //     updatedAt: backendCourse._updatedAt || backendCourse.updatedAt,
+  //     isComplete: backendCourse.isComplete ?? true, // Default to true for backward compatibility
+  //     lessons:
+  //       backendCourse._modules ||
+  //       backendCourse.modules ||
+  //       backendCourse.lessons ||
+  //       [],
+  //     quizzes: backendCourse._quizzes || backendCourse.quizzes || [],
+  //   };
+  // }
 }

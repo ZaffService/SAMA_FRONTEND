@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CourseWizard } from "@/components/CourseWizard";
@@ -22,11 +22,23 @@ type DashboardView =
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, logout } = useLocalAuth();
   const [currentView, setCurrentView] = useState<DashboardView>("overview");
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const { refresh: refreshCategories } = useCategories();
+
+  // Vérifier si on vient de créer un cours (paramètre courseCreated=true)
+  useEffect(() => {
+    const courseCreated = searchParams.get('courseCreated');
+    if (courseCreated === 'true') {
+      // Rediriger vers la gestion des cours
+      setCurrentView("manage-courses");
+      // Nettoyer l'URL
+      router.replace('/admin-dashboard', undefined);
+    }
+  }, [searchParams, router]);
 
   const handleViewVideoStatus = (courseId: string) => {
     setSelectedCourseId(courseId);

@@ -39,7 +39,7 @@ export interface BaseCourse {
   id: string;
   title: string;
   content?: string;
-  category: string | Category;
+  categoryName: string | Category;
   categoryId?: string;
   thumbnailUrl: string;
   thumbnail?: string;
@@ -91,7 +91,7 @@ export function transformApiCourse(apiCourse: any): Course {
     id: apiCourse._id || apiCourse.id,
     title: apiCourse._title || apiCourse.title,
     content: apiCourse._description || apiCourse.content || "",
-    category:
+    categoryName:
       apiCourse._category?.name ||
       apiCourse._category?._name ||
       apiCourse.category ||

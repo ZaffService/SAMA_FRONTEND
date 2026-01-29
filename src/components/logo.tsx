@@ -19,10 +19,10 @@ export function Logo({ variant = "default", size = "md" }: LogoProps) {
   return (
     <div className={`flex items-center ${styleClass}`}>
       <Image
-        src="/Bibocom.png"
+        src="/logo.png"
         alt="Bibocom Digital Logo"
-        width={300}
-        height={300}
+        // width={300}
+        // height={300}
         priority
         className="w-full h-auto object-contain"
       />

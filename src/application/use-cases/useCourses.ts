@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { CoursesUseCases } from "./courses-use-cases";
 import { Course } from "@/domain/entities/course";
 import { CourseSearchOptions } from "@/infrastructure/api/baseConfig";
+import { BackendCourse } from "@/infrastructure/api/courses-api";
 
 /* =====================================================
    TYPES
@@ -14,7 +15,7 @@ interface FiltersState {
 }
 
 interface UseCoursesState {
-  courses: Course[];
+  courses: BackendCourse[];
   loading: boolean;
   error: string | null;
   showMaintenance: boolean;
@@ -52,7 +53,7 @@ export function useCourses(
      STATES
   ======================= */
 
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<BackendCourse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showMaintenance, setShowMaintenance] = useState(false);

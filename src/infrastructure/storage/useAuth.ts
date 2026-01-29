@@ -224,7 +224,9 @@ export function useProvideAuth(): AuthContextType {
   const canAccessCourse = (courseId: number, isPaid: boolean): boolean => {
     if (!isAuthenticated) return false;
     if (!isPaid) return true;
-    return user?.role === "ADMIN" || user?.role === "INSTRUCTOR";
+    // ✅ Admins ont accès à tous les cours
+    if (user?.role === "ADMIN") return true;
+    return user?.role === "INSTRUCTOR";
   };
 
   const setProfileComplete = (complete: boolean) => {

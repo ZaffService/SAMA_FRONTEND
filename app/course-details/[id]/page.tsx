@@ -48,6 +48,9 @@ function CourseDetailsPageComponent() {
   const { verifyPayment } = usePayment();
   const courseId = params?.id as string;
 
+  // ✅ Check if user is admin - they should have access to all courses
+  const isAdmin = user?.role === "ADMIN";
+
   if (!courseId || courseId === "undefined") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -1063,17 +1066,6 @@ function CourseDetailsPageComponent() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isModuleCompleted && !isExpanded && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleModule(module.id);
-                          }}
-                          className="px-2 sm:px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors whitespace-nowrap"
-                        >
-                          Revoir
-                        </button>
-                      )}
                       <ChevronDown
                         className={`w-4 h-4 lg:w-5 lg:h-5 transition-transform duration-300 flex-shrink-0 ${
                           isModuleCompleted
@@ -1170,7 +1162,7 @@ function CourseDetailsPageComponent() {
                               </button>
 
                               {/* Checkbox pour marquer comme terminé */}
-                              {(isEnrolled === true) && (
+                              {(isEnrolled === true || isAdmin) && !completed && (
                                 <div className="px-3 lg:px-4 pb-2.5 lg:pb-3">
                                   <label
                                     className="flex items-center gap-2 cursor-pointer group/checkbox"
@@ -1425,30 +1417,29 @@ function CourseDetailsPageComponent() {
             {hasVideo && hasVideoContent && (
               <div className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg">
                 <div className="aspect-video relative">
-                  {isEnrolled === true ? (
-                    /* ✅ Utilisateur inscrit - Vérifier si videoUrl existe */
+                  {(isEnrolled === true || isAdmin) ? (
+                    /* ✅ Utilisateur inscrit ou admin - Vérifier si videoUrl existe */
                     selectedLesson?.videoUrl ? (
                       /* Afficher directement la vidéo YouTube */
                       (() => {
                         const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
                         return videoId ? (
-                          <iframe
-                            width="100%"
-                            height="100%"
-                            src={`https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0&autoplay=0`}
-                            title={selectedLesson.title || course.title}
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="absolute inset-0 w-full h-full"
-                          />
+                          <div className="absolute inset-0 w-full h-full">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0&autoplay=0`}
+                              title={selectedLesson.title || course.title}
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="w-full h-full"
+                            />
+                          </div>
                         ) : (
                           <SecureVideoPlayer
                             url={selectedLesson.videoUrl}
                             key={selectedLesson?.id}
                             lessonId={selectedLesson.id}
                             title={selectedLesson.title || course.title}
-                            className="w-full h-full"
                           />
                         );
                       })()
@@ -1459,11 +1450,10 @@ function CourseDetailsPageComponent() {
                         key={selectedLesson?.id}
                         lessonId={selectedLesson.id}
                         title={selectedLesson.title || course.title}
-                        className="w-full h-full"
                       />
                     )
                   ) : (
-                    /* ❌ Utilisateur NON inscrit - Overlay d'aperçu RESPONSIVE */
+                    /*  Utilisateur NON inscrit - Overlay d'aperçu RESPONSIVE */
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4 sm:p-6">
                       <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-2 sm:mb-3 text-center px-2">
                         Aperçu de la leçon

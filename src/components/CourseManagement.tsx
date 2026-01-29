@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { BackendCourse, CoursesApi } from "@/infrastructure/api/courses-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { Course } from "@/domain/entities/course";
 import { Button } from "@/components/ui/button";
@@ -61,19 +61,20 @@ interface CourseManagementProps {
   onViewVideoStatus?: (courseId: string) => void;
 }
 
+
 export function CourseManagement({
   onCourseUpdated,
   onEditCourse,
   onViewVideoStatus,
 }: CourseManagementProps) {
   const { user } = useLocalAuth();
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<BackendCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
-  const [courseToArchive, setCourseToArchive] = useState<Course | null>(null);
-  const [courseToEdit, setCourseToEdit] = useState<Course | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<BackendCourse | null>(null);
+  const [courseToArchive, setCourseToArchive] = useState<BackendCourse | null>(null);
+  const [courseToEdit, setCourseToEdit] = useState<BackendCourse | null>(null);
 
   const fetchCourses = async () => {
     setIsLoading(true);
@@ -282,7 +283,7 @@ export function CourseManagement({
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>{String(course.category || "Non catégorisé")}</TableCell>
+                      <TableCell>{String(course.categoryName || "Non catégorisé")}</TableCell>
                       <TableCell>
                         {course.price === 0 ? (
                           <span className="text-green-600 font-medium">
@@ -293,7 +294,7 @@ export function CourseManagement({
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(course.status)}</TableCell>
-                      <TableCell>{course.studentsCount || 0}</TableCell>
+                      <TableCell>{course.enrollmentCount || 0}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

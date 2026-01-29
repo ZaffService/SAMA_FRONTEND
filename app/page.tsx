@@ -33,6 +33,7 @@ import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CategoryFilter } from "@/components/category-filter";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 import { EmptyContent } from "@/components/ui/empty";
+import { BackendCourse } from "@/infrastructure/api/courses-api";
 
 const Index = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
@@ -66,7 +67,7 @@ const Index = () => {
   const { enrolledCourses } = useEnrolledCourses();
   const { categories, loading: categoriesLoading } = useCategories();
 
-  /** 🔒 Ref pour la section des formations */
+  /**  Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
   const isPageChanging = useRef(false);
 
@@ -153,15 +154,12 @@ const Index = () => {
     });
   };
 
-  const applyFilters = (courses: Course[]) =>
+  const applyFilters = (courses: BackendCourse[]) =>
     courses.filter((course) => {
       // ✅ Le filtrage par catégorie est géré par le backend via setFilterCategories
 
       if (filters.categories.length > 0) {
-        const cat =
-          typeof course.category === "string"
-            ? course.category
-            : course.category.name;
+        const cat = course.categoryName || "";
         if (!filters.categories.includes(cat.toLowerCase())) return false;
       }
       if (filters.levels.length > 0) {
@@ -172,13 +170,7 @@ const Index = () => {
         if (filters.priceRange.includes("free") && !isFree) return false;
         if (filters.priceRange.includes("paid") && isFree) return false;
       }
-      if (filters.rating.length > 0) {
-        if (
-          filters.rating.includes("4+") &&
-          (course.rating === undefined || course.rating < 4)
-        )
-          return false;
-      }
+      
       return true;
     });
 
@@ -192,7 +184,7 @@ const Index = () => {
     );
   }
 
-  const handleEnrollClick = (course: Course) => {
+  const handleEnrollClick = (course: BackendCourse) => {
     Swal.fire({
       title: "Inscription",
       text: `Inscription au cours "${course.title}"`,
@@ -201,7 +193,7 @@ const Index = () => {
     });
   };
 
-  const handleVideoClick = (course: Course) => {
+  const handleVideoClick = (course: BackendCourse) => {
     if (!isAuthenticated) {
       setRedirectAfterLogin(`/course-details/${course.id}`);
       window.location.href = "/login";
@@ -332,7 +324,7 @@ const Index = () => {
               {/* Grille ou état vide */}
               {filteredCourses.length > 0 ? (
                 <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
-                  {filteredCourses.map((course: Course) => {
+                  {filteredCourses.map((course: BackendCourse) => {
                     const isEnrolled = isCourseEnrolled(course.id);
                     const progress = getCourseProgress(course.id);
 

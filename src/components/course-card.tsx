@@ -5,11 +5,12 @@ import { OptimizedImage } from "@/components/optimized-image";
 import { useRouter } from "next/navigation";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import type { Course } from "@/domain/entities/course";
+import { BackendCourse } from "@/infrastructure/api/courses-api";
 
 interface CourseCardProps {
-  course: Course;
-  onEnrollClick?: (course: Course) => void;
-  onVideoClick?: (course: Course) => void;
+  course: BackendCourse;
+  onEnrollClick?: (course: BackendCourse) => void;
+  onVideoClick?: (course: BackendCourse) => void;
   isEnrolled?: boolean;
   progress?: number;
 }
@@ -36,10 +37,7 @@ export function CourseCard({
     ? course.title
     : "Titre non disponible";
 
-  const rawCategory =
-    typeof course.category === "string"
-      ? course.category
-      : course.category?.name;
+  const rawCategory = course.categoryName  || "Non catégorisé";
 
   const category = isValidDisplayValue(rawCategory)
     ? rawCategory
@@ -47,37 +45,26 @@ export function CourseCard({
 
   const [thumbnailSrc, setThumbnailSrc] = useState(
     course.thumbnailUrl ||
-      course._thumbnailUrl ||
-      course.thumbnail ||
-      "/placeholder.jpg",
+      "/Fallback.png",
   );
 
   const handleThumbnailError = () => {
     setThumbnailSrc("/placeholder.jpg");
   };
 
-  const isFree = Number(course.price) === 0;
+  const isFree = Number(course.price) == 0;
   const isPremium = Number(course.price) > 0;
   const price = course.price;
 
-  const rawInstructor =
-    course.instructor?.name ||
-    (course.instructor?.firstName && course.instructor?.lastName
-      ? `${course.instructor.firstName} ${course.instructor.lastName}`
-      : "Habib Ndiaye");
 
-  const instructor = isValidDisplayValue(rawInstructor)
-    ? rawInstructor
-    : null;
-
-  const duration = isValidDisplayValue(course.duration)
-    ? course.duration
-    : null;
+  const instructor = course.instructorName || "Instructeur";
 
   const enrolledStudents =
-    Number(course.studentsCount) > 0 ? course.studentsCount : null;
+    Number(course.enrollmentCount) > 0 ? course.enrollmentCount : null;
 
-  const rating = Number(course.rating) > 0 ? course.rating : null;
+  const rating = null;
+
+  const duration = null;
 
   const handleClick = () => {
     if (!isAuthenticated) {
@@ -147,12 +134,7 @@ export function CourseCard({
           <div className="flex gap-2">
             {rating && (
               <span className="bg-yellow-500/90 text-white text-xs px-2.5 py-1 rounded-md">
-                {rating.toFixed(1)}
-              </span>
-            )}
-            {enrolledStudents && (
-              <span className="bg-blue-500/90 text-white text-xs px-2.5 py-1 rounded-md">
-                {enrolledStudents}
+                {rating}
               </span>
             )}
           </div>
@@ -179,20 +161,21 @@ export function CourseCard({
 
         <div className="border-t pt-3">
           {isEnrolled ? (
-            progress && progress > 0 && (
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Progression</span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded">
-                  <div
-                    className="h-full bg-blue-600 rounded"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            )
+            // progress && progress > 0 && (
+            //   <div>
+            //     <div className="flex justify-between text-xs mb-1">
+            //       <span>Progression</span>
+            //       <span>{progress}%</span>
+            //     </div>
+            //     <div className="h-2 bg-gray-200 rounded">
+            //       <div
+            //         className="h-full bg-blue-600 rounded"
+            //         style={{ width: `${progress}%` }}
+            //       />
+            //     </div>
+            //   </div>
+            // )
+            <></>
           ) : (
             <div className="flex justify-between">
               <span className="text-gray-500">Prix</span>

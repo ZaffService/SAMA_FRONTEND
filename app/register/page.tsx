@@ -15,6 +15,8 @@ import { BackButton } from "@/components/back-button";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
+import { COUNTRIES, type Country } from "@/lib/countries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 const NAME_REGEX = /^[a-zA-ZÀ-ÿ\s-]{2,50}$/;
+// Regex pour numéro sénégalais (9 chiffres commençant par 70, 75, 76, 77, 78)
+// const SENEGAL_PHONE_REGEX = /^(70|75|76|77|78)\d{7}$/;
 
 interface PasswordStrength {
   minLength: boolean;
@@ -46,6 +50,8 @@ export default function Register() {
     password: "",
     firstName: "",
     lastName: "",
+    telephone: "",
+    indicatif: "+221", // Default to Senegal
     confirmPassword: "",
     acceptTerms: false,
   });
@@ -63,6 +69,7 @@ export default function Register() {
   const [firstNameError, setFirstNameError] = useState("");
   const [lastNameError, setLastNameError] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [termsError, setTermsError] = useState("");
@@ -84,6 +91,34 @@ export default function Register() {
     if (!email.trim()) return "Email requis";
     if (email.length > 255) return "Email trop long (max 255 caractères)";
     if (!EMAIL_REGEX.test(email)) return "Format email invalide";
+    return null;
+  };
+
+  const validatePhone = (telephone: string, indicatif: string): string | null => {
+    // Phone is optional, so if both are empty, it's valid
+    if (!telephone.trim() && !indicatif) return null;
+
+    // If one is provided, both must be provided
+    if (!telephone.trim() || !indicatif) {
+      return "Numéro de téléphone et indicatif requis ensemble";
+    }
+
+    // Check if indicatif is valid
+    const country = COUNTRIES.find(c => c.indicatif === indicatif);
+    if (!country) {
+      return "Indicatif invalide";
+    }
+
+    // Check if telephone contains only digits
+    if (!/^\d+$/.test(telephone)) {
+      return "Le numéro doit contenir uniquement des chiffres";
+    }
+
+    // Check length based on country
+    if (telephone.length !== country.localLength) {
+      return `Le numéro doit contenir ${country.localLength} chiffres pour ${country.name}`;
+    }
+
     return null;
   };
 
@@ -114,6 +149,7 @@ export default function Register() {
     setFirstNameError("");
     setLastNameError("");
     setEmailError("");
+    setPhoneError("");
     setPasswordError("");
     setConfirmPasswordError("");
     setTermsError("");
@@ -135,6 +171,12 @@ export default function Register() {
     const emailValidation = validateEmail(formData.email);
     if (emailValidation) {
       setEmailError(emailValidation);
+      hasErrors = true;
+    }
+
+    const phoneValidation = validatePhone(formData.telephone, formData.indicatif);
+    if (phoneValidation) {
+      setPhoneError(phoneValidation);
       hasErrors = true;
     }
 
@@ -171,6 +213,8 @@ export default function Register() {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        telephone: formData.telephone || undefined, // Optional
+        indicatif: formData.indicatif || undefined, // Optional
         role: "STUDENT", // Role par défaut géré en background
         acceptTerms: formData.acceptTerms,
       };
@@ -189,10 +233,12 @@ export default function Register() {
       // Utiliser le système de mapping d'erreurs pour traduire en français
       const errorMessage = getAuthErrorMessage(err);
 
-      // Déterminer si l'erreur concerne l'email
+      // Déterminer si l'erreur concerne l'email ou le téléphone
       const originalMessage = (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
       if (originalMessage.includes("email") || originalMessage.includes("user")) {
         setEmailError(errorMessage);
+      } else if (originalMessage.includes("phone") || originalMessage.includes("téléphone") || originalMessage.includes("indicatif")) {
+        setPhoneError(errorMessage);
       } else {
         setEmailError(errorMessage); // Par défaut sur email
       }
@@ -275,7 +321,7 @@ export default function Register() {
 
         {/* Left Side - Form */}
         <div className="flex-1 flex items-center justify-center px-4 py-3 lg:p-8 overflow-auto">
-          <div className="w-full max-w-md lg:max-w-lg">
+          <div className="w-full max-w-md lg:max-w-2xl">
             <div className="mb-2 lg:mb-6">
               <h1 className="text-lg lg:text-3xl font-bold mb-0.5 lg:mb-2">
                 Créer votre compte
@@ -286,9 +332,9 @@ export default function Register() {
             </div>
 
             {/* Registration Form */}
-            <form onSubmit={handleSubmit} className="space-y-1.5 lg:space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-2.5 lg:space-y-5">
               {/* Prénom et Nom */}
-              <div className="grid grid-cols-2 gap-1.5 lg:gap-4">
+              <div className="grid grid-cols-2 gap-2.5 lg:gap-4">
                 <div>
                   <Label
                     htmlFor="firstName"
@@ -304,7 +350,7 @@ export default function Register() {
                       setFormData({ ...formData, firstName: e.target.value });
                       if (firstNameError) setFirstNameError("");
                     }}
-                    className={`mt-0.5 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                    className={`mt-0.5 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
                       firstNameError ? "border-red-500" : ""
                     }`}
                   />
@@ -329,7 +375,7 @@ export default function Register() {
                       setFormData({ ...formData, lastName: e.target.value });
                       if (lastNameError) setLastNameError("");
                     }}
-                    className={`mt-0.5 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                    className={`mt-0.5 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
                       lastNameError ? "border-red-500" : ""
                     }`}
                   />
@@ -341,32 +387,77 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* Email */}
-              <div>
-                <Label
-                  htmlFor="email"
-                  className="text-[11px] lg:text-base mb-1.5 block"
-                >
-                  Email <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="email"
-                  type="text"
-                  placeholder="email@example.com"
-                  value={formData.email}
-                  onChange={(e) => {
-                    setFormData({ ...formData, email: e.target.value });
-                    if (emailError) setEmailError("");
-                  }}
-                  className={`mt-0.5 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
-                    emailError ? "border-red-500" : ""
-                  }`}
-                />
-                {emailError && (
-                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
-                    {emailError}
-                  </p>
-                )}
+              {/* Email et Téléphone sur la même ligne */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 lg:gap-4">
+                {/* Email */}
+                <div>
+                  <Label
+                    htmlFor="email"
+                    className="text-[11px] lg:text-base mb-1.5 block"
+                  >
+                    Email <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="email"
+                    type="text"
+                    placeholder="email@example.com"
+                    value={formData.email}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      if (emailError) setEmailError("");
+                    }}
+                    className={`mt-0.5 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
+                      emailError ? "border-red-500" : ""
+                    }`}
+                  />
+                  {emailError && (
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {emailError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Téléphone avec indicatif intégré */}
+                <div>
+                  <Label
+                    htmlFor="phone"
+                    className="text-[11px] lg:text-base mb-1.5 block"
+                  >
+                    Téléphone 
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder={`${formData.indicatif} ${COUNTRIES.find(c => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
+                    value={formData.telephone}
+                    onChange={(e) => {
+                      // Ne garder que les chiffres
+                      const value = e.target.value.replace(/\D/g, "");
+                      // Limiter selon le pays sélectionné
+                      const selectedCountry = COUNTRIES.find(c => c.indicatif === formData.indicatif);
+                      const maxLength = selectedCountry?.localLength || 15;
+
+                      if (value.length <= maxLength) {
+                        setFormData({ ...formData, telephone: value });
+                        if (phoneError) setPhoneError("");
+                      }
+                    }}
+                    className={`mt-0.5 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
+                      phoneError ? "border-red-500" : ""
+                    }`}
+                    maxLength={COUNTRIES.find(c => c.indicatif === formData.indicatif)?.localLength || 15}
+                  />
+                  {phoneError && (
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {phoneError}
+                    </p>
+                  )}
+                  {formData.telephone && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Numéro complet: {formData.indicatif} {formData.telephone}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Mot de passe avec feedback dynamique */}
@@ -388,7 +479,7 @@ export default function Register() {
                       setFormData({ ...formData, password: e.target.value });
                       if (passwordError) setPasswordError("");
                     }}
-                    className={`pr-10 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                    className={`pr-10 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
                       passwordError ? "border-red-500" : ""
                     }`}
                   />
@@ -502,7 +593,7 @@ export default function Register() {
                       });
                       if (confirmPasswordError) setConfirmPasswordError("");
                     }}
-                    className={`pr-10 h-8 lg:h-12 text-xs lg:text-base transition-colors ${
+                    className={`pr-10 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
                       confirmPasswordError ? "border-red-500" : ""
                     }`}
                   />
@@ -557,7 +648,7 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full h-8 lg:h-12 text-xs lg:text-base font-medium"
+                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium"
                 disabled={isLoading}
               >
                 {isLoading ? (
