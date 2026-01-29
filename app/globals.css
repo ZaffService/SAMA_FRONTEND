@@ -46,6 +46,14 @@
   --warning: oklch(0.75 0.18 85);
   --cyan: oklch(0.7 0.18 195);
 
+  /* Variables CSS pour BIBOCOM */
+  --primary: 210 100% 45%;        /* Bleu BIBOCOM */
+  --primary-foreground: 0 0% 100%;
+  --orange: 25 100% 50%;          /* Orange BIBOCOM */
+  --orange-foreground: 0 0% 100%;
+  --background: 0 0% 100%;        /* Blanc */
+  --foreground: 210 50% 20%;      /* Texte foncé */
+
   /* Couleur hero section #e9eff4 */
   --hero-bg: #e9eff4;
 }
