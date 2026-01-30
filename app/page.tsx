@@ -20,7 +20,7 @@ import Swal from "sweetalert2";
 
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { HeroBanner } from "@/components/hero-banner";
+import HeroBanner from "@/components/hero-banner";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
