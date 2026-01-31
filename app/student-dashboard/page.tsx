@@ -124,7 +124,9 @@ const StudentDashboard = () => {
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <p className="text-xs text-slate-500 mt-1 sm:mt-2">Total des cours</p>
+              <p className="text-xs text-slate-500 mt-1 sm:mt-2">
+                Total des cours
+              </p>
             </CardContent>
           </Card>
 
@@ -242,7 +244,9 @@ const StudentDashboard = () => {
                       <p className="font-semibold text-sm sm:text-base text-slate-900 truncate group-hover:text-primary transition-colors">
                         {activity.title}
                       </p>
-                      <p className="text-xs sm:text-sm text-slate-500">{activity.time}</p>
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        {activity.time}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="text-right">

@@ -40,49 +40,54 @@ export function Header() {
     .join("")
     .toUpperCase();
 
+  const navLinks = [
+    { label: "Accueil", href: "/" },
+    { label: "Formations", href: "/formations" },
+    { label: "À propos", href: "/about" },
+    { label: "E-learning", href: "/e-learning" },
+    { label: "Contact", href: "/contact" },
+  ];
+
   return (
     <>
-      {/* HEADER */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[98%] max-w-[1800px]">
         <div className="bg-white rounded-2xl shadow-lg px-10 py-4">
-          {/* GRID PRINCIPAL */}
           <div className="grid grid-cols-[auto_1fr_auto] items-center">
-            {/* GAUCHE : LOGO */}
-            <Link
-              href="/"
-              className="flex items-center gap-2 whitespace-nowrap relative top-3"
-            >
-              <span className="font-bold text-lg text-blue-600">
-                BIBOCOM
-              </span>
-              <span className="font-semibold text-base text-red-500">
-                Digital
-              </span>
+
+            {/* LOGO */}
+            <Link href="/" className="relative top-3">
+              <Image
+                src="/logo.png"
+                alt="Bibocom Logo"
+                width={80}
+                height={20}
+                priority
+                className="!w-[80px] !h-auto !max-w-none"
+              />
             </Link>
 
-            {/* CENTRE : NAVIGATION */}
-            <nav className="hidden lg:flex justify-center relative top-3">
-              <ul className="flex items-center gap-10">
-                {[
-                  ["Accueil", "/"],
-                  ["Formations", "/formations"],
-                  ["À propos", "/about"],
-                  ["E-learning", "/e-learning"],
-                  ["Contact", "/contact"],
-                ].map(([label, href]) => (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      className="text-base font-medium text-slate-700 hover:text-primary transition-colors"
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            {/* NAVIGATION */}
+          <nav className="hidden lg:flex justify-center relative top-3">
+  <ul className="flex items-center gap-10">
+    {navLinks.map(({ label, href }) => (
+      <li key={href}>
+        <Link
+          href={href}
+          className={`
+            text-base font-bold transition
+            ${pathname === href ? "text-blue-600" : "text-[#0B2D5C]"}
+            hover:opacity-80
+          `}
+        >
+          {label}
+        </Link>
+      </li>
+    ))}
+  </ul>
+</nav>
 
-            {/* DROITE : ACTIONS */}
+
+            {/* ACTIONS DROITE */}
             <div className="hidden lg:flex justify-end items-center">
               {isLoading ? (
                 <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse" />
@@ -90,7 +95,7 @@ export function Header() {
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger asChild>
                     <button className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-slate-100 transition">
-                      <div className="h-8 w-8 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center text-sm font-semibold">
+                      <div className="h-8 w-8 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center text-sm font-bold">
                         {avatarUrl ? (
                           <Image
                             src={avatarUrl}
@@ -113,7 +118,7 @@ export function Header() {
                       className="w-[260px] rounded-2xl border bg-white shadow-xl overflow-hidden"
                     >
                       <div className="p-4 border-b">
-                        <p className="font-semibold text-sm truncate">
+                        <p className="font-bold text-sm truncate">
                           {displayName}
                         </p>
                         <p className="text-xs text-slate-500 truncate">
@@ -123,7 +128,7 @@ export function Header() {
 
                       <button
                         onClick={logout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
                       >
                         <LogOut className="h-4 w-4" />
                         Se déconnecter
@@ -132,17 +137,17 @@ export function Header() {
                   </DropdownMenu.Portal>
                 </DropdownMenu.Root>
               ) : (
-                <div className="bg-red-500 hover:bg-red-600 rounded-2xl text-base font-medium transition shadow-sm flex items-center">
+                <div className="bg-red-500 hover:bg-red-600 rounded-2xl text-base font-bold transition shadow-sm flex items-center">
                   <Link
                     href="/register"
-                    className="text-white pl-7 pr-3 py-3 hover:opacity-90 transition"
+                    className="text-white pl-7 pr-3 py-3"
                   >
                     S'inscrire
                   </Link>
                   <span className="text-white">/</span>
                   <Link
                     href="/login"
-                    className="text-white pl-3 pr-7 py-3 hover:opacity-90 transition"
+                    className="text-white pl-3 pr-7 py-3"
                   >
                     Se connecter
                   </Link>
@@ -150,7 +155,7 @@ export function Header() {
               )}
             </div>
 
-            {/* MOBILE : MENU */}
+            {/* MOBILE */}
             <div className="lg:hidden flex justify-end">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -159,6 +164,7 @@ export function Header() {
                 {mobileMenuOpen ? <X /> : <Menu />}
               </button>
             </div>
+
           </div>
         </div>
       </header>

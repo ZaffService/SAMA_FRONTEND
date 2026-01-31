@@ -37,15 +37,14 @@ export function CourseCard({
     ? course.title
     : "Titre non disponible";
 
-  const rawCategory = course.categoryName  || "Non catégorisé";
+  const rawCategory = course.categoryName || "Non catégorisé";
 
   const category = isValidDisplayValue(rawCategory)
     ? rawCategory
     : "Non catégorisé";
 
   const [thumbnailSrc, setThumbnailSrc] = useState(
-    course.thumbnailUrl ||
-      "/Fallback.png",
+    course.thumbnailUrl || "/Fallback.png",
   );
 
   const handleThumbnailError = () => {
@@ -55,7 +54,6 @@ export function CourseCard({
   const isFree = Number(course.price) == 0;
   const isPremium = Number(course.price) > 0;
   const price = course.price;
-
 
   const instructor = course.instructorName || "Instructeur";
 
@@ -147,14 +145,10 @@ export function CourseCard({
           {category}
         </span>
 
-        <h3 className="font-bold text-gray-900 line-clamp-2">
-          {title}
-        </h3>
+        <h3 className="font-bold text-gray-900 line-clamp-2">{title}</h3>
 
         {instructor && (
-          <span className="text-sm text-gray-600">
-            {instructor}
-          </span>
+          <span className="text-sm text-gray-600">{instructor}</span>
         )}
 
         <div className="flex-1" />
@@ -182,9 +176,7 @@ export function CourseCard({
               {isFree ? (
                 <span className="text-green-600 font-bold">Gratuit</span>
               ) : (
-                <span className="font-bold">
-                  {formatPrice(price)} FCFA
-                </span>
+                <span className="font-bold">{formatPrice(price)} FCFA</span>
               )}
             </div>
           )}

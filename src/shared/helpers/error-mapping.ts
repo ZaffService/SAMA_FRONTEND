@@ -472,42 +472,56 @@ export function getAuthErrorMessage(error: unknown): string {
     const message = error.message.toLowerCase();
 
     // Map common English error messages to French
-    if (message.includes("user with this email already exists") ||
-        message.includes("email already exists") ||
-        message.includes("user already exists") ||
-        message.includes("account already exists")) {
+    if (
+      message.includes("user with this email already exists") ||
+      message.includes("email already exists") ||
+      message.includes("user already exists") ||
+      message.includes("account already exists")
+    ) {
       return "Cet email est déjà utilisé.";
     }
-    if (message.includes("email not found") ||
-        message.includes("user not found") ||
-        message.includes("account not found")) {
+    if (
+      message.includes("email not found") ||
+      message.includes("user not found") ||
+      message.includes("account not found")
+    ) {
       return "Cette adresse email n'existe pas.";
     }
-    if (message.includes("incorrect password") ||
-        message.includes("wrong password") ||
-        message.includes("invalid password")) {
+    if (
+      message.includes("incorrect password") ||
+      message.includes("wrong password") ||
+      message.includes("invalid password")
+    ) {
       return "Le mot de passe saisi est incorrect.";
     }
-    if (message.includes("email not verified") ||
-        message.includes("account not verified") ||
-        message.includes("email verification required")) {
+    if (
+      message.includes("email not verified") ||
+      message.includes("account not verified") ||
+      message.includes("email verification required")
+    ) {
       return "Veuillez vérifier votre email avant de vous connecter.";
     }
-    if (message.includes("invalid credentials") ||
-        message.includes("bad credentials") ||
-        message.includes("authentication failed") ||
-        message.includes("login failed")) {
+    if (
+      message.includes("invalid credentials") ||
+      message.includes("bad credentials") ||
+      message.includes("authentication failed") ||
+      message.includes("login failed")
+    ) {
       return "Email ou mot de passe incorrect.";
     }
-    if (message.includes("account locked") ||
-        message.includes("too many attempts")) {
+    if (
+      message.includes("account locked") ||
+      message.includes("too many attempts")
+    ) {
       return "Compte temporairement verrouillé. Réessayez plus tard.";
     }
     if (message.includes("email already verified")) {
       return "Cet email est déjà vérifié.";
     }
-    if (message.includes("invalid token") ||
-        message.includes("token expired")) {
+    if (
+      message.includes("invalid token") ||
+      message.includes("token expired")
+    ) {
       return "Lien de vérification invalide ou expiré.";
     }
 
@@ -519,42 +533,56 @@ export function getAuthErrorMessage(error: unknown): string {
   if (typeof error === "string") {
     const message = error.toLowerCase();
 
-    if (message.includes("user with this email already exists") ||
-        message.includes("email already exists") ||
-        message.includes("user already exists") ||
-        message.includes("account already exists")) {
+    if (
+      message.includes("user with this email already exists") ||
+      message.includes("email already exists") ||
+      message.includes("user already exists") ||
+      message.includes("account already exists")
+    ) {
       return "Cet email est déjà utilisé.";
     }
-    if (message.includes("email not found") ||
-        message.includes("user not found") ||
-        message.includes("account not found")) {
+    if (
+      message.includes("email not found") ||
+      message.includes("user not found") ||
+      message.includes("account not found")
+    ) {
       return "Cette adresse email n'existe pas.";
     }
-    if (message.includes("incorrect password") ||
-        message.includes("wrong password") ||
-        message.includes("invalid password")) {
+    if (
+      message.includes("incorrect password") ||
+      message.includes("wrong password") ||
+      message.includes("invalid password")
+    ) {
       return "Le mot de passe saisi est incorrect.";
     }
-    if (message.includes("email not verified") ||
-        message.includes("account not verified") ||
-        message.includes("email verification required")) {
+    if (
+      message.includes("email not verified") ||
+      message.includes("account not verified") ||
+      message.includes("email verification required")
+    ) {
       return "Veuillez vérifier votre email avant de vous connecter.";
     }
-    if (message.includes("invalid credentials") ||
-        message.includes("bad credentials") ||
-        message.includes("authentication failed") ||
-        message.includes("login failed")) {
+    if (
+      message.includes("invalid credentials") ||
+      message.includes("bad credentials") ||
+      message.includes("authentication failed") ||
+      message.includes("login failed")
+    ) {
       return "Email ou mot de passe incorrect.";
     }
-    if (message.includes("account locked") ||
-        message.includes("too many attempts")) {
+    if (
+      message.includes("account locked") ||
+      message.includes("too many attempts")
+    ) {
       return "Compte temporairement verrouillé. Réessayez plus tard.";
     }
     if (message.includes("email already verified")) {
       return "Cet email est déjà vérifié.";
     }
-    if (message.includes("invalid token") ||
-        message.includes("token expired")) {
+    if (
+      message.includes("invalid token") ||
+      message.includes("token expired")
+    ) {
       return "Lien de vérification invalide ou expiré.";
     }
 

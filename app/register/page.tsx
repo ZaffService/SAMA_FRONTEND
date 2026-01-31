@@ -16,7 +16,13 @@ import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
 import { COUNTRIES, type Country } from "@/lib/countries";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +100,10 @@ export default function Register() {
     return null;
   };
 
-  const validatePhone = (telephone: string, indicatif: string): string | null => {
+  const validatePhone = (
+    telephone: string,
+    indicatif: string,
+  ): string | null => {
     // Phone is optional, so if both are empty, it's valid
     if (!telephone.trim() && !indicatif) return null;
 
@@ -104,7 +113,7 @@ export default function Register() {
     }
 
     // Check if indicatif is valid
-    const country = COUNTRIES.find(c => c.indicatif === indicatif);
+    const country = COUNTRIES.find((c) => c.indicatif === indicatif);
     if (!country) {
       return "Indicatif invalide";
     }
@@ -174,7 +183,10 @@ export default function Register() {
       hasErrors = true;
     }
 
-    const phoneValidation = validatePhone(formData.telephone, formData.indicatif);
+    const phoneValidation = validatePhone(
+      formData.telephone,
+      formData.indicatif,
+    );
     if (phoneValidation) {
       setPhoneError(phoneValidation);
       hasErrors = true;
@@ -234,10 +246,18 @@ export default function Register() {
       const errorMessage = getAuthErrorMessage(err);
 
       // Déterminer si l'erreur concerne l'email ou le téléphone
-      const originalMessage = (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
-      if (originalMessage.includes("email") || originalMessage.includes("user")) {
+      const originalMessage =
+        (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
+      if (
+        originalMessage.includes("email") ||
+        originalMessage.includes("user")
+      ) {
         setEmailError(errorMessage);
-      } else if (originalMessage.includes("phone") || originalMessage.includes("téléphone") || originalMessage.includes("indicatif")) {
+      } else if (
+        originalMessage.includes("phone") ||
+        originalMessage.includes("téléphone") ||
+        originalMessage.includes("indicatif")
+      ) {
         setPhoneError(errorMessage);
       } else {
         setEmailError(errorMessage); // Par défaut sur email
@@ -307,7 +327,6 @@ export default function Register() {
 
   return (
     <>
-
       <div className="min-h-screen flex flex-col lg:flex-row overflow-hidden">
         {/* Header Mobile */}
         <div className="lg:hidden flex items-center justify-start px-4 py-2 border-b bg-white sticky top-0 z-20">
@@ -423,18 +442,20 @@ export default function Register() {
                     htmlFor="phone"
                     className="text-[11px] lg:text-base mb-1.5 block"
                   >
-                    Téléphone 
+                    Téléphone
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder={`${formData.indicatif} ${COUNTRIES.find(c => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
+                    placeholder={`${formData.indicatif} ${COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
                     value={formData.telephone}
                     onChange={(e) => {
                       // Ne garder que les chiffres
                       const value = e.target.value.replace(/\D/g, "");
                       // Limiter selon le pays sélectionné
-                      const selectedCountry = COUNTRIES.find(c => c.indicatif === formData.indicatif);
+                      const selectedCountry = COUNTRIES.find(
+                        (c) => c.indicatif === formData.indicatif,
+                      );
                       const maxLength = selectedCountry?.localLength || 15;
 
                       if (value.length <= maxLength) {
@@ -445,7 +466,10 @@ export default function Register() {
                     className={`mt-0.5 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
                       phoneError ? "border-red-500" : ""
                     }`}
-                    maxLength={COUNTRIES.find(c => c.indicatif === formData.indicatif)?.localLength || 15}
+                    maxLength={
+                      COUNTRIES.find((c) => c.indicatif === formData.indicatif)
+                        ?.localLength || 15
+                    }
                   />
                   {phoneError && (
                     <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">

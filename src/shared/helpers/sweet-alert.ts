@@ -161,7 +161,11 @@ export function showQuizFailureModal(): Promise<{
   });
 }
 
-export function showCourseCreatedSuccess(title: string, callback?: () => void, customMessage?: string) {
+export function showCourseCreatedSuccess(
+  title: string,
+  callback?: () => void,
+  customMessage?: string,
+) {
   Swal.fire({
     icon: "success",
     title: "Cours créé avec succès !",

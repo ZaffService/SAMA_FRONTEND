@@ -47,12 +47,17 @@ interface VideoStatusIndicatorProps {
   onStatusChange?: (isComplete: boolean) => void;
 }
 
-export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIndicatorProps) {
+export function VideoStatusIndicator({
+  courseId,
+  onStatusChange,
+}: VideoStatusIndicatorProps) {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(null);
+  const [uploadingLessonId, setUploadingLessonId] = useState<string | null>(
+    null,
+  );
 
   const loadCourseStatus = async () => {
     try {
@@ -64,9 +69,9 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
         id: details.course.id,
         title: details.course.title,
         isComplete: details.course.isComplete ?? true,
-        modules: details.modules.map(module => ({
+        modules: details.modules.map((module) => ({
           ...module,
-          lessons: module.lessons.map(lesson => ({
+          lessons: module.lessons.map((lesson) => ({
             ...lesson,
             status: lesson.status as LessonStatus,
           })),
@@ -99,7 +104,6 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
     }
   }, [course?.isComplete]);
 
-
   const getLessonStats = () => {
     if (!course) return { total: 0, uploaded: 0, pending: 0, ready: 0 };
 
@@ -108,8 +112,8 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
     let pending = 0;
     let ready = 0;
 
-    course.modules.forEach(module => {
-      module.lessons.forEach(lesson => {
+    course.modules.forEach((module) => {
+      module.lessons.forEach((lesson) => {
         total++;
         switch (lesson.status) {
           case LessonStatus.VIDEO_UPLOADED:
@@ -157,7 +161,9 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
             className="mt-4"
             disabled={refreshing}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Réessayer
           </Button>
         </CardContent>
@@ -180,7 +186,9 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
             size="sm"
             disabled={refreshing}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
+            />
             Actualiser
           </Button>
         </div>
@@ -196,7 +204,9 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
           <Alert className="mb-4">
             <Clock className="h-4 w-4" />
             <AlertDescription>
-              Certaines vidéos sont encore en cours d'upload. Le cours sera automatiquement marqué comme complet une fois tous les uploads terminés.
+              Certaines vidéos sont encore en cours d'upload. Le cours sera
+              automatiquement marqué comme complet une fois tous les uploads
+              terminés.
             </AlertDescription>
           </Alert>
         )}
@@ -220,7 +230,6 @@ export function VideoStatusIndicator({ courseId, onStatusChange }: VideoStatusIn
             </div>
           ))}
         </div>
-
       </CardContent>
     </Card>
   );

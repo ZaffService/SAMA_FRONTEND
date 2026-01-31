@@ -170,7 +170,7 @@ const Index = () => {
         if (filters.priceRange.includes("free") && !isFree) return false;
         if (filters.priceRange.includes("paid") && isFree) return false;
       }
-      
+
       return true;
     });
 

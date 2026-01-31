@@ -12,16 +12,16 @@ import type { User } from "@/domain/entities/user";
 function clearAuthCookies(): void {
   // Liste des noms de cookies potentiels à supprimer
   const cookiesToClear = [
-    'access_token',
-    'refresh_token',
-    'auth_token',
-    'session_id',
-    'jwt',
-    'token',
+    "access_token",
+    "refresh_token",
+    "auth_token",
+    "session_id",
+    "jwt",
+    "token",
     // Ajoutez ici d'autres noms de cookies si nécessaire
   ];
 
-  cookiesToClear.forEach(cookieName => {
+  cookiesToClear.forEach((cookieName) => {
     // Supprimer le cookie du domaine actuel
     document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 
@@ -49,7 +49,9 @@ export function useProvideAuth(): AuthContextType {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(
+    null,
+  );
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(
     null,
   );
@@ -124,11 +126,11 @@ export function useProvideAuth(): AuthContextType {
       const response = await AuthApi.login({ email, password });
       console.log("🔐 [useAuth] Login response:", response);
       console.log("🔐 [useAuth] Login response.user:", response.user);
-      
+
       // Check if isProfileComplete exists in the response
       const isComplete = (response.user as any).isProfileComplete;
       console.log("🔐 [useAuth] isProfileComplete from response:", isComplete);
-      
+
       const mappedUser: User = {
         id: response.user.id,
         email: response.user.email,
@@ -196,7 +198,7 @@ export function useProvideAuth(): AuthContextType {
     setIsAuthenticated(false);
     setIsProfileComplete(null);
     // Clear profile cache
-    localStorage.removeItem('user_profile_cache');
+    localStorage.removeItem("user_profile_cache");
     clearTokens(); // Vider les tokens locaux immédiatement
     setIsLoading(true);
 
@@ -215,8 +217,11 @@ export function useProvideAuth(): AuthContextType {
       console.log("🚪 [useAuth] Redirection vers /");
 
       // Redirection avec prévention du cache pour mobile
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const redirectUrl = isMobile ? `/?logout=${Date.now()}` : '/';
+      const isMobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        );
+      const redirectUrl = isMobile ? `/?logout=${Date.now()}` : "/";
       window.location.href = redirectUrl;
     }
   };

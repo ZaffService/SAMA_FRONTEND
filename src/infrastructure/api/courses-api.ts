@@ -25,7 +25,6 @@ import Cookies from "js-cookie";
 //     "hasCoursesInDatabase": true
 // }
 
-
 // Lesson status enum
 export enum LessonStatus {
   PENDING_VIDEO = "PENDING_VIDEO",
@@ -59,7 +58,7 @@ export interface BackendCourse {
   enrollmentCount?: number;
 }
 
-interface BackendResponse{
+interface BackendResponse {
   courses: BackendCourse[];
   total?: number;
   page?: number;
@@ -150,7 +149,7 @@ export class CoursesApi {
       throw new Error(`Failed to fetch admin courses: ${response.status}`);
     }
 
-    const data = await response.json() as BackendResponse;
+    const data = (await response.json()) as BackendResponse;
 
     console.log(
       "🔍 API getAdminCourses - Données brutes:",
@@ -226,7 +225,7 @@ export class CoursesApi {
       JSON.stringify(data, null, 2),
     );
 
-   const courses = data.courses;
+    const courses = data.courses;
 
     return {
       courses,
@@ -602,7 +601,9 @@ export class CoursesApi {
       const accessToken = Cookies.get("access_token");
       if (accessToken) {
         try {
-          const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
+          const payload = JSON.parse(
+            base64UrlDecode(accessToken.split(".")[1]),
+          );
           const userRole = payload.role;
 
           if (userRole === "ADMIN") {
@@ -1039,7 +1040,7 @@ export class CoursesApi {
         method: "PUT",
         credentials: "include",
         body: formData,
-      }
+      },
     );
 
     console.log(
@@ -1124,7 +1125,9 @@ export class CoursesApi {
       const accessToken = Cookies.get("access_token");
       if (accessToken) {
         try {
-          const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
+          const payload = JSON.parse(
+            base64UrlDecode(accessToken.split(".")[1]),
+          );
           const userRole = payload.role;
 
           if (userRole === "ADMIN") {
@@ -1245,9 +1248,11 @@ export class CoursesApi {
    */
   static async updateCourseStatus(
     courseId: string,
-    status: "DRAFT" | "PUBLISHED" | "ARCHIVED"
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED",
   ): Promise<any> {
-    console.log(`🔄 API: Mise à jour du statut du cours ${courseId} vers ${status}`);
+    console.log(
+      `🔄 API: Mise à jour du statut du cours ${courseId} vers ${status}`,
+    );
 
     const response = await fetch(
       buildApiUrl(API_ENDPOINTS.COURSES.UPDATE_STATUS(courseId)),
@@ -1258,13 +1263,14 @@ export class CoursesApi {
         },
         credentials: "include",
         body: JSON.stringify({ status }),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `Erreur lors de la mise à jour du statut: ${response.status}`
+        errorData.message ||
+          `Erreur lors de la mise à jour du statut: ${response.status}`,
       );
     }
 
@@ -1287,13 +1293,14 @@ export class CoursesApi {
           "Content-Type": "application/json",
         },
         credentials: "include",
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        errorData.message || `Erreur lors de la suppression: ${response.status}`
+        errorData.message ||
+          `Erreur lors de la suppression: ${response.status}`,
       );
     }
 
@@ -1305,11 +1312,14 @@ export class CoursesApi {
   /**
    * Upload une vidéo pour une leçon spécifique
    */
-  static async uploadLessonVideo(lessonId: string, videoFile: File): Promise<any> {
+  static async uploadLessonVideo(
+    lessonId: string,
+    videoFile: File,
+  ): Promise<any> {
     console.log(`🎥 API: Upload de vidéo pour la leçon ${lessonId}`);
 
     const formData = new FormData();
-    formData.append('video', videoFile);
+    formData.append("video", videoFile);
 
     const response = await fetch(
       buildApiUrl(API_ENDPOINTS.LESSONS.UPLOAD_VIDEO(lessonId)),
@@ -1317,7 +1327,7 @@ export class CoursesApi {
         method: "PUT",
         credentials: "include",
         body: formData,
-      }
+      },
     );
 
     if (!response.ok) {
@@ -1326,7 +1336,8 @@ export class CoursesApi {
       try {
         const errorData = await response.json();
         console.error("❌ [CoursesApi] Erreur upload vidéo:", errorData);
-        errorMessage = errorData.error?.message || errorData.message || errorMessage;
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
         console.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }

@@ -86,7 +86,9 @@ export default function CompleteProfile() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState<ProfileFormData>(getInitialFormData(user));
+  const [formData, setFormData] = useState<ProfileFormData>(
+    getInitialFormData(user),
+  );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Redirect if profile is already complete
@@ -131,7 +133,7 @@ export default function CompleteProfile() {
     (field: keyof ProfileFormData, value: string | boolean) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
-    []
+    [],
   );
 
   // Handle form submission
@@ -176,7 +178,9 @@ export default function CompleteProfile() {
       });
 
       if (result) {
-        toast.success("Félicitations ! Votre profil a été complété avec succès !");
+        toast.success(
+          "Félicitations ! Votre profil a été complété avec succès !",
+        );
 
         // Redirect based on user role
         setTimeout(() => {
@@ -193,8 +197,10 @@ export default function CompleteProfile() {
       console.error("Erreur lors de la completion du profil:", error);
       toast.error(
         `Erreur: ${
-          error instanceof Error ? error.message : "Impossible de compléter le profil"
-        }`
+          error instanceof Error
+            ? error.message
+            : "Impossible de compléter le profil"
+        }`,
       );
     } finally {
       setIsSaving(false);
@@ -255,7 +261,8 @@ export default function CompleteProfile() {
                 Compléter votre profil
               </h1>
               <p className="text-muted-foreground">
-                Renseignez vos informations pour accéder à toutes les fonctionnalités
+                Renseignez vos informations pour accéder à toutes les
+                fonctionnalités
               </p>
             </div>
           </div>
@@ -269,8 +276,9 @@ export default function CompleteProfile() {
                   Complétez votre profil pour continuer
                 </p>
                 <p className="text-sm text-amber-700 mt-1">
-                  Certaines fonctionnalités nécessitent que votre profil soit complet.
-                  Les champs marqués d&apos;une étoile (*) sont obligatoires.
+                  Certaines fonctionnalités nécessitent que votre profil soit
+                  complet. Les champs marqués d&apos;une étoile (*) sont
+                  obligatoires.
                 </p>
               </div>
             </CardContent>
@@ -304,7 +312,10 @@ export default function CompleteProfile() {
                   </h3>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                      <Label
+                        htmlFor="firstName"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Prénom
                       </Label>
                       <Input
@@ -315,7 +326,10 @@ export default function CompleteProfile() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                      <Label
+                        htmlFor="lastName"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Nom
                       </Label>
                       <Input
@@ -339,7 +353,10 @@ export default function CompleteProfile() {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="sexe" className="text-sm font-medium text-gray-700">
+                      <Label
+                        htmlFor="sexe"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Genre <span className="text-red-500">*</span>
                       </Label>
                       <Select
@@ -347,7 +364,7 @@ export default function CompleteProfile() {
                         onValueChange={(value) => {
                           handleChange("sexe", value as SexeType);
                           if (fieldErrors.sexe) {
-                            setFieldErrors(prev => ({ ...prev, sexe: "" }));
+                            setFieldErrors((prev) => ({ ...prev, sexe: "" }));
                           }
                         }}
                         disabled={isSaving}
@@ -367,12 +384,17 @@ export default function CompleteProfile() {
                         </SelectContent>
                       </Select>
                       {fieldErrors.sexe && (
-                        <p className="text-sm text-red-600">{fieldErrors.sexe}</p>
+                        <p className="text-sm text-red-600">
+                          {fieldErrors.sexe}
+                        </p>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="region" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Label
+                        htmlFor="region"
+                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                      >
                         <MapPin className="h-4 w-4 text-gray-400" />
                         Région <span className="text-red-500">*</span>
                       </Label>
@@ -381,7 +403,7 @@ export default function CompleteProfile() {
                         onValueChange={(value) => {
                           handleChange("region", value as RegionType);
                           if (fieldErrors.region) {
-                            setFieldErrors(prev => ({ ...prev, region: "" }));
+                            setFieldErrors((prev) => ({ ...prev, region: "" }));
                           }
                         }}
                         disabled={isSaving}
@@ -393,15 +415,19 @@ export default function CompleteProfile() {
                           <SelectValue placeholder="Sélectionnez votre région" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(REGION_LABELS).map(([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ))}
+                          {Object.entries(REGION_LABELS).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                       {fieldErrors.region && (
-                        <p className="text-sm text-red-600">{fieldErrors.region}</p>
+                        <p className="text-sm text-red-600">
+                          {fieldErrors.region}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -412,31 +438,41 @@ export default function CompleteProfile() {
                       Type de résidence <span className="text-red-500">*</span>
                     </Label>
                     <div className="flex gap-2">
-                      {Object.entries(RESIDENCE_LABELS).map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => {
-                            handleChange("residenceType", value as ResidenceType);
-                            if (fieldErrors.residenceType) {
-                              setFieldErrors(prev => ({ ...prev, residenceType: "" }));
-                            }
-                          }}
-                          disabled={isSaving}
-                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all duration-200 ${
-                            formData.residenceType === value
-                              ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
-                              : fieldErrors.residenceType
-                                ? "border-red-500 bg-red-50 text-red-700"
-                                : "border-gray-200 bg-white text-gray-700 hover:border-blue-300"
-                          } ${isSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                      {Object.entries(RESIDENCE_LABELS).map(
+                        ([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => {
+                              handleChange(
+                                "residenceType",
+                                value as ResidenceType,
+                              );
+                              if (fieldErrors.residenceType) {
+                                setFieldErrors((prev) => ({
+                                  ...prev,
+                                  residenceType: "",
+                                }));
+                              }
+                            }}
+                            disabled={isSaving}
+                            className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all duration-200 ${
+                              formData.residenceType === value
+                                ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
+                                : fieldErrors.residenceType
+                                  ? "border-red-500 bg-red-50 text-red-700"
+                                  : "border-gray-200 bg-white text-gray-700 hover:border-blue-300"
+                            } ${isSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          >
+                            {label}
+                          </button>
+                        ),
+                      )}
                     </div>
                     {fieldErrors.residenceType && (
-                      <p className="text-sm text-red-600">{fieldErrors.residenceType}</p>
+                      <p className="text-sm text-red-600">
+                        {fieldErrors.residenceType}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -474,14 +510,21 @@ export default function CompleteProfile() {
                           htmlFor="disabilityType"
                           className="text-sm font-medium text-gray-700"
                         >
-                          Type de handicap <span className="text-red-500">*</span>
+                          Type de handicap{" "}
+                          <span className="text-red-500">*</span>
                         </Label>
                         <Select
                           value={formData.disabilityType}
                           onValueChange={(value) => {
-                            handleChange("disabilityType", value as DisabilityType);
+                            handleChange(
+                              "disabilityType",
+                              value as DisabilityType,
+                            );
                             if (fieldErrors.disabilityType) {
-                              setFieldErrors(prev => ({ ...prev, disabilityType: "" }));
+                              setFieldErrors((prev) => ({
+                                ...prev,
+                                disabilityType: "",
+                              }));
                             }
                           }}
                           disabled={isSaving}
@@ -498,12 +541,14 @@ export default function CompleteProfile() {
                                 <SelectItem key={value} value={value}>
                                   {label}
                                 </SelectItem>
-                              )
+                              ),
                             )}
                           </SelectContent>
                         </Select>
                         {fieldErrors.disabilityType && (
-                          <p className="text-sm text-red-600">{fieldErrors.disabilityType}</p>
+                          <p className="text-sm text-red-600">
+                            {fieldErrors.disabilityType}
+                          </p>
                         )}
                       </div>
 
@@ -551,9 +596,10 @@ export default function CompleteProfile() {
                       htmlFor="consentGiven"
                       className="text-sm font-medium cursor-pointer leading-relaxed"
                     >
-                      J&apos;accepte que mes données soient utilisées pour améliorer mon
-                      expérience sur la plateforme. Je peux retirer mon consentement
-                      à tout moment. <span className="text-red-500">*</span>
+                      J&apos;accepte que mes données soient utilisées pour
+                      améliorer mon expérience sur la plateforme. Je peux
+                      retirer mon consentement à tout moment.{" "}
+                      <span className="text-red-500">*</span>
                     </Label>
                   </div>
                 </div>
@@ -596,4 +642,3 @@ export default function CompleteProfile() {
     </div>
   );
 }
-

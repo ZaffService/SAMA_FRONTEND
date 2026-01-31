@@ -11,7 +11,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Trash2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { LessonManager } from "./LessonManager";
 import { Module, Lesson } from "@/domain/entities/module";
 
@@ -81,17 +87,21 @@ export function ModuleManager({
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
-    console.log(`[ModuleManager] Drag over: index ${index}, draggedIndex: ${draggedIndex}`);
+    console.log(
+      `[ModuleManager] Drag over: index ${index}, draggedIndex: ${draggedIndex}`,
+    );
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (draggedIndex === null || draggedIndex === index) return;
-    
+
     setDragOverIndex(index);
   };
 
   const handleDrop = (e: React.DragEvent, index: number) => {
-    console.log(`[ModuleManager] Drop: from index ${draggedIndex} to index ${index}`);
+    console.log(
+      `[ModuleManager] Drop: from index ${draggedIndex} to index ${index}`,
+    );
     e.preventDefault();
     e.stopPropagation();
 
@@ -111,7 +121,9 @@ export function ModuleManager({
       orderIndex: i + 1,
     }));
 
-    console.log(`[ModuleManager] Calling handleModulesChangeWithKey with ${reorderedModules.length} modules`);
+    console.log(
+      `[ModuleManager] Calling handleModulesChangeWithKey with ${reorderedModules.length} modules`,
+    );
     handleModulesChangeWithKey(reorderedModules);
     setDraggedIndex(null);
     setDragOverIndex(null);
@@ -210,7 +222,9 @@ export function ModuleManager({
                           </h3>
                         </div>
                         <p className="text-sm text-gray-600">
-                          {module.lessons.length} leçon{module.lessons.length !== 1 ? "s" : ""} • Glissez pour réorganiser
+                          {module.lessons.length} leçon
+                          {module.lessons.length !== 1 ? "s" : ""} • Glissez
+                          pour réorganiser
                         </p>
                       </div>
                     </div>

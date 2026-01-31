@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,8 +31,18 @@ interface AdminOverviewProps {
   onOpenCategoryDialog: () => void;
 }
 
-export function AdminOverview({ onViewChange, onOpenCategoryDialog }: AdminOverviewProps) {
-  const { totalUsers, totalCourses, totalCategories, recentActivities, loading, error } = useAdminStats();
+export function AdminOverview({
+  onViewChange,
+  onOpenCategoryDialog,
+}: AdminOverviewProps) {
+  const {
+    totalUsers,
+    totalCourses,
+    totalCategories,
+    recentActivities,
+    loading,
+    error,
+  } = useAdminStats();
 
   const stats = [
     {
@@ -82,8 +98,6 @@ export function AdminOverview({ onViewChange, onOpenCategoryDialog }: AdminOverv
     },
   ];
 
-
-
   if (error) {
     return (
       <div className="space-y-6">
@@ -95,7 +109,9 @@ export function AdminOverview({ onViewChange, onOpenCategoryDialog }: AdminOverv
         </div>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-6">
-            <p className="text-red-600">Erreur lors du chargement des statistiques: {error}</p>
+            <p className="text-red-600">
+              Erreur lors du chargement des statistiques: {error}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -128,9 +144,7 @@ export function AdminOverview({ onViewChange, onOpenCategoryDialog }: AdminOverv
               <div className="text-2xl font-bold text-gray-900">
                 {stat.value}
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                {stat.description}
-              </p>
+              <p className="text-xs text-gray-600 mt-1">{stat.description}</p>
             </CardContent>
           </Card>
         ))}
@@ -138,10 +152,16 @@ export function AdminOverview({ onViewChange, onOpenCategoryDialog }: AdminOverv
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Actions rapides</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Actions rapides
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {quickActions.map((action, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={action.action}>
+            <Card
+              key={index}
+              className="hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={action.action}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center space-x-3">
                   <div className={`p-2 rounded-lg ${action.bgColor}`}>
@@ -166,7 +186,9 @@ export function AdminOverview({ onViewChange, onOpenCategoryDialog }: AdminOverv
         <Card>
           <CardContent className="p-6">
             <p className="text-gray-600">
-              Bienvenue sur votre tableau de bord d'administration. Utilisez les actions rapides ci-dessus pour gérer votre plateforme d'apprentissage.
+              Bienvenue sur votre tableau de bord d'administration. Utilisez les
+              actions rapides ci-dessus pour gérer votre plateforme
+              d'apprentissage.
             </p>
           </CardContent>
         </Card>

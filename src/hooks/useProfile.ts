@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { UserApi, UserProfileData, CompleteProfileData } from "@/infrastructure/api/user-api";
+import {
+  UserApi,
+  UserProfileData,
+  CompleteProfileData,
+} from "@/infrastructure/api/user-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 
-const PROFILE_CACHE_KEY = 'user_profile_cache';
+const PROFILE_CACHE_KEY = "user_profile_cache";
 const PROFILE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 interface ProfileCache {
@@ -46,49 +50,55 @@ export function useProfile() {
     localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(cache));
   }, []);
 
-  const checkProfile = useCallback(async (): Promise<UserProfileData | null> => {
-    try {
-      setIsLoading(true);
-      const response = await UserApi.getUserProfile();
-      if (response) {
-        setProfile(response);
-        setIsComplete(response.isProfileComplete ?? false);
-        // Also update the global auth state
-        setProfileComplete(response.isProfileComplete ?? false);
-        // Cache the result
-        saveToCache(response);
-        return response;
+  const checkProfile =
+    useCallback(async (): Promise<UserProfileData | null> => {
+      try {
+        setIsLoading(true);
+        const response = await UserApi.getUserProfile();
+        if (response) {
+          setProfile(response);
+          setIsComplete(response.isProfileComplete ?? false);
+          // Also update the global auth state
+          setProfileComplete(response.isProfileComplete ?? false);
+          // Cache the result
+          saveToCache(response);
+          return response;
+        }
+        return null;
+      } catch (error) {
+        console.error("Erreur vérification profil:", error);
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-      return null;
-    } catch (error) {
-      console.error('Erreur vérification profil:', error);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setProfileComplete, saveToCache]);
+    }, [setProfileComplete, saveToCache]);
 
-  const completeProfile = useCallback(async (profileData: CompleteProfileData): Promise<UserProfileData | null> => {
-    try {
-      setIsLoading(true);
-      const response = await UserApi.completeProfile(profileData);
-      if (response) {
-        setProfile(response);
-        setIsComplete(response.isProfileComplete ?? false);
-        // Also update the global auth state
-        setProfileComplete(response.isProfileComplete ?? false);
-        // Cache the result
-        saveToCache(response);
-        return response;
+  const completeProfile = useCallback(
+    async (
+      profileData: CompleteProfileData,
+    ): Promise<UserProfileData | null> => {
+      try {
+        setIsLoading(true);
+        const response = await UserApi.completeProfile(profileData);
+        if (response) {
+          setProfile(response);
+          setIsComplete(response.isProfileComplete ?? false);
+          // Also update the global auth state
+          setProfileComplete(response.isProfileComplete ?? false);
+          // Cache the result
+          saveToCache(response);
+          return response;
+        }
+        return null;
+      } catch (error) {
+        console.error("Erreur complétion profil:", error);
+        throw error;
+      } finally {
+        setIsLoading(false);
       }
-      return null;
-    } catch (error) {
-      console.error('Erreur complétion profil:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setProfileComplete, saveToCache]);
+    },
+    [setProfileComplete, saveToCache],
+  );
 
   return {
     profile,

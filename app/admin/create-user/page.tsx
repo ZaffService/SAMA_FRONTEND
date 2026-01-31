@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -25,9 +31,12 @@ export default function CreateUserPage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-yellow-800">Maintenance en cours</p>
+                <p className="font-medium text-yellow-800">
+                  Maintenance en cours
+                </p>
                 <p className="text-sm text-yellow-700 mt-1">
-                  Cette fonctionnalité sera réactivée prochainement. Veuillez nous excuser pour la gêne occasionnée.
+                  Cette fonctionnalité sera réactivée prochainement. Veuillez
+                  nous excuser pour la gêne occasionnée.
                 </p>
               </div>
             </div>

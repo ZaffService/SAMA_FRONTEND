@@ -1,9 +1,9 @@
 export enum UploadStatus {
-  PENDING = 'PENDING',
-  UPLOADING = 'UPLOADING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED',
+  PENDING = "PENDING",
+  UPLOADING = "UPLOADING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED",
 }
 
 export interface UploadProgress {
@@ -38,7 +38,7 @@ export class FileUploadService {
   static async uploadFile(
     file: File,
     endpoint: string,
-    options: UploadOptions = {}
+    options: UploadOptions = {},
   ): Promise<UploadResult> {
     const {
       maxRetries = this.DEFAULT_MAX_RETRIES,
@@ -74,14 +74,17 @@ export class FileUploadService {
 
         // Attendre avant de retry (backoff exponentiel)
         const delay = retryDelay * Math.pow(2, attempt);
-        console.warn(`Upload attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error);
+        console.warn(
+          `Upload attempt ${attempt + 1} failed, retrying in ${delay}ms:`,
+          error,
+        );
         await this.delay(delay);
       }
     }
 
     return {
       success: false,
-      error: lastError?.message || 'Upload failed after all retries',
+      error: lastError?.message || "Upload failed after all retries",
     };
   }
 
@@ -95,7 +98,7 @@ export class FileUploadService {
       timeout: number;
       onProgress?: (progress: UploadProgress) => void;
       signal?: AbortSignal;
-    }
+    },
   ): Promise<UploadResult> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -108,14 +111,14 @@ export class FileUploadService {
 
       // Gestion de l'annulation
       if (options.signal) {
-        options.signal.addEventListener('abort', () => {
+        options.signal.addEventListener("abort", () => {
           xhr.abort();
           clearTimeout(timeoutId);
-          reject(new Error('Upload cancelled'));
+          reject(new Error("Upload cancelled"));
         });
       }
 
-      xhr.upload.addEventListener('progress', (event) => {
+      xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
           const progress: UploadProgress = {
             loaded: event.loaded,
@@ -126,7 +129,7 @@ export class FileUploadService {
         }
       });
 
-      xhr.addEventListener('load', () => {
+      xhr.addEventListener("load", () => {
         clearTimeout(timeoutId);
 
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -146,7 +149,8 @@ export class FileUploadService {
           let errorMessage = `Upload failed with status ${xhr.status}`;
           try {
             const errorResponse = JSON.parse(xhr.responseText);
-            errorMessage = errorResponse.message || errorResponse.error || errorMessage;
+            errorMessage =
+              errorResponse.message || errorResponse.error || errorMessage;
           } catch (e) {
             // Ignore parse error
           }
@@ -154,22 +158,22 @@ export class FileUploadService {
         }
       });
 
-      xhr.addEventListener('error', () => {
+      xhr.addEventListener("error", () => {
         clearTimeout(timeoutId);
-        reject(new Error('Network error during upload'));
+        reject(new Error("Network error during upload"));
       });
 
-      xhr.addEventListener('abort', () => {
+      xhr.addEventListener("abort", () => {
         clearTimeout(timeoutId);
-        reject(new Error('Upload aborted'));
+        reject(new Error("Upload aborted"));
       });
 
       // Préparer et envoyer la requête
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
-      xhr.open('POST', endpoint);
-      xhr.setRequestHeader('Accept', 'application/json');
+      xhr.open("POST", endpoint);
+      xhr.setRequestHeader("Accept", "application/json");
 
       // Ajouter les credentials pour l'authentification
       xhr.withCredentials = true;
@@ -181,7 +185,10 @@ export class FileUploadService {
   /**
    * Valide la taille du fichier avant upload
    */
-  static validateFileSize(file: File, maxSizeMB: number = 100): { valid: boolean; error?: string } {
+  static validateFileSize(
+    file: File,
+    maxSizeMB: number = 100,
+  ): { valid: boolean; error?: string } {
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       return {
@@ -195,20 +202,23 @@ export class FileUploadService {
   /**
    * Valide le type de fichier
    */
-  static validateFileType(file: File, allowedTypes: string[]): { valid: boolean; error?: string } {
+  static validateFileType(
+    file: File,
+    allowedTypes: string[],
+  ): { valid: boolean; error?: string } {
     if (allowedTypes.length === 0) return { valid: true };
 
-    const isValid = allowedTypes.some(type => {
-      if (type.startsWith('.')) {
+    const isValid = allowedTypes.some((type) => {
+      if (type.startsWith(".")) {
         return file.name.toLowerCase().endsWith(type.toLowerCase());
       }
-      return file.type === type || file.type.startsWith(type + '/');
+      return file.type === type || file.type.startsWith(type + "/");
     });
 
     if (!isValid) {
       return {
         valid: false,
-        error: `Type de fichier non autorisé. Types acceptés: ${allowedTypes.join(', ')}`,
+        error: `Type de fichier non autorisé. Types acceptés: ${allowedTypes.join(", ")}`,
       };
     }
 
@@ -219,6 +229,6 @@ export class FileUploadService {
    * Utilitaire pour créer un délai
    */
   private static delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

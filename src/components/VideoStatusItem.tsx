@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LessonStatus, CoursesApi } from "@/infrastructure/api/courses-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
-import { Upload, FileText, CheckCircle, Clock, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface Lesson {
@@ -31,7 +39,7 @@ export function VideoStatusItem({
   onUploadSuccess,
   isUploading,
   onUploadStart,
-  onUploadEnd
+  onUploadEnd,
 }: VideoStatusItemProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -42,12 +50,13 @@ export function VideoStatusItem({
     const file = event.target.files?.[0];
     if (file) {
       // Validation du fichier
-      if (!file.type.startsWith('video/')) {
-        toast.error('Veuillez sélectionner un fichier vidéo');
+      if (!file.type.startsWith("video/")) {
+        toast.error("Veuillez sélectionner un fichier vidéo");
         return;
       }
-      if (file.size > 100 * 1024 * 1024) { // 100MB
-        toast.error('Le fichier ne doit pas dépasser 100MB');
+      if (file.size > 100 * 1024 * 1024) {
+        // 100MB
+        toast.error("Le fichier ne doit pas dépasser 100MB");
         return;
       }
       setSelectedFile(file);
@@ -55,16 +64,19 @@ export function VideoStatusItem({
     }
   };
 
-  const handleChangeVideoFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeVideoFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validation du fichier
-      if (!file.type.startsWith('video/')) {
-        toast.error('Veuillez sélectionner un fichier vidéo');
+      if (!file.type.startsWith("video/")) {
+        toast.error("Veuillez sélectionner un fichier vidéo");
         return;
       }
-      if (file.size > 100 * 1024 * 1024) { // 100MB
-        toast.error('Le fichier ne doit pas dépasser 100MB');
+      if (file.size > 100 * 1024 * 1024) {
+        // 100MB
+        toast.error("Le fichier ne doit pas dépasser 100MB");
         return;
       }
       handleChangeVideoUpload(file);
@@ -76,23 +88,25 @@ export function VideoStatusItem({
 
     try {
       await CoursesApi.uploadLessonVideo(lesson.id, file);
-      toast.success('Vidéo changée avec succès !');
+      toast.success("Vidéo changée avec succès !");
       onUploadSuccess();
     } catch (error) {
-      console.error('Erreur lors du changement de vidéo:', error);
-      toast.error(`Erreur lors du changement de vidéo: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.error("Erreur lors du changement de vidéo:", error);
+      toast.error(
+        `Erreur lors du changement de vidéo: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
     } finally {
       onUploadEnd();
       // Reset the file input
       if (changeVideoFileInputRef.current) {
-        changeVideoFileInputRef.current.value = '';
+        changeVideoFileInputRef.current.value = "";
       }
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      toast.error('Veuillez d\'abord sélectionner un fichier vidéo');
+      toast.error("Veuillez d'abord sélectionner un fichier vidéo");
       return;
     }
 
@@ -100,7 +114,7 @@ export function VideoStatusItem({
 
     try {
       const formData = new FormData();
-      formData.append('video', selectedFile);
+      formData.append("video", selectedFile);
 
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.LESSONS.UPLOAD_VIDEO(lesson.id)),
@@ -110,7 +124,7 @@ export function VideoStatusItem({
           body: formData,
           // Note: onUploadProgress n'est pas disponible dans fetch natif
           // Pour la progression, on pourrait utiliser une bibliothèque comme axios
-        }
+        },
       );
 
       if (!response.ok) {
@@ -119,17 +133,18 @@ export function VideoStatusItem({
       }
 
       const result = await response.json();
-      toast.success('Vidéo uploadée avec succès !');
+      toast.success("Vidéo uploadée avec succès !");
       setSelectedFile(null);
       setUploadProgress(0);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
       onUploadSuccess();
-
     } catch (error) {
-      console.error('Erreur upload:', error);
-      toast.error(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.error("Erreur upload:", error);
+      toast.error(
+        `Erreur lors de l'upload: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
+      );
     } finally {
       onUploadEnd();
     }
@@ -137,28 +152,40 @@ export function VideoStatusItem({
 
   const getStatusText = (status: LessonStatus) => {
     switch (status) {
-      case LessonStatus.PENDING_VIDEO: return 'En attente';
-      case LessonStatus.VIDEO_UPLOADED: return 'Uploadée';
-      case LessonStatus.READY: return 'Prête';
-      default: return status;
+      case LessonStatus.PENDING_VIDEO:
+        return "En attente";
+      case LessonStatus.VIDEO_UPLOADED:
+        return "Uploadée";
+      case LessonStatus.READY:
+        return "Prête";
+      default:
+        return status;
     }
   };
 
   const getStatusColor = (status: LessonStatus) => {
     switch (status) {
-      case LessonStatus.PENDING_VIDEO: return 'bg-yellow-100 text-yellow-800';
-      case LessonStatus.VIDEO_UPLOADED: return 'bg-green-100 text-green-800';
-      case LessonStatus.READY: return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case LessonStatus.PENDING_VIDEO:
+        return "bg-yellow-100 text-yellow-800";
+      case LessonStatus.VIDEO_UPLOADED:
+        return "bg-green-100 text-green-800";
+      case LessonStatus.READY:
+        return "bg-blue-100 text-blue-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusIcon = (status: LessonStatus) => {
     switch (status) {
-      case LessonStatus.PENDING_VIDEO: return <Clock className="h-4 w-4" />;
-      case LessonStatus.VIDEO_UPLOADED: return <CheckCircle className="h-4 w-4" />;
-      case LessonStatus.READY: return <FileText className="h-4 w-4" />;
-      default: return <AlertCircle className="h-4 w-4" />;
+      case LessonStatus.PENDING_VIDEO:
+        return <Clock className="h-4 w-4" />;
+      case LessonStatus.VIDEO_UPLOADED:
+        return <CheckCircle className="h-4 w-4" />;
+      case LessonStatus.READY:
+        return <FileText className="h-4 w-4" />;
+      default:
+        return <AlertCircle className="h-4 w-4" />;
     }
   };
 
@@ -168,7 +195,9 @@ export function VideoStatusItem({
         {getStatusIcon(lesson.status)}
         <div>
           <div className="font-medium text-sm">{lesson.title}</div>
-          <div className="text-xs text-gray-600">Statut: {getStatusText(lesson.status)}</div>
+          <div className="text-xs text-gray-600">
+            Statut: {getStatusText(lesson.status)}
+          </div>
         </div>
       </div>
 
@@ -178,7 +207,8 @@ export function VideoStatusItem({
         </Badge>
 
         {/* Bouton Changer la vidéo pour les vidéos déjà uploadées ou prêtes */}
-        {(lesson.status === LessonStatus.VIDEO_UPLOADED || lesson.status === LessonStatus.READY) && (
+        {(lesson.status === LessonStatus.VIDEO_UPLOADED ||
+          lesson.status === LessonStatus.READY) && (
           <div className="flex items-center space-x-2">
             <input
               ref={changeVideoFileInputRef}
@@ -200,7 +230,7 @@ export function VideoStatusItem({
               ) : (
                 <RefreshCw className="h-4 w-4 mr-2" />
               )}
-              {isUploading ? 'Changement en cours...' : 'Changer la vidéo'}
+              {isUploading ? "Changement en cours..." : "Changer la vidéo"}
             </Button>
           </div>
         )}
@@ -229,7 +259,8 @@ export function VideoStatusItem({
 
             {selectedFile && (
               <span className="text-xs text-gray-600 max-w-32 truncate">
-                {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(1)}MB)
+                {selectedFile.name} (
+                {(selectedFile.size / 1024 / 1024).toFixed(1)}MB)
               </span>
             )}
 
@@ -239,7 +270,7 @@ export function VideoStatusItem({
               size="sm"
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {isUploading ? 'Upload en cours...' : 'Uploader'}
+              {isUploading ? "Upload en cours..." : "Uploader"}
             </Button>
           </div>
         )}

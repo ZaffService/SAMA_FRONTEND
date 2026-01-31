@@ -88,7 +88,7 @@ export function UserCreationForm() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Erreur lors de la création du compte"
+          : "Erreur lors de la création du compte",
       );
     } finally {
       setIsLoading(false);
@@ -115,8 +115,13 @@ export function UserCreationForm() {
             <div className="flex items-center gap-2 text-yellow-800">
               <AlertCircle className="h-5 w-5" />
               <div>
-                <p className="font-medium">Fonctionnalité temporairement désactivée</p>
-                <p className="text-sm">La création d'utilisateurs est actuellement en maintenance. Veuillez réessayer plus tard.</p>
+                <p className="font-medium">
+                  Fonctionnalité temporairement désactivée
+                </p>
+                <p className="text-sm">
+                  La création d'utilisateurs est actuellement en maintenance.
+                  Veuillez réessayer plus tard.
+                </p>
               </div>
             </div>
           </div>
@@ -130,7 +135,10 @@ export function UserCreationForm() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 opacity-50 pointer-events-none">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 opacity-50 pointer-events-none"
+          >
             <div>
               <Label>Prénom</Label>
               <Input {...register("firstName")} />
@@ -155,9 +163,7 @@ export function UserCreationForm() {
               <Label>Email</Label>
               <Input type="email" {...register("email")} />
               {errors.email && (
-                <p className="text-red-600 text-sm">
-                  {errors.email.message}
-                </p>
+                <p className="text-red-600 text-sm">{errors.email.message}</p>
               )}
             </div>
 

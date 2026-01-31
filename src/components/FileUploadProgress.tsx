@@ -53,14 +53,13 @@ export function FileUploadProgress({
     ...uploadOptions,
   });
 
-
   const handleStartUpload = useCallback(async () => {
     setHasStarted(true);
     const result = await upload(file, endpoint);
     if (result.success && result.fileUrl) {
       onSuccess?.(result.fileUrl);
     } else {
-      onError?.(result.error || 'Upload failed');
+      onError?.(result.error || "Upload failed");
     }
   }, [file, endpoint, upload, onSuccess, onError]);
 
@@ -69,7 +68,7 @@ export function FileUploadProgress({
     if (result.success && result.fileUrl) {
       onSuccess?.(result.fileUrl);
     } else {
-      onError?.(result.error || 'Retry failed');
+      onError?.(result.error || "Retry failed");
     }
   }, [retry, onSuccess, onError]);
 
@@ -82,7 +81,6 @@ export function FileUploadProgress({
     reset();
     setHasStarted(false);
   }, [reset]);
-
 
   const getStatusIcon = () => {
     switch (uploadState.status) {
@@ -136,11 +134,11 @@ export function FileUploadProgress({
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
@@ -169,13 +167,11 @@ export function FileUploadProgress({
       {/* Barre de progression */}
       {uploadState.progress && (
         <div className="mb-3">
-          <Progress
-            value={uploadState.progress.percentage}
-            className="h-2"
-          />
+          <Progress value={uploadState.progress.percentage} className="h-2" />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>
-              {formatFileSize(uploadState.progress.loaded)} / {formatFileSize(uploadState.progress.total)}
+              {formatFileSize(uploadState.progress.loaded)} /{" "}
+              {formatFileSize(uploadState.progress.total)}
             </span>
             <span>{uploadState.progress.percentage}%</span>
           </div>
@@ -183,13 +179,15 @@ export function FileUploadProgress({
       )}
 
       {/* Informations de retry */}
-      {uploadState.retryCount > 0 && uploadState.retryCount < uploadState.maxRetries && (
-        <div className="mb-3">
-          <p className="text-xs text-orange-600">
-            Tentative {uploadState.retryCount + 1} sur {uploadState.maxRetries + 1}
-          </p>
-        </div>
-      )}
+      {uploadState.retryCount > 0 &&
+        uploadState.retryCount < uploadState.maxRetries && (
+          <div className="mb-3">
+            <p className="text-xs text-orange-600">
+              Tentative {uploadState.retryCount + 1} sur{" "}
+              {uploadState.maxRetries + 1}
+            </p>
+          </div>
+        )}
 
       {/* Message d'erreur */}
       {isFailed && uploadState.result?.error && (

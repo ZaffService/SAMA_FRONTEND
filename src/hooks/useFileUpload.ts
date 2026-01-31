@@ -1,5 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { FileUploadService, UploadStatus, UploadProgress, UploadResult, UploadOptions } from '@/services/fileUploadService';
+import { useState, useCallback, useRef, useEffect } from "react";
+import {
+  FileUploadService,
+  UploadStatus,
+  UploadProgress,
+  UploadResult,
+  UploadOptions,
+} from "@/services/fileUploadService";
 
 export interface FileUploadState {
   status: UploadStatus;
@@ -9,7 +15,10 @@ export interface FileUploadState {
   maxRetries: number;
 }
 
-export interface UseFileUploadOptions extends Omit<UploadOptions, 'onProgress' | 'onStatusChange'> {
+export interface UseFileUploadOptions extends Omit<
+  UploadOptions,
+  "onProgress" | "onStatusChange"
+> {
   autoStart?: boolean;
   validateFile?: boolean;
   maxFileSizeMB?: number;
@@ -33,16 +42,18 @@ const initialState: FileUploadState = {
   progress: null,
   result: null,
   retryCount: 0,
-  maxRetries: FileUploadService['DEFAULT_MAX_RETRIES'],
+  maxRetries: FileUploadService["DEFAULT_MAX_RETRIES"],
 };
 
-export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUploadReturn {
+export function useFileUpload(
+  options: UseFileUploadOptions = {},
+): UseFileUploadReturn {
   const {
     autoStart = true,
     validateFile = true,
     maxFileSizeMB = 100,
-    allowedFileTypes = ['video/*'],
-    maxRetries = FileUploadService['DEFAULT_MAX_RETRIES'],
+    allowedFileTypes = ["video/*"],
+    maxRetries = FileUploadService["DEFAULT_MAX_RETRIES"],
     retryDelay,
     timeout,
   } = options;
@@ -66,108 +77,137 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
   }, []);
 
   const updateState = useCallback((updates: Partial<FileUploadState>) => {
-    setUploadState(prev => ({ ...prev, ...updates }));
+    setUploadState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const handleProgress = useCallback((progress: UploadProgress) => {
-    updateState({ progress });
-  }, [updateState]);
+  const handleProgress = useCallback(
+    (progress: UploadProgress) => {
+      updateState({ progress });
+    },
+    [updateState],
+  );
 
-  const handleStatusChange = useCallback((status: UploadStatus) => {
-    updateState({ status });
-  }, [updateState]);
+  const handleStatusChange = useCallback(
+    (status: UploadStatus) => {
+      updateState({ status });
+    },
+    [updateState],
+  );
 
-  const validateFileBeforeUpload = useCallback((file: File): { valid: boolean; error?: string } => {
-    if (!validateFile) return { valid: true };
+  const validateFileBeforeUpload = useCallback(
+    (file: File): { valid: boolean; error?: string } => {
+      if (!validateFile) return { valid: true };
 
-    // Validation de taille
-    const sizeValidation = FileUploadService.validateFileSize(file, maxFileSizeMB);
-    if (!sizeValidation.valid) return sizeValidation;
+      // Validation de taille
+      const sizeValidation = FileUploadService.validateFileSize(
+        file,
+        maxFileSizeMB,
+      );
+      if (!sizeValidation.valid) return sizeValidation;
 
-    // Validation de type
-    const typeValidation = FileUploadService.validateFileType(file, allowedFileTypes);
-    if (!typeValidation.valid) return typeValidation;
+      // Validation de type
+      const typeValidation = FileUploadService.validateFileType(
+        file,
+        allowedFileTypes,
+      );
+      if (!typeValidation.valid) return typeValidation;
 
-    return { valid: true };
-  }, [validateFile, maxFileSizeMB, allowedFileTypes]);
+      return { valid: true };
+    },
+    [validateFile, maxFileSizeMB, allowedFileTypes],
+  );
 
-  const performUpload = useCallback(async (
-    file: File,
-    endpoint: string,
-    isRetry = false
-  ): Promise<UploadResult> => {
-    // Validation du fichier
-    const validation = validateFileBeforeUpload(file);
-    if (!validation.valid) {
-      const result: UploadResult = {
-        success: false,
-        error: validation.error,
-      };
-      updateState({
-        status: UploadStatus.FAILED,
-        result,
-      });
-      return result;
-    }
+  const performUpload = useCallback(
+    async (
+      file: File,
+      endpoint: string,
+      isRetry = false,
+    ): Promise<UploadResult> => {
+      // Validation du fichier
+      const validation = validateFileBeforeUpload(file);
+      if (!validation.valid) {
+        const result: UploadResult = {
+          success: false,
+          error: validation.error,
+        };
+        updateState({
+          status: UploadStatus.FAILED,
+          result,
+        });
+        return result;
+      }
 
-    // Créer un nouvel AbortController pour cette tentative
-    abortControllerRef.current = new AbortController();
+      // Créer un nouvel AbortController pour cette tentative
+      abortControllerRef.current = new AbortController();
 
-    // Reset progress for new upload
-    if (!isRetry) {
-      updateState({
-        status: UploadStatus.PENDING,
-        progress: null,
-        result: null,
-        retryCount: 0,
-      });
-    }
+      // Reset progress for new upload
+      if (!isRetry) {
+        updateState({
+          status: UploadStatus.PENDING,
+          progress: null,
+          result: null,
+          retryCount: 0,
+        });
+      }
 
-    try {
-      const result = await FileUploadService.uploadFile(file, endpoint, {
-        maxRetries,
-        retryDelay,
-        timeout,
-        onProgress: handleProgress,
-        onStatusChange: handleStatusChange,
-        signal: abortControllerRef.current.signal,
-      });
+      try {
+        const result = await FileUploadService.uploadFile(file, endpoint, {
+          maxRetries,
+          retryDelay,
+          timeout,
+          onProgress: handleProgress,
+          onStatusChange: handleStatusChange,
+          signal: abortControllerRef.current.signal,
+        });
 
-      updateState({ result });
-      return result;
-    } catch (error) {
-      const errorResult: UploadResult = {
-        success: false,
-        error: error instanceof Error ? error.message : 'Upload failed',
-      };
+        updateState({ result });
+        return result;
+      } catch (error) {
+        const errorResult: UploadResult = {
+          success: false,
+          error: error instanceof Error ? error.message : "Upload failed",
+        };
 
-      updateState({
-        status: UploadStatus.FAILED,
-        result: errorResult,
-      });
+        updateState({
+          status: UploadStatus.FAILED,
+          result: errorResult,
+        });
 
-      return errorResult;
-    }
-  }, [maxRetries, retryDelay, timeout, validateFileBeforeUpload, handleProgress, handleStatusChange, updateState]);
+        return errorResult;
+      }
+    },
+    [
+      maxRetries,
+      retryDelay,
+      timeout,
+      validateFileBeforeUpload,
+      handleProgress,
+      handleStatusChange,
+      updateState,
+    ],
+  );
 
-  const upload = useCallback(async (file: File, endpoint: string): Promise<UploadResult> => {
-    currentFileRef.current = file;
-    currentEndpointRef.current = endpoint;
+  const upload = useCallback(
+    async (file: File, endpoint: string): Promise<UploadResult> => {
+      currentFileRef.current = file;
+      currentEndpointRef.current = endpoint;
 
-    if (autoStart) {
-      return performUpload(file, endpoint);
-    } else {
-      // Just set the file, don't start upload yet
-      updateState({ status: UploadStatus.PENDING });
-      return { success: true }; // Placeholder result
-    }
-  }, [autoStart, performUpload, updateState]);
+      if (autoStart) {
+        return performUpload(file, endpoint);
+      } else {
+        // Just set the file, don't start upload yet
+        updateState({ status: UploadStatus.PENDING });
+        return { success: true }; // Placeholder result
+      }
+    },
+    [autoStart, performUpload, updateState],
+  );
 
   const retry = useCallback(async (): Promise<UploadResult> => {
     if (!currentFileRef.current || !currentEndpointRef.current) {
       const result: UploadResult = {
         success: false,
-        error: 'No file to retry',
+        error: "No file to retry",
       };
       updateState({
         status: UploadStatus.FAILED,
@@ -179,7 +219,11 @@ export function useFileUpload(options: UseFileUploadOptions = {}): UseFileUpload
     const newRetryCount = uploadState.retryCount + 1;
     updateState({ retryCount: newRetryCount });
 
-    return performUpload(currentFileRef.current, currentEndpointRef.current, true);
+    return performUpload(
+      currentFileRef.current,
+      currentEndpointRef.current,
+      true,
+    );
   }, [uploadState.retryCount, performUpload, updateState]);
 
   const cancel = useCallback(() => {

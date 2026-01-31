@@ -61,7 +61,6 @@ interface CourseManagementProps {
   onViewVideoStatus?: (courseId: string) => void;
 }
 
-
 export function CourseManagement({
   onCourseUpdated,
   onEditCourse,
@@ -72,8 +71,12 @@ export function CourseManagement({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [courseToDelete, setCourseToDelete] = useState<BackendCourse | null>(null);
-  const [courseToArchive, setCourseToArchive] = useState<BackendCourse | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<BackendCourse | null>(
+    null,
+  );
+  const [courseToArchive, setCourseToArchive] = useState<BackendCourse | null>(
+    null,
+  );
   const [courseToEdit, setCourseToEdit] = useState<BackendCourse | null>(null);
 
   const fetchCourses = async () => {
@@ -110,7 +113,7 @@ export function CourseManagement({
 
   const handleStatusChange = async (
     courseId: string,
-    newStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED"
+    newStatus: "DRAFT" | "PUBLISHED" | "ARCHIVED",
   ) => {
     try {
       await CoursesApi.updateCourseStatus(courseId, newStatus);
@@ -155,7 +158,6 @@ export function CourseManagement({
     }
   };
 
-
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case "PUBLISHED":
@@ -191,7 +193,9 @@ export function CourseManagement({
     }
     const matchesSearch =
       (course.title?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-      (course.description?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+      (course.description?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase(),
+      );
     const matchesStatus =
       statusFilter === "all" || course.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -283,7 +287,9 @@ export function CourseManagement({
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>{String(course.categoryName || "Non catégorisé")}</TableCell>
+                      <TableCell>
+                        {String(course.categoryName || "Non catégorisé")}
+                      </TableCell>
                       <TableCell>
                         {course.price === 0 ? (
                           <span className="text-green-600 font-medium">
@@ -323,25 +329,29 @@ export function CourseManagement({
                                 Mettre en brouillon
                               </DropdownMenuItem>
                             )}
-                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") &&
-                             (course.status === "PUBLISHED" || course.status === "DRAFT") && (
-                              <DropdownMenuItem
-                                onClick={() => setCourseToArchive(course)}
-                              >
-                                <Archive className="h-4 w-4 mr-2 text-gray-600" />
-                                Archiver
-                              </DropdownMenuItem>
-                            )}
+                            {(user?.role === "ADMIN" ||
+                              user?.role === "INSTRUCTOR") &&
+                              (course.status === "PUBLISHED" ||
+                                course.status === "DRAFT") && (
+                                <DropdownMenuItem
+                                  onClick={() => setCourseToArchive(course)}
+                                >
+                                  <Archive className="h-4 w-4 mr-2 text-gray-600" />
+                                  Archiver
+                                </DropdownMenuItem>
+                              )}
 
                             {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
-                            {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") && onViewVideoStatus && (
-                              <DropdownMenuItem
-                                onClick={() => onViewVideoStatus(course.id)}
-                              >
-                                <Video className="h-4 w-4 mr-2 text-purple-600" />
-                                Voir statut vidéos
-                              </DropdownMenuItem>
-                            )}
+                            {(user?.role === "ADMIN" ||
+                              user?.role === "INSTRUCTOR") &&
+                              onViewVideoStatus && (
+                                <DropdownMenuItem
+                                  onClick={() => onViewVideoStatus(course.id)}
+                                >
+                                  <Video className="h-4 w-4 mr-2 text-purple-600" />
+                                  Voir statut vidéos
+                                </DropdownMenuItem>
+                              )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -355,13 +365,16 @@ export function CourseManagement({
       </Card>
 
       {/* Dialogue de confirmation de suppression */}
-      <AlertDialog open={!!courseToDelete} onOpenChange={() => setCourseToDelete(null)}>
+      <AlertDialog
+        open={!!courseToDelete}
+        onOpenChange={() => setCourseToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer le cours "{courseToDelete?.title}" ?
-              Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer le cours "
+              {courseToDelete?.title}" ? Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -377,13 +390,17 @@ export function CourseManagement({
       </AlertDialog>
 
       {/* Dialogue de confirmation d'archivage */}
-      <AlertDialog open={!!courseToArchive} onOpenChange={() => setCourseToArchive(null)}>
+      <AlertDialog
+        open={!!courseToArchive}
+        onOpenChange={() => setCourseToArchive(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer l'archivage</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir archiver le cours "{courseToArchive?.title}" ?
-              Le cours sera masqué de la liste principale mais pourra être consulté par les administrateurs.
+              Êtes-vous sûr de vouloir archiver le cours "
+              {courseToArchive?.title}" ? Le cours sera masqué de la liste
+              principale mais pourra être consulté par les administrateurs.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -407,7 +424,6 @@ export function CourseManagement({
         }}
         onCourseUpdated={fetchCourses}
       />
-
     </div>
   );
 }

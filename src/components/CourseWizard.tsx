@@ -139,19 +139,25 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     setThumbnailFile(null);
   };
 
-  const handleVideoUploadSuccess = useCallback((tempId: string, videoUrl: string) => {
-    updateFormData({
-      uploadedVideos: {
-        ...formData.uploadedVideos,
-        [tempId]: videoUrl,
-      },
-    });
-  }, [formData.uploadedVideos]);
+  const handleVideoUploadSuccess = useCallback(
+    (tempId: string, videoUrl: string) => {
+      updateFormData({
+        uploadedVideos: {
+          ...formData.uploadedVideos,
+          [tempId]: videoUrl,
+        },
+      });
+    },
+    [formData.uploadedVideos],
+  );
 
-  const handleVideoUploadError = useCallback((tempId: string, error: string) => {
-    console.error(`Erreur d'upload pour la vidéo ${tempId}:`, error);
-    // Ici, on pourrait ajouter une gestion d'erreur plus sophistiquée
-  }, []);
+  const handleVideoUploadError = useCallback(
+    (tempId: string, error: string) => {
+      console.error(`Erreur d'upload pour la vidéo ${tempId}:`, error);
+      // Ici, on pourrait ajouter une gestion d'erreur plus sophistiquée
+    },
+    [],
+  );
 
   const validateStep = (step: number): string | null => {
     switch (step) {
@@ -306,7 +312,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
             onCourseCreated?.();
             router.push("/admin-dashboard");
           },
-          "Le cours a été créé avec succès ! Les vidéos sont en cours d'upload en arrière-plan. Vous pourrez publier le cours une fois toutes les vidéos uploadées."
+          "Le cours a été créé avec succès ! Les vidéos sont en cours d'upload en arrière-plan. Vous pourrez publier le cours une fois toutes les vidéos uploadées.",
         );
       }
     } catch (err) {
@@ -334,7 +340,9 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
 
     try {
       // Utiliser la même logique que createCourse mais avec status: "DRAFT"
-      const result = await CoursesApi.createCourse(prepareCourseData(CourseStatus.DRAFT));
+      const result = await CoursesApi.createCourse(
+        prepareCourseData(CourseStatus.DRAFT),
+      );
       closeLoading();
       showDraftSavedSuccess(formData.title);
       console.log("✅ Brouillon sauvegardé:", result);
@@ -502,10 +510,10 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
                 {isSubmitting
                   ? "Création en cours..."
                   : isSavingDraft
-                  ? "Sauvegarde..."
-                  : formData.status === CourseStatus.DRAFT
-                  ? "Sauvegarder le brouillon"
-                  : "Publier le cours"}
+                    ? "Sauvegarde..."
+                    : formData.status === CourseStatus.DRAFT
+                      ? "Sauvegarder le brouillon"
+                      : "Publier le cours"}
               </span>
             </Button>
           )}
@@ -734,7 +742,8 @@ function Step5VideoUploads({
   return (
     <div>
       <p className="text-gray-600 mb-4">
-        Uploadez les vidéos de vos leçons. Cette étape est nécessaire avant de publier votre cours.
+        Uploadez les vidéos de vos leçons. Cette étape est nécessaire avant de
+        publier votre cours.
       </p>
       <VideoUploadManager
         videos={videos}
@@ -748,4 +757,3 @@ function Step5VideoUploads({
     </div>
   );
 }
-

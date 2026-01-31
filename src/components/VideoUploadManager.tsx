@@ -7,13 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileUploadProgress } from "./FileUploadProgress";
 import { UploadStatus } from "@/services/fileUploadService";
 import { toast } from "sonner";
-import {
-  Upload,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Video,
-} from "lucide-react";
+import { Upload, AlertCircle, CheckCircle, Clock, Video } from "lucide-react";
 
 interface VideoFile {
   id: string;
@@ -40,13 +34,16 @@ export function VideoUploadManager({
   const [uploadingAll, setUploadingAll] = useState(false);
 
   // Calculer les statistiques globales (simplifié pour l'instant)
-  const stats = useMemo(() => ({
-    total: videos.length,
-    completed: 0, // Sera calculé plus tard avec les vrais états
-    failed: 0,
-    uploading: 0,
-    pending: videos.length,
-  }), [videos.length]);
+  const stats = useMemo(
+    () => ({
+      total: videos.length,
+      completed: 0, // Sera calculé plus tard avec les vrais états
+      failed: 0,
+      uploading: 0,
+      pending: videos.length,
+    }),
+    [videos.length],
+  );
 
   const handleUploadAll = useCallback(async () => {
     setUploadingAll(true);
@@ -55,7 +52,9 @@ export function VideoUploadManager({
     try {
       // Ici, on pourrait implémenter une logique pour uploader toutes les vidéos
       // Pour l'instant, on affiche juste un message
-      toast.success("Uploads démarrés. Surveillez la progression individuelle.");
+      toast.success(
+        "Uploads démarrés. Surveillez la progression individuelle.",
+      );
     } catch (error) {
       toast.error("Erreur lors du démarrage des uploads");
     } finally {
@@ -72,7 +71,9 @@ export function VideoUploadManager({
           <div className="text-center py-8 text-gray-500">
             <Video className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>Aucune vidéo à uploader</p>
-            <p className="text-sm">Ajoutez des vidéos aux leçons pour les voir ici</p>
+            <p className="text-sm">
+              Ajoutez des vidéos aux leçons pour les voir ici
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -119,11 +120,15 @@ export function VideoUploadManager({
               endpoint={video.endpoint}
               onSuccess={(fileUrl) => {
                 onVideoSuccess(video.id, fileUrl);
-                toast.success(`Vidéo "${video.lessonTitle}" uploadée avec succès`);
+                toast.success(
+                  `Vidéo "${video.lessonTitle}" uploadée avec succès`,
+                );
               }}
               onError={(error) => {
                 onVideoError(video.id, error);
-                toast.error(`Échec de l'upload pour "${video.lessonTitle}": ${error}`);
+                toast.error(
+                  `Échec de l'upload pour "${video.lessonTitle}": ${error}`,
+                );
               }}
               onCancel={() => {
                 toast.info(`Upload annulé pour "${video.lessonTitle}"`);
@@ -136,7 +141,6 @@ export function VideoUploadManager({
             />
           ))}
         </div>
-
       </CardContent>
     </Card>
   );

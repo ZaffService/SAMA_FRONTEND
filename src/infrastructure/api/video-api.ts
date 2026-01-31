@@ -34,7 +34,9 @@ export async function uploadVideo(
   formData.append("video", file);
   formData.append("lessonTempId", lessonTempId);
 
-  console.log(`🎥 [VideoApi] Début upload vidéo: ${file.name} (${formatFileSize(file.size)})`);
+  console.log(
+    `🎥 [VideoApi] Début upload vidéo: ${file.name} (${formatFileSize(file.size)})`,
+  );
 
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
@@ -113,7 +115,8 @@ export async function uploadVideo(
       console.error(`❌ [VideoApi] Timeout`);
       resolve({
         success: false,
-        error: "Temps d'attente dépassé - le fichier est peut-être trop volumineux",
+        error:
+          "Temps d'attente dépassé - le fichier est peut-être trop volumineux",
       });
     };
 
@@ -215,7 +218,8 @@ export class VideoApi {
   /**
    * Cache for signed video URLs
    */
-  private static urlCache: Map<string, { url: string; expiresAt: Date }> = new Map();
+  private static urlCache: Map<string, { url: string; expiresAt: Date }> =
+    new Map();
 
   /**
    * Récupère une URL signée pour la vidéo d'une leçon
@@ -240,7 +244,7 @@ export class VideoApi {
             "Content-Type": "application/json",
           },
           credentials: "include",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -253,10 +257,12 @@ export class VideoApi {
         if (response.status === 410) {
           throw new Error("VIDEO_DELETED: La vidéo a été supprimée");
         }
-        throw new Error(`Erreur ${response.status} lors de la récupération de la vidéo`);
+        throw new Error(
+          `Erreur ${response.status} lors de la récupération de la vidéo`,
+        );
       }
 
-      const data = await response.json() as SignedVideoUrl;
+      const data = (await response.json()) as SignedVideoUrl;
 
       // Mettre en cache
       this.urlCache.set(lessonId, {
@@ -307,4 +313,3 @@ export interface SignedVideoUrl {
   expiresAt: string;
   lessonId: string;
 }
-
