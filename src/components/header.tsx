@@ -21,10 +21,21 @@ import { MegaMenuOverlay } from "@/components/mega-menu-overlay";
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [formationsMenuOpen, setFormationsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const { user, logout, isLoading, isAuthenticated } = useLocalAuth();
   const { avatarUrl, firstName, lastName } = useAvatar();
   const pathname = usePathname();
+
+  // Détection du scroll pour la transition du header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -67,10 +78,26 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed z-50 w-full top-0">
-        <div className="bg-[var(--header-bg)] shadow-lg">
-          {/* Conteneur avec max-width pour centrer le contenu */}
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-10 py-5">
+      {/* 
+        MOBILE: Toujours collé en top-0 left-0 right-0
+        DESKTOP: top-8 left-4 right-4 par défaut, puis top-0 left-0 right-0 au scroll
+      */}
+      <header 
+        className={`fixed z-50 transition-all duration-300 ease-in-out
+          ${isScrolled 
+            ? 'top-0 left-0 right-0' 
+            : 'top-0 left-0 right-0 lg:top-8 lg:left-4 lg:right-4'
+          }`}
+      >
+        {/* Conteneur avec max-width qui devient full-width lors du scroll */}
+        <div
+          className={`bg-[var(--header-bg)] shadow-lg transition-all duration-300 ease-in-out ${
+            isScrolled 
+              ? "w-full rounded-none" 
+              : "w-full lg:max-w-[1800px] lg:mx-auto rounded-none lg:rounded-2xl"
+          }`}
+        >
+          <div className="px-4 sm:px-6 md:px-10 py-5">
             <div className="flex items-center justify-between gap-8">
               {/* LOGO */}
               <Link href="/" className="flex-shrink-0">
