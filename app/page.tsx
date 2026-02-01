@@ -7,6 +7,11 @@ import {
   useLayoutEffect,
   useCallback,
 } from "react";
+import Link from "next/link";
+import {
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
 import {
   Search,
   X,
@@ -21,6 +26,7 @@ import Swal from "sweetalert2";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import HeroBanner from "@/components/hero-banner";
+import WhyChooseBibocom from "@/components/why-choose-bibocom";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
@@ -36,6 +42,8 @@ import { EmptyContent } from "@/components/ui/empty";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
 
 const Index = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +74,14 @@ const Index = () => {
 
   const { enrolledCourses } = useEnrolledCourses();
   const { categories, loading: categoriesLoading } = useCategories();
+
+  // Pre-fill search query from URL params
+  useEffect(() => {
+    const searchParam = searchParams.get("search");
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   /**  Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
@@ -271,6 +287,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <HeroBanner />
+      <WhyChooseBibocom />
 
       <main
         className={`container mx-auto px-4 ${
@@ -298,7 +315,7 @@ const Index = () => {
               className="pt-12"
             >
               <ProfileCompletionBanner />
-              {/* Barre de recherche avec titre - Layout mobile en colonne */}
+              {/* Titre - Layout mobile en colonne */}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">
                   {showFreeTutorials
@@ -307,22 +324,6 @@ const Index = () => {
                       ? `${categories.find((cat) => cat.id === selectedCategoryId)?.name || "Formations"}`
                       : "Découvrez nos formations"}
                 </h2>
-
-                <div className="relative w-full sm:max-w-sm lg:max-w-md">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2 border rounded"
-                    placeholder="Rechercher une formation"
-                  />
-                  {searchQuery && (
-                    <X
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-3 h-4 w-4 cursor-pointer"
-                    />
-                  )}
-                </div>
               </div>
 
               {/* Grille ou état vide */}

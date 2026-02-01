@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ChevronRight, X } from "lucide-react";
 import { useCategories } from "@/application/use-cases/useCategories";
+import { CoursesApi } from "@/infrastructure/api/courses-api";
 
 interface MegaMenuOverlayProps {
   isOpen: boolean;
@@ -14,6 +15,31 @@ export function MegaMenuOverlay({ isOpen, onClose }: MegaMenuOverlayProps) {
   const { categories: apiCategories, loading } = useCategories();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+
+  // Récupérer les cours quand la catégorie change
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!selectedCategory) {
+        setCourses([]);
+        return;
+      }
+
+      setCoursesLoading(true);
+      try {
+        const response = await CoursesApi.getCourses(1, 10, { categoryId: selectedCategory });
+        setCourses(response.courses || []);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des cours:", error);
+        setCourses([]);
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [selectedCategory]);
 
   // Sélectionner la première catégorie par défaut
   useEffect(() => {
@@ -171,78 +197,59 @@ export function MegaMenuOverlay({ isOpen, onClose }: MegaMenuOverlayProps) {
                               </p>
                             </div>
 
-                            {/* SECTION: BOOTCAMPS / COURS DISPONIBLES */}
+                            {/* SECTION: COURS DISPONIBLES */}
                             <div className="mb-6 md:mb-8">
                               <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                                 <span className="h-1.5 w-1.5 rounded-full bg-[var(--bibocom-red)]"></span>
-                                Bootcamps intensifs
+                                Cours disponibles
                               </h3>
                               
-                              <p className="text-sm md:text-base text-gray-600 mb-4">
-                                Apprenez un métier d'avenir
-                              </p>
+                              {coursesLoading ? (
+                                <div className="space-y-3">
+                                  {[1, 2, 3].map((i) => (
+                                    <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+                                  ))}
+                                </div>
+                              ) : courses.length > 0 ? (
+                                <div className="space-y-3">
+                                  {courses.slice(0, 5).map((course) => (
+                                    <Link
+                                      key={course.id}
+                                      href={`/course-details/${course.id}`}
+                                      onClick={handleCategoryClick}
+                                      className="block p-4 md:p-5 rounded-xl border-2 border-gray-200 hover:border-[var(--bibocom-red)] hover:bg-red-50 transition-all duration-200 group"
+                                    >
+                                      <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1">
+                                          <h4 className="font-bold text-gray-900 group-hover:text-[var(--bibocom-red)] transition-colors text-sm md:text-base mb-1">
+                                            {course.title}
+                                          </h4>
+                                          <p className="text-xs md:text-sm text-gray-500 line-clamp-2">
+                                            {course.description || 'Aucune description disponible'}
+                                          </p>
+                                          {course.level && (
+                                            <p className="text-xs md:text-sm text-gray-500 mt-1">
+                                              Niveau: {course.level}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--bibocom-red)] group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 mt-1" />
+                                      </div>
+                                    </Link>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center py-8 px-4">
+                                  <p className="text-gray-500 text-sm md:text-base">
+                                    Cette catégorie n'a pas encore de cours.
+                                  </p>
+                                  <p className="text-gray-400 text-xs md:text-sm mt-1">
+                                    Bientôt disponible !
+                                  </p>
+                                </div>
+                              )}
 
-                              {/* Liste des cours - À remplacer par vraies données */}
-                              <div className="space-y-3">
-                                <Link
-                                  href={`/courses?category=${category.id}`}
-                                  onClick={handleCategoryClick}
-                                  className="block p-4 md:p-5 rounded-xl border-2 border-gray-200 hover:border-[var(--bibocom-red)] hover:bg-red-50 transition-all duration-200 group"
-                                >
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <h4 className="font-bold text-gray-900 group-hover:text-[var(--bibocom-red)] transition-colors text-sm md:text-base mb-1">
-                                        Formation complète en {category.name}
-                                      </h4>
-                                      <p className="text-xs md:text-sm text-gray-500">
-                                        3 mois • Niveau débutant à avancé • Certification incluse
-                                      </p>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--bibocom-red)] group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 mt-1" />
-                                  </div>
-                                </Link>
-
-                                {/* Vous pouvez ajouter plus de cours ici */}
-                                <Link
-                                  href={`/courses?category=${category.id}`}
-                                  onClick={handleCategoryClick}
-                                  className="block p-4 md:p-5 rounded-xl border-2 border-gray-200 hover:border-[var(--bibocom-red)] hover:bg-red-50 transition-all duration-200 group"
-                                >
-                                  <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                      <h4 className="font-bold text-gray-900 group-hover:text-[var(--bibocom-red)] transition-colors text-sm md:text-base mb-1">
-                                        Bootcamp accéléré {category.name}
-                                      </h4>
-                                      <p className="text-xs md:text-sm text-gray-500">
-                                        6 semaines • Intensif • Projets réels
-                                      </p>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--bibocom-red)] group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 mt-1" />
-                                  </div>
-                                </Link>
-                              </div>
-
-                              {/* Lien "Tous les bootcamps" */}
-                              <Link
-                                href={`/courses?category=${category.id}`}
-                                onClick={handleCategoryClick}
-                                className="inline-flex items-center gap-2 mt-4 text-sm md:text-base font-semibold text-[var(--bibocom-red)] hover:text-[var(--bibocom-red)]/80 transition-colors group"
-                              >
-                                Tous les bootcamps
-                                <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                              </Link>
-                            </div>
-
-                            {/* BOUTON CTA PRINCIPAL */}
-                            <div className="pt-6 md:pt-8 border-t border-gray-200">
-                              <Link
-                                href={`/courses?category=${category.id}`}
-                                onClick={handleCategoryClick}
-                                className="inline-flex items-center justify-center gap-2 w-full lg:w-auto px-6 md:px-8 py-3 md:py-4 bg-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)]/90 text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm md:text-base"
-                              >
-                                Voir tous les cours en {category.name}
-                                <ChevronRight className="h-5 w-5" />
-                              </Link>
+                          
                             </div>
                           </div>
                         );
