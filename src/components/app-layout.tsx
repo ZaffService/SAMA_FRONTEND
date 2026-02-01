@@ -14,7 +14,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#e9eff4] to-white">
       <Header />
       <ProfileCompletionBanner />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pt-[200px]">{children}</main>
       <Footer />
     </div>
   );

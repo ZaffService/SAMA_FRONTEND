@@ -13,9 +13,9 @@ const HeroBanner = () => {
   }
 
   return (
-    <div className="relative w-full overflow-hidden">
+    <div className="relative w-full overflow-hidden mt-[90px] lg:mt-0">
       {/* Hero Banner Image avec Texte et Boutons */}
-      <div className="relative w-full min-h-[500px] sm:min-h-[600px] lg:min-h-0 pt-[68px] lg:pt-0">
+      <div className="relative w-full min-h-[500px] sm:min-h-[600px] lg:min-h-0">
         {/* Image de fond avec padding-top mobile pour éviter la troncature */}
         <img
           src="/Baniere.png"

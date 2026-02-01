@@ -73,43 +73,58 @@ export function Header() {
   // Handler pour ouvrir le mega menu (mobile et desktop)
   const handleFormationsClick = () => {
     setFormationsMenuOpen(true);
-    setMobileMenuOpen(false); // Fermer le menu hamburger si ouvert
+    setMobileMenuOpen(false);
   };
+
+  // Vérifie si on doit appliquer le style centré (page d'accueil + desktop + non connecté)
+  const isHomePage = pathname === "/";
+  const shouldCenterHeader = isHomePage && !isAuthenticated && !isLoading;
 
   return (
     <>
-      {/* 
-        MOBILE: Toujours collé en top-0 left-0 right-0
-        DESKTOP: top-8 left-4 right-4 par défaut, puis top-0 left-0 right-0 au scroll
-      */}
-      <header 
-        className={`fixed z-50 transition-all duration-300 ease-in-out
-          ${isScrolled 
-            ? 'top-0 left-0 right-0' 
-            : 'top-0 left-0 right-0 lg:top-8 lg:left-4 lg:right-4'
-          }`}
+      <header
+        className={`fixed z-50 transition-all duration-300 ease-in-out ${
+          // Sur mobile: toujours collé en haut
+          // Sur desktop: arrondi seulement si page d'accueil + déconnecté + pas de scroll
+          isScrolled || !shouldCenterHeader
+            ? "top-0 left-0 right-0"
+            : "lg:top-8 lg:left-4 lg:right-4 top-0 left-0 right-0"
+        }`}
       >
-        {/* Conteneur avec max-width qui devient full-width lors du scroll */}
         <div
           className={`bg-[var(--header-bg)] shadow-lg transition-all duration-300 ease-in-out ${
-            isScrolled 
-              ? "w-full rounded-none" 
-              : "w-full lg:max-w-[1800px] lg:mx-auto rounded-none lg:rounded-2xl"
+            isScrolled || !shouldCenterHeader
+              ? "w-full rounded-none"
+              : "w-full lg:max-w-[1800px] lg:mx-auto lg:rounded-2xl rounded-none"
           }`}
         >
           <div className="px-4 sm:px-6 md:px-10 py-5">
-            <div className="flex items-center justify-between gap-8">
-              {/* LOGO */}
-              <Link href="/" className="flex-shrink-0">
-                <Image
-                  src="/logo.png"
-                  alt="Bibocom Logo"
-                  width={100}
-                  height={30}
-                  priority
-                  className="w-[80px] sm:w-[100px] lg:w-[110px] h-auto"
-                />
-              </Link>
+            <div className="flex items-center justify-between gap-4">
+              {/* GAUCHE */}
+              <div className="flex-shrink-0">
+                {/* Logo - Mobile: toujours visible si déconnecté | Desktop: visible si déconnecté */}
+                {!isAuthenticated && !isLoading ? (
+                  <Link href="/">
+                    <Image
+                      src="/logo.png"
+                      alt="Bibocom Logo"
+                      width={100}
+                      height={30}
+                      priority
+                      className="w-[80px] sm:w-[100px] lg:w-[110px] h-auto"
+                    />
+                  </Link>
+                ) : (
+                  /* Hamburger - Mobile uniquement si connecté */
+                  <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu de navigation"}
+                  >
+                    <Menu className="h-6 w-6" />
+                  </button>
+                )}
+              </div>
 
               {/* NAV DESKTOP */}
               <nav className="hidden lg:flex flex-1 justify-center">
@@ -147,14 +162,15 @@ export function Header() {
                 </ul>
               </nav>
 
-              {/* ACTIONS DROITE - DESKTOP */}
-              <div className="hidden lg:flex items-center">
+              {/* ACTIONS DROITE */}
+              <div className="flex items-center">
                 {isLoading ? (
                   <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
                 ) : isAuthenticated ? (
+                  /* Si connecté: Avatar avec dropdown */
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
-                      <button className="flex items-center gap-2 px-4 py-2.5 rounded-full hover:bg-gray-100 transition-all duration-200">
+                      <button className="flex items-center gap-2 lg:px-4 lg:py-2.5 rounded-full hover:bg-gray-100 transition-all duration-200">
                         <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-sm overflow-hidden">
                           {avatarUrl ? (
                             <Image
@@ -183,6 +199,7 @@ export function Header() {
 
                       <Link
                         href="/student-dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
                       >
                         <LayoutDashboard className="h-4 w-4" />
@@ -191,6 +208,7 @@ export function Header() {
 
                       <Link
                         href="/user-profile"
+                        onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
                       >
                         <User className="h-4 w-4" />
@@ -198,7 +216,10 @@ export function Header() {
                       </Link>
 
                       <button
-                        onClick={logout}
+                        onClick={() => {
+                          logout();
+                          setMobileMenuOpen(false);
+                        }}
                         className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-gray-100 transition-colors"
                       >
                         <LogOut className="h-4 w-4" />
@@ -207,151 +228,106 @@ export function Header() {
                     </DropdownMenu.Content>
                   </DropdownMenu.Root>
                 ) : (
-                  <div className="flex items-center bg-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)]/90 rounded-2xl font-bold text-white shadow-md transition-all duration-200">
-                    <Link href="/register" className="px-6 xl:px-8 py-3.5 xl:py-4 text-base xl:text-lg">
-                      S'inscrire
-                    </Link>
-                    <span className="text-lg">/</span>
-                    <Link href="/login" className="px-6 xl:px-8 py-3.5 xl:py-4 text-base xl:text-lg">
-                      Se connecter
-                    </Link>
-                  </div>
-                )}
-              </div>
+                  /* Si déconnecté */
+                  <>
+                    {/* Desktop - Boutons S'inscrire/Se connecter */}
+                    <div className="hidden lg:flex items-center bg-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)]/90 rounded-2xl font-bold text-white shadow-md transition-all duration-200">
+                      <Link href="/register" className="px-6 xl:px-8 py-3.5 xl:py-4 text-base xl:text-lg">
+                        S'inscrire
+                      </Link>
+                      <span className="text-lg">/</span>
+                      <Link href="/login" className="px-6 xl:px-8 py-3.5 xl:py-4 text-base xl:text-lg">
+                        Se connecter
+                      </Link>
+                    </div>
 
-              {/* BOUTON HAMBURGER - MOBILE */}
-              <div className="lg:hidden">
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-                  aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-                >
-                  {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                </button>
+                    {/* Mobile - Hamburger uniquement */}
+                    <button
+                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                      className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                      aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu de navigation"}
+                    >
+                      <Menu className="h-6 w-6" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* MENU MOBILE */}
+        {/* MENU MOBILE - Plein écran pour navigation uniquement */}
         <div
           className={`
-            lg:hidden fixed inset-0 bg-white z-40 transition-transform duration-300 ease-in-out
+            lg:hidden fixed inset-0 bg-white z-[60] transition-transform duration-300 ease-in-out flex flex-col
             ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}
           `}
-          style={{ top: "80px" }}
         >
-          <div className="flex flex-col h-full overflow-y-auto">
-            {/* Navigation Links */}
-            <nav className="flex-1 px-6 py-8">
-              <ul className="space-y-4">
-                {navLinks.map(({ label, href }) => (
-                  <li key={href}>
-                    <Link
-                      href={href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`
-                        block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
-                        ${pathname === href 
-                          ? "bg-[var(--bibocom-red)] text-white" 
-                          : "text-gray-700 hover:bg-gray-100"
-                        }
-                      `}
-                    >
-                      {label}
-                    </Link>
-                  </li>
-                ))}
-                
-                {/* Formations - Ouvre le mega menu overlay sur mobile aussi */}
-                <li>
-                  <button
-                    onClick={handleFormationsClick}
-                    className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
-                  >
-                    <span>{formationsLink.label}</span>
-                    <ChevronDown className="h-5 w-5" />
-                  </button>
-                </li>
-              </ul>
-            </nav>
-
-            {/* Actions User - Mobile */}
-            <div className="border-t border-gray-200 p-6 space-y-4">
-              {isLoading ? (
-                <div className="h-12 rounded-xl bg-gray-200 animate-pulse" />
-              ) : isAuthenticated ? (
-                <div className="space-y-4">
-                  {/* User Info */}
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                    <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center font-bold text-sm overflow-hidden flex-shrink-0">
-                      {avatarUrl ? (
-                        <Image
-                          src={avatarUrl}
-                          alt={displayName}
-                          width={48}
-                          height={48}
-                        />
-                      ) : (
-                        initials
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate">{displayName}</p>
-                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                    </div>
-                  </div>
-
-                  {/* User Actions */}
-                  <Link
-                    href="/student-dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-base font-semibold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-                  >
-                    <LayoutDashboard className="h-5 w-5" />
-                    Tableau de bord
-                  </Link>
-
-                  <Link
-                    href="/user-profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-base font-semibold bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-                  >
-                    <User className="h-5 w-5" />
-                    Profil
-                  </Link>
-
-                  <button
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-base font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Déconnexion
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Link
-                    href="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full py-4 px-6 text-center bg-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)]/90 text-white font-bold rounded-xl transition-all duration-200 shadow-md"
-                  >
-                    S'inscrire
-                  </Link>
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full py-4 px-6 text-center border-2 border-[var(--bibocom-red)] text-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)] hover:text-white font-bold rounded-xl transition-all duration-200"
-                  >
-                    Se connecter
-                  </Link>
-                </div>
-              )}
-            </div>
+          {/* Header du menu mobile avec bouton X */}
+          <div className="flex items-center justify-between px-6 py-5 border-b flex-shrink-0">
+            <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Fermer le menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
           </div>
+
+          {/* Navigation Links - Zone scrollable */}
+          <nav className="flex-1 overflow-y-auto px-6 py-8">
+            <ul className="space-y-4">
+              {navLinks.map(({ label, href }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
+                      ${pathname === href
+                        ? "bg-[var(--bibocom-red)] text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                      }
+                    `}
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+
+              {/* Formations - Ouvre le mega menu overlay */}
+              <li>
+                <button
+                  onClick={handleFormationsClick}
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                >
+                  <span>{formationsLink.label}</span>
+                  <ChevronDown className="h-5 w-5" />
+                </button>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Boutons S'inscrire/Se connecter - Fixés en bas si déconnecté */}
+          {!isAuthenticated && !isLoading && (
+            <div className="px-6 py-6 border-t space-y-3 flex-shrink-0 bg-white">
+              <Link
+                href="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full py-3.5 text-center rounded-xl bg-[var(--bibocom-red)] text-white font-bold text-lg hover:bg-[var(--bibocom-red)]/90 transition-colors"
+              >
+                S'inscrire
+              </Link>
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full py-3.5 text-center rounded-xl border-2 border-[var(--bibocom-red)] text-[var(--bibocom-red)] font-bold text-lg hover:bg-gray-50 transition-colors"
+              >
+                Se connecter
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
