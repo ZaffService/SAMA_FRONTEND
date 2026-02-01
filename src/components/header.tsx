@@ -423,24 +423,25 @@ export function Header() {
                         <p className="font-bold text-sm truncate">{displayName}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                       </div>
+<div className="flex flex-col">
+  <Link
+    href="/student-dashboard"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
+  >
+    {/* <LayoutDashboard className="h-4 w-4" /> */}
+    Tableau de bord
+  </Link>
 
-                      <Link
-                        href="/student-dashboard"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
-                      >
-                        <LayoutDashboard className="h-4 w-4" />
-                        Tableau de bord
-                      </Link>
-
-                      <Link
-                        href="/user-profile"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
-                      >
-                        <User className="h-4 w-4" />
-                        Profil
-                      </Link>
+  <Link
+    href="/user-profile"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
+  >
+    {/* <User className="h-4 w-4" /> */}
+    Profil
+  </Link>
+</div>
 
                       <button
                         onClick={() => {
@@ -531,33 +532,38 @@ export function Header() {
                 </form>
               </li>
 
-              {navLinks.map(({ label, href }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`
-                      block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
-                      ${pathname === href
-                        ? "bg-[var(--bibocom-red)] text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                      }
-                    `}
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
+              {/* Liens masqués quand l'utilisateur tape dans le champ de recherche */}
+              {!searchQuery && (
+                <>
+                  {navLinks.map(({ label, href }) => (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`
+                          block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
+                          ${pathname === href
+                            ? "bg-[var(--bibocom-red)] text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                          }
+                        `}
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
 
-              <li>
-                <button
-                  onClick={handleFormationsClick}
-                  className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
-                >
-                  <span>{formationsLink.label}</span>
-                  <ChevronDown className="h-5 w-5" />
-                </button>
-              </li>
+                  <li>
+                    <button
+                      onClick={handleFormationsClick}
+                      className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                    >
+                      <span>{formationsLink.label}</span>
+                      <ChevronDown className="h-5 w-5" />
+                    </button>
+                  </li>
+                </>
+              )}
             </ul>
           </nav>
 

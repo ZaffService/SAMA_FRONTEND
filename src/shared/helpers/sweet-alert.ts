@@ -205,3 +205,16 @@ export function showDraftSavedSuccess(title: string) {
     timerProgressBar: true,
   });
 }
+
+export function showContactFormSuccess() {
+  Swal.fire({
+    icon: "success",
+    title: "Succès !",
+    text: "Votre message a été envoyé avec succès.\nNotre équipe vous répondra sous 24h.",
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true,
+  });
+}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Mail, Phone, MapPin, Send, MessageCircle, Clock } from "lucide-react";
+import { showContactFormSuccess } from "@/shared/helpers/sweet-alert";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -12,39 +13,101 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    subject?: string;
+    message?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+
+  // Validation functions
+  const validateName = (name: string): string | undefined => {
+    if (!name.trim()) return "Le nom est obligatoire";
+    if (name.trim().length < 2) return "Le nom doit contenir au moins 2 caractères";
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name.trim())) return "Le nom ne doit contenir que des lettres";
+    return undefined;
+  };
+
+  const validateEmail = (email: string): string | undefined => {
+    if (!email.trim()) return "L'email est obligatoire";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) return "Veuillez entrer un email valide";
+    return undefined;
+  };
+
+  const validateSubject = (subject: string): string | undefined => {
+    if (!subject) return "Veuillez sélectionner un sujet";
+    return undefined;
+  };
+
+  const validateMessage = (message: string): string | undefined => {
+    if (!message.trim()) return "Le message est obligatoire";
+    if (message.trim().length < 10) return "Le message doit contenir au moins 10 caractères";
+    if (message.trim().length > 1000) return "Le message ne doit pas dépasser 1000 caractères";
+    return undefined;
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {};
+    
+    const nameError = validateName(formData.name);
+    const emailError = validateEmail(formData.email);
+    const subjectError = validateSubject(formData.subject);
+    const messageError = validateMessage(formData.message);
+
+    if (nameError) newErrors.name = nameError;
+    if (emailError) newErrors.email = emailError;
+    if (subjectError) newErrors.subject = subjectError;
+    if (messageError) newErrors.message = messageError;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Simulation d'envoi
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     setIsSubmitting(false);
-    setSubmitStatus("success");
     setFormData({ name: "", email: "", subject: "", message: "" });
-
-    // Reset status après 3 secondes
-    setTimeout(() => setSubmitStatus("idle"), 3000);
+    
+    // Afficher le toast de succès avec SweetAlert2
+    showContactFormSuccess();
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
   };
 
   const contactInfo = [
     {
       icon: Mail,
       title: "Email",
-      value: "support@bibocomdigital.com",
-      href: "mailto:support@bibocomdigital.com",
+      value: "bibocomdigital.com",
+      href: "mailto:bibocomdigital.com",
     },
     {
       icon: Phone,
@@ -153,10 +216,14 @@ export default function ContactPage() {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none"
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none ${
+                            errors.name ? "border-red-500" : "border-gray-200"
+                          }`}
                           placeholder="Votre nom"
                         />
+                        {errors.name && (
+                          <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                        )}
                       </div>
                       <div>
                         <label
@@ -166,15 +233,19 @@ export default function ContactPage() {
                           Email *
                         </label>
                         <input
-                          type="email"
+                          type="text"
                           id="email"
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none"
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none ${
+                            errors.email ? "border-red-500" : "border-gray-200"
+                          }`}
                           placeholder="votre@email.com"
                         />
+                        {errors.email && (
+                          <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                        )}
                       </div>
                     </div>
 
@@ -190,8 +261,9 @@ export default function ContactPage() {
                         name="subject"
                         value={formData.subject}
                         onChange={handleChange}
-                        required
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none"
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none ${
+                          errors.subject ? "border-red-500" : "border-gray-200"
+                        }`}
                       >
                         <option value="">Sélectionnez un sujet</option>
                         <option value="support">Support technique</option>
@@ -199,6 +271,9 @@ export default function ContactPage() {
                         <option value="partnership">Partenariat</option>
                         <option value="other">Autre</option>
                       </select>
+                      {errors.subject && (
+                        <p className="mt-1 text-sm text-red-500">{errors.subject}</p>
+                      )}
                     </div>
 
                     <div>
@@ -213,11 +288,15 @@ export default function ContactPage() {
                         name="message"
                         value={formData.message}
                         onChange={handleChange}
-                        required
                         rows={5}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none resize-none"
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none resize-none ${
+                          errors.message ? "border-red-500" : "border-gray-200"
+                        }`}
                         placeholder="Décrivez votre demande..."
                       />
+                      {errors.message && (
+                        <p className="mt-1 text-sm text-red-500">{errors.message}</p>
+                      )}
                     </div>
 
                     <button
@@ -237,13 +316,6 @@ export default function ContactPage() {
                         </>
                       )}
                     </button>
-
-                    {submitStatus === "success" && (
-                      <div className="p-4 bg-green-50 text-green-700 rounded-lg flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5" />
-                        Message envoyé avec succès ! Nous vous répondrons sous 24h.
-                      </div>
-                    )}
                   </form>
                 </div>
               </div>
@@ -264,12 +336,20 @@ export default function ContactPage() {
             </p>
           </div>
           <div className="max-w-5xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-4 h-96 flex items-center justify-center border border-gray-100">
-              <div className="text-center text-gray-500">
-                <MapPin className="w-12 h-12 mx-auto mb-4 text-[var(--bibocom-blue)]" />
-                <p className="text-lg font-medium">Carte Google Maps</p>
-                <p className="text-sm">Dakar, Sénégal</p>
-              </div>
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3858.8432936213253!2d-17.46017722489144!3d14.720150185779398!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xec173bc8180b45f%3A0x6d219f9a2aa32b0e!2sBibocom%20Digital!5e0!3m2!1sfr!2ssn!4v1769986860510!5m2!1sfr!2ssn"
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Carte Google Maps - Bibocom Digital"
+              />
+            </div>
+            <div className="text-center mt-4">
+              <p className="text-gray-600">Dakar, Sénégal</p>
             </div>
           </div>
         </div>
@@ -277,23 +357,5 @@ export default function ContactPage() {
 
       <Footer />
     </div>
-  );
-}
-
-function CheckCircle({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
   );
 }

@@ -27,6 +27,8 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import HeroBanner from "@/components/hero-banner";
 import WhyChooseBibocom from "@/components/why-choose-bibocom";
+import HowItWorks from "@/components/how-it-works";
+import { Testimonials } from "@/components/testimonials";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
@@ -315,15 +317,19 @@ const Index = () => {
               className="pt-12"
             >
               <ProfileCompletionBanner />
-              {/* Titre - Layout mobile en colonne */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">
-                  {showFreeTutorials
-                    ? "Tutos gratuits disponibles"
-                    : selectedCategoryId
-                      ? `${categories.find((cat) => cat.id === selectedCategoryId)?.name || "Formations"}`
-                      : "Découvrez nos formations"}
-                </h2>
+              {/* Titre "Formations Populaires" avec lignes décoratives */}
+              <div className="flex flex-col items-center mb-12">
+                {/* Titre avec lignes */}
+                <div className="flex items-center justify-center gap-6 w-full max-w-6xl">
+                  <div className="hidden sm:block h-[1px] bg-[#2B3E91] flex-1 max-w-[400px]" />
+                  <h2 className="text-[#2B3E91] font-bold text-[1.75rem] md:text-[2.25rem] italic whitespace-nowrap">
+                    Formations Populaires
+                  </h2>
+                  <div className="hidden sm:block h-[1px] bg-[#2B3E91] flex-1 max-w-[400px]" />
+                </div>
+                
+                {/* Chevron */}
+                <ChevronDown className="w-6 h-6 text-[#2B3E91] mt-2" />
               </div>
 
               {/* Grille ou état vide */}
@@ -399,6 +405,12 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* Section "Comment ça marche ?" -仅 pour les utilisateurs non connectés */}
+      <HowItWorks />
+
+      {/* Section Témoignages -仅 pour les utilisateurs non connectés */}
+      <Testimonials />
 
       <Footer />
     </div>

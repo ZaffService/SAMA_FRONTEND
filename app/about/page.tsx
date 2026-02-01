@@ -30,7 +30,7 @@ const features = [
 
 const stats = [
   { value: "50+", label: "Formations disponibles" },
-  { value: "10K+", label: "Apprenants formés" },
+  { value: "5K+", label: "Apprenants formés" },
   { value: "98%", label: "Taux de satisfaction" },
   { value: "24/7", label: "Support disponible" },
 ];
@@ -41,12 +41,12 @@ export default function AboutPage() {
       <Header />
 
       {/* Hero Section */}
-      <div className="bg-[var(--bibocom-blue)] text-white">
+      <div className="bg-[var(--bibocom-blue)] text-white mt-2">
         <div className="container mx-auto px-6 py-20 lg:py-28">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-6">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-6">
               À Propos de BIBOCOM Digital
-            </h1>
+            </h2>
             <p className="text-xl text-blue-100 leading-relaxed">
               Nous démocratisons l'accès à la formation professionnelle en Afrique.
               Notre mission : permettre à chacun de développer ses compétences digitales
