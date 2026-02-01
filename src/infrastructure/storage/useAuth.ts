@@ -10,6 +10,12 @@ import type { User } from "@/domain/entities/user";
 
 // Fonction utilitaire pour forcer la suppression des cookies d'authentification
 function clearAuthCookies(): void {
+  const domains = [
+    window.location.hostname,
+    "." + window.location.hostname,
+    window.location.hostname.split(".").slice(-2).join("."),
+  ];
+
   // Liste des noms de cookies potentiels à supprimer
   const cookiesToClear = [
     "access_token",
@@ -18,24 +24,38 @@ function clearAuthCookies(): void {
     "session_id",
     "jwt",
     "token",
-    // Ajoutez ici d'autres noms de cookies si nécessaire
+    "user_session",
+    "auth_user",
+    "bibocom_session",
   ];
 
   cookiesToClear.forEach((cookieName) => {
-    // Supprimer le cookie du domaine actuel
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-
-    // Supprimer aussi du sous-domaine si nécessaire
-    try {
-      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname};`;
-    } catch (e) {
-      // Ignore les erreurs de domaine
-    }
-
-    // Pour les cookies sécurisés
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict;`;
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=lax;`;
+    domains.forEach((domain) => {
+      // Supprimer le cookie du domaine actuel
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+      
+      // Pour les cookies sécurisés
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict;`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=lax;`;
+      document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain}; secure;`;
+    });
   });
+
+  // Nettoyer localStorage et sessionStorage
+  const storageKeys = Object.keys(localStorage);
+  storageKeys.forEach((key) => {
+    if (
+      key.toLowerCase().includes("auth") ||
+      key.toLowerCase().includes("token") ||
+      key.toLowerCase().includes("user") ||
+      key.toLowerCase().includes("session")
+    ) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  sessionStorage.clear();
 }
 
 export function useLocalAuth(): AuthContextType {

@@ -73,6 +73,7 @@ interface CourseDetailsResponse {
     title: string;
     description: string;
     categoryId: string;
+    categoryName?: string;
     level: string;
     price: number;
     thumbnailUrl?: string;

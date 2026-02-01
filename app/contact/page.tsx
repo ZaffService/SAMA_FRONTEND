@@ -3,13 +3,9 @@
 import { useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from "lucide-react";
+import { Mail, Phone, MapPin, Send, MessageCircle, Clock } from "lucide-react";
 
-export default function Contact() {
+export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -17,25 +13,25 @@ export default function Contact() {
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Simulation d'envoi
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     setIsSubmitting(false);
-    setIsSubmitted(true);
+    setSubmitStatus("success");
     setFormData({ name: "", email: "", subject: "", message: "" });
 
-    // Reset success message after 5 seconds
-    setTimeout(() => setIsSubmitted(false), 5000);
+    // Reset status après 3 secondes
+    setTimeout(() => setSubmitStatus("idle"), 3000);
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -45,198 +41,259 @@ export default function Contact() {
 
   const contactInfo = [
     {
-      icon: MapPin,
-      title: "Adresse",
-      details: ["123 Avenue de la Formation", "Dakar, Sénégal"],
+      icon: Mail,
+      title: "Email",
+      value: "support@bibocomdigital.com",
+      href: "mailto:support@bibocomdigital.com",
     },
     {
       icon: Phone,
       title: "Téléphone",
-      details: ["+221 33 123 45 67", "+221 77 123 45 67"],
+      value: "+221 33 123 45 67",
+      href: "tel:+221331234567",
     },
     {
-      icon: Mail,
-      title: "Email",
-      details: ["contact@bibocom-digital.sn", "support@bibocom-digital.sn"],
+      icon: MapPin,
+      title: "Adresse",
+      value: "Dakar, Sénégal",
+      href: "#",
     },
     {
       icon: Clock,
-      title: "Horaires",
-      details: ["Lundi - Vendredi: 9h - 18h", "Samedi: 9h - 12h"],
+      title: "Heures d'ouverture",
+      value: "Lun-Ven: 9h-18h | Sam: 9h-13h",
+      href: "#",
     },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="flex-1 pt-20 sm:pt-24 lg:pt-28">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary/10 to-destructive/10 py-16 lg:py-24">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-                Contactez-nous
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Notre équipe est là pour vous aider. N'hésitez pas à nous
-                contacter pour toute question concernant nos formations ou votre
-                compte.
-              </p>
-            </div>
+      {/* Hero Section */}
+      <div className="bg-[var(--bibocom-blue)] text-white">
+        <div className="container mx-auto px-6 py-20 lg:py-28">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-6">
+            </h1>
+            <p className="text              Contact
+-xl text-blue-100 leading-relaxed">
+              Vous avez des questions ou besoin d'aide ? Notre équipe est là pour vous accompagner.
+              N'hésitez pas à nous contacter via le formulaire ou par téléphone.
+            </p>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            {/* Contact Form */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">
-                Envoyez-nous un message
-              </h2>
-
-              {isSubmitted ? (
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-6 text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-                    Message envoyé !
-                  </h3>
-                  <p className="text-green-800 dark:text-green-200">
-                    Merci pour votre message. Nous vous répondrons dans les plus
-                    brefs délais.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Nom complet *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Votre nom"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="votre@email.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subject">Sujet *</Label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      type="text"
-                      required
-                      value={formData.subject}
-                      onChange={handleChange}
-                      placeholder="Objet de votre message"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="message">Message *</Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      required
-                      value={formData.message}
-                      onChange={handleChange}
-                      placeholder="Votre message..."
-                      rows={6}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={isSubmitting}
-                    className="w-full"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Envoyer le message
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
-            </div>
-
-            {/* Contact Info */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">
-                Informations de contact
-              </h2>
-
-              <div className="space-y-6">
-                {contactInfo.map((info, index) => (
-                  <div key={index} className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
-                      <info.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{info.title}</h3>
-                      {info.details.map((detail, i) => (
-                        <p key={i} className="text-muted-foreground text-sm">
-                          {detail}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+      {/* Contact Info Cards */}
+      <div className="container mx-auto px-6 -mt-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          {contactInfo.map((info, index) => (
+            <a
+              key={index}
+              href={info.href}
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+            >
+              <div className="w-14 h-14 bg-[var(--bibocom-blue)]/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-[var(--bibocom-blue)] transition-colors">
+                <info.icon className="w-7 h-7 text-[var(--bibocom-blue)] group-hover:text-white transition-colors" />
               </div>
+              <h3 className="font-semibold text-gray-500 text-sm mb-1">{info.title}</h3>
+              <p className="text-gray-900 font-medium">{info.value}</p>
+            </a>
+          ))}
+        </div>
+      </div>
 
-              {/* FAQ Section */}
-              <div className="mt-12 p-6 bg-muted/30 rounded-lg">
-                <h3 className="font-semibold mb-4">Questions fréquentes</h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="font-medium">Comment accéder à mes cours ?</p>
-                    <p className="text-muted-foreground">
-                      Connectez-vous à votre compte et allez dans "Mes cours".
-                    </p>
+      {/* Contact Form */}
+      <section className="py-16 lg:py-24">
+        <div className="container mx-auto px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="grid lg:grid-cols-2">
+                {/* Info Side */}
+                <div className="bg-[var(--bibocom-blue)] text-white p-8 lg:p-12">
+                  <div className="flex items-center gap-3 mb-8">
+                    <MessageCircle className="w-8 h-8" />
+                    <h2 className="text-2xl font-bold">Parlons-en !</h2>
                   </div>
-                  <div>
-                    <p className="font-medium">Problème de paiement ?</p>
-                    <p className="text-muted-foreground">
-                      Contactez notre support avec votre numéro de transaction.
-                    </p>
+                  <p className="text-blue-100 mb-8 leading-relaxed">
+                    Remplissez le formulaire et notre équipe vous répondra dans les plus brefs délais.
+                    Nous sommes disponibles pour répondre à toutes vos questions.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                        <Mail className="w-5 h-5" />
+                      </div>
+                      <span>support@bibocomdigital.com</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                        <Phone className="w-5 h-5" />
+                      </div>
+                      <span>+221 33 123 45 67</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">Besoin d'aide technique ?</p>
-                    <p className="text-muted-foreground">
-                      Écrivez-nous à support@bibocom-digital.sn
-                    </p>
-                  </div>
+                </div>
+
+                {/* Form Side */}
+                <div className="p-8 lg:p-12">
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label
+                          htmlFor="name"
+                          className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          Nom complet *
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none"
+                          placeholder="Votre nom"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="email"
+                          className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          Email *
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          required
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none"
+                          placeholder="votre@email.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="subject"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Sujet *
+                      </label>
+                      <select
+                        id="subject"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleChange}
+                        required
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none"
+                      >
+                        <option value="">Sélectionnez un sujet</option>
+                        <option value="support">Support technique</option>
+                        <option value="billing">Question sur la facturation</option>
+                        <option value="partnership">Partenariat</option>
+                        <option value="other">Autre</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="message"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Message *
+                      </label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        value={formData.message}
+                        onChange={handleChange}
+                        required
+                        rows={5}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none resize-none"
+                        placeholder="Décrivez votre demande..."
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-4 bg-[var(--bibocom-blue)] text-white font-semibold rounded-lg hover:bg-[var(--bibocom-blue)]/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Envoi en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          Envoyer le message
+                        </>
+                      )}
+                    </button>
+
+                    {submitStatus === "success" && (
+                      <div className="p-4 bg-green-50 text-green-700 rounded-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        Message envoyé avec succès ! Nous vous répondrons sous 24h.
+                      </div>
+                    )}
+                  </form>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Map Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl mx-auto text-center mb-8">
+            <h2 className="text-2xl lg:text-3xl font-bold mb-4">
+              Venez nous rendre visite
+            </h2>
+            <p className="text-gray-600">
+              Notre équipe sera ravie de vous accueillir dans nos locaux.
+            </p>
+          </div>
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-lg p-4 h-96 flex items-center justify-center border border-gray-100">
+              <div className="text-center text-gray-500">
+                <MapPin className="w-12 h-12 mx-auto mb-4 text-[var(--bibocom-blue)]" />
+                <p className="text-lg font-medium">Carte Google Maps</p>
+                <p className="text-sm">Dakar, Sénégal</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>
+  );
+}
+
+function CheckCircle({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
   );
 }

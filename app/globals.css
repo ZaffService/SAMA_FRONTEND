@@ -190,6 +190,47 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* =========================================
+     COULEURS PRINCIPALES DE LA MARQUE
+     ========================================= */
+  --bibocom-blue: #0A2A66;
+  --bibocom-red: #E53935;
+
+  /* =========================================
+     COULEURS DU HEADER
+     ========================================= */
+  --header-text-primary: #0A2A66;
+  --header-text-active: #EF4444;
+  --header-bg: #FFFFFF;
+  --header-hover: #F1F5F9;
+
+  /* =========================================
+     COULEURS DU HERO BANNER
+     ========================================= */
+  --hero-overlay: #0A2A66;
+  --hero-overlay-opacity: 0.9;
+  --hero-text: #FFFFFF;
+  --hero-button-primary: #E53935;
+  --hero-button-primary-hover: #C62828;
+  --hero-button-secondary: #FFFFFF;
+
+  /* =========================================
+     COULEURS DU FOOTER
+     ========================================= */
+  --footer-bg: #0A2A66;
+  --footer-text: #FFFFFF;
+  --footer-text-muted: #94A3B8;
+
+  /* =========================================
+     COULEURS COMMUNES
+     ========================================= */
+  --white: #FFFFFF;
+  --black: #000000;
+  --gray-100: #5F6C7B;
+  --gray-200: #E2E8F0;
+  --gray-500: #64748B;
+  --gray-900: #0F172A;
+
   /* Design System style Tutor LMS - Palette bleue professionnelle */
   --background: oklch(0.995 0 0);
   --foreground: oklch(0.15 0.02 250);

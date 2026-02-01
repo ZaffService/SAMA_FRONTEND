@@ -272,7 +272,11 @@ const Index = () => {
       <Header />
       <HeroBanner />
 
-      <main className="container mx-auto px-4 py-8 pt-3 sm:pt-18 lg:pt-3">
+      <main
+        className={`container mx-auto px-4 py-8 ${
+          isAuthenticated ? "pt-3" : "pt-3 sm:pt-18 lg:pt-3"
+        }`}
+      >
         {!hasCoursesInDatabase ? (
           <EmptyCoursesState />
         ) : (

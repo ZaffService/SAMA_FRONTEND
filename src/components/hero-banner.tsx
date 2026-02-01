@@ -6,6 +6,12 @@ import { Gift, BookOpen, Star } from "lucide-react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 
 const HeroBanner = () => {
+  const { isAuthenticated } = useLocalAuth();
+
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="relative w-full overflow-hidden">
       {/* Hero Banner Image avec Texte et Boutons */}
@@ -18,7 +24,7 @@ const HeroBanner = () => {
         />
 
         {/* Overlay gradient pour mobile - meilleure lisibilité du texte blanc */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1a4b8c]/90 via-[#1a4b8c]/70 to-transparent lg:from-transparent lg:via-transparent lg:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bibocom-blue)]/90 via-[var(--bibocom-blue)]/70 to-transparent lg:from-transparent lg:via-transparent lg:to-transparent" />
 
         {/* Contenu superposé */}
         <div className="absolute inset-0 flex items-center px-4 sm:px-8 md:pl-12 lg:pl-20 pt-4 lg:pt-0">
@@ -42,12 +48,12 @@ const HeroBanner = () => {
             {/* Boutons CTA - Empilés en colonne sur mobile, en ligne sur desktop */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               {/* Bouton rouge plein */}
-              <button className="bg-[#E74C3C] hover:bg-[#C0392B] text-white px-5 sm:px-7 py-3 rounded-md font-semibold transition-all duration-200 text-sm sm:text-[0.95rem] shadow-lg w-full sm:w-auto text-center">
+              <button className="bg-[var(--hero-button-primary)] hover:bg-[var(--hero-button-primary-hover)] text-[var(--hero-text)] px-5 sm:px-7 py-3 rounded-md font-semibold transition-all duration-200 text-sm sm:text-[0.95rem] shadow-lg w-full sm:w-auto text-center">
                 Découvrir les formations
               </button>
 
               {/* Bouton outline blanc */}
-              <button className="bg-transparent border-2 border-white hover:bg-white/10 text-white px-5 sm:px-7 py-3 rounded-md font-semibold transition-all duration-200 text-sm sm:text-[0.95rem] w-full sm:w-auto text-center">
+              <button className="bg-transparent border-2 border-[var(--hero-text)] hover:bg-[var(--hero-text)]/10 text-[var(--hero-text)] px-5 sm:px-7 py-3 rounded-md font-semibold transition-all duration-200 text-sm sm:text-[0.95rem] w-full sm:w-auto text-center">
                 Commencer maintenant
               </button>
             </div>
