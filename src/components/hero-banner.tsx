@@ -1,12 +1,57 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import Image from "next/image";
-import { Gift, BookOpen, Star } from "lucide-react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+
+// Composant Typewriter avec effet machine à écrire
+const TypewriterText = ({ words }: { words: string[] }) => {
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [currentText, setCurrentText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentWord = words[currentWordIndex];
+    const typingSpeed = isDeleting ? 50 : 100; // Effacement plus rapide
+
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        // Phase d'écriture
+        if (currentText.length < currentWord.length) {
+          setCurrentText(currentWord.slice(0, currentText.length + 1));
+        } else {
+          // Pause de 2 secondes avant d'effacer
+          setTimeout(() => setIsDeleting(true), 2000);
+        }
+      } else {
+        // Phase d'effacement
+        if (currentText.length > 0) {
+          setCurrentText(currentText.slice(0, -1));
+        } else {
+          setIsDeleting(false);
+          setCurrentWordIndex((prev) => (prev + 1) % words.length);
+        }
+      }
+    }, typingSpeed);
+
+    return () => clearTimeout(timeout); // Cleanup pour éviter les fuites mémoire
+  }, [currentText, isDeleting, currentWordIndex, words]);
+
+  return (
+    <span className="inline">
+      {currentText}
+      <span className="animate-pulse text-[#E74C3C]">|</span> {/* Curseur clignotant rouge */}
+    </span>
+  );
+};
 
 const HeroBanner = () => {
   const { isAuthenticated } = useLocalAuth();
+
+  // Textes à afficher dans le Typewriter
+  const titleWords = [
+    "Apprenez dans votre langue.",
+    "Comprenez vraiment.",
+    "Réussissez pour de vrai.",
+  ];
 
   if (isAuthenticated) {
     return null;
@@ -29,20 +74,23 @@ const HeroBanner = () => {
         {/* Contenu superposé */}
         <div className="absolute inset-0 flex items-center px-4 sm:px-8 md:pl-12 lg:pl-20 pt-4 lg:pt-0">
           <div className="max-w-full sm:max-w-xl lg:max-w-3xl">
-            {/* Titre principal - Responsive avec tailles adaptées */}
-            <h1 className="text-white font-bold text-2xl sm:text-3xl md:text-4xl lg:text-[3.5rem] xl:text-[4rem] leading-tight lg:leading-[1.1] mb-4 sm:mb-6">
-              Développez vos compétences
-              <br className="hidden sm:block" />
-              <span className="sm:hidden"> </span>
-              digitales et professionnelles
-            </h1>
+            {/* Titre H1 avec effet Typewriter */}
+            <p className=" text-white font-bold leading-tight mb-4 sm:mb-6 min-h-[100px] sm:min-h-[120px] lg:min-h-[250px]">
+  <TypewriterText words={titleWords} />
+</p>
 
-            {/* Sous-titre - Responsive */}
-            <p className="text-white/95 sm:text-white text-sm sm:text-base lg:text-[1.1rem] font-normal mb-6 sm:mb-8 leading-relaxed">
-              Formations certifiantes 100% en ligne avec
+            {/* Paragraphe descriptif statique */}
+            <p className="text-white/90 text-sm sm:text-base lg:text-[1.1rem] font-normal mb-6 sm:mb-8 leading-relaxed">
+              Formations Numériques et Créatives 100% pratiques,
               <br className="hidden lg:block" />
               <span className="lg:hidden"> </span>
-              BIBOCOM Digital
+              expliquées en langues locales, pour transformer
+              <br className="hidden lg:block" />
+              <span className="lg:hidden"> </span>
+              la compréhension en compétences réelles et monétisables
+              <br className="hidden lg:block" />
+              <span className="lg:hidden"> </span>
+              sans barrière technologique.
             </p>
 
             {/* Boutons CTA - Empilés en colonne sur mobile, en ligne sur desktop */}
