@@ -50,11 +50,11 @@ export function Testimonials() {
               {/* Speech bubble card */}
               <div className="flex items-start gap-4">
   {/* Avatar */}
-  <img
+  {/* <img
     src="/avatar-blandine.jpg"
     alt="Blandine"
     className="w-12 h-12 rounded-full object-cover"
-  />
+  /> */}
 
   {/* Message bubble */}
   <div className="bg-white rounded-2xl shadow-md p-4 max-w-md">

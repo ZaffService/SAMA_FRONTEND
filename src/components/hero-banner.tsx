@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import Link from "next/link";
 
 // Composant Typewriter avec effet machine à écrire
 const TypewriterText = ({
@@ -106,12 +107,12 @@ const HeroBanner = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <button className="!bg-[var(--bibocom-red)] hover:!bg-[var(--hero-button-primary-hover)] !text-[var(--hero-text)] px-5 sm:px-7 py-3 rounded-md !font-semibold transition-all !text-sm sm:!text-[0.95rem] shadow-lg w-full sm:w-auto text-center">
+              <Link href="#formations" className="!bg-[var(--bibocom-red)] hover:!bg-[var(--hero-button-primary-hover)] !text-[var(--hero-text)] px-5 sm:px-7 py-3 rounded-md !font-semibold transition-all !text-sm sm:!text-[0.95rem] shadow-lg w-full sm:w-auto text-center inline-block">
                 Découvrir les formations
-              </button>
-              <button className="!bg-transparent !border-2 !border-[var(--hero-button-secondary)] hover:!bg-[var(--hero-button-secondary)]/10 !text-[var(--hero-text)] px-5 sm:px-7 py-3 rounded-md !font-semibold transition-all !text-sm sm:!text-[0.95rem] w-full sm:w-auto text-center">
+              </Link>
+              <Link href="/register" className="!bg-transparent !border-2 !border-[var(--hero-button-secondary)] hover:!bg-[var(--hero-button-secondary)]/10 !text-[var(--hero-text)] px-5 sm:px-7 py-3 rounded-md !font-semibold transition-all !text-sm sm:!text-[0.95rem] w-full sm:w-auto text-center inline-block">
                 Commencer maintenant
-              </button>
+              </Link>
             </div>
 
           </div>

@@ -62,7 +62,7 @@ export function CategoryFilter({
   }
 
   return (
-    <div className="w-full space-y-2">
+    <div id="formations" className="w-full space-y-2">
       {/* Titre */}
       <div className="text-center">
         <h3 className="text-xl md:text-2xl font-bold text-slate-900">
