@@ -18,7 +18,7 @@ const HowItWorks = () => {
   }
 
   return (
-    <section className="py-12 px-4 bg-[#e8f4fc]">
+    <section className="py-40 px-4 bg-[#e8f4fc]">
       {/* Title with dotted lines */}
       <div className="flex items-center justify-center gap-4 mb-8">
         <div className="flex-1 max-w-[200px] border-t-2 border-dashed border-[#1a5fb4]/30"></div>

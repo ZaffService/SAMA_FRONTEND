@@ -74,7 +74,7 @@ const HeroBanner = () => {
     <div className="relative w-full overflow-hidden pt-24 sm:pt-28 lg:pt-0">
       <div className="relative w-full min-h-[500px] sm:min-h-[600px] lg:min-h-0">
         <img
-          src="/Baniere.png"
+          src="/2.svg"
           alt="BIBOCOM Digital - Formations en ligne"
           className="w-full h-full object-cover lg:h-auto absolute inset-0 lg:relative lg:inset-auto"
         />
