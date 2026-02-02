@@ -58,7 +58,11 @@ export default function ClientLogin() {
   // Fonctions de validation personnalisées
   const validateEmail = (email: string): string | null => {
     if (!email.trim()) return "Email requis";
-    if (!email.includes("@") || !email.includes(".") || email.indexOf("@") >= email.lastIndexOf(".")) {
+    if (
+      !email.includes("@") ||
+      !email.includes(".") ||
+      email.indexOf("@") >= email.lastIndexOf(".")
+    ) {
       return "Format email invalide";
     }
     return null;
@@ -111,9 +115,15 @@ export default function ClientLogin() {
 
       // Déterminer si l'erreur concerne l'email ou le mot de passe
       const message = err.message?.toLowerCase() || "";
-      if (message.includes("email") && (message.includes("not found") || message.includes("not verified"))) {
+      if (
+        message.includes("email") &&
+        (message.includes("not found") || message.includes("not verified"))
+      ) {
         setEmailError(errorMessage);
-      } else if (message.includes("password") && message.includes("incorrect")) {
+      } else if (
+        message.includes("password") &&
+        message.includes("incorrect")
+      ) {
         setPasswordError(errorMessage);
       } else {
         // Par défaut, afficher sur le champ email
@@ -126,7 +136,6 @@ export default function ClientLogin() {
 
   return (
     <>
-
       <div className="min-h-screen flex flex-col lg:flex-row overflow-hidden">
         {/* Header Mobile avec padding réduit */}
         <div className="lg:hidden flex items-center justify-start px-4 py-3 border-b bg-white sticky top-0 z-20">
@@ -219,26 +228,26 @@ export default function ClientLogin() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-1 py-1 lg:py-2">
-                <div className="flex items-start gap-2 lg:gap-2.5">
+              <div className="flex items-center justify-between py-1 lg:py-2">
+                <div className="flex items-center gap-2 lg:gap-2.5">
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
                     onCheckedChange={(checked) =>
                       setRememberMe(checked as boolean)
                     }
-                    className="mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5"
+                    className="lg:h-5 lg:w-5"
                   />
                   <label
                     htmlFor="remember"
-                    className="text-sm lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
+                    className="text-sm lg:text-base text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
                   >
                     Se souvenir
                   </label>
                 </div>
                 <Link
                   href="/forgot-password"
-                  className="text-sm lg:text-base text-primary hover:underline ml-6 lg:ml-[22px]"
+                  className="text-sm lg:text-base text-primary hover:underline"
                 >
                   Mot de passe oublié ?
                 </Link>
