@@ -112,7 +112,7 @@ export function Header() {
   const navLinks = [
     { label: "Accueil", href: "/" },
     { label: "À propos", href: "/about" },
-    { label: "E-Book", href: "/e-book" },
+    // { label: "E-Book", href: "/e-book" },
     { label: "Contact", href: "/contact" },
   ];
 

@@ -175,7 +175,7 @@ export default function EbookPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-16 lg:py-24 bg-[var(--bibocom-blue)] text-white">
+      {/* <section className="py-16 lg:py-24 bg-[var(--bibocom-blue)] text-white">
         <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl lg:text-4xl font-bold mb-6">
@@ -197,7 +197,7 @@ export default function EbookPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <Footer />
     </div>
