@@ -14,9 +14,10 @@ import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
-import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
+import { getAuthErrorMessage, parseApiError } from "@/shared/helpers/error-mapping";
 import { COUNTRIES, type Country } from "@/lib/countries";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -230,17 +231,34 @@ export default function Register() {
         throw new Error("Réponse inattendue du serveur");
       }
     } catch (err) {
-      // Utiliser le système de mapping d'erreurs pour traduire en français
+      // Parser l'erreur pour obtenir le code structuré
+      const parsedError = parseApiError(err);
       const errorMessage = getAuthErrorMessage(err);
 
-      // Déterminer si l'erreur concerne l'email ou le téléphone
-      const originalMessage = (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
-      if (originalMessage.includes("email") || originalMessage.includes("user")) {
-        setEmailError(errorMessage);
-      } else if (originalMessage.includes("phone") || originalMessage.includes("téléphone") || originalMessage.includes("indicatif")) {
+      // Vérifier le code d'erreur pour afficher au bon endroit
+      if (parsedError.code === "TELEPHONE_ALREADY_EXIST") {
         setPhoneError(errorMessage);
+      } else if (
+        parsedError.code === "USER_ALREADY_EXISTS" ||
+        parsedError.code === "CONFLICTING_OPERATION" ||
+        parsedError.code?.includes("EMAIL")
+      ) {
+        setEmailError(errorMessage);
       } else {
-        setEmailError(errorMessage); // Par défaut sur email
+        // Fallback: vérifier le message pour compatibilité
+        const originalMessage = (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
+        if (originalMessage.includes("email")) {
+          setEmailError(errorMessage);
+        } else if (
+          originalMessage.includes("phone") ||
+          originalMessage.includes("téléphone") ||
+          originalMessage.includes("telephone") ||
+          originalMessage.includes("indicatif")
+        ) {
+          setPhoneError(errorMessage);
+        } else {
+          setEmailError(errorMessage);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -428,7 +446,7 @@ export default function Register() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder={`${formData.indicatif} ${COUNTRIES.find(c => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
+                    placeholder="777867740"
                     value={formData.telephone}
                     onChange={(e) => {
                       // Ne garder que les chiffres
@@ -617,38 +635,41 @@ export default function Register() {
               </div>
 
               <div className="flex flex-col gap-1 py-0.5 lg:py-1.5">
-                <div className="flex items-start gap-2 lg:gap-2.5">
-                  <Checkbox
-                    id="terms"
-                    checked={formData.acceptTerms}
-                    onCheckedChange={(checked) => {
-                      setFormData({
-                        ...formData,
-                        acceptTerms: checked as boolean,
-                      });
-                      if (termsError) setTermsError("");
-                    }}
-                    className={`mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5 ${
-                      termsError ? "border-red-500" : ""
-                    }`}
-                  />
-                  <label
-                    htmlFor="terms"
-                    className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
-                  >
-                    J'accepte les conditions d'utilisation
-                  </label>
-                </div>
-                {termsError && (
-                  <p className="text-red-600 text-xs ml-6 animate-in slide-in-from-top-1 duration-200">
-                    {termsError}
-                  </p>
-                )}
-              </div>
+  <div className="flex items-start gap-2 lg:gap-2.5">
+    <Checkbox
+      id="terms"
+      checked={formData.acceptTerms}
+      onCheckedChange={(checked) => {
+        setFormData({
+          ...formData,
+          acceptTerms: checked as boolean,
+        });
+        if (termsError) setTermsError("");
+      }}
+      className={cn(
+        "mt-0.5",
+        termsError && "border-red-500 data-[state=checked]:border-red-500"
+      )}
+    />
+    <label
+      htmlFor="terms"
+      className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
+    >
+      J'accepte les conditions d'utilisation
+    </label>
+  </div>
+
+  {termsError && (
+    <p className="text-red-600 text-xs ml-6 animate-in slide-in-from-top-1 duration-200">
+      {termsError}
+    </p>
+  )}
+</div>
+
 
               <Button
                 type="submit"
-                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium"
+                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium  bg-blue-600 inline-block text-white px-3 py-1 rounded-md"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -666,7 +687,7 @@ export default function Register() {
               Vous avez déjà un compte ?{" "}
               <Link
                 href="/login"
-                className="text-primary hover:underline font-semibold"
+                className="text-primary hover:underline font-semibold "
               >
                 Se connecter
               </Link>

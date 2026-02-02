@@ -116,6 +116,18 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
     action: "NONE",
   },
 
+  TELEPHONE_ALREADY_EXIST: {
+    title: "Numéro de téléphone existant",
+    message: "Un compte avec ce numéro de téléphone existe déjà.",
+    action: "NONE",
+  },
+
+  TELEPHONE_EXISTS: {
+    title: "Numéro de téléphone existant",
+    message: "Un compte avec ce numéro de téléphone existe déjà.",
+    action: "NONE",
+  },
+
   CONFLICTING_OPERATION: {
     title: "Utilisateur déjà inscrit",
     message: "Cet email est déjà utilisé.",
