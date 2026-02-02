@@ -14,7 +14,7 @@ import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
-import { getAuthErrorMessage, parseApiError } from "@/shared/helpers/error-mapping";
+import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
 import { COUNTRIES, type Country } from "@/lib/countries";
 import {
   Select,
@@ -242,8 +242,7 @@ export default function Register() {
         throw new Error("Réponse inattendue du serveur");
       }
     } catch (err) {
-      // Parser l'erreur pour obtenir le code structuré
-      const parsedError = parseApiError(err);
+      // Utiliser le système de mapping d'erreurs pour traduire en français
       const errorMessage = getAuthErrorMessage(err);
 
       // Déterminer si l'erreur concerne l'email ou le téléphone
@@ -261,20 +260,7 @@ export default function Register() {
       ) {
         setPhoneError(errorMessage);
       } else {
-        // Fallback: vérifier le message pour compatibilité
-        const originalMessage =
-          (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
-        if (originalMessage.includes("email")) {
-          setEmailError(errorMessage);
-        } else if (
-          originalMessage.includes("phone") ||
-          originalMessage.includes("téléphone") ||
-          originalMessage.includes("telephone")
-        ) {
-          setPhoneError(errorMessage);
-        } else {
-          setEmailError(errorMessage);
-        }
+        setEmailError(errorMessage); // Par défaut sur email
       }
     } finally {
       setIsLoading(false);
@@ -444,14 +430,9 @@ export default function Register() {
                     }`}
                   />
                   {emailError && (
-                    <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-md animate-in slide-in-from-top-1 duration-200">
-                      <p className="text-red-600 text-xs font-medium flex items-center gap-1.5">
-                        <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        {emailError}
-                      </p>
-                    </div>
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {emailError}
+                    </p>
                   )}
                 </div>
 
@@ -491,14 +472,9 @@ export default function Register() {
                     }
                   />
                   {phoneError && (
-                    <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-md animate-in slide-in-from-top-1 duration-200">
-                      <p className="text-red-600 text-xs font-medium flex items-center gap-1.5">
-                        <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        {phoneError}
-                      </p>
-                    </div>
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {phoneError}
+                    </p>
                   )}
                   {formData.telephone && (
                     <p className="text-xs text-muted-foreground mt-1">

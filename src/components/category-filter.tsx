@@ -65,7 +65,7 @@ export function CategoryFilter({
     <div id="formations" className="w-full space-y-2">
       {/* Titre */}
       <div className="text-center">
-        <h3 className="text-xl md:text-2xl font-bold text-slate-900 mt-10">
+        <h3 className="text-xl md:text-2xl font-bold text-slate-900">
           Explorez par domaine
         </h3>
         <p className="text-sm text-slate-500 mt-1">
