@@ -190,13 +190,19 @@ export function getChangedFields(
   if (current.region !== initial.region && current.region !== "") {
     changed.region = current.region;
   }
-  if (current.residenceType !== initial.residenceType && current.residenceType !== "") {
+  if (
+    current.residenceType !== initial.residenceType &&
+    current.residenceType !== ""
+  ) {
     changed.residenceType = current.residenceType;
   }
   if (current.disability !== initial.disability) {
     changed.disability = current.disability;
   }
-  if (current.disabilityType !== initial.disabilityType && current.disabilityType !== "") {
+  if (
+    current.disabilityType !== initial.disabilityType &&
+    current.disabilityType !== ""
+  ) {
     changed.disabilityType = current.disabilityType;
   }
   if (current.disabilityDetails !== initial.disabilityDetails) {
@@ -221,26 +227,34 @@ export class UserApi {
       };
       console.log(`📡 API: Création d'utilisateur admin:`, payload);
 
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.ADMIN_CREATE), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.USER.ADMIN_CREATE),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
 
       console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ API: Erreur ${response.status}: ${errorText}`);
-        throw new Error(`Erreur ${response.status}: Impossible de créer l'utilisateur`);
+        throw new Error(
+          `Erreur ${response.status}: Impossible de créer l'utilisateur`,
+        );
       }
 
       const user = await response.json();
       console.log(`✅ API: Utilisateur créé:`, user);
       return user;
     } catch (error) {
-      console.error(`❌ API: Erreur lors de la création de l'utilisateur:`, error);
+      console.error(
+        `❌ API: Erreur lors de la création de l'utilisateur:`,
+        error,
+      );
       throw error;
     }
   }
@@ -251,7 +265,7 @@ export class UserApi {
   static async getUserProfile(): Promise<UserProfileData | null> {
     try {
       console.log("📡 API: Récupération du profil utilisateur");
-      
+
       const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
         method: "GET",
         credentials: "include",
@@ -278,38 +292,52 @@ export class UserApi {
   /**
    * Compléter/mettre à jour le profil utilisateur
    */
-  static async completeProfile(data: CompleteProfileData): Promise<UserProfileData> {
+  static async completeProfile(
+    data: CompleteProfileData,
+  ): Promise<UserProfileData> {
     try {
       console.log(`📡 API: Mise à jour du profil:`, data);
 
       // Filtrer les champs undefined/null pour n'envoyer que les champs modifiés
       const payload: Record<string, unknown> = {};
-      
+
       if (data.firstName !== undefined) payload.firstName = data.firstName;
       if (data.lastName !== undefined) payload.lastName = data.lastName;
       if (data.sexe !== undefined) payload.sexe = data.sexe;
       if (data.region !== undefined) payload.region = data.region;
-      if (data.residenceType !== undefined) payload.residenceType = data.residenceType;
+      if (data.residenceType !== undefined)
+        payload.residenceType = data.residenceType;
       if (data.disability !== undefined) payload.disability = data.disability;
-      if (data.disabilityType !== undefined) payload.disabilityType = data.disabilityType;
-      if (data.disabilityDetails !== undefined) payload.disabilityDetails = data.disabilityDetails;
-      if (data.consentGiven !== undefined) payload.consentGiven = data.consentGiven;
+      if (data.disabilityType !== undefined)
+        payload.disabilityType = data.disabilityType;
+      if (data.disabilityDetails !== undefined)
+        payload.disabilityDetails = data.disabilityDetails;
+      if (data.consentGiven !== undefined)
+        payload.consentGiven = data.consentGiven;
 
       console.log(`📡 API: Payload envoyé:`, payload);
 
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
 
       console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "Erreur inconnue" }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Erreur inconnue" }));
         console.error(`❌ API: Erreur ${response.status}:`, errorData);
-        throw new Error(errorData.message || `Erreur ${response.status}: Impossible de mettre à jour le profil`);
+        throw new Error(
+          errorData.message ||
+            `Erreur ${response.status}: Impossible de mettre à jour le profil`,
+        );
       }
 
       const result = await response.json();

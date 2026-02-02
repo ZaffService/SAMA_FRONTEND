@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { VideoApi } from "@/infrastructure/api/video-api";
 
 export interface UseSignedVideoUrlOptions {
-  autoFetch?: boolean;  // Récupérer automatiquement
+  autoFetch?: boolean; // Récupérer automatiquement
   onError?: (error: string) => void;
 }
 
 export function useSignedVideoUrl(
   lessonId: string | null,
-  options: UseSignedVideoUrlOptions = {}
+  options: UseSignedVideoUrlOptions = {},
 ) {
   const { autoFetch = true, onError } = options;
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -26,7 +26,8 @@ export function useSignedVideoUrl(
         const url = await VideoApi.getSignedVideoUrl(lessonId);
         setVideoUrl(url);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
+        const errorMessage =
+          err instanceof Error ? err.message : "Erreur inconnue";
         setError(errorMessage);
         onError?.(errorMessage);
       } finally {

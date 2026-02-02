@@ -4,7 +4,7 @@ import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
 interface RecentActivity {
   id: string;
   title: string;
-  type: 'course' | 'category' | 'user';
+  type: "course" | "category" | "user";
   createdAt: string;
 }
 
@@ -30,16 +30,19 @@ export function useAdminStats(): AdminStats {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        setStats(prev => ({ ...prev, loading: true, error: null }));
+        setStats((prev) => ({ ...prev, loading: true, error: null }));
 
         // Récupérer les utilisateurs
-        const usersResponse = await fetch(buildApiUrl(API_ENDPOINTS.USER.BY_ROLE), {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
+        const usersResponse = await fetch(
+          buildApiUrl(API_ENDPOINTS.USER.BY_ROLE),
+          {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
           },
-        });
+        );
 
         if (!usersResponse.ok) {
           throw new Error(`Erreur utilisateurs: ${usersResponse.status}`);
@@ -57,7 +60,7 @@ export function useAdminStats(): AdminStats {
             headers: {
               "Content-Type": "application/json",
             },
-          }
+          },
         );
 
         if (!coursesResponse.ok) {
@@ -68,38 +71,43 @@ export function useAdminStats(): AdminStats {
         const totalCourses = coursesData.total || 0;
 
         // Récupérer les catégories
-        const categoriesResponse = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES), {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
+        const categoriesResponse = await fetch(
+          buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES),
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
           },
-        });
+        );
 
         if (!categoriesResponse.ok) {
           throw new Error(`Erreur catégories: ${categoriesResponse.status}`);
         }
 
         const categoriesData = await categoriesResponse.json();
-        const totalCategories = Array.isArray(categoriesData) ? categoriesData.length : 0;
+        const totalCategories = Array.isArray(categoriesData)
+          ? categoriesData.length
+          : 0;
 
         // Créer des activités récentes basées sur les vraies données
         const recentActivities: RecentActivity[] = [
           {
-            id: '1',
+            id: "1",
             title: `Nouveau cours ajouté (${totalCourses} cours au total)`,
-            type: 'course',
+            type: "course",
             createdAt: new Date().toISOString(),
           },
           {
-            id: '2',
+            id: "2",
             title: `${totalUsers} utilisateurs inscrits sur la plateforme`,
-            type: 'user',
+            type: "user",
             createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 heure avant
           },
           {
-            id: '3',
+            id: "3",
             title: `${totalCategories} catégories disponibles`,
-            type: 'category',
+            type: "category",
             createdAt: new Date(Date.now() - 7200000).toISOString(), // 2 heures avant
           },
         ];
@@ -112,10 +120,9 @@ export function useAdminStats(): AdminStats {
           loading: false,
           error: null,
         });
-
       } catch (error) {
         console.error("Erreur lors de la récupération des stats:", error);
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
           loading: false,
           error: error instanceof Error ? error.message : "Erreur inconnue",

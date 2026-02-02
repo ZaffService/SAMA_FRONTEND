@@ -130,9 +130,16 @@ export class AuthApi {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      console.log("🚪 [AuthApi] Réponse logout:", response.status, response.statusText);
+      console.log(
+        "🚪 [AuthApi] Réponse logout:",
+        response.status,
+        response.statusText,
+      );
       if (!response.ok) {
-        console.error("🚪 [AuthApi] Erreur logout - Status non-ok:", response.status);
+        console.error(
+          "🚪 [AuthApi] Erreur logout - Status non-ok:",
+          response.status,
+        );
       }
     } catch (error) {
       console.error("🚪 [AuthApi] Erreur réseau lors du logout:", error);
@@ -207,35 +214,35 @@ export class AuthApi {
     return data;
   }
 
- static async adminCreateAccount(data: {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: "STUDENT" | "INSTRUCTOR" | "ADMIN";
-}): Promise<User> {
-  const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.CREATE_ACCOUNT), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include", // JWT admin
-    body: JSON.stringify({
-      ...data,
+  static async adminCreateAccount(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: "STUDENT" | "INSTRUCTOR" | "ADMIN";
+  }): Promise<User> {
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.CREATE_ACCOUNT), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // JWT admin
+      body: JSON.stringify({
+        ...data,
 
-      // 🔑 FLAGS CRITIQUES
-      emailVerified: true,        // pas d’email de vérification
-      adminCreation: true,        // compte créé par admin
-      sendWelcomeEmail: true,     // email de bienvenue avec mot de passe
-    }),
-  });
+        // 🔑 FLAGS CRITIQUES
+        emailVerified: true, // pas d’email de vérification
+        adminCreation: true, // compte créé par admin
+        sendWelcomeEmail: true, // email de bienvenue avec mot de passe
+      }),
+    });
 
-  const responseData = await res.json();
+    const responseData = await res.json();
 
-  if (!res.ok) {
-    throw new Error(responseData.message || "Échec de la création du compte");
+    if (!res.ok) {
+      throw new Error(responseData.message || "Échec de la création du compte");
+    }
+
+    return responseData;
   }
-
-  return responseData;
-}
 
   static getGoogleAuthUrl(): string {
     // TODO: Implement Google auth URL

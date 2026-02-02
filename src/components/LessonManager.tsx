@@ -237,100 +237,102 @@ export function LessonManager({
               className="cursor-move"
             >
               <Card>
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center space-x-2">
-                    <GripVertical className="h-4 w-4 text-gray-400" />
-                    <span>
-                      Leçon {index + 1}: {lesson.title || "Sans titre"}
-                    </span>
-                  </CardTitle>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Glissez pour réorganiser
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeLesson(index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center space-x-2">
+                      <GripVertical className="h-4 w-4 text-gray-400" />
+                      <span>
+                        Leçon {index + 1}: {lesson.title || "Sans titre"}
+                      </span>
+                    </CardTitle>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Glissez pour réorganiser
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeLesson(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
 
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Titre de la leçon *
+                      </label>
+                      <Input
+                        value={lesson.title}
+                        onChange={(e) =>
+                          updateLesson(index, { title: e.target.value })
+                        }
+                        placeholder="Entrez le titre de la leçon"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Durée (minutes)
+                      </label>
+                      <Input
+                        type="number"
+                        value={lesson.duration || ""}
+                        onChange={(e) =>
+                          updateLesson(index, {
+                            duration: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Titre de la leçon *
+                      Contenu de la leçon *
                     </label>
-                    <Input
-                      value={lesson.title}
+                    <Textarea
+                      value={lesson.content}
                       onChange={(e) =>
-                        updateLesson(index, { title: e.target.value })
+                        updateLesson(index, { content: e.target.value })
                       }
-                      placeholder="Entrez le titre de la leçon"
+                      placeholder="Écrivez le contenu de votre leçon..."
+                      rows={4}
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Durée (minutes)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Vidéo de la leçon (optionnel)
                     </label>
-                    <Input
-                      type="number"
-                      value={lesson.duration || ""}
-                      onChange={(e) =>
-                        updateLesson(index, {
-                          duration: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      placeholder="0"
-                      min="0"
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contenu de la leçon *
-                  </label>
-                  <Textarea
-                    value={lesson.content}
-                    onChange={(e) =>
-                      updateLesson(index, { content: e.target.value })
-                    }
-                    placeholder="Écrivez le contenu de votre leçon..."
-                    rows={4}
-                    required
-                  />
-                </div>
+                    {(() => {
+                      const lessonId = lesson.tempId || `lesson-${index}`;
+                      const currentError = uploadErrors[lessonId];
+                      const currentDragOver = isDragOver[lessonId];
+                      const currentProgress = uploadProgress[lessonId] || 0;
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Vidéo de la leçon (optionnel)
-                  </label>
+                      return (
+                        <>
+                          {currentError && (
+                            <Alert variant="destructive" className="mb-3">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>
+                                {currentError}
+                              </AlertDescription>
+                            </Alert>
+                          )}
 
-                  {(() => {
-                    const lessonId = lesson.tempId || `lesson-${index}`;
-                    const currentError = uploadErrors[lessonId];
-                    const currentDragOver = isDragOver[lessonId];
-                    const currentProgress = uploadProgress[lessonId] || 0;
-
-                    return (
-                      <>
-                        {currentError && (
-                          <Alert variant="destructive" className="mb-3">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{currentError}</AlertDescription>
-                          </Alert>
-                        )}
-
-                        <div
-                          className={`
+                          <div
+                            className={`
                               border-2 border-dashed rounded-lg p-6 text-center transition-colors
                               ${
                                 currentDragOver
@@ -339,105 +341,105 @@ export function LessonManager({
                               }
                               ${lesson.videoFile ? "bg-green-50 border-green-300" : ""}
                             `}
-                          onDragOver={(e) => handleDragOverVideo(e, index)}
-                          onDragLeave={(e) => handleDragLeaveVideo(e, index)}
-                          onDrop={(e) => handleFileDrop(e, index)}
-                        >
-                          {lesson.videoFile ? (
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-center space-x-2">
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                <span className="text-sm font-medium text-green-700">
-                                  Vidéo ajoutée
-                                </span>
-                              </div>
+                            onDragOver={(e) => handleDragOverVideo(e, index)}
+                            onDragLeave={(e) => handleDragLeaveVideo(e, index)}
+                            onDrop={(e) => handleFileDrop(e, index)}
+                          >
+                            {lesson.videoFile ? (
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-center space-x-2">
+                                  <CheckCircle className="h-5 w-5 text-green-600" />
+                                  <span className="text-sm font-medium text-green-700">
+                                    Vidéo ajoutée
+                                  </span>
+                                </div>
 
-                              <div className="flex items-center justify-between bg-white p-3 rounded border">
-                                <div className="flex items-center space-x-3">
-                                  <FileVideo className="h-8 w-8 text-blue-500" />
-                                  <div className="text-left">
-                                    <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
-                                      {lesson.videoFile.name}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {formatFileSize(lesson.videoFile.size)} •{" "}
-                                      {lesson.videoFile.type}
-                                    </p>
+                                <div className="flex items-center justify-between bg-white p-3 rounded border">
+                                  <div className="flex items-center space-x-3">
+                                    <FileVideo className="h-8 w-8 text-blue-500" />
+                                    <div className="text-left">
+                                      <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                        {lesson.videoFile.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {formatFileSize(lesson.videoFile.size)}{" "}
+                                        • {lesson.videoFile.type}
+                                      </p>
+                                    </div>
                                   </div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeVideo(index)}
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          ) : currentProgress > 0 && currentProgress < 100 ? (
-                            <div className="space-y-3">
-                              <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
-                              <div className="space-y-2">
-                                <p className="text-sm font-medium text-gray-900">
-                                  Téléchargement en cours...
-                                </p>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${currentProgress}%` }}
-                                  ></div>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  {currentProgress}% terminé
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              <Upload
-                                className={`h-10 w-10 mx-auto ${currentDragOver ? "text-blue-500" : "text-gray-400"}`}
-                              />
-                              <div className="space-y-2">
-                                <p className="text-lg font-medium text-gray-900">
-                                  {currentDragOver
-                                    ? "Déposez votre vidéo ici"
-                                    : "Glissez-déposez une vidéo"}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  ou{" "}
-                                  <label
-                                    htmlFor={`video-upload-${index}`}
-                                    className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeVideo(index)}
+                                    className="text-red-600 hover:text-red-700"
                                   >
-                                    parcourez vos fichiers
-                                  </label>
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  Formats acceptés: MP4, WebM, OGG, AVI, MOV,
-                                  WMV, FLV, MKV • Max 500MB
-                                </p>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
-                              <input
-                                type="file"
-                                accept="video/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleVideoUpload(index, file);
-                                }}
-                                className="hidden"
-                                id={`video-upload-${index}`}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </CardContent>
-            </Card>
+                            ) : currentProgress > 0 && currentProgress < 100 ? (
+                              <div className="space-y-3">
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+                                <div className="space-y-2">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    Téléchargement en cours...
+                                  </p>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                      style={{ width: `${currentProgress}%` }}
+                                    ></div>
+                                  </div>
+                                  <p className="text-xs text-gray-500">
+                                    {currentProgress}% terminé
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <Upload
+                                  className={`h-10 w-10 mx-auto ${currentDragOver ? "text-blue-500" : "text-gray-400"}`}
+                                />
+                                <div className="space-y-2">
+                                  <p className="text-lg font-medium text-gray-900">
+                                    {currentDragOver
+                                      ? "Déposez votre vidéo ici"
+                                      : "Glissez-déposez une vidéo"}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    ou{" "}
+                                    <label
+                                      htmlFor={`video-upload-${index}`}
+                                      className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+                                    >
+                                      parcourez vos fichiers
+                                    </label>
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Formats acceptés: MP4, WebM, OGG, AVI, MOV,
+                                    WMV, FLV, MKV • Max 500MB
+                                  </p>
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleVideoUpload(index, file);
+                                  }}
+                                  className="hidden"
+                                  id={`video-upload-${index}`}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ))}
         </div>

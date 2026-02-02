@@ -26,20 +26,21 @@ export function transformCourseDetails(data: any): CourseDetailsData {
         status: lesson.status,
       })),
       // Transformer les quiz (underscore → camelCase)
-      quiz: module.quiz?.map((q: any) => ({
-        id: q._id,
-        title: q._title,
-        description: q._description,
-        passingScore: q._passingScore,
-        questions: q._questions.map((question: any) => ({
-          id: question.id,
-          question: question.question,
-          type: question.questionType,
-          options: question.options,
-          correctAnswer: question.correctAnswer,
-          points: question.points,
-        })),
-      })) || [],
+      quiz:
+        module.quiz?.map((q: any) => ({
+          id: q._id,
+          title: q._title,
+          description: q._description,
+          passingScore: q._passingScore,
+          questions: q._questions.map((question: any) => ({
+            id: question.id,
+            question: question.question,
+            type: question.questionType,
+            options: question.options,
+            correctAnswer: question.correctAnswer,
+            points: question.points,
+          })),
+        })) || [],
     })),
     moduleCount: data.moduleCount,
   };

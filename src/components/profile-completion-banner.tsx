@@ -64,7 +64,8 @@ export function ProfileCompletionBanner() {
                 Profil incomplet
               </span>
               <span className="text-amber-700 ml-2">
-                - Veuillez compléter votre profil pour accéder à toutes les fonctionnalités.
+                - Veuillez compléter votre profil pour accéder à toutes les
+                fonctionnalités.
               </span>
             </div>
           </div>
@@ -80,4 +81,3 @@ export function ProfileCompletionBanner() {
     </div>
   );
 }
-

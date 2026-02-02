@@ -6,7 +6,7 @@ import {
   Gift,
   ArrowRight,
   Clock,
-  Lightbulb
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -172,4 +172,3 @@ export default function EmptyCoursesState() {
     </section>
   );
 }
-

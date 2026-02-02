@@ -246,15 +246,20 @@ export default function Register() {
       const parsedError = parseApiError(err);
       const errorMessage = getAuthErrorMessage(err);
 
-      // Vérifier le code d'erreur pour afficher au bon endroit
-      if (parsedError.code === "TELEPHONE_ALREADY_EXIST") {
-        setPhoneError(errorMessage);
-      } else if (
-        parsedError.code === "USER_ALREADY_EXISTS" ||
-        parsedError.code === "CONFLICTING_OPERATION" ||
-        parsedError.code?.includes("EMAIL")
+      // Déterminer si l'erreur concerne l'email ou le téléphone
+      const originalMessage =
+        (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
+      if (
+        originalMessage.includes("email") ||
+        originalMessage.includes("user")
       ) {
         setEmailError(errorMessage);
+      } else if (
+        originalMessage.includes("phone") ||
+        originalMessage.includes("téléphone") ||
+        originalMessage.includes("indicatif")
+      ) {
+        setPhoneError(errorMessage);
       } else {
         // Fallback: vérifier le message pour compatibilité
         const originalMessage =

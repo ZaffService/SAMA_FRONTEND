@@ -72,7 +72,9 @@ export function CourseEditor({
   const [error, setError] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+  const [expandedModules, setExpandedModules] = useState<
+    Record<string, boolean>
+  >({});
 
   const [formData, setFormData] = useState({
     title: "",
@@ -115,9 +117,15 @@ export function CourseEditor({
         title: details.course.title || course?.title || "",
         description: details.course.description || course?.description || "",
         categoryId: details.course.categoryId || course?.categoryId || "",
-        level: (details.course.level || course?.level || "BEGINNER") as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
+        level: (details.course.level || course?.level || "BEGINNER") as
+          | "BEGINNER"
+          | "INTERMEDIATE"
+          | "ADVANCED",
         price: details.course.price || course?.price || 0,
-        status: (course?.status || "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED",
+        status: (course?.status || "DRAFT") as
+          | "DRAFT"
+          | "PUBLISHED"
+          | "ARCHIVED",
         modules: (details.modules || []).map((m: any, index: number) => ({
           id: m.id,
           tempId: m.id,
@@ -136,7 +144,9 @@ export function CourseEditor({
         })),
       });
 
-      setThumbnailUrl(details.course.thumbnailUrl || course.thumbnailUrl || null);
+      setThumbnailUrl(
+        details.course.thumbnailUrl || course.thumbnailUrl || null,
+      );
     } catch (err) {
       console.error("Erreur lors du chargement du cours:", err);
       setError("Erreur lors du chargement du cours");
@@ -150,7 +160,14 @@ export function CourseEditor({
   };
 
   const handleModulesChange = (modules: Module[]) => {
-    console.log('[CourseEditor] Modules changed:', modules.map(m => ({ id: m.id, title: m.title, orderIndex: m.orderIndex })));
+    console.log(
+      "[CourseEditor] Modules changed:",
+      modules.map((m) => ({
+        id: m.id,
+        title: m.title,
+        orderIndex: m.orderIndex,
+      })),
+    );
     updateFormData({ modules });
   };
 
@@ -180,7 +197,8 @@ export function CourseEditor({
 
   const validateForm = (): string | null => {
     if (!formData.title.trim()) return "Le titre du cours est requis";
-    if (!formData.description.trim()) return "La description du cours est requise";
+    if (!formData.description.trim())
+      return "La description du cours est requise";
     if (!formData.categoryId) return "La catégorie est requise";
     if (formData.price < 0) return "Le prix ne peut pas être négatif";
     if (formData.modules.length === 0) return "Au moins un module est requis";
@@ -220,7 +238,10 @@ export function CourseEditor({
       onOpenChange(false);
       onCourseUpdated?.();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de la modification du cours";
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de la modification du cours";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -244,11 +265,20 @@ export function CourseEditor({
             <h1 className="text-2xl font-bold">Modifier le cours</h1>
           </div>
           <div className="flex items-center space-x-3">
-            <Button variant="outline" onClick={handleCancel} disabled={isSaving} size="lg">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSaving}
+              size="lg"
+            >
               <X className="h-5 w-5 mr-2" />
               Annuler
             </Button>
-            <Button onClick={handleSave} disabled={isSaving || isLoading} size="lg">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || isLoading}
+              size="lg"
+            >
               {isSaving ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
@@ -284,7 +314,9 @@ export function CourseEditor({
               {/* Informations de base */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">Informations du cours</CardTitle>
+                  <CardTitle className="text-xl">
+                    Informations du cours
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -294,7 +326,9 @@ export function CourseEditor({
                       </label>
                       <Input
                         value={formData.title}
-                        onChange={(e) => updateFormData({ title: e.target.value })}
+                        onChange={(e) =>
+                          updateFormData({ title: e.target.value })
+                        }
                         placeholder="Entrez le titre du cours"
                         className="text-base"
                       />
@@ -306,14 +340,19 @@ export function CourseEditor({
                       </label>
                       <Select
                         value={formData.categoryId}
-                        onValueChange={(value) => updateFormData({ categoryId: value })}
+                        onValueChange={(value) =>
+                          updateFormData({ categoryId: value })
+                        }
                       >
                         <SelectTrigger className="text-base">
                           <SelectValue placeholder="Sélectionnez une catégorie" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => (
-                            <SelectItem key={category.id || `cat-${category.name}`} value={category.id || category.name}>
+                            <SelectItem
+                              key={category.id || `cat-${category.name}`}
+                              value={category.id || category.name}
+                            >
                               {category.name}
                             </SelectItem>
                           ))}
@@ -328,7 +367,9 @@ export function CourseEditor({
                     </label>
                     <Textarea
                       value={formData.description}
-                      onChange={(e) => updateFormData({ description: e.target.value })}
+                      onChange={(e) =>
+                        updateFormData({ description: e.target.value })
+                      }
                       placeholder="Décrivez votre cours..."
                       rows={5}
                       className="text-base resize-none"
@@ -342,16 +383,18 @@ export function CourseEditor({
                       </label>
                       <Select
                         value={formData.level}
-                        onValueChange={(value: "BEGINNER" | "INTERMEDIATE" | "ADVANCED") =>
-                          updateFormData({ level: value })
-                        }
+                        onValueChange={(
+                          value: "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
+                        ) => updateFormData({ level: value })}
                       >
                         <SelectTrigger className="text-base">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="BEGINNER">Débutant</SelectItem>
-                          <SelectItem value="INTERMEDIATE">Intermédiaire</SelectItem>
+                          <SelectItem value="INTERMEDIATE">
+                            Intermédiaire
+                          </SelectItem>
                           <SelectItem value="ADVANCED">Avancé</SelectItem>
                         </SelectContent>
                       </Select>
@@ -365,7 +408,9 @@ export function CourseEditor({
                         type="number"
                         value={formData.price}
                         onChange={(e) =>
-                          updateFormData({ price: parseFloat(e.target.value) || 0 })
+                          updateFormData({
+                            price: parseFloat(e.target.value) || 0,
+                          })
                         }
                         min="0"
                         step="100"
@@ -379,9 +424,9 @@ export function CourseEditor({
                       </label>
                       <Select
                         value={formData.status}
-                        onValueChange={(value: "DRAFT" | "PUBLISHED" | "ARCHIVED") =>
-                          updateFormData({ status: value })
-                        }
+                        onValueChange={(
+                          value: "DRAFT" | "PUBLISHED" | "ARCHIVED",
+                        ) => updateFormData({ status: value })}
                       >
                         <SelectTrigger className="text-base">
                           <SelectValue />

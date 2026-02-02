@@ -86,7 +86,8 @@ export class CoursesUseCases {
         id: courseDetailsResponse.course.id,
         title: courseDetailsResponse.course.title,
         content: courseDetailsResponse.course.description,
-        category: courseDetailsResponse.course.categoryId,
+        categoryId: courseDetailsResponse.course.categoryId,
+        categoryName: courseDetailsResponse.course.categoryName || "Non catégorisé",
         thumbnailUrl: courseDetailsResponse.course.thumbnailUrl || "",
         thumbnail: courseDetailsResponse.course.thumbnailUrl || "",
         price: courseDetailsResponse.course.price,
@@ -267,7 +268,11 @@ export class CoursesUseCases {
 
       console.log(`✅ Données de filtrage récupérées`);
       return {
-        categories: categories.map(cat => ({ id: cat.id, name: cat.name, count: 0 })),
+        categories: categories.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          count: 0,
+        })),
         levels,
         priceRanges,
       };
@@ -281,15 +286,15 @@ export class CoursesUseCases {
   }
 
   /**
-    * Helper pour créer un hook React optimisé
-    * Cette méthode retourne la configuration nécessaire pour créer un hook
-    */
+   * Helper pour créer un hook React optimisé
+   * Cette méthode retourne la configuration nécessaire pour créer un hook
+   */
   static getCoursesHookConfig() {
     return {
       /**
-        * Configuration pour le hook useAllCourses
-        * Retourne les méthodes et la logique métier sans les hooks React
-        */
+       * Configuration pour le hook useAllCourses
+       * Retourne les méthodes et la logique métier sans les hooks React
+       */
       useAllCourses: () => {
         // Cette méthode sera implémentée dans un hook séparé
         // Ici on retourne juste la structure pour l'instant

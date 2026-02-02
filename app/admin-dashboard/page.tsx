@@ -31,12 +31,12 @@ export default function AdminDashboard() {
 
   // Vérifier si on vient de créer un cours (paramètre courseCreated=true)
   useEffect(() => {
-    const courseCreated = searchParams.get('courseCreated');
-    if (courseCreated === 'true') {
+    const courseCreated = searchParams.get("courseCreated");
+    if (courseCreated === "true") {
       // Rediriger vers la gestion des cours
       setCurrentView("manage-courses");
       // Nettoyer l'URL
-      router.replace('/admin-dashboard', undefined);
+      router.replace("/admin-dashboard", undefined);
     }
   }, [searchParams, router]);
 

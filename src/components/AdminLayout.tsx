@@ -37,17 +37,43 @@ export function AdminLayout({
   const renderContent = () => {
     switch (currentView) {
       case "overview":
-        return <AdminOverview onViewChange={onViewChange} onOpenCategoryDialog={onOpenCategoryDialog} />;
+        return (
+          <AdminOverview
+            onViewChange={onViewChange}
+            onOpenCategoryDialog={onOpenCategoryDialog}
+          />
+        );
       case "manage-courses":
-        return renderManageCourses ? renderManageCourses() : <div>Gestion des cours</div>;
+        return renderManageCourses ? (
+          renderManageCourses()
+        ) : (
+          <div>Gestion des cours</div>
+        );
       case "create-course":
-        return renderCreateCourse ? renderCreateCourse() : <div>Créer un cours</div>;
+        return renderCreateCourse ? (
+          renderCreateCourse()
+        ) : (
+          <div>Créer un cours</div>
+        );
       case "manage-users":
-        return renderManageUsers ? renderManageUsers() : <div>Gestion des utilisateurs</div>;
+        return renderManageUsers ? (
+          renderManageUsers()
+        ) : (
+          <div>Gestion des utilisateurs</div>
+        );
       case "video-status":
-        return renderVideoStatus ? renderVideoStatus() : <div>Statut des vidéos</div>;
+        return renderVideoStatus ? (
+          renderVideoStatus()
+        ) : (
+          <div>Statut des vidéos</div>
+        );
       default:
-        return <AdminOverview onViewChange={onViewChange} onOpenCategoryDialog={onOpenCategoryDialog} />;
+        return (
+          <AdminOverview
+            onViewChange={onViewChange}
+            onOpenCategoryDialog={onOpenCategoryDialog}
+          />
+        );
     }
   };
 
@@ -64,9 +90,7 @@ export function AdminLayout({
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <main className="p-6">
-          {renderContent()}
-        </main>
+        <main className="p-6">{renderContent()}</main>
       </div>
     </div>
   );

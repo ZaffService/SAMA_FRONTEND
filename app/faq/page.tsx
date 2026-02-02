@@ -4,6 +4,9 @@ import { useState } from "react";
 import { ChevronDown, Search, HelpCircle, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
+
 interface FAQItem {
   id: number;
   question: string;
@@ -145,9 +148,11 @@ export default function FAQPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-primary via-blue-600 to-blue-700 text-white">
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      {/* Hero Section pour FAQ */}
+      <div className="bg-[var(--bibocom-blue)] text-white">
         <div className="container mx-auto px-6 py-16 lg:py-24">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
@@ -280,6 +285,30 @@ export default function FAQPage() {
           </div>
         </div>
       </div>
+
+      {/* Contact Section */}
+      <div className="bg-[var(--bibocom-blue)]/10 border-t border-border">
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Vous ne trouvez pas votre réponse ?
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
+              Notre équipe est là pour vous aider. Contactez-nous et nous vous
+              répondrons dans les plus brefs délais.
+            </p>
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[var(--bibocom-blue)] text-white rounded-xl font-semibold hover:bg-[var(--bibocom-blue)]/90 transition-all duration-300 shadow-lg"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Nous contacter
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
     </div>
   );
 }

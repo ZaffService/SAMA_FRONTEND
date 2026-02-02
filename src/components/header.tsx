@@ -1,390 +1,597 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
   X,
-  User,
-  LayoutDashboard,
-  LogOut,
   ChevronDown,
-  Bell,
+  LogOut,
+  LayoutDashboard,
+  User,
+  Search,
+  BookOpen,
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/logo";
 
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useAvatar } from "@/infrastructure/storage/AvatarContext";
+import { MegaMenuOverlay } from "@/components/mega-menu-overlay";
+import { CoursesApi, BackendCourse } from "@/infrastructure/api/courses-api";
 
 export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [formationsMenuOpen, setFormationsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<BackendCourse[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [allCourses, setAllCourses] = useState<BackendCourse[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
 
   const { user, logout, isLoading, isAuthenticated } = useLocalAuth();
   const { avatarUrl, firstName, lastName } = useAvatar();
-  const pathname = usePathname();
 
-  // Detect scroll for header shadow
+  // Charger tous les cours pour les suggestions (une seule fois au mount)
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
+    const loadAllCourses = async () => {
+      try {
+        setCoursesLoading(true);
+        const result = await CoursesApi.getCourses(1, 100);
+        setAllCourses(result.courses);
+      } catch (error) {
+        console.error("Erreur lors du chargement des cours:", error);
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+    loadAllCourses();
+  }, []);
+
+  // Détection du scroll pour la transition du header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Fermer le menu mobile lors du changement de route
   useEffect(() => {
     setMobileMenuOpen(false);
+    setFormationsMenuOpen(false);
+    setSearchOpen(false);
+    setShowSuggestions(false);
   }, [pathname]);
 
-  // Bloquer le scroll quand le menu mobile est ouvert
   useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [mobileMenuOpen]);
 
-  const handleLogout = () => {
-    logout();
+  // Filtrer les suggestions en temps réel
+  useEffect(() => {
+    if (searchQuery.trim() && allCourses.length > 0) {
+      const filtered = allCourses.filter(
+        (course) =>
+          course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setSuggestions(filtered.slice(0, 6)); // Max 6 suggestions
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [searchQuery, allCourses]);
+
+  const displayName =
+    firstName && lastName
+      ? `${firstName} ${lastName}`
+      : user?.display_name || "Utilisateur";
+
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const navLinks = [
+    { label: "Accueil", href: "/" },
+    { label: "À propos", href: "/about" },
+    { label: "E-Book", href: "/e-book" },
+    { label: "Contact", href: "/contact" },
+  ];
+
+  const formationsLink = { label: "Formations", href: "/courses" as const };
+
+  // Handler pour ouvrir le mega menu (mobile et desktop)
+  const handleFormationsClick = () => {
+    setFormationsMenuOpen(true);
+    setMobileMenuOpen(false);
   };
 
-  // Calculer le nom complet avec logique robuste
-  const getDisplayName = () => {
-    // Priorité 1: firstName + lastName (si les deux existent)
-    if (firstName && lastName) {
-      return `${firstName} ${lastName}`;
-    }
-
-    // Priorité 2: display_name de l'utilisateur
-    if (user?.display_name && user.display_name.trim()) {
-      return user.display_name;
-    }
-
-    // Priorité 3: firstName seul
-    if (firstName) {
-      return firstName;
-    }
-
-    // Priorité 4: fallback générique
-    return "Utilisateur";
-  };
-
-  // Calculer les initiales avec logique robuste
-  const getInitials = () => {
-    const displayName = getDisplayName();
-    if (displayName === "Utilisateur") return "U";
-
-    const names = displayName.split(" ");
-    if (names.length >= 2) {
-      return `${names[0][0] || ""}${names[names.length - 1][0] || ""}`.toUpperCase();
-    }
-    return (displayName[0] || "U").toUpperCase();
-  };
-
-  const displayName = getDisplayName();
-  const initials = getInitials();
-
-  // Get the correct dashboard URL based on user role
-  const getDashboardUrl = () => {
-    if (!user?.role) return "/student-dashboard";
-    switch (user.role) {
-      case "ADMIN":
-        return "/admin-dashboard";
-      case "INSTRUCTOR":
-        return "/instructor-dashboard";
-      case "STUDENT":
-      default:
-        return "/student-dashboard";
+  // Handler pour soumettre la recherche
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+      setShowSuggestions(false);
     }
   };
 
-  const dashboardUrl = getDashboardUrl();
+  // Handler pour sélectionner une suggestion
+  const handleSuggestionClick = (courseId: string) => {
+    router.push(`/course-details/${courseId}`);
+    setSearchOpen(false);
+    setSearchQuery("");
+    setShowSuggestions(false);
+    setMobileMenuOpen(false);
+  };
 
-  // Check if user is a student (can see "Mes Apprentissages")
-  const isStudent = user?.role === "STUDENT";
+  // Focus input search quand il s'ouvre
+  useEffect(() => {
+    if (searchOpen) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchOpen]);
+
+  // Fermer les suggestions quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".search-container")) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  // Vérifie si on doit appliquer le style centré (page d'accueil + desktop + non connecté)
+  const isHomePage = pathname === "/";
+  const shouldCenterHeader = isHomePage && !isAuthenticated && !isLoading;
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 w-full bg-background/95 backdrop-blur-md border-b transition-all duration-300 ${
-          scrolled ? "shadow-md border-border" : "border-transparent"
+        className={`fixed z-50 transition-all duration-300 ease-in-out ${
+          isScrolled || !shouldCenterHeader
+            ? "top-0 left-0 right-0"
+            : "lg:top-8 lg:left-4 lg:right-4 top-0 left-0 right-0"
         }`}
       >
-        <div className="container mx-auto px-3 sm:px-4 lg:px-6">
-          <div className="flex h-16 sm:h-18 lg:h-20 items-center justify-between gap-3">
-            {/* Logo - Always visible */}
-            <Link href="/" className="flex items-center gap-2 shrink-0">
-              <Logo />
-            </Link>
+        <div
+          className={`bg-[var(--header-bg)] shadow-lg transition-all duration-300 ease-in-out ${
+            isScrolled || !shouldCenterHeader
+              ? "w-full rounded-none"
+              : "w-full lg:max-w-[1800px] lg:mx-auto lg:rounded-2xl rounded-none"
+          }`}
+        >
+          <div className="px-4 sm:px-6 md:px-10 py-5">
+            <div className="flex items-center justify-between gap-4">
+              {/* GAUCHE */}
+              <div className="flex-shrink-0">
+                {!isAuthenticated && !isLoading ? (
+                  <Link href="/">
+                    <Image
+                      src="/logo.png"
+                      alt="Bibocom Logo"
+                      width={100}
+                      height={30}
+                      priority
+                      className="w-[80px] sm:w-[100px] lg:w-[110px] h-auto"
+                    />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu de navigation"}
+                  >
+                    <Menu className="h-6 w-6" />
+                  </button>
+                )}
+              </div>
 
-            {/* Mobile: Empty space for layout balance */}
-            <div className="flex-1 lg:hidden"></div>
+              {/* NAV DESKTOP */}
+              <nav className="hidden lg:flex flex-1 justify-center items-center">
+                {!searchOpen ? (
+                  <ul className="flex items-center gap-8 xl:gap-12 h-12 transition-all duration-300">
+                    {navLinks.map(({ label, href }) => (
+                      <li key={href} className="h-full flex items-center mt-5">
+                        <Link
+                          href={href}
+                          className={`
+                            h-full flex items-center text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80
+                            ${pathname === href ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}
+                          `}
+                        >
+                          {label}
+                        </Link>
+                      </li>
+                    ))}
+                    <li className="h-full flex items-center">
+                      <button
+                        onClick={handleFormationsClick}
+                        className={`
+                          h-full flex items-center gap-1 text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80
+                          ${formationsMenuOpen ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}
+                        `}
+                      >
+                        {formationsLink.label}
+                        <ChevronDown
+                          className={`h-5 w-5 transition-transform duration-300 ${
+                            formationsMenuOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    </li>
+                  </ul>
+                ) : (
+                  <div className="relative search-container flex items-center w-full max-w-2xl animate-slide-in">
+                    <form onSubmit={handleSearchSubmit} className="flex-1">
+                      <div className="relative">
+                        <input
+                          ref={searchInputRef}
+                          id="search-input"
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
+                          placeholder="Rechercher une formation..."
+                          className="w-full pl-12 pr-10 py-3 text-base bg-white border-2 border-gray-200 rounded-full focus:outline-none focus:border-[var(--bibocom-red)] transition-all duration-300 shadow-lg"
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                              setSearchOpen(false);
+                              setShowSuggestions(false);
+                            }
+                          }}
+                        />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearchQuery("");
+                              setSuggestions([]);
+                              setShowSuggestions(false);
+                              searchInputRef.current?.focus();
+                            }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </form>
 
-            {/* Desktop Navigation - Hidden on mobile */}
-            <div className="hidden lg:flex items-center gap-6 flex-1 justify-center">
-              {/* Mes Apprentissages - Only for STUDENTS */}
-              {isAuthenticated && isStudent && (
-                <Link href="/mes-apprentissages">
-                  <span className="text-base font-semibold text-primary hover:text-primary/80 transition-colors">
-                    Mes Apprentissages
-                  </span>
-                </Link>
-              )}
-            </div>
+                    {/* Suggestions dropdown */}
+                    {showSuggestions && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in">
+                        {coursesLoading ? (
+                          <div className="p-4 text-center text-gray-500">
+                            Recherche en cours...
+                          </div>
+                        ) : suggestions.length > 0 ? (
+                          <>
+                            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                Formations suggérées
+                              </p>
+                            </div>
+                            <div className="max-h-80 overflow-y-auto">
+                              {suggestions.map((course) => (
+                                <button
+                                  key={course.id}
+                                  onClick={() => handleSuggestionClick(course.id)}
+                                  className="w-full flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
+                                >
+                                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                                    {course.thumbnailUrl ? (
+                                      <img
+                                        src={course.thumbnailUrl}
+                                        alt={course.title}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-[var(--bibocom-red)]/10">
+                                        <BookOpen className="h-6 w-6 text-[var(--bibocom-red)]" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 text-left">
+                                    <h4 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-[var(--bibocom-red)]">
+                                      {course.title}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                      {course.categoryName}
+                                    </p>
+                                    <div className="flex items-center gap-3 mt-2">
+                                      {course.level && (
+                                        <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">
+                                          {course.level}
+                                        </span>
+                                      )}
+                                      {course.price === 0 ? (
+                                        <span className="text-xs font-semibold text-green-600">
+                                          Gratuit
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs font-semibold text-gray-900">
+                                          {course.price?.toLocaleString()} CFA
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="p-3 bg-gray-50 border-t border-gray-100">
+                              <button
+                                onClick={handleSearchSubmit}
+                                className="w-full py-2 text-sm font-semibold text-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)]/10 rounded-lg transition-colors"
+                              >
+                                Voir tous les résultats pour "{searchQuery}"
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="p-6 text-center">
+                            <Search className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                            <p className="text-gray-500">Aucune formation trouvée</p>
+                            <p className="text-sm text-gray-400 mt-1">
+                              Essayez avec un autre mot-clé
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-            {/* Right Section Desktop */}
-            <div className="hidden lg:flex items-center gap-3 shrink-0">
-              {isLoading ? (
-                <div className="h-10 w-10 rounded-full bg-muted shimmer" />
-              ) : isAuthenticated ? (
-                <>
-                  {/* User Avatar */}
+                {/* Bouton recherche / fermer */}
+                <button
+                  onClick={() => {
+                    if (searchOpen) {
+                      if (searchQuery.trim()) {
+                        router.push(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+                      }
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                      setShowSuggestions(false);
+                    } else {
+                      setSearchOpen(true);
+                    }
+                  }}
+                  className="ml-4 h-10 w-10 flex items-center justify-center rounded-full bg-[var(--bibocom-red)] text-white hover:bg-[var(--bibocom-red)]/90 transition-all duration-300 shadow-lg"
+                  aria-label="Rechercher"
+                >
+                  {searchOpen ? (
+                    <X className="h-5 w-5" />
+                  ) : (
+                    <Search className="h-5 w-5" />
+                  )}
+                </button>
+              </nav>
+
+              {/* ACTIONS DROITE */}
+              <div className="flex items-center">
+                {isLoading ? (
+                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+                ) : isAuthenticated ? (
                   <DropdownMenu.Root>
                     <DropdownMenu.Trigger asChild>
-                      <button className="flex items-center gap-2 p-2 pr-3 rounded-full hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden bg-slate-200 text-slate-700 font-semibold text-sm">
+                      <button className="flex items-center gap-2 lg:px-4 lg:py-2.5 rounded-full hover:bg-gray-100 transition-all duration-200">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-sm overflow-hidden">
                           {avatarUrl ? (
                             <Image
-                              src={avatarUrl || "/placeholder.svg"}
+                              src={avatarUrl}
                               alt={displayName}
-                              width={36}
-                              height={36}
-                              className="h-full w-full object-cover rounded-full"
+                              width={40}
+                              height={40}
                             />
                           ) : (
-                            <span>{initials}</span>
+                            initials
                           )}
                         </div>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <ChevronDown className="h-5 w-5 text-gray-500" />
                       </button>
                     </DropdownMenu.Trigger>
 
-                    <DropdownMenu.Portal>
-                      <DropdownMenu.Content
-                        align="end"
-                        sideOffset={8}
-                        className="z-50 w-[280px] overflow-hidden rounded-2xl border bg-card shadow-xl animate-in fade-in-0 zoom-in-95"
+                    <DropdownMenu.Content
+                      align="end"
+                      sideOffset={10}
+                      className="w-[260px] rounded-2xl border bg-white shadow-xl overflow-hidden z-[60]"
+                    >
+                      <div className="p-4 border-b">
+                        <p className="font-bold text-sm truncate">{displayName}</p>
+                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      </div>
+<div className="flex flex-col">
+  <Link
+    href="/student-dashboard"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
+  >
+    {/* <LayoutDashboard className="h-4 w-4" /> */}
+    Tableau de bord
+  </Link>
+
+  <Link
+    href="/user-profile"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
+  >
+    {/* <User className="h-4 w-4" /> */}
+    Profil
+  </Link>
+</div>
+
+                      <button
+                        onClick={() => {
+                          logout();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-gray-100 transition-colors"
                       >
-                        {/* User Info Header */}
-                        <div className="flex items-center gap-3 border-b bg-muted/50 px-4 py-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full overflow-hidden bg-slate-200 text-slate-700 font-semibold shrink-0">
-                            {avatarUrl ? (
-                              <Image
-                                src={avatarUrl || "/placeholder.svg"}
-                                alt={displayName}
-                                width={48}
-                                height={48}
-                                className="h-full w-full object-cover rounded-full"
-                              />
-                            ) : (
-                              <span className="text-lg">{initials}</span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">
-                              {displayName}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {user?.email || user?.username}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Menu Items */}
-                        <div className="p-2 flex flex-col gap-1">
-                          <DropdownMenu.Item className="focus:outline-none">
-                            <Link
-                              href={dashboardUrl}
-                              className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors cursor-pointer w-full"
-                            >
-                              <div className="flex items-center gap-2">
-                                <LayoutDashboard className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span>Tableau de bord</span>
-                              </div>
-                            </Link>
-                          </DropdownMenu.Item>
-
-                          <DropdownMenu.Item className="focus:outline-none">
-                            <Link
-                              href="/user-profile"
-                              className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl hover:bg-muted transition-colors cursor-pointer w-full"
-                            >
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                                <span>Mon profil</span>
-                              </div>
-                            </Link>
-                          </DropdownMenu.Item>
-                        </div>
-
-                        <div className="border-t p-2">
-                          <DropdownMenu.Item
-                            onClick={handleLogout}
-                            className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl text-destructive hover:bg-destructive/10 transition-colors cursor-pointer w-full text-left"
-                          >
-                            <LogOut className="h-4 w-4 shrink-0" />
-                            <span className="font-medium">Se déconnecter</span>
-                          </DropdownMenu.Item>
-                        </div>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Portal>
+                        <LogOut className="h-4 w-4" />
+                        Déconnexion
+                      </button>
+                    </DropdownMenu.Content>
                   </DropdownMenu.Root>
-                </>
-              ) : (
-                <div className="flex flex-row items-center justify-center gap-3 sm:gap-4">
-                 <Link 
-                    className="px-6 py-3 rounded-xl text-base bg-transparent font-medium hover:bg-muted/50 transition-all"
-                    href="/login">Se connecter</Link>
-                  <Link  
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
-                    href="/register">Créer un compte</Link>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile: Hamburger Menu ONLY */}
-            <div className="flex lg:hidden items-center shrink-0">
-              {/* Hamburger Menu Button */}
-              <button
-                className="flex h-10 w-10 items-center justify-center rounded-xl hover:bg-muted transition-colors touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary/20"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label={
-                  mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"
-                }
-              >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
                 ) : (
-                  <Menu className="h-6 w-6" />
+                  <>
+                    <div className="hidden lg:flex items-center bg-[var(--bibocom-red)] hover:bg-[var(--bibocom-red)]/90 rounded-2xl font-bold text-white shadow-md transition-all duration-200">
+                      <Link href="/register" className="px-6 xl:px-8 py-3.5 xl:py-4 text-base xl:text-lg">
+                        S'inscrire
+                      </Link>
+                      <span className="text-lg">/</span>
+                      <Link href="/login" className="px-6 xl:px-8 py-3.5 xl:py-4 text-base xl:text-lg">
+                        Se connecter
+                      </Link>
+                    </div>
+
+                    <button
+                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                      className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                      aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu de navigation"}
+                    >
+                      <Menu className="h-6 w-6" />
+                    </button>
+                  </>
                 )}
-              </button>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* MENU MOBILE */}
+        <div
+          className={`
+            lg:hidden fixed inset-0 bg-white z-[60] transition-transform duration-300 ease-in-out flex flex-col
+            ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}
+          `}
+        >
+          <div className="flex items-center justify-between px-6 py-5 border-b flex-shrink-0">
+            <h2 className="text-xl font-bold text-gray-900">Menu</h2>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Fermer le menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto px-6 py-8">
+            <ul className="space-y-4">
+              <li>
+                <form onSubmit={handleSearchSubmit} className="mb-4">
+                  <div className="relative">
+                    <input
+                      ref={mobileSearchInputRef}
+                      id="mobile-search-input"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
+                      placeholder="Rechercher une formation..."
+                      className="w-full pl-12 pr-10 py-3 text-base bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-[var(--bibocom-red)] transition-all duration-300"
+                    />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSuggestions([]);
+                          mobileSearchInputRef.current?.focus();
+                        }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </li>
+
+              {/* Liens masqués quand l'utilisateur tape dans le champ de recherche */}
+              {!searchQuery && (
+                <>
+                  {navLinks.map(({ label, href }) => (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`
+                          block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
+                          ${pathname === href
+                            ? "bg-[var(--bibocom-red)] text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                          }
+                        `}
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+
+                  <li>
+                    <button
+                      onClick={handleFormationsClick}
+                      className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                    >
+                      <span>{formationsLink.label}</span>
+                      <ChevronDown className="h-5 w-5" />
+                    </button>
+                  </li>
+                </>
+              )}
+            </ul>
+          </nav>
+
+          {!isAuthenticated && !isLoading && (
+            <div className="px-6 py-6 border-t space-y-3 flex-shrink-0 bg-white">
+              <Link
+                href="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full py-3.5 text-center rounded-xl bg-[var(--bibocom-red)] text-white font-bold text-lg hover:bg-[var(--bibocom-red)]/90 transition-colors"
+              >
+                S'inscrire
+              </Link>
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full py-3.5 text-center rounded-xl border-2 border-[var(--bibocom-red)] text-[var(--bibocom-red)] font-bold text-lg hover:bg-gray-50 transition-colors"
+              >
+                Se connecter
+              </Link>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Mobile Menu Overlay - ONLY AUTH BUTTONS */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 top-16 z-[60] bg-background animate-in slide-in-from-top-2 duration-200">
-          <div className="container mx-auto px-4 pt-2">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="h-8 w-8 rounded-full bg-muted shimmer" />
-              </div>
-            ) : isAuthenticated ? (
-              <div className="space-y-6">
-                {/* User Info Card */}
-                <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full overflow-hidden bg-slate-200 text-slate-700 font-semibold shrink-0">
-                    {avatarUrl ? (
-                      <Image
-                        src={avatarUrl || "/placeholder.svg"}
-                        alt={displayName}
-                        width={56}
-                        height={56}
-                        className="h-full w-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <span className="text-xl">{initials}</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-semibold truncate">
-                      {displayName}
-                    </p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {user?.email || user?.username}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Navigation Links for authenticated users */}
-                <nav className="space-y-2 flex flex-col">
-                  {/* Mes Apprentissages - Only for STUDENTS */}
-                  {isStudent && (
-                    <Link
-                      href="/mes-apprentissages"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-4 px-4 py-4 text-base font-semibold rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
-                    >
-                      <span>Mes Apprentissages</span>
-                    </Link>
-                  )}
-
-                  <Link
-                    href={dashboardUrl}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-4 px-4 py-4 text-base rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
-                  >
-                    <div className="flex items-center gap-2">
-                      <LayoutDashboard className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <span>Tableau de bord</span>
-                    </div>
-                  </Link>
-
-                  {/* <Link
-                    href="/user-profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-4 px-4 py-4 text-base rounded-xl hover:bg-muted transition-colors min-h-[56px] touch-manipulation"
-                  >
-                    <div className="flex items-center gap-2">
-                      <User className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <span>Mon profil</span>
-                    </div>
-                  </Link> */}
-                </nav>
-
-                {/* Logout Button */}
-                <div className="pt-4 border-t">
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center gap-4 px-4 py-4 text-base rounded-xl text-destructive hover:bg-destructive/10 transition-colors w-full text-left min-h-[56px] touch-manipulation"
-                  >
-                    <LogOut className="h-5 w-5 shrink-0" />
-                    <span className="font-medium">Se déconnecter</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* ONLY AUTH BUTTONS - NO NAVIGATION LINKS */
-              <div className="space-y-3 pt-2">
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full"
-                >
-                  <Button
-                    variant="outline"
-                    className="w-full h-14 rounded-xl text-base font-medium"
-                  >
-                    Se connecter
-                  </Button>
-                </Link>
-                <Link
-                  href="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block w-full"
-                >
-                  <Button className="w-full h-14 rounded-xl font-semibold text-base">
-                    Créer un compte
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <MegaMenuOverlay
+        isOpen={formationsMenuOpen}
+        onClose={() => setFormationsMenuOpen(false)}
+      />
     </>
   );
 }

@@ -3,238 +3,357 @@
 import { useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from "lucide-react";
+import { Mail, Phone, MapPin, Send, MessageCircle, Clock } from "lucide-react";
+import { showContactFormSuccess } from "@/shared/helpers/sweet-alert";
 
-export default function Contact() {
+export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
     message: "",
   });
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    subject?: string;
+    message?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Validation functions
+  const validateName = (name: string): string | undefined => {
+    if (!name.trim()) return "Le nom est obligatoire";
+    if (name.trim().length < 2) return "Le nom doit contenir au moins 2 caractères";
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name.trim())) return "Le nom ne doit contenir que des lettres";
+    return undefined;
+  };
+
+  const validateEmail = (email: string): string | undefined => {
+    if (!email.trim()) return "L'email est obligatoire";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) return "Veuillez entrer un email valide";
+    return undefined;
+  };
+
+  const validateSubject = (subject: string): string | undefined => {
+    if (!subject) return "Veuillez sélectionner un sujet";
+    return undefined;
+  };
+
+  const validateMessage = (message: string): string | undefined => {
+    if (!message.trim()) return "Le message est obligatoire";
+    if (message.trim().length < 10) return "Le message doit contenir au moins 10 caractères";
+    if (message.trim().length > 1000) return "Le message ne doit pas dépasser 1000 caractères";
+    return undefined;
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {};
+    
+    const nameError = validateName(formData.name);
+    const emailError = validateEmail(formData.email);
+    const subjectError = validateSubject(formData.subject);
+    const messageError = validateMessage(formData.message);
+
+    if (nameError) newErrors.name = nameError;
+    if (emailError) newErrors.email = emailError;
+    if (subjectError) newErrors.subject = subjectError;
+    if (messageError) newErrors.message = messageError;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Simulation d'envoi
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     setIsSubmitting(false);
-    setIsSubmitted(true);
     setFormData({ name: "", email: "", subject: "", message: "" });
-
-    // Reset success message after 5 seconds
-    setTimeout(() => setIsSubmitted(false), 5000);
+    
+    // Afficher le toast de succès avec SweetAlert2
+    showContactFormSuccess();
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
   };
 
   const contactInfo = [
     {
-      icon: MapPin,
-      title: "Adresse",
-      details: ["123 Avenue de la Formation", "Dakar, Sénégal"],
+      icon: Mail,
+      title: "Email",
+      value: "bibocomdigital.com",
+      href: "mailto:bibocomdigital.com",
     },
     {
       icon: Phone,
       title: "Téléphone",
-      details: ["+221 33 123 45 67", "+221 77 123 45 67"],
+      value: "+221 33 123 45 67",
+      href: "tel:+221331234567",
     },
     {
-      icon: Mail,
-      title: "Email",
-      details: ["contact@bibocom-digital.sn", "support@bibocom-digital.sn"],
+      icon: MapPin,
+      title: "Adresse",
+      value: "Dakar, Sénégal",
+      href: "#",
     },
     {
       icon: Clock,
-      title: "Horaires",
-      details: ["Lundi - Vendredi: 9h - 18h", "Samedi: 9h - 12h"],
+      title: "Heures d'ouverture",
+      value: "Lun-Ven: 9h-18h | Sam: 9h-13h",
+      href: "#",
     },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="flex-1 pt-20 sm:pt-24 lg:pt-28">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary/10 to-destructive/10 py-16 lg:py-24">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-                Contactez-nous
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Notre équipe est là pour vous aider. N'hésitez pas à nous
-                contacter pour toute question concernant nos formations ou votre
-                compte.
-              </p>
-            </div>
+      {/* Hero Section */}
+      <div className="bg-[var(--bibocom-blue)] text-white">
+        <div className="container mx-auto px-6 py-20 lg:py-28">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-6">
+            </h1>
+            <p className="text              Contact
+-xl text-blue-100 leading-relaxed">
+              Vous avez des questions ou besoin d'aide ? Notre équipe est là pour vous accompagner.
+              N'hésitez pas à nous contacter via le formulaire ou par téléphone.
+            </p>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            {/* Contact Form */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">
-                Envoyez-nous un message
-              </h2>
-
-              {isSubmitted ? (
-                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-6 text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
-                    Message envoyé !
-                  </h3>
-                  <p className="text-green-800 dark:text-green-200">
-                    Merci pour votre message. Nous vous répondrons dans les plus
-                    brefs délais.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Nom complet *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Votre nom"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="votre@email.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subject">Sujet *</Label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      type="text"
-                      required
-                      value={formData.subject}
-                      onChange={handleChange}
-                      placeholder="Objet de votre message"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="message">Message *</Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      required
-                      value={formData.message}
-                      onChange={handleChange}
-                      placeholder="Votre message..."
-                      rows={6}
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    size="lg"
-                    disabled={isSubmitting}
-                    className="w-full"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Envoyer le message
-                      </>
-                    )}
-                  </Button>
-                </form>
-              )}
-            </div>
-
-            {/* Contact Info */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">
-                Informations de contact
-              </h2>
-
-              <div className="space-y-6">
-                {contactInfo.map((info, index) => (
-                  <div key={index} className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
-                      <info.icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{info.title}</h3>
-                      {info.details.map((detail, i) => (
-                        <p key={i} className="text-muted-foreground text-sm">
-                          {detail}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+      {/* Contact Info Cards */}
+      <div className="container mx-auto px-6 -mt-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          {contactInfo.map((info, index) => (
+            <a
+              key={index}
+              href={info.href}
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+            >
+              <div className="w-14 h-14 bg-[var(--bibocom-blue)]/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-[var(--bibocom-blue)] transition-colors">
+                <info.icon className="w-7 h-7 text-[var(--bibocom-blue)] group-hover:text-white transition-colors" />
               </div>
+              <h3 className="font-semibold text-gray-500 text-sm mb-1">{info.title}</h3>
+              <p className="text-gray-900 font-medium">{info.value}</p>
+            </a>
+          ))}
+        </div>
+      </div>
 
-              {/* FAQ Section */}
-              <div className="mt-12 p-6 bg-muted/30 rounded-lg">
-                <h3 className="font-semibold mb-4">Questions fréquentes</h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="font-medium">Comment accéder à mes cours ?</p>
-                    <p className="text-muted-foreground">
-                      Connectez-vous à votre compte et allez dans "Mes cours".
-                    </p>
+      {/* Contact Form */}
+      <section className="py-16 lg:py-24">
+        <div className="container mx-auto px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="grid lg:grid-cols-2">
+                {/* Info Side */}
+                <div className="bg-[var(--bibocom-blue)] text-white p-8 lg:p-12">
+                  <div className="flex items-center gap-3 mb-8">
+                    <MessageCircle className="w-8 h-8" />
+                    <h2 className="text-2xl font-bold">Parlons-en !</h2>
                   </div>
-                  <div>
-                    <p className="font-medium">Problème de paiement ?</p>
-                    <p className="text-muted-foreground">
-                      Contactez notre support avec votre numéro de transaction.
-                    </p>
+                  <p className="text-blue-100 mb-8 leading-relaxed">
+                    Remplissez le formulaire et notre équipe vous répondra dans les plus brefs délais.
+                    Nous sommes disponibles pour répondre à toutes vos questions.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                        <Mail className="w-5 h-5" />
+                      </div>
+                      <span>support@bibocomdigital.com</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                        <Phone className="w-5 h-5" />
+                      </div>
+                      <span>+221 33 123 45 67</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">Besoin d'aide technique ?</p>
-                    <p className="text-muted-foreground">
-                      Écrivez-nous à support@bibocom-digital.sn
-                    </p>
-                  </div>
+                </div>
+
+                {/* Form Side */}
+                <div className="p-8 lg:p-12">
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label
+                          htmlFor="name"
+                          className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          Nom complet *
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none ${
+                            errors.name ? "border-red-500" : "border-gray-200"
+                          }`}
+                          placeholder="Votre nom"
+                        />
+                        {errors.name && (
+                          <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="email"
+                          className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          Email *
+                        </label>
+                        <input
+                          type="text"
+                          id="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none ${
+                            errors.email ? "border-red-500" : "border-gray-200"
+                          }`}
+                          placeholder="votre@email.com"
+                        />
+                        {errors.email && (
+                          <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="subject"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Sujet *
+                      </label>
+                      <select
+                        id="subject"
+                        name="subject"
+                        value={formData.subject}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none ${
+                          errors.subject ? "border-red-500" : "border-gray-200"
+                        }`}
+                      >
+                        <option value="">Sélectionnez un sujet</option>
+                        <option value="support">Support technique</option>
+                        <option value="billing">Question sur la facturation</option>
+                        <option value="partnership">Partenariat</option>
+                        <option value="other">Autre</option>
+                      </select>
+                      {errors.subject && (
+                        <p className="mt-1 text-sm text-red-500">{errors.subject}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="message"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Message *
+                      </label>
+                      <textarea
+                        id="message"
+                        name="message"
+                        value={formData.message}
+                        onChange={handleChange}
+                        rows={5}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[var(--bibocom-blue)] focus:border-transparent transition-all outline-none resize-none ${
+                          errors.message ? "border-red-500" : "border-gray-200"
+                        }`}
+                        placeholder="Décrivez votre demande..."
+                      />
+                      {errors.message && (
+                        <p className="mt-1 text-sm text-red-500">{errors.message}</p>
+                      )}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-4 bg-[var(--bibocom-blue)] text-white font-semibold rounded-lg hover:bg-[var(--bibocom-blue)]/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Envoi en cours...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          Envoyer le message
+                        </>
+                      )}
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </section>
+
+      {/* Map Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl mx-auto text-center mb-8">
+            <h2 className="text-2xl lg:text-3xl font-bold mb-4">
+              Venez nous rendre visite
+            </h2>
+            <p className="text-gray-600">
+              Notre équipe sera ravie de vous accueillir dans nos locaux.
+            </p>
+          </div>
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3858.8432936213253!2d-17.46017722489144!3d14.720150185779398!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xec173bc8180b45f%3A0x6d219f9a2aa32b0e!2sBibocom%20Digital!5e0!3m2!1sfr!2ssn!4v1769986860510!5m2!1sfr!2ssn"
+                width="100%"
+                height="450"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Carte Google Maps - Bibocom Digital"
+              />
+            </div>
+            <div className="text-center mt-4">
+              <p className="text-gray-600">Dakar, Sénégal</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <Footer />
     </div>

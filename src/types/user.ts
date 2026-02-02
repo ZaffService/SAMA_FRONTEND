@@ -1,4 +1,4 @@
-export type Role = 'STUDENT' | 'INSTRUCTOR' | 'ADMIN';
+export type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
 
 export interface UserProfile {
   phone?: string;

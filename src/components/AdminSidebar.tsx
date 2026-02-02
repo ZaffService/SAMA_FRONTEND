@@ -102,12 +102,19 @@ export function AdminSidebar({
     },
   ];
 
-  const handleMenuClick = (item: typeof menuItems[0]) => {
+  const handleMenuClick = (item: (typeof menuItems)[0]) => {
     if (item.disabled) {
-      toast.info(`${item.label} - Cette fonctionnalité est en cours de développement`);
+      toast.info(
+        `${item.label} - Cette fonctionnalité est en cours de développement`,
+      );
       return;
     }
-    if (item.id === "overview" || item.id === "create-course" || item.id === "manage-courses" || item.id === "manage-users") {
+    if (
+      item.id === "overview" ||
+      item.id === "create-course" ||
+      item.id === "manage-courses" ||
+      item.id === "manage-users"
+    ) {
       onViewChange(item.id);
     } else if (item.id === "categories" && onOpenCategoryDialog) {
       onOpenCategoryDialog();
@@ -120,8 +127,6 @@ export function AdminSidebar({
         isCollapsed ? "w-16" : "w-64"
       } flex flex-col h-screen`}
     >
-
-
       {/* Navigation Menu */}
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => (
@@ -138,14 +143,21 @@ export function AdminSidebar({
             onClick={() => handleMenuClick(item)}
             disabled={item.disabled}
           >
-            <item.icon className={`h-5 w-5 ${
-              item.active ? "text-white" : "text-gray-400"
-            } ${isCollapsed ? "" : "mr-3"}`} />
+            <item.icon
+              className={`h-5 w-5 ${
+                item.active ? "text-white" : "text-gray-400"
+              } ${isCollapsed ? "" : "mr-3"}`}
+            />
             {!isCollapsed && (
               <>
-                <span className="flex-1 text-left font-medium">{item.label}</span>
+                <span className="flex-1 text-left font-medium">
+                  {item.label}
+                </span>
                 {item.badge && (
-                  <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300 border-0">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-gray-700 text-gray-300 border-0"
+                  >
                     {item.badge}
                   </Badge>
                 )}
@@ -164,7 +176,9 @@ export function AdminSidebar({
           }`}
           onClick={onLogout}
         >
-          <LogOut className={`h-5 w-5 text-gray-400 ${isCollapsed ? "" : "mr-3"}`} />
+          <LogOut
+            className={`h-5 w-5 text-gray-400 ${isCollapsed ? "" : "mr-3"}`}
+          />
           {!isCollapsed && <span className="font-medium">Déconnexion</span>}
         </Button>
       </div>

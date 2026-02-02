@@ -5,17 +5,19 @@ export const userService = {
   /**
    * Récupérer tous les utilisateurs
    */
-  async getAllUsers(params?: Omit<GetUsersParams, 'role'>): Promise<UsersResponse> {
+  async getAllUsers(
+    params?: Omit<GetUsersParams, "role">,
+  ): Promise<UsersResponse> {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
 
     const url = `${buildApiUrl(API_ENDPOINTS.USER.BY_ROLE)}?${queryParams}`;
 
     const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -31,16 +33,16 @@ export const userService = {
    */
   async getUsersByRole(params: GetUsersParams): Promise<UsersResponse> {
     const queryParams = new URLSearchParams();
-    if (params.role) queryParams.append('role', params.role);
-    if (params.page) queryParams.append('page', params.page.toString());
-    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.role) queryParams.append("role", params.role);
+    if (params.page) queryParams.append("page", params.page.toString());
+    if (params.limit) queryParams.append("limit", params.limit.toString());
 
     const url = `${buildApiUrl(API_ENDPOINTS.USER.BY_ROLE)}?${queryParams}`;
 
     const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
     });
 
     if (!response.ok) {
@@ -62,9 +64,9 @@ export const userService = {
   }> {
     const [all, students, instructors, admins] = await Promise.all([
       this.getAllUsers({ limit: 1 }),
-      this.getUsersByRole({ role: 'STUDENT', limit: 1 }),
-      this.getUsersByRole({ role: 'INSTRUCTOR', limit: 1 }),
-      this.getUsersByRole({ role: 'ADMIN', limit: 1 }),
+      this.getUsersByRole({ role: "STUDENT", limit: 1 }),
+      this.getUsersByRole({ role: "INSTRUCTOR", limit: 1 }),
+      this.getUsersByRole({ role: "ADMIN", limit: 1 }),
     ]);
 
     return {
@@ -73,5 +75,5 @@ export const userService = {
       instructors: instructors.total,
       admins: admins.total,
     };
-  }
+  },
 };

@@ -60,7 +60,10 @@ export class CategoriesApi {
 
     if (!response.ok) {
       const errorMessage = `Failed to create category: ${response.status}`;
-      console.error("❌ Erreur lors de la création de la catégorie:", errorMessage);
+      console.error(
+        "❌ Erreur lors de la création de la catégorie:",
+        errorMessage,
+      );
       throw new Error(errorMessage);
     }
 
@@ -77,4 +80,3 @@ export class CategoriesApi {
     };
   }
 }
-

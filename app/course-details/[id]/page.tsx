@@ -39,7 +39,6 @@ import {
 } from "lucide-react";
 import Cookies from "js-cookie";
 
-
 function CourseDetailsPageComponent() {
   const params = useParams();
   const router = useRouter();
@@ -110,7 +109,6 @@ function CourseDetailsPageComponent() {
     new Set(),
   );
 
-
   // Helper function to validate UUID format (defined before useEffects)
   const isValidUUID = (id: string): boolean => {
     const uuidRegex =
@@ -152,9 +150,12 @@ function CourseDetailsPageComponent() {
 
   // Nettoyer le cache des URLs signées périodiquement
   useEffect(() => {
-    const interval = setInterval(() => {
-      VideoApi.cleanExpiredCache();
-    }, 5 * 60 * 1000); // Toutes les 5 minutes
+    const interval = setInterval(
+      () => {
+        VideoApi.cleanExpiredCache();
+      },
+      5 * 60 * 1000,
+    ); // Toutes les 5 minutes
 
     return () => clearInterval(interval);
   }, []);
@@ -185,8 +186,8 @@ function CourseDetailsPageComponent() {
         if (data.modules && data.modules.length > 0) {
           // ✅ Ouvrir le premier module par défaut UNIQUEMENT sur desktop
           // Sur mobile, on garde tous les modules fermés
-          const initialExpanded = isMobile 
-            ? new Set<string>() 
+          const initialExpanded = isMobile
+            ? new Set<string>()
             : new Set([data.modules[0].id]);
           setExpandedModules(initialExpanded);
 
@@ -658,7 +659,7 @@ function CourseDetailsPageComponent() {
   // ✅ Helper: Obtenir le quiz d'un module
   const getModuleQuiz = (moduleId: string): Quiz | undefined => {
     const module = courseData?.modules.find((m) => m.id === moduleId);
-    return module?.quiz?.[0];  // Prendre le premier quiz du module
+    return module?.quiz?.[0]; // Prendre le premier quiz du module
   };
 
   // ✅ Vérifier si un quiz existe pour un module
@@ -698,7 +699,10 @@ function CourseDetailsPageComponent() {
   }, [currentLessonIndex, lessonsWithVideos]);
 
   const handleVideoEnd = useCallback(() => {
-    if (currentLessonIndex >= 0 && currentLessonIndex < lessonsWithVideos.length - 1) {
+    if (
+      currentLessonIndex >= 0 &&
+      currentLessonIndex < lessonsWithVideos.length - 1
+    ) {
       setCurrentLessonIndex(currentLessonIndex + 1);
       if (isMobile) {
         setTimeout(() => {
@@ -725,9 +729,7 @@ function CourseDetailsPageComponent() {
       confirmButtonColor: "#6366f1",
     });
 
-    console.log(
-      `Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`
-    );
+    console.log(`Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`);
   }, []);
 
   const checkQuizExists = async (moduleId: string): Promise<boolean> => {
@@ -805,7 +807,6 @@ function CourseDetailsPageComponent() {
     setCurrentQuizData(quiz);
     setShowQuizModal(true);
   };
-
 
   // Gestion du clic sur un module
   const handleModuleClick = (moduleId: string) => {
@@ -994,9 +995,7 @@ function CourseDetailsPageComponent() {
           <div className="p-2">
             {modules.map((module, moduleIndex) => {
               const isExpanded = expandedModules.has(module.id);
-              const isModuleCompleted = completedModules.has(
-                module.id,
-              );
+              const isModuleCompleted = completedModules.has(module.id);
               const moduleQuiz = getModuleQuiz(module.id);
               const totalModuleDuration = module.lessons
                 .filter((l) => l.hasVideo)
@@ -1053,10 +1052,7 @@ function CourseDetailsPageComponent() {
                           </div>
                         </div>
                         <div className="text-xs text-gray-500 mt-0.5">
-                          {
-                            module.lessons.filter((l) => l.hasVideo)
-                              .length
-                          }{" "}
+                          {module.lessons.filter((l) => l.hasVideo).length}{" "}
                           leçons
                           {moduleQuiz && " • 1 quiz"}
                           {totalModuleDuration > 0 && (
@@ -1081,9 +1077,7 @@ function CourseDetailsPageComponent() {
                       {module.lessons
                         .filter((lesson) => lesson.hasVideo)
                         .map((lesson) => {
-                          const completed = isLessonCompleted(
-                            lesson.id,
-                          );
+                          const completed = isLessonCompleted(lesson.id);
                           return (
                             <div
                               key={lesson.id}
@@ -1096,7 +1090,10 @@ function CourseDetailsPageComponent() {
                               {/* Bouton pour sélectionner la leçon */}
                               <button
                                 onClick={() => {
-                                  const lessonIndex = lessonsWithVideos.findIndex(l => l.id === lesson.id);
+                                  const lessonIndex =
+                                    lessonsWithVideos.findIndex(
+                                      (l) => l.id === lesson.id,
+                                    );
                                   if (lessonIndex !== -1) {
                                     setCurrentLessonIndex(lessonIndex);
                                   }
@@ -1113,11 +1110,12 @@ function CourseDetailsPageComponent() {
                                   className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                                     completed
                                       ? "bg-green-500"
-                                      : selectedLessonId === lesson.id && isEnrolled
-                                      ? "bg-gradient-to-r from-indigo-600 to-purple-600"
-                                      : isEnrolled
-                                      ? "bg-gradient-to-r from-indigo-100 to-purple-100"
-                                      : "bg-gray-200"
+                                      : selectedLessonId === lesson.id &&
+                                          isEnrolled
+                                        ? "bg-gradient-to-r from-indigo-600 to-purple-600"
+                                        : isEnrolled
+                                          ? "bg-gradient-to-r from-indigo-100 to-purple-100"
+                                          : "bg-gray-200"
                                   }`}
                                 >
                                   {completed ? (
@@ -1162,63 +1160,55 @@ function CourseDetailsPageComponent() {
                               </button>
 
                               {/* Checkbox pour marquer comme terminé */}
-                              {(isEnrolled === true || isAdmin) && !completed && (
-                                <div className="px-3 lg:px-4 pb-2.5 lg:pb-3">
-                                  <label
-                                    className="flex items-center gap-2 cursor-pointer group/checkbox"
-                                    onClick={(e) =>
-                                      e.stopPropagation()
-                                    }
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      name={`lesson-${lesson.id}`}
-                                      checked={completed}
-                                      onChange={async (e) => {
-                                        e.stopPropagation();
-                                        const newCompleted =
-                                          e.target.checked;
+                              {(isEnrolled === true || isAdmin) &&
+                                !completed && (
+                                  <div className="px-3 lg:px-4 pb-2.5 lg:pb-3">
+                                    <label
+                                      className="flex items-center gap-2 cursor-pointer group/checkbox"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        name={`lesson-${lesson.id}`}
+                                        checked={completed}
+                                        onChange={async (e) => {
+                                          e.stopPropagation();
+                                          const newCompleted = e.target.checked;
 
-                                        const parentModule =
-                                          modules.find((m) =>
-                                            m.lessons.some(
-                                              (l) =>
-                                                l.id === lesson.id,
-                                            ),
+                                          const parentModule = modules.find(
+                                            (m) =>
+                                              m.lessons.some(
+                                                (l) => l.id === lesson.id,
+                                              ),
                                           );
-                                        const isModuleCompleted =
-                                          parentModule
+                                          const isModuleCompleted = parentModule
                                             ? completedModules.has(
                                                 parentModule.id,
                                               )
                                             : false;
 
-                                        if (
-                                          isModuleCompleted &&
-                                          !newCompleted
-                                        ) {
-                                          Swal.fire({
-                                            title:
-                                              "Modification impossible",
-                                            text: "Impossible de modifier le statut d'une leçon appartenant à un module terminé",
-                                            icon: "warning",
-                                            confirmButtonText:
-                                              "Compris",
-                                            confirmButtonColor:
-                                              "#6366f1",
-                                          });
-                                          return;
-                                        }
+                                          if (
+                                            isModuleCompleted &&
+                                            !newCompleted
+                                          ) {
+                                            Swal.fire({
+                                              title: "Modification impossible",
+                                              text: "Impossible de modifier le statut d'une leçon appartenant à un module terminé",
+                                              icon: "warning",
+                                              confirmButtonText: "Compris",
+                                              confirmButtonColor: "#6366f1",
+                                            });
+                                            return;
+                                          }
 
-                                        console.log(
-                                          "🔄 Changement de statut pour la leçon:",
-                                          lesson.id,
-                                        );
+                                          console.log(
+                                            "🔄 Changement de statut pour la leçon:",
+                                            lesson.id,
+                                          );
 
-                                        try {
-                                          if (newCompleted) {
-                                            const response =
-                                              await fetch(
+                                          try {
+                                            if (newCompleted) {
+                                              const response = await fetch(
                                                 buildApiUrl(
                                                   API_ENDPOINTS.LESSONS.COMPLETE(
                                                     lesson.id,
@@ -1226,19 +1216,17 @@ function CourseDetailsPageComponent() {
                                                 ),
                                                 {
                                                   method: "POST",
-                                                  credentials:
-                                                    "include",
+                                                  credentials: "include",
                                                 },
                                               );
 
-                                            if (response.ok) {
-                                              console.log(
-                                                "✅ API: Leçon marquée comme terminée",
-                                              );
-                                            }
-                                          } else {
-                                            const response =
-                                              await fetch(
+                                              if (response.ok) {
+                                                console.log(
+                                                  "✅ API: Leçon marquée comme terminée",
+                                                );
+                                              }
+                                            } else {
+                                              const response = await fetch(
                                                 buildApiUrl(
                                                   API_ENDPOINTS.LESSONS.UNCOMPLETE(
                                                     lesson.id,
@@ -1246,55 +1234,48 @@ function CourseDetailsPageComponent() {
                                                 ),
                                                 {
                                                   method: "POST",
-                                                  credentials:
-                                                    "include",
+                                                  credentials: "include",
                                                 },
                                               );
 
-                                            if (response.ok) {
-                                              console.log(
-                                                "✅ API: Leçon démarquée",
-                                              );
+                                              if (response.ok) {
+                                                console.log(
+                                                  "✅ API: Leçon démarquée",
+                                                );
+                                              }
                                             }
-                                          }
 
-                                          setLessonProgress(
-                                            (prev) => ({
+                                            setLessonProgress((prev) => ({
                                               ...prev,
-                                              [lesson.id]:
-                                                newCompleted,
-                                            }),
-                                          );
-                                        } catch (error) {
-                                          console.error(
-                                            "💥 Erreur:",
-                                            error,
-                                          );
-                                        }
-                                      }}
-                                      className="sr-only"
-                                    />
-                                    <div className="relative w-5 h-5 flex-shrink-0">
-                                      <div
-                                        className={`w-5 h-5 rounded-full border-2 transition-all ${
-                                          completed
-                                            ? "border-green-500 bg-green-500"
-                                            : "border-gray-300 bg-white group-hover/checkbox:border-indigo-400"
-                                        }`}
-                                      >
-                                        {completed && (
-                                          <CheckCircle className="w-5 h-5 text-white fill-current -m-[2px]" />
-                                        )}
+                                              [lesson.id]: newCompleted,
+                                            }));
+                                          } catch (error) {
+                                            console.error("💥 Erreur:", error);
+                                          }
+                                        }}
+                                        className="sr-only"
+                                      />
+                                      <div className="relative w-5 h-5 flex-shrink-0">
+                                        <div
+                                          className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                            completed
+                                              ? "border-green-500 bg-green-500"
+                                              : "border-gray-300 bg-white group-hover/checkbox:border-indigo-400"
+                                          }`}
+                                        >
+                                          {completed && (
+                                            <CheckCircle className="w-5 h-5 text-white fill-current -m-[2px]" />
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                    <span className="text-xs text-gray-600 group-hover/checkbox:text-gray-900">
-                                      {completed
-                                        ? "Leçon terminée"
-                                        : "Marquer comme terminée"}
-                                    </span>
-                                  </label>
-                                </div>
-                              )}
+                                      <span className="text-xs text-gray-600 group-hover/checkbox:text-gray-900">
+                                        {completed
+                                          ? "Leçon terminée"
+                                          : "Marquer comme terminée"}
+                                      </span>
+                                    </label>
+                                  </div>
+                                )}
                             </div>
                           );
                         })}
@@ -1371,7 +1352,9 @@ function CourseDetailsPageComponent() {
                   <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
                     <PlayCircle className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                   </div>
-                  <p className="text-gray-400 text-sm sm:text-base">Aucune vidéo disponible</p>
+                  <p className="text-gray-400 text-sm sm:text-base">
+                    Aucune vidéo disponible
+                  </p>
                 </div>
               )}
             </div>
@@ -1381,7 +1364,9 @@ function CourseDetailsPageComponent() {
                 {selectedLesson?.title || course.title}
               </h3>
               <p className="text-white/70 text-xs sm:text-sm">
-                {selectedLesson?.duration && selectedLesson.duration > 0 ? formatDuration(selectedLesson.duration) : ""}
+                {selectedLesson?.duration && selectedLesson.duration > 0
+                  ? formatDuration(selectedLesson.duration)
+                  : ""}
               </p>
             </div>
           </div>
@@ -1392,7 +1377,7 @@ function CourseDetailsPageComponent() {
       <header className="border-b bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 lg:py-4 flex items-center justify-between">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 flex-shrink-0" />
@@ -1409,20 +1394,20 @@ function CourseDetailsPageComponent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2 space-y-6">
             {/* Mobile: Sidebar AVANT la vidéo */}
-            {isMobile && hasVideoContent && (
-              <LessonsSidebar />
-            )}
+            {isMobile && hasVideoContent && <LessonsSidebar />}
 
             {/* Video Player */}
             {hasVideo && hasVideoContent && (
               <div className="relative rounded-lg lg:rounded-xl overflow-hidden bg-gray-900 shadow-lg">
                 <div className="aspect-video relative">
-                  {(isEnrolled === true || isAdmin) ? (
+                  {isEnrolled === true || isAdmin ? (
                     /* ✅ Utilisateur inscrit ou admin - Vérifier si videoUrl existe */
                     selectedLesson?.videoUrl ? (
                       /* Afficher directement la vidéo YouTube */
                       (() => {
-                        const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
+                        const videoId = getYouTubeVideoId(
+                          selectedLesson.videoUrl,
+                        );
                         return videoId ? (
                           <div className="absolute inset-0 w-full h-full">
                             <iframe
@@ -1459,7 +1444,8 @@ function CourseDetailsPageComponent() {
                         Aperçu de la leçon
                       </h3>
                       <p className="text-white/80 text-xs sm:text-sm lg:text-base text-center max-w-md mb-4 sm:mb-6 px-4 leading-relaxed">
-                        Découvrez le contenu de ce cours. Inscrivez-vous pour accéder aux vidéos complètes.
+                        Découvrez le contenu de ce cours. Inscrivez-vous pour
+                        accéder aux vidéos complètes.
                       </p>
                       <button
                         onClick={(e) => {
@@ -1472,11 +1458,15 @@ function CourseDetailsPageComponent() {
                         {enrolling ? (
                           <>
                             <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs sm:text-base">Inscription...</span>
+                            <span className="text-xs sm:text-base">
+                              Inscription...
+                            </span>
                           </>
                         ) : (
                           <span className="text-xs sm:text-base">
-                            {isFree ? "Commencer maintenant" : "S'inscrire au cours"}
+                            {isFree
+                              ? "Commencer maintenant"
+                              : "S'inscrire au cours"}
                           </span>
                         )}
                       </button>
@@ -1544,7 +1534,8 @@ function CourseDetailsPageComponent() {
                   </h1>
 
                   <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed mb-4 sm:mb-6 max-w-3xl">
-                    {course.description || "Découvrez ce cours complet et apprenez à votre rythme avec des vidéos de qualité professionnelle."}
+                    {course.description ||
+                      "Découvrez ce cours complet et apprenez à votre rythme avec des vidéos de qualité professionnelle."}
                   </p>
 
                   {/* Course Tags - Responsive */}
@@ -1576,32 +1567,45 @@ function CourseDetailsPageComponent() {
 
                 {/* Course Title and Description */}
                 <div className="mb-6 sm:mb-8">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">{course.title}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+                    {course.title}
+                  </h3>
                   <div className="prose prose-sm sm:prose-base prose-gray max-w-none">
                     <p className="text-gray-700 text-sm sm:text-base leading-relaxed mb-3 sm:mb-4">
-                      {course.description || "Découvrez ce cours complet qui vous guidera pas à pas dans l'acquisition des compétences essentielles pour maîtriser ce domaine. À travers des leçons structurées et des exercices pratiques, vous développerez une compréhension approfondie des concepts fondamentaux et apprendrez à les appliquer dans des situations réelles."}
+                      {course.description ||
+                        "Découvrez ce cours complet qui vous guidera pas à pas dans l'acquisition des compétences essentielles pour maîtriser ce domaine. À travers des leçons structurées et des exercices pratiques, vous développerez une compréhension approfondie des concepts fondamentaux et apprendrez à les appliquer dans des situations réelles."}
                     </p>
                     <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                      Ce programme pédagogique a été conçu pour s'adapter à votre rythme d'apprentissage, que vous soyez débutant ou que vous souhaitiez perfectionner vos connaissances. Chaque module aborde des thèmes spécifiques avec des exemples concrets et des démonstrations pratiques.
+                      Ce programme pédagogique a été conçu pour s'adapter à
+                      votre rythme d'apprentissage, que vous soyez débutant ou
+                      que vous souhaitiez perfectionner vos connaissances.
+                      Chaque module aborde des thèmes spécifiques avec des
+                      exemples concrets et des démonstrations pratiques.
                     </p>
                   </div>
                 </div>
 
                 {/* Learning Objectives */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {modules.flatMap(module =>
-                    module.lessons
-                      .filter(lesson => lesson.hasVideo)
-                      .slice(0, 6)
-                      .map((lesson, index) => (
-                        <div key={`${module.id}-${lesson.id}`} className="flex items-start gap-2 sm:gap-3">
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                            {lesson.content || `Comprendre et maîtriser : ${lesson.title.toLowerCase()}`}
-                          </span>
-                        </div>
-                      ))
-                  ).slice(0, 8)}
+                  {modules
+                    .flatMap((module) =>
+                      module.lessons
+                        .filter((lesson) => lesson.hasVideo)
+                        .slice(0, 6)
+                        .map((lesson, index) => (
+                          <div
+                            key={`${module.id}-${lesson.id}`}
+                            className="flex items-start gap-2 sm:gap-3"
+                          >
+                            <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-gray-700 text-sm sm:text-base leading-relaxed">
+                              {lesson.content ||
+                                `Comprendre et maîtriser : ${lesson.title.toLowerCase()}`}
+                            </span>
+                          </div>
+                        )),
+                    )
+                    .slice(0, 8)}
                 </div>
               </div>
             </div>
@@ -1616,56 +1620,83 @@ function CourseDetailsPageComponent() {
               <div className="space-y-3 sm:space-y-4">
                 {modules.map((module, moduleIndex) => {
                   const isExpanded = expandedModules.has(module.id);
-                  const lessonCount = module.lessons.filter(l => l.hasVideo).length;
+                  const lessonCount = module.lessons.filter(
+                    (l) => l.hasVideo,
+                  ).length;
                   const totalDuration = module.lessons
-                    .filter(l => l.hasVideo)
+                    .filter((l) => l.hasVideo)
                     .reduce((sum, l) => sum + l.duration, 0);
 
                   return (
-                    <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div
+                      key={module.id}
+                      className="border border-gray-200 rounded-lg overflow-hidden"
+                    >
                       <button
                         onClick={() => toggleModule(module.id)}
                         className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs sm:text-sm font-bold text-indigo-600">{moduleIndex + 1}</span>
+                            <span className="text-xs sm:text-sm font-bold text-indigo-600">
+                              {moduleIndex + 1}
+                            </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">{module.title}</h3>
-                            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{module.description}</p>
+                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">
+                              {module.title}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
+                              {module.description}
+                            </p>
                             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
                               <span className="flex items-center gap-1">
                                 <PlayCircle className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                                <span className="whitespace-nowrap">{lessonCount} leçons</span>
+                                <span className="whitespace-nowrap">
+                                  {lessonCount} leçons
+                                </span>
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                                <span className="whitespace-nowrap">{formatDuration(totalDuration)}</span>
+                                <span className="whitespace-nowrap">
+                                  {formatDuration(totalDuration)}
+                                </span>
                               </span>
                             </div>
                           </div>
                         </div>
-                        <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ml-2 ${isExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown
+                          className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ml-2 ${isExpanded ? "rotate-180" : ""}`}
+                        />
                       </button>
 
                       {isExpanded && (
                         <div className="border-t border-gray-100 bg-gray-50">
                           {module.lessons
-                            .filter(lesson => lesson.hasVideo)
+                            .filter((lesson) => lesson.hasVideo)
                             .map((lesson, lessonIndex) => (
-                              <div key={lesson.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border-b border-gray-100 last:border-b-0">
+                              <div
+                                key={lesson.id}
+                                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border-b border-gray-100 last:border-b-0"
+                              >
                                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
                                   <PlayCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-600" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm sm:text-base text-gray-900 truncate">{lesson.title}</h4>
-                                  <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{lesson.content || "Découvrez cette leçon passionnante"}</p>
+                                  <h4 className="font-medium text-sm sm:text-base text-gray-900 truncate">
+                                    {lesson.title}
+                                  </h4>
+                                  <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
+                                    {lesson.content ||
+                                      "Découvrez cette leçon passionnante"}
+                                  </p>
                                 </div>
                                 {lesson.duration > 0 && (
                                   <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 flex-shrink-0">
                                     <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span className="whitespace-nowrap">{formatDuration(lesson.duration)}</span>
+                                    <span className="whitespace-nowrap">
+                                      {formatDuration(lesson.duration)}
+                                    </span>
                                   </div>
                                 )}
                               </div>
@@ -1688,15 +1719,21 @@ function CourseDetailsPageComponent() {
               <div className="space-y-2 sm:space-y-3">
                 <div className="flex items-start gap-2 sm:gap-3">
                   <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">Aucune connaissance préalable requise</span>
+                  <span className="text-gray-700 text-sm sm:text-base">
+                    Aucune connaissance préalable requise
+                  </span>
                 </div>
                 <div className="flex items-start gap-2 sm:gap-3">
                   <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">Un ordinateur ou smartphone avec connexion internet</span>
+                  <span className="text-gray-700 text-sm sm:text-base">
+                    Un ordinateur ou smartphone avec connexion internet
+                  </span>
                 </div>
                 <div className="flex items-start gap-2 sm:gap-3">
                   <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-700 text-sm sm:text-base">Motivation et envie d'apprendre</span>
+                  <span className="text-gray-700 text-sm sm:text-base">
+                    Motivation et envie d'apprendre
+                  </span>
                 </div>
               </div>
             </div>
@@ -1710,7 +1747,6 @@ function CourseDetailsPageComponent() {
               </div>
             </div>
           )}
-          
         </div>
       </main>
 

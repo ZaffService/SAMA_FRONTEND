@@ -96,24 +96,43 @@ export function useCourseDetails(courseId: string) {
 
       if (courseResult && (courseResult as any).course?.modules) {
         // New structure with modules
-        console.log("test Avant tri:", JSON.stringify((courseResult as any).course.modules[0]?.lessons.map((l: any) => ({title: l.title, order: l.orderIndex}))));
-        
-        topicsResult = (courseResult as any).course.modules.map((module: any) => {
-          const sortedLessons = (module.lessons || []).sort((a: any, b: any) => {
-            const orderA = a.orderIndex || 999;
-            const orderB = b.orderIndex || 999;
-            return orderA - orderB;
-          });
-          
-          console.log("test Après tri module:", module.title, sortedLessons.map((l: any) => ({title: l.title, order: l.orderIndex})));
-          
-          return {
-            ID: module.id,
-            post_title: module.title,
-            orderIndex: module.orderIndex,
-            lessons: sortedLessons,
-          };
-        }).sort((a: any, b: any) => a.orderIndex - b.orderIndex);
+        console.log(
+          "test Avant tri:",
+          JSON.stringify(
+            (courseResult as any).course.modules[0]?.lessons.map((l: any) => ({
+              title: l.title,
+              order: l.orderIndex,
+            })),
+          ),
+        );
+
+        topicsResult = (courseResult as any).course.modules
+          .map((module: any) => {
+            const sortedLessons = (module.lessons || []).sort(
+              (a: any, b: any) => {
+                const orderA = a.orderIndex || 999;
+                const orderB = b.orderIndex || 999;
+                return orderA - orderB;
+              },
+            );
+
+            console.log(
+              "test Après tri module:",
+              module.title,
+              sortedLessons.map((l: any) => ({
+                title: l.title,
+                order: l.orderIndex,
+              })),
+            );
+
+            return {
+              ID: module.id,
+              post_title: module.title,
+              orderIndex: module.orderIndex,
+              lessons: sortedLessons,
+            };
+          })
+          .sort((a: any, b: any) => a.orderIndex - b.orderIndex);
 
         topicsResult.forEach((module) => {
           module.lessons.forEach((lesson: any) => {
@@ -139,7 +158,9 @@ export function useCourseDetails(courseId: string) {
               topic_id: module.ID,
               topicTitle: module.post_title,
               topicOrder: module.orderIndex,
-              menuOrder: lesson.orderIndex ? Number.parseInt(lesson.orderIndex.toString()) : 999,
+              menuOrder: lesson.orderIndex
+                ? Number.parseInt(lesson.orderIndex.toString())
+                : 999,
               thumbnail: lesson.thumbnail,
               video: lesson.video || {},
               attachments: lesson.attachments || [],
@@ -156,7 +177,9 @@ export function useCourseDetails(courseId: string) {
           return 0;
         });
 
-        console.log(`test ${allLessonsResult.length} leçons trouvées (nouvelle structure)`);
+        console.log(
+          `test ${allLessonsResult.length} leçons trouvées (nouvelle structure)`,
+        );
       } else {
         // Old structure
         topicsResult = (Array.isArray(topicsData) ? topicsData : [])
@@ -168,7 +191,9 @@ export function useCourseDetails(courseId: string) {
             orderIndex: topic.orderIndex,
             lessons: topic.lessons || [],
           }))
-          .sort((a: any, b: any) => (a.orderIndex || a.ID) - (b.orderIndex || b.ID));
+          .sort(
+            (a: any, b: any) => (a.orderIndex || a.ID) - (b.orderIndex || b.ID),
+          );
 
         if (topicsResult.length > 0) {
           const topicLessons: any[] = [];
@@ -219,7 +244,11 @@ export function useCourseDetails(courseId: string) {
                 topic_id: topicGroup.topicId,
                 topicTitle: topicGroup.topicTitle,
                 topicOrder: topicGroup.topicOrder,
-                menuOrder: lesson.orderIndex ? Number.parseInt(lesson.orderIndex.toString()) : (lesson.order ? Number.parseInt(lesson.order.toString()) : 999),
+                menuOrder: lesson.orderIndex
+                  ? Number.parseInt(lesson.orderIndex.toString())
+                  : lesson.order
+                    ? Number.parseInt(lesson.order.toString())
+                    : 999,
                 thumbnail: lesson.thumbnail,
                 video: lesson.video || {},
                 attachments: lesson.attachments || [],
@@ -236,7 +265,9 @@ export function useCourseDetails(courseId: string) {
             return 0;
           });
 
-          console.log(`test ${allLessonsResult.length} leçons trouvées (ancienne structure)`);
+          console.log(
+            `test ${allLessonsResult.length} leçons trouvées (ancienne structure)`,
+          );
         }
       }
 

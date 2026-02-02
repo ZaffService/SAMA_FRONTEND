@@ -157,7 +157,7 @@ export default function UserProfile() {
     } catch (error) {
       console.error("Erreur lors de la récupération du profil:", error);
       await showErrorAlert(
-        "Impossible de charger votre profil. Veuillez réessayer."
+        "Impossible de charger votre profil. Veuillez réessayer.",
       );
     } finally {
       setIsLoading(false);
@@ -169,7 +169,7 @@ export default function UserProfile() {
     (field: keyof ProfileFormData, value: string | boolean) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
-    []
+    [],
   );
 
   // Reset form to initial values
@@ -218,11 +218,11 @@ export default function UserProfile() {
 
     try {
       await UserApi.completeProfile(changedFields);
-      
+
       // Close loading and show success
       Swal.close();
       await showSuccessAlert();
-      
+
       // Refetch profile from backend to get latest data
       await fetchProfile();
     } catch (error) {
@@ -231,7 +231,7 @@ export default function UserProfile() {
       await showErrorAlert(
         error instanceof Error
           ? error.message
-          : "Impossible de mettre à jour le profil"
+          : "Impossible de mettre à jour le profil",
       );
     } finally {
       setIsSaving(false);
@@ -246,7 +246,8 @@ export default function UserProfile() {
 
   // Check if disability details should be visible
   // Show only when disability type is "OTHER"
-  const showDisabilityDetails = formData.disability && formData.disabilityType === "OTHER";
+  const showDisabilityDetails =
+    formData.disability && formData.disabilityType === "OTHER";
 
   if (isLoading) {
     return (
@@ -255,7 +256,9 @@ export default function UserProfile() {
         <main className="flex-1 flex items-center justify-center py-8 md:py-12 pt-20 sm:pt-24 lg:pt-28">
           <div className="w-full max-w-[1600px] px-6 lg:px-12 xl:px-16 mx-auto text-center">
             <LoadingSpinner size="lg" />
-            <p className="mt-4 text-muted-foreground">Chargement du profil...</p>
+            <p className="mt-4 text-muted-foreground">
+              Chargement du profil...
+            </p>
           </div>
         </main>
         <Footer />
@@ -305,8 +308,12 @@ export default function UserProfile() {
 
                 {/* User Info */}
                 <div className="text-center md:text-left text-white">
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">{displayName}</h2>
-                  <p className="text-blue-100 mt-1 text-base lg:text-lg">{formData.email}</p>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">
+                    {displayName}
+                  </h2>
+                  <p className="text-blue-100 mt-1 text-base lg:text-lg">
+                    {formData.email}
+                  </p>
                   {formData.consentGiven && (
                     <div className="inline-flex items-center gap-1 lg:gap-2 mt-2 lg:mt-3 bg-white/20 px-3 py-1 lg:px-4 lg:py-2 rounded-full text-sm lg:text-base">
                       <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -346,26 +353,36 @@ export default function UserProfile() {
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-10">
                     <div className="space-y-2 lg:space-y-3">
-                      <Label htmlFor="firstName" className="text-sm lg:text-base font-medium text-gray-700">
+                      <Label
+                        htmlFor="firstName"
+                        className="text-sm lg:text-base font-medium text-gray-700"
+                      >
                         Prénom <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="firstName"
                         value={formData.firstName}
-                        onChange={(e) => handleChange("firstName", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("firstName", e.target.value)
+                        }
                         disabled={isSaving}
                         placeholder="Votre prénom"
                         className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                       />
                     </div>
                     <div className="space-y-2 lg:space-y-3">
-                      <Label htmlFor="lastName" className="text-sm lg:text-base font-medium text-gray-700">
+                      <Label
+                        htmlFor="lastName"
+                        className="text-sm lg:text-base font-medium text-gray-700"
+                      >
                         Nom <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="lastName"
                         value={formData.lastName}
-                        onChange={(e) => handleChange("lastName", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("lastName", e.target.value)
+                        }
                         disabled={isSaving}
                         placeholder="Votre nom"
                         className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
@@ -405,20 +422,32 @@ export default function UserProfile() {
 
                   <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-10">
                     <div className="space-y-2 lg:space-y-3">
-                      <Label htmlFor="sexe" className="text-sm lg:text-base font-medium text-gray-700">
+                      <Label
+                        htmlFor="sexe"
+                        className="text-sm lg:text-base font-medium text-gray-700"
+                      >
                         Genre
                       </Label>
                       <Select
                         value={formData.sexe}
-                        onValueChange={(value) => handleChange("sexe", value as SexeType)}
+                        onValueChange={(value) =>
+                          handleChange("sexe", value as SexeType)
+                        }
                         disabled={isSaving}
                       >
-                        <SelectTrigger id="sexe" className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200">
+                        <SelectTrigger
+                          id="sexe"
+                          className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200"
+                        >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
                         <SelectContent>
                           {Object.entries(SEXE_LABELS).map(([value, label]) => (
-                            <SelectItem key={value} value={value} className="text-base lg:text-lg py-3">
+                            <SelectItem
+                              key={value}
+                              value={value}
+                              className="text-base lg:text-lg py-3"
+                            >
                               {label}
                             </SelectItem>
                           ))}
@@ -427,24 +456,38 @@ export default function UserProfile() {
                     </div>
 
                     <div className="space-y-2 lg:space-y-3">
-                      <Label htmlFor="region" className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2">
+                      <Label
+                        htmlFor="region"
+                        className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2"
+                      >
                         <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
                         Région
                       </Label>
                       <Select
                         value={formData.region}
-                        onValueChange={(value) => handleChange("region", value as RegionType)}
+                        onValueChange={(value) =>
+                          handleChange("region", value as RegionType)
+                        }
                         disabled={isSaving}
                       >
-                        <SelectTrigger id="region" className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200">
+                        <SelectTrigger
+                          id="region"
+                          className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200"
+                        >
                           <SelectValue placeholder="Sélectionnez votre région" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(REGION_LABELS).map(([value, label]) => (
-                            <SelectItem key={value} value={value} className="text-base lg:text-lg py-3">
-                              {label}
-                            </SelectItem>
-                          ))}
+                          {Object.entries(REGION_LABELS).map(
+                            ([value, label]) => (
+                              <SelectItem
+                                key={value}
+                                value={value}
+                                className="text-base lg:text-lg py-3"
+                              >
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -456,21 +499,28 @@ export default function UserProfile() {
                       Type de résidence
                     </Label>
                     <div className="flex gap-2">
-                      {Object.entries(RESIDENCE_LABELS).map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => handleChange("residenceType", value as ResidenceType)}
-                          disabled={isSaving}
-                          className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all duration-200 ${
-                            formData.residenceType === value
-                              ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
-                              : "border-gray-200 bg-white text-gray-700 hover:border-blue-300"
-                          } ${isSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                      {Object.entries(RESIDENCE_LABELS).map(
+                        ([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() =>
+                              handleChange(
+                                "residenceType",
+                                value as ResidenceType,
+                              )
+                            }
+                            disabled={isSaving}
+                            className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all duration-200 ${
+                              formData.residenceType === value
+                                ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
+                                : "border-gray-200 bg-white text-gray-700 hover:border-blue-300"
+                            } ${isSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          >
+                            {label}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -488,7 +538,9 @@ export default function UserProfile() {
                     <Checkbox
                       id="disability"
                       checked={formData.disability}
-                      onCheckedChange={(checked) => handleChange("disability", checked === true)}
+                      onCheckedChange={(checked) =>
+                        handleChange("disability", checked === true)
+                      }
                       disabled={isSaving}
                       className="h-5 w-5 lg:h-6 lg:w-6"
                     />
@@ -503,13 +555,19 @@ export default function UserProfile() {
                   {formData.disability && (
                     <div className="space-y-4 lg:space-y-6 pl-4 lg:pl-8 border-l-2 lg:border-l-4 border-blue-200 ml-2">
                       <div className="space-y-2 lg:space-y-3">
-                        <Label htmlFor="disabilityType" className="text-sm lg:text-base font-medium text-gray-700">
+                        <Label
+                          htmlFor="disabilityType"
+                          className="text-sm lg:text-base font-medium text-gray-700"
+                        >
                           Type de handicap
                         </Label>
                         <Select
                           value={formData.disabilityType}
                           onValueChange={(value) =>
-                            handleChange("disabilityType", value as DisabilityType)
+                            handleChange(
+                              "disabilityType",
+                              value as DisabilityType,
+                            )
                           }
                           disabled={isSaving}
                         >
@@ -520,11 +578,17 @@ export default function UserProfile() {
                             <SelectValue placeholder="Sélectionnez le type de handicap" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(DISABILITY_TYPE_LABELS).map(([value, label]) => (
-                              <SelectItem key={value} value={value} className="text-base lg:text-lg py-3">
-                                {label}
-                              </SelectItem>
-                            ))}
+                            {Object.entries(DISABILITY_TYPE_LABELS).map(
+                              ([value, label]) => (
+                                <SelectItem
+                                  key={value}
+                                  value={value}
+                                  className="text-base lg:text-lg py-3"
+                                >
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -541,7 +605,9 @@ export default function UserProfile() {
                           <textarea
                             id="disabilityDetails"
                             value={formData.disabilityDetails}
-                            onChange={(e) => handleChange("disabilityDetails", e.target.value)}
+                            onChange={(e) =>
+                              handleChange("disabilityDetails", e.target.value)
+                            }
                             disabled={isSaving}
                             placeholder="Précisez votre handicap..."
                             className="w-full min-h-[100px] lg:min-h-[120px] px-4 lg:px-5 py-3 lg:py-4 text-base lg:text-lg border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 resize-none"
@@ -575,9 +641,9 @@ export default function UserProfile() {
                       htmlFor="consentGiven"
                       className="text-sm lg:text-base font-medium cursor-pointer leading-relaxed"
                     >
-                      J&apos;accepte que mes données soient utilisées pour améliorer mon
-                      expérience sur la plateforme. Je peux retirer mon consentement
-                      à tout moment.
+                      J&apos;accepte que mes données soient utilisées pour
+                      améliorer mon expérience sur la plateforme. Je peux
+                      retirer mon consentement à tout moment.
                     </Label>
                   </div>
                 </div>
@@ -624,4 +690,3 @@ export default function UserProfile() {
     </div>
   );
 }
-

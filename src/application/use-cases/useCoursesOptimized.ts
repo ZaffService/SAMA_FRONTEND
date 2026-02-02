@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { Course } from "@/domain/entities/course";
+import { transformApiCourses } from "@/domain/entities/course";
 
 // Cache mémoire avec SWR pattern
 const memoryCache = new Map<string, { data: Course[]; timestamp: number }>();
@@ -28,13 +29,13 @@ export function useCoursesOptimized(category?: string, search?: string) {
 
       if (category && category !== "Tous") {
         // Filtrer par catégorie
-        response = (await CoursesApi.getCourses()).courses; // TODO: Implement category filtering
+        response = transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement category filtering
       } else if (search && search.trim()) {
         // Recherche textuelle
-        response = (await CoursesApi.getCourses()).courses; // TODO: Implement search
+        response = transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement search
       } else {
         // Tous les cours
-        response = (await CoursesApi.getCourses()).courses;
+        response = transformApiCourses((await CoursesApi.getCourses()).courses);
       }
 
       console.log("✅ Cours chargés:", response.length);
@@ -93,7 +94,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
   const filtered = useMemo(() => {
     return courses.filter((course) => {
       if (category && category !== "Tous") {
-        if (course.category !== category) {
+        if (course.categoryId !== category) {
           return false;
         }
       }
@@ -120,7 +121,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
   // Fonction pour obtenir les cours populaires
   const getPopularCourses = useCallback(async (limit: number = 6) => {
     try {
-      return (await CoursesApi.getCourses()).courses; // TODO: Implement popular courses
+      return transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement popular courses
     } catch (err) {
       console.error("Erreur lors du chargement des cours populaires:", err);
       return [];
@@ -130,7 +131,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
   // Fonction pour obtenir les cours gratuits
   const getFreeCourses = useCallback(async () => {
     try {
-      return (await CoursesApi.getCourses()).courses; // TODO: Implement free courses
+      return transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement free courses
     } catch (err) {
       console.error("Erreur lors du chargement des cours gratuits:", err);
       return [];
@@ -140,7 +141,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
   // Fonction pour obtenir les cours récents
   const getRecentCourses = useCallback(async (limit: number = 6) => {
     try {
-      return (await CoursesApi.getCourses()).courses; // TODO: Implement recent courses
+      return transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement recent courses
     } catch (err) {
       console.error("Erreur lors du chargement des cours récents:", err);
       return [];

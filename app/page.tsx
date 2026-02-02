@@ -7,6 +7,11 @@ import {
   useLayoutEffect,
   useCallback,
 } from "react";
+import Link from "next/link";
+import {
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
 import {
   Search,
   X,
@@ -20,7 +25,10 @@ import Swal from "sweetalert2";
 
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { HeroBanner } from "@/components/hero-banner";
+import HeroBanner from "@/components/hero-banner";
+import WhyChooseBibocom from "@/components/why-choose-bibocom";
+import HowItWorks from "@/components/how-it-works";
+import { Testimonials } from "@/components/testimonials";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
@@ -36,6 +44,8 @@ import { EmptyContent } from "@/components/ui/empty";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
 
 const Index = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +76,14 @@ const Index = () => {
 
   const { enrolledCourses } = useEnrolledCourses();
   const { categories, loading: categoriesLoading } = useCategories();
+
+  // Pre-fill search query from URL params
+  useEffect(() => {
+    const searchParam = searchParams.get("search");
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
 
   /**  Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
@@ -170,7 +188,7 @@ const Index = () => {
         if (filters.priceRange.includes("free") && !isFree) return false;
         if (filters.priceRange.includes("paid") && isFree) return false;
       }
-      
+
       return true;
     });
 
@@ -271,8 +289,13 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <HeroBanner />
+      <WhyChooseBibocom />
 
-      <main className="container mx-auto px-4 py-8 pt-3 sm:pt-18 lg:pt-3">
+      <main
+        className={`container mx-auto px-4 ${
+          isAuthenticated ? "pt-24" : "pt-3 sm:pt-18 lg:pt-3"
+        }`}
+      >
         {!hasCoursesInDatabase ? (
           <EmptyCoursesState />
         ) : (
@@ -294,31 +317,19 @@ const Index = () => {
               className="pt-12"
             >
               <ProfileCompletionBanner />
-              {/* Barre de recherche avec titre - Layout mobile en colonne */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                <h2 className="text-sm sm:text-xl font-bold whitespace-nowrap text-center">
-                  {showFreeTutorials
-                    ? "Tutos gratuits disponibles"
-                    : selectedCategoryId
-                      ? `${categories.find((cat) => cat.id === selectedCategoryId)?.name || "Formations"}`
-                      : "Découvrez nos formations"}
-                </h2>
-
-                <div className="relative w-full sm:max-w-sm lg:max-w-md">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2 border rounded"
-                    placeholder="Rechercher une formation"
-                  />
-                  {searchQuery && (
-                    <X
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-3 h-4 w-4 cursor-pointer"
-                    />
-                  )}
+              {/* Titre "Formations Populaires" avec lignes décoratives */}
+              <div className="flex flex-col items-center mb-12">
+                {/* Titre avec lignes */}
+                <div className="flex items-center justify-center gap-6 w-full max-w-6xl">
+                  <div className="hidden sm:block h-[1px] bg-[#2B3E91] flex-1 max-w-[400px]" />
+                  <h2 className="text-[#2B3E91] font-bold text-[1.75rem] md:text-[2.25rem] italic whitespace-nowrap">
+                    Formations Populaires
+                  </h2>
+                  <div className="hidden sm:block h-[1px] bg-[#2B3E91] flex-1 max-w-[400px]" />
                 </div>
+                
+                {/* Chevron */}
+                <ChevronDown className="w-6 h-6 text-[#2B3E91] mt-2" />
               </div>
 
               {/* Grille ou état vide */}
@@ -394,6 +405,12 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* Section "Comment ça marche ?" -仅 pour les utilisateurs non connectés */}
+      <HowItWorks />
+
+      {/* Section Témoignages -仅 pour les utilisateurs non connectés */}
+      <Testimonials />
 
       <Footer />
     </div>

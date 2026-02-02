@@ -56,7 +56,7 @@ export function CategoryDialog({
     } catch (err) {
       console.error("❌ Erreur lors de la création de la catégorie:", err);
       setError(
-        err instanceof Error ? err.message : "Erreur lors de la création"
+        err instanceof Error ? err.message : "Erreur lors de la création",
       );
     } finally {
       setIsLoading(false);
@@ -104,9 +104,7 @@ export function CategoryDialog({
                 disabled={isLoading}
                 className={error ? "border-red-500" : ""}
               />
-              {error && (
-                <p className="text-sm text-red-500">{error}</p>
-              )}
+              {error && <p className="text-sm text-red-500">{error}</p>}
             </div>
 
             {/* Champ Description */}
@@ -153,4 +151,3 @@ export function CategoryDialog({
     </Dialog>
   );
 }
-
