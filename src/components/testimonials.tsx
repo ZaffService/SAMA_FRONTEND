@@ -48,27 +48,31 @@ export function Testimonials() {
               </div>
 
               {/* Speech bubble card */}
-              <div className="ml-12 lg:ml-16 bg-white rounded-xl shadow-lg p-5 md:p-6 relative">
-                {/* Title inside the card */}
-                <h2 className="text-xl md:text-2xl font-bold text-[#0A2A66] mb-4">
-                  Ils témoignent...
-                </h2>
-                
-                <p className="text-[#0A2A66] text-sm md:text-base leading-relaxed mb-3">
-                  Super expérience de formation !<br />
-                  Grâce à BIBOCOM Digital, J'ai trouvé un nouvel emploi !
-                </p>
-                
-                <StarRating />
-                
-                {/* Name at bottom right */}
-                <span className="absolute bottom-3 right-4 text-xs text-gray-500 italic">
-                  Blandine V.
-                </span>
+              <div className="flex items-start gap-4">
+  {/* Avatar */}
+  <img
+    src="/avatar-blandine.jpg"
+    alt="Blandine"
+    className="w-12 h-12 rounded-full object-cover"
+  />
 
-                {/* Small X decoration */}
-                <span className="absolute top-4 right-4 text-gray-400 text-lg">×</span>
-              </div>
+  {/* Message bubble */}
+  <div className="bg-white rounded-2xl shadow-md p-4 max-w-md">
+    <p className="text-[#0A2A66] text-sm md:text-base leading-relaxed">
+      Super expérience de formation ! <br />
+      Grâce à BIBOCOM Digital, j’ai trouvé un nouvel emploi !
+    </p>
+
+    <div className="mt-2">
+      <StarRating />
+    </div>
+
+    <span className="block mt-2 text-xs text-gray-500 italic">
+      Blandine V.
+    </span>
+  </div>
+</div>
+
             </div>
           </div>
 

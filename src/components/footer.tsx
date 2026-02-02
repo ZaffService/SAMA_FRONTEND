@@ -44,7 +44,7 @@ export function Footer() {
               href="mailto:contact@bibocom.com"
               className="text-sm text-white/80 hover:text-white transition-colors"
             >
-              Email: bibocomdigital.com
+              Email: contact@bibocomdigital.com
             </a>
           </div>
         </div>
