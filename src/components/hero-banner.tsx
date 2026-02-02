@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import Link from "next/link";
@@ -74,10 +75,14 @@ const HeroBanner = () => {
   return (
     <div className="relative w-full overflow-hidden pt-24 sm:pt-28 lg:pt-0">
       <div className="relative w-full min-h-[500px] sm:min-h-[600px] lg:min-h-0">
-        <img
-          src="/2.svg"
+        <Image
+          src="/2.png"
           alt="BIBOCOM Digital - Formations en ligne"
-          className="w-full h-full object-cover lg:h-auto absolute inset-0 lg:relative lg:inset-auto"
+          fill
+          className="object-cover"
+          priority={true}
+          quality={85}
+          sizes="100vw"
         />
 
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--bibocom-blue)]/90 via-[var(--bibocom-blue)]/70 to-transparent lg:from-transparent lg:via-transparent lg:to-transparent" />

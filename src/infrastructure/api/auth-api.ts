@@ -158,7 +158,8 @@ export class AuthApi {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Échec de la vérification");
+      // Propager l'erreur complète pour permettre la vérification de data.error.code
+      throw data;
     }
 
     return data;

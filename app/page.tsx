@@ -270,20 +270,21 @@ const Index = () => {
     return progress;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="flex items-center justify-center mt-12">
-          <p>Chargement des cours...</p>
+  // Helper component for loading skeleton
+  const CourseSkeleton = () => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+      <div className="h-48 bg-gray-300" />
+      <div className="p-4 space-y-3">
+        <div className="h-4 bg-gray-300 rounded w-3/4" />
+        <div className="h-3 bg-gray-300 rounded w-full" />
+        <div className="h-3 bg-gray-300 rounded w-2/3" />
+        <div className="flex justify-between mt-4">
+          <div className="h-6 bg-gray-300 rounded w-20" />
+          <div className="h-8 bg-gray-300 rounded w-24" />
         </div>
       </div>
-    );
-  }
-
-  if (error) {
-    return <MaintenancePage onRetry={refresh} />;
-  }
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -296,7 +297,7 @@ const Index = () => {
           isAuthenticated ? "pt-24" : "pt-3 sm:pt-18 lg:pt-3"
         }`}
       >
-        {!hasCoursesInDatabase ? (
+        {!hasCoursesInDatabase && !loading ? (
           <EmptyCoursesState />
         ) : (
           <>
@@ -332,8 +333,27 @@ const Index = () => {
                 <ChevronDown className="w-6 h-6 text-[#2B3E91] mt-2" />
               </div>
 
-              {/* Grille ou état vide */}
-              {filteredCourses.length > 0 ? (
+              {/* Skeleton Loading - affiché pendant le chargement */}
+              {loading ? (
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <CourseSkeleton key={i} />
+                  ))}
+                </div>
+              ) : error ? (
+                /* Erreur - afficher bouton de retry */
+                <div className="text-center py-12">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <button
+                      onClick={refresh}
+                      className="px-4 py-2 bg-[var(--bibocom-red)] text-white rounded-md hover:opacity-90 transition-opacity"
+                    >
+                      Réessayer
+                    </button>
+                  </div>
+                </div>
+              ) : filteredCourses.length > 0 ? (
                 <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
                   {filteredCourses.map((course: BackendCourse) => {
                     const isEnrolled = isCourseEnrolled(course.id);

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default function VerifyEmail() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
+  const [status, setStatus] = useState<"loading" | "success" | "error" | "already">(
     "loading",
   );
   const [message, setMessage] = useState("");
@@ -47,13 +47,36 @@ export default function VerifyEmail() {
         setTimeout(() => {
           router.push("/");
         }, 2000);
-      } catch (err) {
-        console.error("❌ Erreur de vérification:", err);
-        setStatus("error");
-        setMessage(
-          err instanceof Error ? err.message : "Erreur lors de la vérification",
-        );
-      }
+      }catch (err: any) {
+  console.error("Erreur de vérification:", err);
+
+  setStatus("already");
+
+  const errorCode = err?.error?.code;
+  const errorMessage = err?.error?.message;
+
+  console.log("code error ", errorCode);
+  
+
+  if (errorCode === "EMAIL_ALREADY_VERIFIED") {
+    setMessage(
+      "Votre email a déjà été vérifié. Vous pouvez vous connecter à votre compte."
+    );
+  } else if (errorCode === "TOKEN_INVALID") {
+    setMessage(
+      "Le lien de vérification est invalide. Veuillez demander un nouveau lien."
+    );
+  } else if (errorCode === "TOKEN_EXPIRED") {
+    setMessage(
+      "Le lien de vérification a expiré. Veuillez demander un nouveau lien."
+    );
+  } else {
+    setMessage(
+      errorMessage || "Erreur lors de la vérification. Veuillez réessayer."
+    );
+  }
+}
+
     };
 
     verifyEmail();
@@ -109,6 +132,38 @@ export default function VerifyEmail() {
               </div>
               <h1 className="text-2xl font-bold mb-2 text-red-600">
                 Erreur de vérification
+              </h1>
+              <p className="text-gray-600 mb-6 whitespace-pre-wrap">
+                {message}
+              </p>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => router.push("/login")}
+                  className="w-full"
+                >
+                  Se connecter
+                </Button>
+                <Button
+                  onClick={() => router.push("/register")}
+                  variant="outline"
+                  className="w-full"
+                >
+                  S'inscrire à nouveau
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* Error State */}
+          {status === "already" && (
+            <>
+              <div className="mb-6 flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertCircle className="h-8 w-8 text-green-600" />
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold mb-2 text-green-600">
+                Votre mail est déjà vérifié !
               </h1>
               <p className="text-gray-600 mb-6 whitespace-pre-wrap">
                 {message}

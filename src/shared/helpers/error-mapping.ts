@@ -252,6 +252,11 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
     message: "La requête a expiré. Veuillez réessayer.",
     action: "RETRY",
   },
+  TELEPHONE_ALREADY_EXISTS: {
+    title: "Téléphone déjà utilisé",
+    message: "Ce numéro de téléphone est déjà utilisé.",
+    action: "NONE",
+  },
 };
 
 /**
