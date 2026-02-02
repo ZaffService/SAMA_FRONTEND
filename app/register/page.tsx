@@ -274,7 +274,7 @@ export default function Register() {
           <div className="bg-white rounded-lg shadow-lg p-6 text-center">
             <div className="mb-4 flex justify-center">
               <div className="h-14 w-14 rounded-full bg-blue-100 flex items-center justify-center">
-                <CheckCircle className="h-7 w-7 text-blue-600" />
+                <CheckCircle className="h-7 w-7 text-[#002c75]" />
               </div>
             </div>
 
@@ -287,10 +287,10 @@ export default function Register() {
             </p>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-left">
-              <p className="text-xs text-blue-900 mb-2">
+              <p className="text-xs text-[#002c75] mb-2">
                 📧 <strong>Vérifiez votre boîte email !</strong>
               </p>
-              <p className="text-xs text-blue-800">
+              <p className="text-xs text-[#002c75]">
                 Un email de confirmation a été envoyé à{" "}
                 <strong>{registeredEmail}</strong>.
                 <br />
@@ -672,7 +672,7 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium"
+                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium bg-[#002c75] hover:bg-[#001a4d] transition-colors"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -690,7 +690,7 @@ export default function Register() {
               Vous avez déjà un compte ?{" "}
               <Link
                 href="/login"
-                className="text-primary hover:underline font-semibold"
+                className="hover:underline font-semibold text-[#002c75]"
               >
                 Se connecter
               </Link>
@@ -699,7 +699,7 @@ export default function Register() {
         </div>
 
         {/* Right Side - Benefits (Hidden on mobile) */}
-        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary via-blue-600 to-blue-800 p-6 items-center justify-center relative overflow-hidden">
+        <div className="hidden lg:flex flex-1 bg-[#002c75] p-6 items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute top-20 left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
             <div className="absolute bottom-40 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl" />

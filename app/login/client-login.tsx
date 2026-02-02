@@ -143,7 +143,7 @@ export default function ClientLogin() {
         </div>
 
         {/* Back Button Desktop */}
-        <div className="hidden lg:block absolute top-4 left-4 z-10">
+        <div className="hidden lg:block absolute top-4 left-4 z-10 hover:text-[#002c75]">
           <BackButton href="/" text="Retour à l'accueil" />
         </div>
 
@@ -247,7 +247,7 @@ export default function ClientLogin() {
                 </div>
                 <Link
                   href="/forgot-password"
-                  className="text-sm lg:text-base text-primary hover:underline"
+                  className="text-sm lg:text-base text-[#002c75] hover:underline"
                 >
                   Mot de passe oublié ?
                 </Link>
@@ -255,7 +255,7 @@ export default function ClientLogin() {
 
               <Button
                 type="submit"
-                className="w-full h-10 lg:h-12 text-sm lg:text-base font-medium"
+                className="w-full h-10 lg:h-12 text-sm lg:text-base font-medium bg-[#002c75] hover:bg-[#001a4d] transition-colors"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -273,7 +273,7 @@ export default function ClientLogin() {
               Vous n'avez pas de compte ?{" "}
               <Link
                 href="/register"
-                className="text-primary hover:underline font-semibold"
+                className="text-[#002c75] hover:underline font-semibold"
               >
                 Créer un compte
               </Link>
@@ -282,7 +282,7 @@ export default function ClientLogin() {
         </div>
 
         {/* Right Side - Benefits (Hidden on mobile) */}
-        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary via-blue-600 to-blue-800 p-6 items-center justify-center relative overflow-hidden">
+        <div className="hidden lg:flex flex-1 bg-[#002c75] p-6 items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute top-20 left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
             <div className="absolute bottom-40 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl" />

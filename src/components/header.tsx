@@ -25,7 +25,6 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [formationsMenuOpen, setFormationsMenuOpen] = useState(false);
@@ -170,20 +169,20 @@ export function Header() {
   return (
     <>
       <header
-        className={`fixed z-50 transition-all duration-300 ease-in-out ${
-          isScrolled || !shouldCenterHeader
+        className={`fixed z-50 top-0 left-0 right-0 transition-all duration-300 ease-in-out ${
+          isScrolled
             ? "top-0 left-0 right-0"
-            : "lg:top-8 lg:left-4 lg:right-4 top-0 left-0 right-0"
+            : "top-0 left-0 right-0"
         }`}
       >
         <div
-          className={`bg-[var(--header-bg)] shadow-lg transition-all duration-300 ease-in-out ${
-            isScrolled || !shouldCenterHeader
+          className={`bg-[var(--header-bg)] shadow-lg transition-all duration-300 ease-in-out w-full rounded-none ${
+            isScrolled
               ? "w-full rounded-none"
-              : "w-full lg:max-w-[1800px] lg:mx-auto lg:rounded-2xl rounded-none"
+              : "w-full rounded-none"
           }`}
         >
-          <div className="px-4 sm:px-6 md:px-10 py-5">
+          <div className="px-4 sm:px-6 md:px-10 py-3">
             <div className="flex items-center justify-between gap-4">
               {/* GAUCHE */}
               <div className="flex-shrink-0">
@@ -481,14 +480,14 @@ export function Header() {
           </div>
         </div>
 
-        {/* MENU MOBILE */}
+        {/* MENU MOBILE - Champ de recherche masqué */}
         <div
           className={`
             lg:hidden fixed inset-0 bg-white z-[60] transition-transform duration-300 ease-in-out flex flex-col
             ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}
           `}
         >
-          <div className="flex items-center justify-between px-6 py-5 border-b flex-shrink-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
             <h2 className="text-xl font-bold text-gray-900">Menu</h2>
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -499,71 +498,35 @@ export function Header() {
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-6 py-8">
-            <ul className="space-y-4">
+          <nav className="flex-1 overflow-y-auto px-6 py-6">
+            <ul className="space-y-2">
+              {navLinks.map(({ label, href }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
+                      ${pathname === href
+                        ? "bg-[var(--bibocom-red)] text-white"
+                        : "text-gray-700 hover:bg-gray-100"
+                      }
+                    `}
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+
               <li>
-                <form onSubmit={handleSearchSubmit} className="mb-4">
-                  <div className="relative">
-                    <input
-                      ref={mobileSearchInputRef}
-                      id="mobile-search-input"
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => searchQuery.trim() && setShowSuggestions(true)}
-                      placeholder="Rechercher une formation..."
-                      className="w-full pl-12 pr-10 py-3 text-base bg-gray-100 border-2 border-transparent rounded-lg focus:outline-none focus:border-[var(--bibocom-red)] transition-all duration-300"
-                    />
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setSuggestions([]);
-                          mobileSearchInputRef.current?.focus();
-                        }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </form>
+                <button
+                  onClick={handleFormationsClick}
+                  className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
+                >
+                  <span>{formationsLink.label}</span>
+                  <ChevronDown className="h-5 w-5" />
+                </button>
               </li>
-
-              {/* Liens masqués quand l'utilisateur tape dans le champ de recherche */}
-              {!searchQuery && (
-                <>
-                  {navLinks.map(({ label, href }) => (
-                    <li key={href}>
-                      <Link
-                        href={href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`
-                          block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
-                          ${pathname === href
-                            ? "bg-[var(--bibocom-red)] text-white"
-                            : "text-gray-700 hover:bg-gray-100"
-                          }
-                        `}
-                      >
-                        {label}
-                      </Link>
-                    </li>
-                  ))}
-
-                  <li>
-                    <button
-                      onClick={handleFormationsClick}
-                      className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
-                    >
-                      <span>{formationsLink.label}</span>
-                      <ChevronDown className="h-5 w-5" />
-                    </button>
-                  </li>
-                </>
-              )}
             </ul>
           </nav>
 
