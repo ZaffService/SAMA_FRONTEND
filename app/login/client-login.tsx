@@ -219,26 +219,26 @@ export default function ClientLogin() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between py-1 lg:py-2">
-                <div className="flex items-center gap-2 lg:gap-2.5">
+              <div className="flex flex-col gap-1 py-1 lg:py-2">
+                <div className="flex items-start gap-2 lg:gap-2.5">
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
                     onCheckedChange={(checked) =>
                       setRememberMe(checked as boolean)
                     }
-                    className="lg:h-5 lg:w-5"
+                    className="mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5"
                   />
                   <label
                     htmlFor="remember"
-                    className="text-sm lg:text-base text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
+                    className="text-sm lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
                   >
                     Se souvenir
                   </label>
                 </div>
                 <Link
                   href="/forgot-password"
-                  className="text-sm lg:text-base text-primary hover:underline"
+                  className="text-sm lg:text-base text-primary hover:underline ml-6 lg:ml-[22px]"
                 >
                   Mot de passe oublié ?
                 </Link>

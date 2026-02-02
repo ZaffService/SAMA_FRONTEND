@@ -16,8 +16,13 @@ import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { getAuthErrorMessage, parseApiError } from "@/shared/helpers/error-mapping";
 import { COUNTRIES, type Country } from "@/lib/countries";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +100,10 @@ export default function Register() {
     return null;
   };
 
-  const validatePhone = (telephone: string, indicatif: string): string | null => {
+  const validatePhone = (
+    telephone: string,
+    indicatif: string,
+  ): string | null => {
     // Phone is optional, so if both are empty, it's valid
     if (!telephone.trim() && !indicatif) return null;
 
@@ -105,7 +113,7 @@ export default function Register() {
     }
 
     // Check if indicatif is valid
-    const country = COUNTRIES.find(c => c.indicatif === indicatif);
+    const country = COUNTRIES.find((c) => c.indicatif === indicatif);
     if (!country) {
       return "Indicatif invalide";
     }
@@ -175,7 +183,10 @@ export default function Register() {
       hasErrors = true;
     }
 
-    const phoneValidation = validatePhone(formData.telephone, formData.indicatif);
+    const phoneValidation = validatePhone(
+      formData.telephone,
+      formData.indicatif,
+    );
     if (phoneValidation) {
       setPhoneError(phoneValidation);
       hasErrors = true;
@@ -246,14 +257,14 @@ export default function Register() {
         setEmailError(errorMessage);
       } else {
         // Fallback: vérifier le message pour compatibilité
-        const originalMessage = (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
+        const originalMessage =
+          (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
         if (originalMessage.includes("email")) {
           setEmailError(errorMessage);
         } else if (
           originalMessage.includes("phone") ||
           originalMessage.includes("téléphone") ||
-          originalMessage.includes("telephone") ||
-          originalMessage.includes("indicatif")
+          originalMessage.includes("telephone")
         ) {
           setPhoneError(errorMessage);
         } else {
@@ -325,7 +336,6 @@ export default function Register() {
 
   return (
     <>
-
       <div className="min-h-screen flex flex-col lg:flex-row overflow-hidden">
         {/* Header Mobile */}
         <div className="lg:hidden flex items-center justify-start px-4 py-2 border-b bg-white sticky top-0 z-20">
@@ -429,9 +439,14 @@ export default function Register() {
                     }`}
                   />
                   {emailError && (
-                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
-                      {emailError}
-                    </p>
+                    <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-md animate-in slide-in-from-top-1 duration-200">
+                      <p className="text-red-600 text-xs font-medium flex items-center gap-1.5">
+                        <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        {emailError}
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -441,18 +456,20 @@ export default function Register() {
                     htmlFor="phone"
                     className="text-[11px] lg:text-base mb-1.5 block"
                   >
-                    Téléphone 
+                    Téléphone
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="777867740"
+                    placeholder={`${formData.indicatif} ${COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
                     value={formData.telephone}
                     onChange={(e) => {
                       // Ne garder que les chiffres
                       const value = e.target.value.replace(/\D/g, "");
                       // Limiter selon le pays sélectionné
-                      const selectedCountry = COUNTRIES.find(c => c.indicatif === formData.indicatif);
+                      const selectedCountry = COUNTRIES.find(
+                        (c) => c.indicatif === formData.indicatif,
+                      );
                       const maxLength = selectedCountry?.localLength || 15;
 
                       if (value.length <= maxLength) {
@@ -463,12 +480,20 @@ export default function Register() {
                     className={`mt-0.5 h-9 lg:h-12 text-xs lg:text-base transition-colors ${
                       phoneError ? "border-red-500" : ""
                     }`}
-                    maxLength={COUNTRIES.find(c => c.indicatif === formData.indicatif)?.localLength || 15}
+                    maxLength={
+                      COUNTRIES.find((c) => c.indicatif === formData.indicatif)
+                        ?.localLength || 15
+                    }
                   />
                   {phoneError && (
-                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
-                      {phoneError}
-                    </p>
+                    <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-md animate-in slide-in-from-top-1 duration-200">
+                      <p className="text-red-600 text-xs font-medium flex items-center gap-1.5">
+                        <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        {phoneError}
+                      </p>
+                    </div>
                   )}
                   {formData.telephone && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -635,41 +660,38 @@ export default function Register() {
               </div>
 
               <div className="flex flex-col gap-1 py-0.5 lg:py-1.5">
-  <div className="flex items-start gap-2 lg:gap-2.5">
-    <Checkbox
-      id="terms"
-      checked={formData.acceptTerms}
-      onCheckedChange={(checked) => {
-        setFormData({
-          ...formData,
-          acceptTerms: checked as boolean,
-        });
-        if (termsError) setTermsError("");
-      }}
-      className={cn(
-        "mt-0.5",
-        termsError && "border-red-500 data-[state=checked]:border-red-500"
-      )}
-    />
-    <label
-      htmlFor="terms"
-      className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
-    >
-      J'accepte les conditions d'utilisation
-    </label>
-  </div>
-
-  {termsError && (
-    <p className="text-red-600 text-xs ml-6 animate-in slide-in-from-top-1 duration-200">
-      {termsError}
-    </p>
-  )}
-</div>
-
+                <div className="flex items-start gap-2 lg:gap-2.5">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.acceptTerms}
+                    onCheckedChange={(checked) => {
+                      setFormData({
+                        ...formData,
+                        acceptTerms: checked as boolean,
+                      });
+                      if (termsError) setTermsError("");
+                    }}
+                    className={`mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5 ${
+                      termsError ? "border-red-500" : ""
+                    }`}
+                  />
+                  <label
+                    htmlFor="terms"
+                    className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
+                  >
+                    J'accepte les conditions d'utilisation
+                  </label>
+                </div>
+                {termsError && (
+                  <p className="text-red-600 text-xs ml-6 animate-in slide-in-from-top-1 duration-200">
+                    {termsError}
+                  </p>
+                )}
+              </div>
 
               <Button
                 type="submit"
-                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium  bg-blue-600 inline-block text-white px-3 py-1 rounded-md"
+                className="w-full h-10 lg:h-12 text-xs lg:text-base font-medium"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -687,7 +709,7 @@ export default function Register() {
               Vous avez déjà un compte ?{" "}
               <Link
                 href="/login"
-                className="text-primary hover:underline font-semibold "
+                className="text-primary hover:underline font-semibold"
               >
                 Se connecter
               </Link>
