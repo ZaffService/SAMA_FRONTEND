@@ -109,7 +109,7 @@ export default function Register() {
 
     // If one is provided, both must be provided
     if (!telephone.trim() || !indicatif) {
-      return "Numéro de téléphone et indicatif requis ensemble";
+      return "Numéro de téléphone requis";
     }
 
     // Check if indicatif is valid

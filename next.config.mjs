@@ -31,7 +31,9 @@ const nextConfig = {
     ],
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // ⚠️ PROBLÈME ICI : Ce CSP bloque les images locales !
+    // SOLUTION : Modifiez pour autoriser les images locales
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox; img-src 'self' data: https:;",
   },
 
   // ✅ Recommandé pour Vercel

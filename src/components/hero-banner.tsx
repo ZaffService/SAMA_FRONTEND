@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import Link from "next/link";
 
@@ -14,47 +14,51 @@ const HeroBanner = () => {
   }
 
   return (
-    <div className="relative w-full overflow-hidden -mt-[80px]">
+    <div className="relative w-full overflow-hidden -mt-[80px] pt-[80px]">
       
       {/* ========== VERSION MOBILE ========== */}
-      <div className="lg:hidden relative w-full h-[110vh]">
+      <div className="lg:hidden relative w-full h-[105vh] min-h-[650px] bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#3b82f6]">
         
-        {/* Skeleton Loader - affiché pendant le chargement */}
+        {/* Skeleton pendant chargement */}
         {!mobileImageLoaded && (
-          <div className="absolute inset-0 bg-gray-300 animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] animate-pulse" />
         )}
 
-        {/* Image de bannière en arrière-plan */}
+        {/* Image de bannière */}
         <Image
           src="/banner.png"
           alt="BIBOCOM Digital - Formations en ligne"
           fill
-          className={`object-cover object-right transition-opacity duration-500 ${
+          className={`object-cover object-right transition-opacity duration-700 ${
             mobileImageLoaded ? "opacity-100" : "opacity-0"
           }`}
           priority={true}
           quality={90}
           sizes="100vw"
+          unoptimized={false}
           onLoad={() => setMobileImageLoaded(true)}
         />
 
-        {/* Contenu mobile - CENTRÉ VERTICALEMENT */}
+        {/* Contenu mobile */}
         <div className="absolute inset-0 flex items-center justify-center px-5 z-10">
           <div className="w-full max-w-md space-y-5">
-            {/* Titre */}
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight drop-shadow-lg text-center">
+            <h1 
+              className="text-3xl sm:text-4xl font-extrabold text-white leading-tight text-center"
+              style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
+            >
               Apprenez dans votre langue.
             </h1>
 
-            {/* Description */}
-            <p className="text-white/95 text-base sm:text-lg font-normal leading-relaxed drop-shadow-md text-center">
+            <p 
+              className="text-white/95 text-base sm:text-lg font-normal leading-relaxed text-center"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.5)' }}
+            >
               Formations Numériques et Créatives 100% pratiques,
               expliquées en langues locales, pour transformer
               la compréhension en compétences réelles et monétisables
               sans barrière technologique.
             </p>
 
-            {/* Boutons d'action */}
             <div className="flex flex-col gap-3 pt-2">
               <Link 
                 href="#formations" 
@@ -74,45 +78,49 @@ const HeroBanner = () => {
       </div>
 
       {/* ========== VERSION DESKTOP ========== */}
-      <div className="hidden lg:block relative w-full h-[110vh] min-h-[700px]">
+      <div className="hidden lg:block relative w-full h-[95vh] min-h-[750px] bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#3b82f6]">
         
-        {/* Skeleton Loader - affiché pendant le chargement */}
+        {/* Skeleton pendant chargement */}
         {!desktopImageLoaded && (
-          <div className="absolute inset-0 bg-gray-300 animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] animate-pulse" />
         )}
 
-        {/* Image de bannière - positionnée pour montrer la dame */}
+        {/* Image de bannière */}
         <Image
-          src="/2.svg"
+          src="/banner.png"
           alt="BIBOCOM Digital - Formations en ligne"
           fill
-          className={`object-cover object-center transition-opacity duration-500 ${
+          className={`object-cover object-center transition-opacity duration-700 ${
             desktopImageLoaded ? "opacity-100" : "opacity-0"
           }`}
           priority={true}
           quality={95}
           sizes="100vw"
+          unoptimized={false}
           onLoad={() => setDesktopImageLoaded(true)}
         />
 
-        {/* Contenu desktop - CENTRÉ VERTICALEMENT comme dans la maquette */}
+        {/* Contenu desktop */}
         <div className="absolute inset-0 flex items-center justify-start px-8 md:px-16 lg:px-20 xl:px-32 z-10">
           <div className="max-w-3xl">
             
-            {/* Titre principal */}
-            <h1 className="text-5xl xl:text-6xl 2xl:text-7xl font-extrabold text-white leading-[1.15] mb-8 drop-shadow-2xl">
+            <h1 
+              className="text-5xl xl:text-6xl 2xl:text-7xl font-extrabold text-white leading-[1.15] mb-8"
+              style={{ textShadow: '0 6px 16px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.7)' }}
+            >
               Apprenez dans votre<br />langue.
             </h1>
 
-            {/* Description */}
-            <p className="text-white/95 text-lg xl:text-xl 2xl:text-2xl font-normal leading-relaxed mb-10 max-w-2xl drop-shadow-lg">
+            <p 
+              className="text-white/95 text-lg xl:text-xl 2xl:text-2xl font-normal leading-relaxed mb-10 max-w-2xl"
+              style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
+            >
               Formations Numériques et Créatives 100% pratiques,
               expliquées en langues locales, pour transformer
               la compréhension en compétences réelles et monétisables
               sans barrière technologique.
             </p>
 
-            {/* Boutons d'action */}
             <div className="flex flex-wrap gap-5">
               <Link 
                 href="#formations" 
