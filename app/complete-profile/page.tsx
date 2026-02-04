@@ -97,7 +97,7 @@ const getInitialFormData = (user: any): ProfileFormData => ({
 export default function CompleteProfile() {
   const router = useRouter();
   const { user } = useLocalAuth();
-  const { completeProfile, isComplete } = useProfile();
+  const { completeProfile, isComplete, checkProfile } = useProfile();
 
   const {
     canAccess,
@@ -242,6 +242,12 @@ export default function CompleteProfile() {
           "Félicitations ! Votre profil a été complété avec succès !",
         );
 
+        // Effacer le cache local pour forcer le rechargement
+        localStorage.removeItem("user_profile_cache");
+
+        // Rafraîchir le profil pour mettre à jour l'état isComplete
+        await checkProfile();
+
         setTimeout(() => {
           if (user?.role === "ADMIN") {
             router.push("/admin-dashboard");
@@ -257,8 +263,14 @@ export default function CompleteProfile() {
       
       const errorMessage = error instanceof Error ? error.message : "Impossible de compléter le profil";
       
-      if (errorMessage.includes("téléphone") && errorMessage.includes("utilisé")) {
-        setPhoneConflictError(errorMessage);
+      // Vérifier si c'est une erreur de téléphone duplicata
+      if (
+        errorMessage.includes("téléphone") || 
+        errorMessage.includes("TELEPHONE") ||
+        errorMessage.includes("Already") ||
+        errorMessage.includes("401")
+      ) {
+        setPhoneConflictError("Le numéro de téléphone doit être unique. Veuillez vérifier votre numéro.");
         setTimeout(() => setPhoneConflictError(null), 5000);
       } else {
         toast.error(`Erreur: ${errorMessage}`);

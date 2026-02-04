@@ -121,20 +121,20 @@ export class AuthApi {
     if (!res.ok) {
       // Vérifier si c'est une erreur de téléphone duplicata
       const errorMessage = errorData?.message || errorData?.error?.message || "Échec de la mise à jour du profil";
+      const errorCode = errorData?.errorCode || errorData?.error?.errorCode || "";
       
       // Codes d'erreur possibles pour téléphone duplicata
-      const duplicatePhonePatterns = [
-        /telephone.*exist/i,
-        /phone.*exist/i,
-        /duplicate.*phone/i,
-        /téléphone.*utilisé/i,
-        /numéro.*déjà/i,
-        /PHONE_CONFLICT/i,
-        /PHONE_ALREADY_EXISTS/i,
-      ];
+      const isPhoneConflict = 
+        errorCode === "TELEPHONE_ALREADY_EXIST" ||
+        errorCode === "TELEPHONE_CONFLICT" ||
+        errorCode === "PHONE_ALREADY_EXISTS" ||
+        errorMessage.toLowerCase().includes("telephone") ||
+        errorMessage.toLowerCase().includes("phone") ||
+        errorMessage.toLowerCase().includes("téléphone") ||
+        res.status === 401;
 
-      if (duplicatePhonePatterns.some(pattern => pattern.test(errorMessage))) {
-        throw new Error("Ce numéro de téléphone est déjà utilisé par un autre compte. Veuillez utiliser un numéro différent.");
+      if (isPhoneConflict) {
+        throw new Error("TELEPHONE_ALREADY_EXIST");
       }
 
       throw new Error(errorMessage);

@@ -57,11 +57,18 @@ export function useProfile() {
         const response = await UserApi.getUserProfile();
         if (response) {
           setProfile(response);
-          setIsComplete(response.isProfileComplete ?? false);
+          const isNowComplete = response.isProfileComplete === true;
+          setIsComplete(isNowComplete);
           // Also update the global auth state
-          setProfileComplete(response.isProfileComplete ?? false);
+          setProfileComplete(isNowComplete);
           // Cache the result
           saveToCache(response);
+          
+          console.log("📋 Profil vérifié:", {
+            isProfileComplete: response.isProfileComplete,
+            isNowComplete,
+          });
+          
           return response;
         }
         return null;
@@ -81,12 +88,20 @@ export function useProfile() {
         setIsLoading(true);
         const response = await UserApi.completeProfile(profileData);
         if (response) {
+          // Mettre à jour l'état local immédiatement
           setProfile(response);
-          setIsComplete(response.isProfileComplete ?? false);
-          // Also update the global auth state
-          setProfileComplete(response.isProfileComplete ?? false);
-          // Cache the result
+          const isNowComplete = response.isProfileComplete === true;
+          setIsComplete(isNowComplete);
+          // Mettre à jour l'état global d'auth
+          setProfileComplete(isNowComplete);
+          // Mettre à jour le cache
           saveToCache(response);
+          
+          console.log("✅ Profil complété:", {
+            isProfileComplete: response.isProfileComplete,
+            isNowComplete,
+          });
+          
           return response;
         }
         return null;
