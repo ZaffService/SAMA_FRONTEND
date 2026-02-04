@@ -94,12 +94,15 @@ export function useProvideAuth(): AuthContextType {
             currentUser.email,
             "Role:",
             currentUser.role,
+            "Telephone:",
+            currentUser.telephone,
           );
           const mappedUser: User = {
             id: currentUser.id,
             email: currentUser.email,
             firstName: currentUser.firstName || currentUser.first_name || "",
             lastName: currentUser.lastName || currentUser.last_name || "",
+            telephone: currentUser.telephone || "",
             role: currentUser.role,
             createdAt: currentUser.createdAt || currentUser.created_at || "",
             first_name: currentUser.first_name,
@@ -156,6 +159,7 @@ export function useProvideAuth(): AuthContextType {
         email: response.user.email,
         firstName: response.user.first_name || "",
         lastName: response.user.last_name || "",
+        telephone: response.user.telephone || "",
         role: response.user.role,
         createdAt: response.user.created_at || "",
         first_name: response.user.first_name,
