@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { StepIndicator, defaultCourseSteps } from "./StepIndicator";
-import { ModuleManager } from "./ModuleManager";
 import { ThumbnailUploader } from "./ThumbnailUploader";
 import { QuizManager } from "./QuizManager";
 import { CoursePreview } from "./CoursePreview";
@@ -40,6 +39,7 @@ import {
 } from "@/shared/helpers/sweet-alert";
 import { Module } from "@/domain/entities/module";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { ModuleManager } from '@/components/ModuleManager';
 
 // Course status enum
 export enum CourseStatus {

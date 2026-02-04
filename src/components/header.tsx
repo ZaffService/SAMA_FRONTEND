@@ -109,13 +109,13 @@ export function Header() {
     .toUpperCase();
 
   const navLinks = [
-    { label: "Accueil", href: "/" },
+    // { label: "E-book", href: "/e-book" },
     { label: "À propos", href: "/about" },
-    // { label: "E-Book", href: "/e-book" },
+    // { label: "Blog", href: "/blog" },
     { label: "Contact", href: "/contact" },
   ];
 
-  const formationsLink = { label: "Formations", href: "/courses" as const };
+  const formationsLink = { label: "Formations" };
 
   // Handler pour ouvrir le mega menu (mobile et desktop)
   const handleFormationsClick = () => {
@@ -185,7 +185,7 @@ export function Header() {
           <div className="px-4 sm:px-6 md:px-10 py-3">
             <div className="flex items-center justify-between gap-4">
               {/* GAUCHE */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center">
                 {!isAuthenticated && !isLoading ? (
                   <Link href="/">
                     <Image
@@ -203,7 +203,7 @@ export function Header() {
                     className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
                     aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu de navigation"}
                   >
-                    <Menu className="h-6 w-6" />
+                    <Menu className="h-6 w-6 " />
                   </button>
                 )}
               </div>
@@ -212,35 +212,27 @@ export function Header() {
               <nav className="hidden lg:flex flex-1 justify-center items-center">
                 {!searchOpen ? (
                   <ul className="flex items-center gap-8 xl:gap-12 h-12 transition-all duration-300">
+                    {/* Accueil */}
+                    <li className="h-full flex items-center mt-5">
+                      <Link href="/" className={`h-full flex items-center text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80 ${pathname === "/" ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}`}>
+                        Accueil
+                      </Link>
+                    </li>
+                    {/* Formations - Mega menu */}
+                    <li className="h-full flex items-center">
+                      <button onClick={handleFormationsClick} className={`h-full flex items-center gap-1 text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80 ${formationsMenuOpen ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}`}>
+                        {formationsLink.label}
+                        <ChevronDown className={`h-5 w-5 transition-transform duration-300 ${formationsMenuOpen ? "rotate-180" : ""}`} />
+                      </button>
+                    </li>
+                    {/* Autres liens */}
                     {navLinks.map(({ label, href }) => (
                       <li key={href} className="h-full flex items-center mt-5">
-                        <Link
-                          href={href}
-                          className={`
-                            h-full flex items-center text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80
-                            ${pathname === href ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}
-                          `}
-                        >
+                        <Link href={href} className={`h-full flex items-center text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80 ${pathname === href ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}`}>
                           {label}
                         </Link>
                       </li>
                     ))}
-                    <li className="h-full flex items-center">
-                      <button
-                        onClick={handleFormationsClick}
-                        className={`
-                          h-full flex items-center gap-1 text-base xl:text-lg font-bold transition-opacity duration-200 hover:opacity-80
-                          ${formationsMenuOpen ? "text-[var(--header-text-active)]" : "text-[var(--header-text-primary)]"}
-                        `}
-                      >
-                        {formationsLink.label}
-                        <ChevronDown
-                          className={`h-5 w-5 transition-transform duration-300 ${
-                            formationsMenuOpen ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                    </li>
                   </ul>
                 ) : (
                   <div className="relative search-container flex items-center w-full max-w-2xl animate-slide-in">
@@ -500,33 +492,27 @@ export function Header() {
 
           <nav className="flex-1 overflow-y-auto px-6 py-6">
             <ul className="space-y-2">
-              {navLinks.map(({ label, href }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`
-                      block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200
-                      ${pathname === href
-                        ? "bg-[var(--bibocom-red)] text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                      }
-                    `}
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-
+              {/* Formations - Mega menu */}
               <li>
-                <button
-                  onClick={handleFormationsClick}
-                  className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200"
-                >
+                <button onClick={handleFormationsClick} className="w-full flex items-center justify-between py-3 px-4 rounded-lg text-lg font-bold text-gray-700 hover:bg-gray-100 transition-all duration-200">
                   <span>{formationsLink.label}</span>
                   <ChevronDown className="h-5 w-5" />
                 </button>
               </li>
+              {/* Accueil */}
+              <li>
+                <Link href="/" onClick={() => setMobileMenuOpen(false)} className={`block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200 ${pathname === "/" ? "bg-[var(--bibocom-red)] text-white" : "text-gray-700 hover:bg-gray-100"}`}>
+                  Accueil
+                </Link>
+              </li>
+              {/* Autres liens */}
+              {navLinks.map(({ label, href }) => (
+                <li key={href}>
+                  <Link href={href} onClick={() => setMobileMenuOpen(false)} className={`block py-3 px-4 rounded-lg text-lg font-bold transition-all duration-200 ${pathname === href ? "bg-[var(--bibocom-red)] text-white" : "text-gray-700 hover:bg-gray-100"}`}>
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </nav>
 

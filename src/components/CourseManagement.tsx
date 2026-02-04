@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { BackendCourse, CoursesApi } from "@/infrastructure/api/courses-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { Course } from "@/domain/entities/course";
@@ -54,6 +55,7 @@ import {
   Video,
 } from "lucide-react";
 import { CourseEditor } from "./CourseEditor";
+import { CourseBasicInfoEditor } from "./editors/CourseBasicInfoEditor";
 
 interface CourseManagementProps {
   onCourseUpdated?: () => void;
@@ -66,7 +68,8 @@ export function CourseManagement({
   onEditCourse,
   onViewVideoStatus,
 }: CourseManagementProps) {
-  const { user } = useLocalAuth();
+const { user } = useLocalAuth();
+  const router = useRouter();
   const [courses, setCourses] = useState<BackendCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +80,11 @@ export function CourseManagement({
   const [courseToArchive, setCourseToArchive] = useState<BackendCourse | null>(
     null,
   );
-  const [courseToEdit, setCourseToEdit] = useState<BackendCourse | null>(null);
+  const [courseToEditBasic, setCourseToEditBasic] = useState<BackendCourse | null>(null);
+
+  const handleEditCourse = (course: BackendCourse) => {
+    router.push(`/admin/edit-course/${course.id}`);
+  };
 
   const fetchCourses = async () => {
     setIsLoading(true);
@@ -341,6 +348,17 @@ export function CourseManagement({
                                 </DropdownMenuItem>
                               )}
 
+                            {/* Option Modifier le cours - Visible pour ADMIN et INSTRUCTOR */}
+                            {(user?.role === "ADMIN" ||
+                              user?.role === "INSTRUCTOR") && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEditCourse(course)}
+                                >
+                                  <Edit3 className="h-4 w-4 mr-2 text-blue-600" />
+                                  Modifier le cours
+                                </DropdownMenuItem>
+                              )}
+
                             {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
                             {(user?.role === "ADMIN" ||
                               user?.role === "INSTRUCTOR") &&
@@ -415,15 +433,9 @@ export function CourseManagement({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal d'édition de cours */}
-      <CourseEditor
-        course={courseToEdit}
-        open={!!courseToEdit}
-        onOpenChange={(open) => {
-          if (!open) setCourseToEdit(null);
-        }}
-        onCourseUpdated={fetchCourses}
-      />
+      
+
+
     </div>
   );
 }

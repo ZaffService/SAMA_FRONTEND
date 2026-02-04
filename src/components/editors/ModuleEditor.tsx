@@ -1,0 +1,93 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { ModulesList } from "@/components/ModulesList";
+import { Module } from "@/domain/entities/module";
+
+interface ModuleEditorProps {
+  courseId: string;
+  onBack: () => void;
+  onManageLessons?: (moduleId: string) => void;
+}
+
+export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditorProps) {
+  const [modules, setModules] = useState<Module[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadModules();
+  }, [courseId]);
+
+  const loadModules = async () => {
+    setIsLoading(true);
+    try {
+      const details = await CoursesApi.getCourseDetails(courseId);
+      // Convert API response to match Module interface
+      const loadedModules: Module[] = (details.modules || []).map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        description: m.description || "",
+        orderIndex: m.order || m.orderIndex,
+        lessons: m.lessons || [],
+      }));
+      setModules(loadedModules);
+    } catch (error) {
+      console.error("Erreur lors du chargement des modules:", error);
+      toast.error("Erreur lors du chargement des modules");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleModulesChange = (updatedModules: Module[]) => {
+    setModules(updatedModules);
+    // Sauvegarder automatiquement ou attendre une action de l'utilisateur
+    // Pour l'instant on garde les modifications locales
+  };
+
+  const handleManageLessons = (moduleId: string) => {
+    if (onManageLessons) {
+      onManageLessons(moduleId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="flex justify-center items-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Chargement des modules...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-8">
+        {/* Header avec bouton retour */}
+        <div className="flex items-center mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={onBack}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Retour
+          </Button>
+        </div>
+
+        {/* Liste des modules */}
+        <ModulesList
+          modules={modules}
+          onModulesChange={handleModulesChange}
+          onManageLessons={handleManageLessons}
+        />
+      </div>
+    </div>
+  );
+}

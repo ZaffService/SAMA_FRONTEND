@@ -117,6 +117,8 @@ const getEmptyFormData = (): ProfileFormData => ({
   firstName: "",
   lastName: "",
   email: "",
+  telephone: "",
+  indicatif: "+221",
   sexe: "",
   region: "",
   residenceType: "",

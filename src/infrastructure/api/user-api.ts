@@ -83,12 +83,61 @@ export const DISABILITY_TYPE_LABELS: Record<DisabilityType, string> = {
   OTHER: "Autre",
 };
 
+// Helper to extract local number from full phone number
+const extractLocalNumber = (fullPhone: string, indicatif: string): string => {
+  if (!fullPhone) return "";
+  // If the phone already starts with the dial code, remove it
+  if (fullPhone.startsWith(indicatif)) {
+    return fullPhone.slice(indicatif.length);
+  }
+  // If the phone starts with +, try to find matching dial code
+  if (fullPhone.startsWith("+")) {
+    // Simple dial code detection for common countries
+    const dialCodes = [
+      { code: "+221", length: 9 }, // Senegal
+      { code: "+225", length: 8 }, // Ivory Coast
+      { code: "+223", length: 8 }, // Mali
+      { code: "+33", length: 9 }, // France
+      { code: "+1", length: 10 }, // US/Canada
+    ];
+    for (const { code, length } of dialCodes) {
+      if (fullPhone.startsWith(code)) {
+        return fullPhone.slice(code.length);
+      }
+    }
+  }
+  // Otherwise, return as is (should be local number)
+  return fullPhone.replace(/\D/g, "");
+};
+
+// Helper to extract dial code from full phone number
+const extractIndicatif = (fullPhone: string, defaultIndicatif: string): string => {
+  if (!fullPhone || !fullPhone.startsWith("+")) return defaultIndicatif;
+  
+  // Simple dial code detection for common countries
+  const dialCodes = [
+    { code: "+221" }, // Senegal
+    { code: "+225" }, // Ivory Coast
+    { code: "+223" }, // Mali
+    { code: "+33" }, // France
+    { code: "+1" }, // US/Canada
+  ];
+  for (const { code } of dialCodes) {
+    if (fullPhone.startsWith(code)) {
+      return code;
+    }
+  }
+  return defaultIndicatif;
+};
+
 // User Profile from backend
 export interface UserProfileData {
   id: number;
   firstName: string;
   lastName: string;
   email: string;
+  telephone?: string;
+  indicatif?: string;
   userProfile?: {
     id?: number;
     userId: number;
@@ -108,6 +157,8 @@ export interface CompleteProfileData {
   firstName?: string;
   lastName?: string;
   email?: string;
+  telephone?: string;
+  indicatif?: string;
   sexe?: SexeType;
   region?: RegionType;
   residenceType?: ResidenceType;
@@ -122,6 +173,8 @@ export interface ProfileFormData {
   firstName: string;
   lastName: string;
   email: string;
+  telephone: string;
+  indicatif: string;
   sexe: SexeType | "";
   region: RegionType | "";
   residenceType: ResidenceType | "";
@@ -137,6 +190,8 @@ export function toProfileFormData(data: UserProfileData): ProfileFormData {
     firstName: data.firstName || "",
     lastName: data.lastName || "",
     email: data.email || "",
+    telephone: extractLocalNumber(data.telephone || "", "+221"),
+    indicatif: extractIndicatif(data.telephone || "", "+221"),
     sexe: "",
     region: "",
     residenceType: "",
@@ -303,6 +358,8 @@ export class UserApi {
 
       if (data.firstName !== undefined) payload.firstName = data.firstName;
       if (data.lastName !== undefined) payload.lastName = data.lastName;
+      if (data.telephone !== undefined) payload.telephone = data.telephone;
+      if (data.indicatif !== undefined) payload.indicatif = data.indicatif;
       if (data.sexe !== undefined) payload.sexe = data.sexe;
       if (data.region !== undefined) payload.region = data.region;
       if (data.residenceType !== undefined)

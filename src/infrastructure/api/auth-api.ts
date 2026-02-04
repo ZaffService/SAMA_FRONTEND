@@ -99,6 +99,8 @@ export class AuthApi {
   static async completeProfile(data: {
     firstName?: string;
     lastName?: string;
+    telephone?: string;
+    indicatif?: string;
     sexe?: "M" | "F" | "O" | "NOT_SPECIFIED";
     region?: string;
     residenceType?: "URBAN" | "RURAL";
@@ -114,9 +116,28 @@ export class AuthApi {
       body: JSON.stringify(data),
     });
 
+    const errorData = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Échec de la mise à jour du profil");
+      // Vérifier si c'est une erreur de téléphone duplicata
+      const errorMessage = errorData?.message || errorData?.error?.message || "Échec de la mise à jour du profil";
+      
+      // Codes d'erreur possibles pour téléphone duplicata
+      const duplicatePhonePatterns = [
+        /telephone.*exist/i,
+        /phone.*exist/i,
+        /duplicate.*phone/i,
+        /téléphone.*utilisé/i,
+        /numéro.*déjà/i,
+        /PHONE_CONFLICT/i,
+        /PHONE_ALREADY_EXISTS/i,
+      ];
+
+      if (duplicatePhonePatterns.some(pattern => pattern.test(errorMessage))) {
+        throw new Error("Ce numéro de téléphone est déjà utilisé par un autre compte. Veuillez utiliser un numéro différent.");
+      }
+
+      throw new Error(errorMessage);
     }
 
     return res.json();

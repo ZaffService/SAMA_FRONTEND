@@ -1394,7 +1394,7 @@ function CourseDetailsPageComponent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2 space-y-6">
             {/* Mobile: Sidebar AVANT la vidéo */}
-            {isMobile && hasVideoContent && <LessonsSidebar />}
+            {isMobile && hasVideoContent && isEnrolled && <LessonsSidebar />}
 
             {/* Video Player */}
             {hasVideo && hasVideoContent && (
@@ -1610,105 +1610,6 @@ function CourseDetailsPageComponent() {
               </div>
             </div>
 
-            {/* Course Content / Curriculum */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 flex-shrink-0" />
-                <span>Contenu du cours</span>
-              </h2>
-
-              <div className="space-y-3 sm:space-y-4">
-                {modules.map((module, moduleIndex) => {
-                  const isExpanded = expandedModules.has(module.id);
-                  const lessonCount = module.lessons.filter(
-                    (l) => l.hasVideo,
-                  ).length;
-                  const totalDuration = module.lessons
-                    .filter((l) => l.hasVideo)
-                    .reduce((sum, l) => sum + l.duration, 0);
-
-                  return (
-                    <div
-                      key={module.id}
-                      className="border border-gray-200 rounded-lg overflow-hidden"
-                    >
-                      <button
-                        onClick={() => toggleModule(module.id)}
-                        className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs sm:text-sm font-bold text-indigo-600">
-                              {moduleIndex + 1}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 truncate">
-                              {module.title}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
-                              {module.description}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <PlayCircle className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                                <span className="whitespace-nowrap">
-                                  {lessonCount} leçons
-                                </span>
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                                <span className="whitespace-nowrap">
-                                  {formatDuration(totalDuration)}
-                                </span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ml-2 ${isExpanded ? "rotate-180" : ""}`}
-                        />
-                      </button>
-
-                      {isExpanded && (
-                        <div className="border-t border-gray-100 bg-gray-50">
-                          {module.lessons
-                            .filter((lesson) => lesson.hasVideo)
-                            .map((lesson, lessonIndex) => (
-                              <div
-                                key={lesson.id}
-                                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 border-b border-gray-100 last:border-b-0"
-                              >
-                                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <PlayCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-sm sm:text-base text-gray-900 truncate">
-                                    {lesson.title}
-                                  </h4>
-                                  <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
-                                    {lesson.content ||
-                                      "Découvrez cette leçon passionnante"}
-                                  </p>
-                                </div>
-                                {lesson.duration > 0 && (
-                                  <div className="text-xs sm:text-sm text-gray-500 flex items-center gap-1 flex-shrink-0">
-                                    <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span className="whitespace-nowrap">
-                                      {formatDuration(lesson.duration)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Prerequisites */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8">
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
@@ -1740,7 +1641,7 @@ function CourseDetailsPageComponent() {
           </div>
 
           {/* Desktop: Sidebar sur le côté */}
-          {!isMobile && hasVideoContent && (
+          {!isMobile && hasVideoContent && isEnrolled && (
             <div className="lg:col-span-1">
               <div className="lg:sticky lg:top-24">
                 <LessonsSidebar />

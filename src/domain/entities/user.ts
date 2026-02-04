@@ -5,6 +5,8 @@ export interface User {
   lastName: string;
   role: "ADMIN" | "INSTRUCTOR" | "STUDENT";
   createdAt: string;
+  telephone?: string;
+  indicatif?: string;
   first_name?: string;
   last_name?: string;
   created_at?: string;

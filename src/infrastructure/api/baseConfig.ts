@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
     DETAILS: "/course/details",
     CREATE: "/course/create",
     UPDATE: (courseId: string) => `/course/${courseId}`,
+    UPDATE_SIMPLE: (courseId: string) => `/course/update-simple/${courseId}`,
     DELETE: (courseId: string) => `/course/${courseId}`,
     UPDATE_STATUS: (courseId: string) => `/course/update-status/${courseId}`,
     ENROLL: "/course/enrollment",
@@ -78,5 +79,24 @@ export const API_ENDPOINTS = {
     SIGNED_VIDEO: (lessonId: string) =>
       `/course/lesson/${lessonId}/video/signed`,
     UPLOAD_VIDEO: (lessonId: string) => `/course/lesson/${lessonId}/video`,
+  },
+  MODULES: {
+    CREATE: (courseId: string) => `/course/${courseId}/modules`,
+    UPDATE: (moduleId: string) => `/modules/${moduleId}`,
+    DELETE: (moduleId: string) => `/modules/${moduleId}`,
+    GET: (moduleId: string) => `/modules/${moduleId}`,
+  },
+  LESSONS_API: {
+    CREATE: (moduleId: string) => `/modules/${moduleId}/lessons`,
+    UPDATE: (lessonId: string) => `/lessons/${lessonId}`,
+    DELETE: (lessonId: string) => `/lessons/${lessonId}`,
+    GET: (lessonId: string) => `/lessons/${lessonId}`,
+  },
+  QUIZZES: {
+    CREATE: (moduleId: string) => `/modules/${moduleId}/quizzes`,
+    UPDATE: (quizId: string) => `/quizzes/${quizId}`,
+    DELETE: (quizId: string) => `/quizzes/${quizId}`,
+    GET: (quizId: string) => `/quizzes/${quizId}`,
+    GET_BY_MODULE: (moduleId: string) => `/modules/${moduleId}/quizzes`,
   },
 } as const;

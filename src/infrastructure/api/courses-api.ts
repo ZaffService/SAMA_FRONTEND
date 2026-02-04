@@ -925,7 +925,7 @@ export class CoursesApi {
    * Met à jour un cours existant
    */
   static async updateCourse(courseId: string, courseData: any): Promise<any> {
-    console.log(`🔄 [CoursesApi] Début mise à jour du cours ${courseId}...`);
+    console.log(` [CoursesApi] Début mise à jour du cours ${courseId}...`);
 
     const formData = new FormData();
 
@@ -1067,6 +1067,102 @@ export class CoursesApi {
 
     const responseData = await response.json();
     console.log("✅ [CoursesApi] Cours mis à jour:", responseData);
+
+    return responseData;
+  }
+
+  /**
+   * Met à jour les informations basiques d'un cours (version simplifiée)
+   * Endpoint: PUT /course/update-simple/{courseId}
+   * Format: multipart/form-data avec champ "data" (JSON stringifié)
+   */
+  static async updateCourseSimple(
+    courseId: string,
+    courseData: {
+      title?: string;
+      description?: string;
+      categoryId?: string;
+      level?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+      price?: number;
+      status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+      thumbnailUrl?: string;
+    },
+    thumbnailFile?: File | null,
+  ): Promise<{ message: string }> {
+    console.log(`🔄 [CoursesApi] Mise à jour simple du cours: ${courseId}`);
+    console.log("📦 [CoursesApi] Données à mettre à jour:", courseData);
+
+    const formData = new FormData();
+
+    // Le champ "data" est requis et contient les données JSON
+    // Tous les champs sont optionnels dans data
+    const courseJsonData: any = {};
+
+    if (courseData.title !== undefined) {
+      courseJsonData.title = courseData.title;
+    }
+    if (courseData.description !== undefined) {
+      courseJsonData.description = courseData.description;
+    }
+    if (courseData.categoryId !== undefined) {
+      courseJsonData.categoryId = courseData.categoryId;
+    }
+    if (courseData.level !== undefined) {
+      courseJsonData.level = courseData.level;
+    }
+    if (courseData.price !== undefined) {
+      courseJsonData.price = Number(courseData.price) || 0;
+    }
+    if (courseData.status !== undefined) {
+      courseJsonData.status = courseData.status;
+    }
+    if (courseData.thumbnailUrl !== undefined) {
+      courseJsonData.thumbnailUrl = courseData.thumbnailUrl;
+    }
+
+    // Append le JSON stringifié dans le champ "data"
+    formData.append("data", JSON.stringify(courseJsonData));
+    console.log("📦 [CoursesApi] JSON data:", JSON.stringify(courseJsonData, null, 2));
+
+    // Append le fichier thumbnail si présent
+    if (thumbnailFile) {
+      formData.append("thumbnail", thumbnailFile);
+      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté:", thumbnailFile.name);
+    }
+
+    const url = buildApiUrl(API_ENDPOINTS.COURSES.UPDATE_SIMPLE(courseId));
+    console.log("📡 [CoursesApi] URL:", url);
+
+    const response = await fetch(url, {
+      method: "PUT",
+      credentials: "include",
+      body: formData,
+      // Note: Ne pas set Content-Type avec FormData - le navigateur le fait automatiquement
+    });
+
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Réponse:", responseData);
 
     return responseData;
   }
@@ -1353,79 +1449,119 @@ export class CoursesApi {
   }
 
   /**
-   * Mapper pour les cours de la liste (léger)
+   * Ajoute un nouveau module à un cours existant
    */
-  // private static mapBackendCourseToFrontend(
-  //   backendCourse: BackendCourse,
-  // ): Course {
-  //   // ✅ CORRECTION: Utiliser id du backend (comme retourné par l'API)
-  //   const id =
-  //     backendCourse.id || backendCourse.courseId || backendCourse._id || "";
+  static async addModuleToCourse(
+    courseId: string,
+    moduleData: { title: string; description: string; order?: number },
+  ): Promise<any> {
+    console.log(`🔄 API: Ajout d'un module au cours ${courseId}`);
 
-  //   const title = backendCourse.title || backendCourse._title || "";
-  //   const description =
-  //     backendCourse.description || backendCourse._description || "";
+    const formData = new FormData();
+    
+    const moduleJsonData = {
+      title: moduleData.title,
+      description: moduleData.description || "",
+      order: moduleData.order || 0,
+    };
+    
+    formData.append("data", JSON.stringify(moduleJsonData));
+    
+    const response = await fetch(
+      buildApiUrl(`${API_ENDPOINTS.COURSES.DETAILS}/${courseId}/modules`),
+      {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      },
+    );
+    
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur ajout module:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Module ajouté:", responseData);
+    
+    return responseData;
+  }
 
-  //   const thumbnailUrl =
-  //     backendCourse.thumbnailUrl ||
-  //     backendCourse._thumbnailUrl ||
-  //     "/Fallback.png";
-
-  //   // ✅ Extraction du categoryId pour le filtrage
-  //   const categoryId =
-  //     backendCourse.categoryId ||
-  //     backendCourse._category?.id ||
-  //     backendCourse._category?._id;
-
-  //   const category =
-  //     backendCourse._category?._name ||
-  //     backendCourse._category?.name ||
-  //     backendCourse.category ||
-  //     "Non catégorisé";
-
-  //   return {
-  //     id,
-  //     title,
-  //     content: description,
-  //     categoryName: category,
-  //     categoryId, // ✅ Ajout du categoryId pour le filtrage
-  //     thumbnailUrl,
-  //     thumbnail: thumbnailUrl,
-  //     price: backendCourse.price ?? backendCourse._price ?? 0,
-  //     duration: backendCourse.duration || backendCourse._duration,
-  //     instructor: {
-  //       id: backendCourse._instructor?._id || backendCourse.instructor?.id,
-  //       name: backendCourse._instructor
-  //         ? `${backendCourse._instructor._firstName || ""} ${backendCourse._instructor._lastName || ""}`.trim()
-  //         : "Instructeur",
-  //       firstName: backendCourse._instructor?._firstName,
-  //       lastName: backendCourse._instructor?._lastName,
-  //       email: backendCourse._instructor?._email,
-  //       role: backendCourse._instructor?._role,
-  //     },
-  //     studentsCount:
-  //       backendCourse._enrollments?.length ||
-  //       backendCourse.enrollments?.length ||
-  //       0,
-  //     rating: backendCourse.rating ?? backendCourse._rating ?? 0,
-  //     level: backendCourse.level || backendCourse._level || "BEGINNER",
-  //     description,
-  //     tags: backendCourse._tags || backendCourse.tags || [],
-  //     status: (backendCourse._status || backendCourse.status) as
-  //       | "DRAFT"
-  //       | "PUBLISHED"
-  //       | "ARCHIVED"
-  //       | undefined,
-  //     attachment: backendCourse._attachment || backendCourse.attachment,
-  //     createdAt: backendCourse._createdAt || backendCourse.createdAt,
-  //     updatedAt: backendCourse._updatedAt || backendCourse.updatedAt,
-  //     isComplete: backendCourse.isComplete ?? true, // Default to true for backward compatibility
-  //     lessons:
-  //       backendCourse._modules ||
-  //       backendCourse.modules ||
-  //       backendCourse.lessons ||
-  //       [],
-  //     quizzes: backendCourse._quizzes || backendCourse.quizzes || [],
-  //   };
-  // }
+  /**
+   * Met à jour les leçons d'un module
+   */
+  static async updateModuleLessons(
+    moduleId: string,
+    lessons: Lesson[],
+  ): Promise<any> {
+    console.log(`🔄 API: Mise à jour des leçons du module ${moduleId}`);
+    
+    const formData = new FormData();
+    
+    const lessonsData = lessons.map((lesson) => ({
+      id: lesson.id || undefined,
+      tempId: lesson.tempId || undefined,
+      title: lesson.title,
+      content: lesson.content || "",
+      orderIndex: lesson.orderIndex,
+      duration: lesson.duration || 0,
+    }));
+    
+    const moduleData = {
+      lessons: lessonsData,
+    };
+    
+    formData.append("data", JSON.stringify(moduleData));
+    
+    // Ajouter les vidéos
+    let videoCount = 0;
+    lessons.forEach((lesson) => {
+      if (lesson.videoFile) {
+        const videoKey = `lessonVideos[${lesson.tempId || lesson.id}]`;
+        formData.append(videoKey, lesson.videoFile);
+        videoCount++;
+        console.log(`🎥 API: Vidéo ajoutée: ${videoKey}`);
+      }
+    });
+    console.log(`📹 API: Total vidéos: ${videoCount}`);
+    
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.MODULES.UPDATE(moduleId)),
+      {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      },
+    );
+    
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur mise à jour leçons:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Leçons mises à jour:", responseData);
+    
+    return responseData;
+  }
 }

@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import {
   User,
@@ -42,7 +41,6 @@ import { useProtectRoute } from "@/application/use-cases/useProtectRoute";
 
 import {
   UserApi,
-  UserProfileData,
   ProfileFormData,
   toProfileFormData,
   SEXE_LABELS,
@@ -56,12 +54,37 @@ import {
 } from "@/infrastructure/api/user-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { COUNTRIES } from "@/lib/countries";
+
+// Helper to extract local number from full phone number
+const extractLocalNumber = (fullPhone: string, indicatif: string): string => {
+  if (!fullPhone) return "";
+  if (fullPhone.startsWith(indicatif)) {
+    return fullPhone.slice(indicatif.length);
+  }
+  if (fullPhone.startsWith("+")) {
+    const country = COUNTRIES.find((c) => fullPhone.startsWith(c.indicatif));
+    if (country) {
+      return fullPhone.slice(country.indicatif.length);
+    }
+  }
+  return fullPhone.replace(/\D/g, "");
+};
+
+// Helper to extract dial code from full phone number
+const extractIndicatif = (fullPhone: string, defaultIndicatif: string): string => {
+  if (!fullPhone || !fullPhone.startsWith("+")) return defaultIndicatif;
+  const country = COUNTRIES.find((c) => fullPhone.startsWith(c.indicatif));
+  return country ? country.indicatif : defaultIndicatif;
+};
 
 // Initial form data pre-filled with user info
 const getInitialFormData = (user: any): ProfileFormData => ({
   firstName: user?.firstName || user?.first_name || "",
   lastName: user?.lastName || user?.last_name || "",
   email: user?.email || "",
+  telephone: extractLocalNumber(user?.telephone || "", "+221"),
+  indicatif: extractIndicatif(user?.telephone || "", "+221"),
   sexe: "",
   region: "",
   residenceType: "",
@@ -90,11 +113,30 @@ export default function CompleteProfile() {
     getInitialFormData(user),
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [phoneConflictError, setPhoneConflictError] = useState<string | null>(null);
+  const [originalPhone, setOriginalPhone] = useState<string>("");
+
+  // Helper to validate phone number
+  const validatePhone = (phone: string, dialCode: string): string | null => {
+    if (!phone.trim()) return "Le numéro de téléphone est obligatoire";
+    
+    const country = COUNTRIES.find((c) => c.indicatif === dialCode);
+    if (!country) return "Indicatif invalide";
+    
+    if (!/^\d+$/.test(phone)) {
+      return "Le numéro doit contenir uniquement des chiffres";
+    }
+    
+    if (phone.length !== country.localLength) {
+      return `Le numéro doit contenir ${country.localLength} chiffres pour ${country.name}`;
+    }
+    
+    return null;
+  };
 
   // Redirect if profile is already complete
   useEffect(() => {
     if (!protectLoading && isComplete === true) {
-      // Redirect based on user role
       if (user?.role === "ADMIN") {
         router.push("/admin-dashboard");
       } else if (user?.role === "INSTRUCTOR") {
@@ -114,10 +156,13 @@ export default function CompleteProfile() {
         if (profileData) {
           const form = toProfileFormData(profileData);
           setFormData(form);
+          // Stocker le téléphone original s'il existe déjà
+          if (profileData.telephone) {
+            setOriginalPhone(profileData.telephone);
+          }
         }
       } catch (error) {
         console.error("Erreur lors de la récupération du profil:", error);
-        // Continue even if profile fetch fails - user can still fill the form
       } finally {
         setIsLoading(false);
       }
@@ -140,7 +185,6 @@ export default function CompleteProfile() {
   const handleSave = async () => {
     const errors: Record<string, string> = {};
 
-    // Validate required fields (firstName and lastName are pre-filled from registration)
     if (!formData.sexe) {
       errors.sexe = "Le genre est obligatoire";
     }
@@ -154,7 +198,12 @@ export default function CompleteProfile() {
       errors.consentGiven = "Vous devez accepter les conditions pour continuer";
     }
 
-    // Validate conditional fields
+    // Validate phone number - only required if not already in profile
+    const phoneError = validatePhone(formData.telephone, formData.indicatif);
+    if (phoneError && !originalPhone) {
+      errors.telephone = phoneError;
+    }
+
     if (formData.disability && !formData.disabilityType) {
       errors.disabilityType = "Veuillez sélectionner un type de handicap";
     }
@@ -167,7 +216,10 @@ export default function CompleteProfile() {
 
     setIsSaving(true);
     try {
-      const result = await completeProfile({
+      // Construire le payload - ne pas envoyer le téléphone s'il existe déjà
+      const profilePayload: any = {
+        telephone: formData.telephone,
+        indicatif: formData.indicatif,
         sexe: formData.sexe as SexeType,
         region: formData.region as RegionType,
         residenceType: formData.residenceType as ResidenceType,
@@ -175,33 +227,42 @@ export default function CompleteProfile() {
         disabilityType: formData.disabilityType || undefined,
         disabilityDetails: formData.disabilityDetails || undefined,
         consentGiven: formData.consentGiven,
-      });
+      };
+
+      // Si le téléphone existait déjà, ne pas l'envoyer
+      if (originalPhone) {
+        delete profilePayload.telephone;
+        delete profilePayload.indicatif;
+      }
+
+      const result = await completeProfile(profilePayload);
 
       if (result) {
         toast.success(
           "Félicitations ! Votre profil a été complété avec succès !",
         );
 
-        // Redirect based on user role
         setTimeout(() => {
           if (user?.role === "ADMIN") {
             router.push("/admin-dashboard");
           } else if (user?.role === "INSTRUCTOR") {
             router.push("/instructor-dashboard");
           } else {
-            router.push("/courses");
+            router.push("/student-dashboard");
           }
         }, 1500);
       }
     } catch (error) {
       console.error("Erreur lors de la completion du profil:", error);
-      toast.error(
-        `Erreur: ${
-          error instanceof Error
-            ? error.message
-            : "Impossible de compléter le profil"
-        }`,
-      );
+      
+      const errorMessage = error instanceof Error ? error.message : "Impossible de compléter le profil";
+      
+      if (errorMessage.includes("téléphone") && errorMessage.includes("utilisé")) {
+        setPhoneConflictError(errorMessage);
+        setTimeout(() => setPhoneConflictError(null), 5000);
+      } else {
+        toast.error(`Erreur: ${errorMessage}`);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -277,7 +338,7 @@ export default function CompleteProfile() {
                 </p>
                 <p className="text-sm text-amber-700 mt-1">
                   Certaines fonctionnalités nécessitent que votre profil soit
-                  complet. Les champs marqués d&apos;une étoile (*) sont
+                  complet. Les champs marqués d'une étoile (*) sont
                   obligatoires.
                 </p>
               </div>
@@ -475,6 +536,118 @@ export default function CompleteProfile() {
                       </p>
                     )}
                   </div>
+
+                  {/* Champ téléphone avec indicatif */}
+                  {originalPhone ? (
+                    <div className="space-y-2">
+                      <Label
+                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                      >
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                        Téléphone
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={formData.indicatif}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger className="w-24 h-12 bg-gray-50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUNTRIES.map((country) => (
+                              <SelectItem key={country.indicatif} value={country.indicatif}>
+                                {country.indicatif}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={`${formData.indicatif} ${formData.telephone}`}
+                          disabled
+                          className="flex-1 h-12 bg-gray-50 text-gray-600 cursor-not-allowed"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Votre numéro de téléphone est déjà enregistré
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="phone"
+                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                      >
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                        Téléphone <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={formData.indicatif}
+                          onValueChange={(value) => {
+                            handleChange("indicatif", value);
+                            if (fieldErrors.telephone) {
+                              setFieldErrors((prev) => ({ ...prev, telephone: "" }));
+                            }
+                          }}
+                          disabled={isSaving}
+                        >
+                          <SelectTrigger className="w-24 h-12">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUNTRIES.map((country) => (
+                              <SelectItem key={country.indicatif} value={country.indicatif}>
+                                {country.indicatif}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder={`${COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
+                          value={formData.telephone}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "");
+                            const selectedCountry = COUNTRIES.find(
+                              (c) => c.indicatif === formData.indicatif,
+                            );
+                            const maxLength = selectedCountry?.localLength || 15;
+                            if (value.length <= maxLength) {
+                              handleChange("telephone", value);
+                              if (fieldErrors.telephone) {
+                                setFieldErrors((prev) => ({ ...prev, telephone: "" }));
+                              }
+                              if (phoneConflictError) {
+                                setPhoneConflictError(null);
+                              }
+                            }
+                          }}
+                          disabled={isSaving}
+                          className={`flex-1 h-12 ${fieldErrors.telephone || phoneConflictError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          maxLength={COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength || 15}
+                        />
+                      </div>
+                      {fieldErrors.telephone && (
+                        <p className="text-sm text-red-600">
+                          {fieldErrors.telephone}
+                        </p>
+                      )}
+                      {phoneConflictError && (
+                        <p className="text-sm text-red-600 font-medium">
+                          {phoneConflictError}
+                        </p>
+                      )}
+                      {formData.telephone && !fieldErrors.telephone && (
+                        <p className="text-xs text-muted-foreground">
+                          Numéro complet: {formData.indicatif} {formData.telephone}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <hr className="border-gray-200" />
@@ -583,7 +756,7 @@ export default function CompleteProfile() {
                     Consentement
                   </h3>
 
-                  <div className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <div className={`flex items-start space-x-3 p-4 bg-gray-50 rounded-lg ${fieldErrors.consentGiven ? "border border-red-500 bg-red-50" : ""}`}>
                     <Checkbox
                       id="consentGiven"
                       checked={formData.consentGiven}
@@ -594,14 +767,19 @@ export default function CompleteProfile() {
                     />
                     <Label
                       htmlFor="consentGiven"
-                      className="text-sm font-medium cursor-pointer leading-relaxed"
+                      className={`text-sm font-medium cursor-pointer leading-relaxed ${fieldErrors.consentGiven ? "text-red-700" : ""}`}
                     >
-                      J&apos;accepte que mes données soient utilisées pour
+                      J'accepte que mes données soient utilisées pour
                       améliorer mon expérience sur la plateforme. Je peux
                       retirer mon consentement à tout moment.{" "}
                       <span className="text-red-500">*</span>
                     </Label>
                   </div>
+                  {fieldErrors.consentGiven && (
+                    <p className="text-sm text-red-600 font-medium">
+                      {fieldErrors.consentGiven}
+                    </p>
+                  )}
                 </div>
 
                 {/* Buttons */}
