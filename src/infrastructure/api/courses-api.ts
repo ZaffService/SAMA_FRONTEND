@@ -1450,25 +1450,57 @@ export class CoursesApi {
 
   /**
    * Ajoute un nouveau module à un cours existant
+   * Endpoint: POST /course/course/{courseId}/modules
+   * Format: {"modules": [{"title": ..., "orderIndex": ..., "description": ..., "lessons": [...], "quizzes": [...]}]}
    */
   static async addModuleToCourse(
     courseId: string,
-    moduleData: { title: string; description: string; order?: number },
+    moduleData: { 
+      title: string; 
+      description: string; 
+      order?: number;
+      lessons?: Array<{
+        tempId: string;
+        title: string;
+        content: string;
+        orderIndex: number;
+        duration: number;
+      }>;
+      quizzes?: Array<{
+        title: string;
+        description?: string;
+        passingScore?: number;
+        questions?: Array<{
+          question: string;
+          questionType?: string;
+          options?: string[];
+          correctAnswer?: string;
+          points?: number;
+        }>;
+      }>;
+    },
   ): Promise<any> {
     console.log(`🔄 API: Ajout d'un module au cours ${courseId}`);
 
     const formData = new FormData();
     
+    // Format exact attendu par le backend: {"modules": [...]}
     const moduleJsonData = {
-      title: moduleData.title,
-      description: moduleData.description || "",
-      order: moduleData.order || 0,
+      modules: [{
+        title: moduleData.title,
+        orderIndex: moduleData.order || 0,
+        description: moduleData.description || "",
+        lessons: moduleData.lessons || [],
+        quizzes: moduleData.quizzes || [],
+      }]
     };
     
+    // Le backend attend {"data": "{"modules": [...]}"}
     formData.append("data", JSON.stringify(moduleJsonData));
+    console.log("📦 [CoursesApi] Données module:", JSON.stringify(moduleJsonData, null, 2));
     
     const response = await fetch(
-      buildApiUrl(`${API_ENDPOINTS.COURSES.DETAILS}/${courseId}/modules`),
+      buildApiUrl(`/course/course/${courseId}/modules`),
       {
         method: "POST",
         credentials: "include",

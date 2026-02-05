@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { ModulesList } from "@/components/ModulesList";
 import { Module } from "@/domain/entities/module";
+import Swal from "sweetalert2";
 
 interface ModuleEditorProps {
   courseId: string;
@@ -45,8 +46,53 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
 
   const handleModulesChange = (updatedModules: Module[]) => {
     setModules(updatedModules);
-    // Sauvegarder automatiquement ou attendre une action de l'utilisateur
-    // Pour l'instant on garde les modifications locales
+  };
+
+  const handleSaveModule = async (module: Module, index: number) => {
+    try {
+      // Calculer l'orderIndex basé sur les modules existants
+      const orderIndex = modules.length > 0 
+        ? Math.max(...modules.map(m => m.orderIndex || 0)) + 1 
+        : 0;
+
+      // Préparer les données du module avec ses leçons
+      const moduleData = {
+        title: module.title,
+        description: module.description || "",
+        order: orderIndex,
+        lessons: module.lessons?.map((lesson) => ({
+          tempId: lesson.tempId || `lesson-${Date.now()}-${Math.random()}`,
+          title: lesson.title,
+          content: lesson.content || "",
+          orderIndex: lesson.orderIndex || 0,
+          duration: lesson.duration || 0,
+        })) || [],
+        quizzes: module.quizzes || [],
+      };
+
+      // Appeler l'API pour ajouter le module avec ses leçons
+      const response = await CoursesApi.addModuleToCourse(courseId, moduleData);
+
+      // Afficher le message de succès
+      Swal.fire({
+        icon: "success",
+        title: "Module ajouté !",
+        text: `Le module \"${module.title}\" a été ajouté avec succès au cours.`,
+        confirmButtonColor: "#2563eb",
+      });
+
+      // Recharger les modules pour inclure l'ID du nouveau module
+      await loadModules();
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du module:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Erreur",
+        text: "Une erreur est survenue lors de l'ajout du module. Veuillez réessayer.",
+        confirmButtonColor: "#dc3545",
+      });
+      throw error; // Rethrow pour que ModulesList ne ferme pas le formulaire
+    }
   };
 
   const handleManageLessons = (moduleId: string) => {
@@ -86,6 +132,7 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
           modules={modules}
           onModulesChange={handleModulesChange}
           onManageLessons={handleManageLessons}
+          onSaveModule={handleSaveModule}
         />
       </div>
     </div>
