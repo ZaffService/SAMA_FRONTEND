@@ -130,6 +130,43 @@ const extractIndicatif = (fullPhone: string, defaultIndicatif: string): string =
   return defaultIndicatif;
 };
 
+// Extract telephone from various possible field names
+const extractTelephone = (data: any): string => {
+  // Try various possible field names
+  const possibleFields = [
+    'telephone',
+    'phone',
+    'phoneNumber', 
+    'tel',
+    'phone_number',
+    'mobile',
+    'mobileNumber',
+    'contactNumber',
+  ];
+  
+  for (const field of possibleFields) {
+    if (data[field]) {
+      console.log(`📡 API: Téléphone trouvé dans le champ "${field}":`, data[field]);
+      return data[field];
+    }
+  }
+  
+  // Also check nested user object
+  if (data.user?.telephone) {
+    console.log(`📡 API: Téléphone trouvé dans data.user.telephone:`, data.user.telephone);
+    return data.user.telephone;
+  }
+  
+  // Check if telephone is inside userProfile (shouldn't be but just in case)
+  if (data.userProfile?.telephone) {
+    console.log(`📡 API: Téléphone trouvé dans data.userProfile.telephone:`, data.userProfile.telephone);
+    return data.userProfile.telephone;
+  }
+  
+  console.log(`📡 API: Aucun téléphone trouvé dans les données`, data);
+  return "";
+};
+
 // User Profile from backend
 export interface UserProfileData {
   id: number;
@@ -186,12 +223,15 @@ export interface ProfileFormData {
 
 // Convert backend data to form data
 export function toProfileFormData(data: UserProfileData): ProfileFormData {
+  // Extract telephone from various possible fields
+  const telephone = extractTelephone(data);
+  
   const formData: ProfileFormData = {
     firstName: data.firstName || "",
     lastName: data.lastName || "",
     email: data.email || "",
-    telephone: extractLocalNumber(data.telephone || "", "+221"),
-    indicatif: extractIndicatif(data.telephone || "", "+221"),
+    telephone: extractLocalNumber(telephone, "+221"),
+    indicatif: extractIndicatif(telephone, "+221"),
     sexe: "",
     region: "",
     residenceType: "",
@@ -336,7 +376,20 @@ export class UserApi {
       }
 
       const data = await response.json();
-      console.log(`✅ API: Profil récupéré:`, data);
+      console.log("📡 API: Réponse brute du profil:", JSON.stringify(data, null, 2));
+      console.log("📡 API: Champs disponibles dans la réponse:", Object.keys(data));
+      
+      // Log telephone if present in different possible formats
+      const possiblePhoneFields = ['telephone', 'phone', 'phoneNumber', 'tel', 'phone_number', 'mobile', 'contactNumber'];
+      for (const field of possiblePhoneFields) {
+        if (data[field]) {
+          console.log(`📡 API: Champ "${field}" =`, data[field]);
+        }
+      }
+      if (data.user?.telephone) {
+        console.log("📡 API: user.telephone =", data.user.telephone);
+      }
+      
       return data;
     } catch (error) {
       console.error(`❌ API: Erreur lors de la récupération du profil:`, error);
