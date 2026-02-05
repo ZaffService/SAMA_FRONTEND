@@ -7,6 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Plus,
   Trash2,
   GripVertical,
@@ -15,8 +22,10 @@ import {
   CheckCircle,
   FileVideo,
   Loader2,
+  Edit,
 } from "lucide-react";
 import { Lesson, Module } from "@/domain/entities/module";
+import { CoursesApi } from "@/infrastructure/api/courses-api";
 
 // ============================================================================
 // LessonManager Component
@@ -454,6 +463,16 @@ interface ModuleManagerProps {
 }
 
 export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) {
+  const [editingModule, setEditingModule] = useState<{
+    isOpen: boolean;
+    moduleId: string;
+    title: string;
+    description: string;
+  } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
   const addModule = () => {
     const newModule: Module = {
       tempId: `temp-${Date.now()}`,
@@ -483,6 +502,75 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
 
   const handleLessonsChange = (moduleIndex: number, lessons: Module["lessons"]) => {
     updateModule(moduleIndex, { lessons });
+  };
+
+  // Ouvrir le dialogue d'édition
+  const openEditDialog = (module: Module) => {
+    setEditingModule({
+      isOpen: true,
+      moduleId: module.id!,
+      title: module.title,
+      description: module.description || "",
+    });
+    setError(null);
+    setSuccess(false);
+  };
+
+  // Fermer le dialogue
+  const closeEditDialog = () => {
+    setEditingModule(null);
+    setError(null);
+    setSuccess(false);
+  };
+
+  // Gérer les changements dans le formulaire
+  const handleEditFieldChange = (field: "title" | "description", value: string) => {
+    if (editingModule) {
+      setEditingModule({ ...editingModule, [field]: value });
+    }
+  };
+
+  // Soumettre le formulaire de modification
+  const handleEditSubmit = async () => {
+    if (!editingModule) return;
+
+    // Validation
+    if (!editingModule.title || editingModule.title.trim() === "") {
+      setError("Le titre du module est requis");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await CoursesApi.updateModule(editingModule.moduleId, {
+        title: editingModule.title,
+        description: editingModule.description || undefined,
+      });
+
+      console.log("✅ Module modifié:", response);
+      setSuccess(true);
+
+      // Mettre à jour le module dans la liste locale
+      const moduleIndex = modules.findIndex((m) => m.id === editingModule.moduleId);
+      if (moduleIndex !== -1) {
+        updateModule(moduleIndex, {
+          title: response.module.title,
+          description: response.module.description,
+        });
+      }
+
+      // Fermer le dialogue après un court délai
+      setTimeout(() => {
+        closeEditDialog();
+      }, 1500);
+    } catch (err: any) {
+      console.error("❌ Erreur modification module:", err);
+      setError(err.message || "Erreur lors de la modification");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -523,15 +611,29 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                   <CardTitle className="text-base">
                     Module {index + 1}: {module.title || "Sans titre"}
                   </CardTitle>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeModule(index)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    {module.id && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(module)}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="ml-1">Modifier</span>
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeModule(index)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -575,6 +677,94 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
           ))}
         </div>
       )}
+
+      {/* Dialogue de modification du module */}
+      <Dialog open={editingModule?.isOpen || false} onOpenChange={(open) => {
+        if (!open) closeEditDialog();
+      }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Edit className="h-5 w-5" />
+              <span>Modifier le module</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {success && (
+              <Alert className="border-green-500 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">
+                  Module modifié avec succès !
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="edit-module-title" className="block text-sm font-medium text-gray-700">
+                Titre du module *
+              </label>
+              <Input
+                id="edit-module-title"
+                value={editingModule?.title || ""}
+                onChange={(e) => handleEditFieldChange("title", e.target.value)}
+                placeholder="Entrez le titre du module"
+                disabled={isSubmitting}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="edit-module-description" className="block text-sm font-medium text-gray-700">
+                Description du module
+              </label>
+              <Textarea
+                id="edit-module-description"
+                value={editingModule?.description || ""}
+                onChange={(e) => handleEditFieldChange("description", e.target.value)}
+                placeholder="Décrivez le contenu de ce module..."
+                rows={4}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeEditDialog}
+              disabled={isSubmitting}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              onClick={handleEditSubmit}
+              disabled={isSubmitting || success}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Modification...
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Modifier
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

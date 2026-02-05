@@ -1747,6 +1747,72 @@ export class CoursesApi {
   }
 
   /**
+   * Met à jour un module spécifique
+   * Endpoint: PUT /course/module/{moduleId}
+   * Format: multipart/form-data avec champ "data" (JSON stringifié)
+   */
+  static async updateModule(
+    moduleId: string,
+    moduleData: {
+      title?: string;
+      description?: string;
+    },
+  ): Promise<{
+    message: string;
+    module: {
+      id: string;
+      title: string;
+      description: string;
+      orderIndex: number;
+    };
+  }> {
+    console.log(`🔄 [CoursesApi] Mise à jour du module ${moduleId}`);
+    console.log("📦 [CoursesApi] Données:", moduleData);
+
+    const formData = new FormData();
+
+    // Le backend attend {"data": "{"title": "...", "description": "..."}"}
+    formData.append("data", JSON.stringify(moduleData));
+    console.log("📦 [CoursesApi] JSON data:", JSON.stringify(moduleData, null, 2));
+
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.MODULES.UPDATE_MODULE(moduleId)),
+      {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+        // ⚠️ NE PAS définir Content-Type - laisse le navigateur le faire pour multipart/form-data
+      },
+    );
+
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur mise à jour module:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Module mis à jour:", responseData);
+
+    return responseData;
+  }
+
+  /**
    * Supprime une leçon spécifique
    * Endpoint: DELETE /course/lesson/{lessonId}
    */

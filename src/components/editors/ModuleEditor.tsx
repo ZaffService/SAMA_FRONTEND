@@ -133,6 +133,7 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
           onModulesChange={handleModulesChange}
           onManageLessons={handleManageLessons}
           onSaveModule={handleSaveModule}
+          courseId={courseId}
         />
       </div>
     </div>

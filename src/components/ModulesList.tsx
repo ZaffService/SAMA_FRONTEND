@@ -23,6 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Module } from "@/domain/entities/module";
+import { CoursesApi } from "@/infrastructure/api/courses-api";
 import Swal from "sweetalert2";
 
 interface ModulesListProps {
@@ -30,9 +31,10 @@ interface ModulesListProps {
   onModulesChange: (modules: Module[]) => void;
   onManageLessons: (moduleId: string) => void;
   onSaveModule?: (module: Module, index: number) => Promise<void>;
+  courseId?: string;
 }
 
-export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveModule }: ModulesListProps) {
+export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveModule, courseId }: ModulesListProps) {
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [deleteConfirmModule, setDeleteConfirmModule] = useState<Module | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -100,32 +102,84 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       title: values.title,
       description: values.description,
     };
-    
-    if (onSaveModule) {
-      try {
-        await onSaveModule(moduleToSave, index);
-        setExpandedModules({ ...expandedModules, [index]: false });
-        return;
-      } catch (error) {
-        console.error("Erreur lors de la sauvegarde du module:", error);
-        return;
-      }
-    }
 
-    const updatedModules = modules.map((module, i) =>
-      i === index ? { ...module, title: values.title, description: values.description } : module
-    );
-    onModulesChange(updatedModules);
-    
-    setExpandedModules({ ...expandedModules, [index]: false });
-    
-    Swal.fire({
-      icon: "success",
-      title: "Succès !",
-      text: "Le module a été enregistré avec succès",
-      timer: 2000,
-      showConfirmButton: false,
-    });
+    try {
+      if (moduleToSave.id) {
+        // Module existant - utiliser l'endpoint de modification
+        await CoursesApi.updateModule(moduleToSave.id, {
+          title: moduleToSave.title,
+          description: moduleToSave.description
+        });
+
+        // Mettre à jour le module dans la liste locale
+        const updatedModules = modules.map((module, i) =>
+          i === index ? { ...module, title: values.title, description: values.description } : module
+        );
+        onModulesChange(updatedModules);
+
+        Swal.fire({
+          icon: "success",
+          title: "Succès !",
+          text: "Le module a été modifié avec succès",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } else {
+        // Nouveau module - utiliser l'endpoint d'ajout
+        if (!courseId) {
+          Swal.fire({
+            icon: "error",
+            title: "Erreur",
+            text: "ID du cours manquant pour ajouter un module",
+            confirmButtonColor: "#dc3545",
+          });
+          return;
+        }
+
+        if (onSaveModule) {
+          await onSaveModule(moduleToSave, index);
+        } else {
+          // Fallback si onSaveModule n'est pas fourni
+          const orderIndex = modules.length > 0
+            ? Math.max(...modules.map(m => m.orderIndex || 0)) + 1
+            : 1;
+
+          const moduleData = {
+            title: moduleToSave.title,
+            description: moduleToSave.description || "",
+            order: orderIndex,
+            lessons: moduleToSave.lessons?.map((lesson) => ({
+              tempId: lesson.tempId || `lesson-${Date.now()}-${Math.random()}`,
+              title: lesson.title,
+              content: lesson.content || "",
+              orderIndex: lesson.orderIndex || 0,
+              duration: lesson.duration || 0,
+            })) || [],
+            quizzes: moduleToSave.quizzes || [],
+          };
+
+          await CoursesApi.addModuleToCourse(courseId, moduleData);
+
+          Swal.fire({
+            icon: "success",
+            title: "Succès !",
+            text: "Le module a été ajouté avec succès",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        }
+      }
+
+      setExpandedModules({ ...expandedModules, [index]: false });
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde du module:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Erreur",
+        text: "Une erreur est survenue lors de la sauvegarde du module",
+        confirmButtonColor: "#dc3545",
+      });
+    }
   };
 
   const cancelEdit = (index: number) => {

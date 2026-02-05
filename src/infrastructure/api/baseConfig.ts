@@ -83,6 +83,7 @@ export const API_ENDPOINTS = {
   MODULES: {
     CREATE: (courseId: string) => `/course/${courseId}/modules`,
     UPDATE: (moduleId: string) => `/modules/${moduleId}`,
+    UPDATE_MODULE: (moduleId: string) => `/course/module/${moduleId}`,
     DELETE: (moduleId: string) => `/modules/${moduleId}`,
     GET: (moduleId: string) => `/modules/${moduleId}`,
     ADD_LESSONS: (moduleId: string) => `/course/module/${moduleId}/lessons`,
