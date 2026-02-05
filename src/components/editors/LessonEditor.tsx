@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Upload, AlertCircle, CheckCircle, FileVideo, Loader2 as Loader2Icon } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, GripVertical, Trash2, Upload, AlertCircle, CheckCircle, FileVideo, Edit3, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +42,10 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const [isDragOver, setIsDragOver] = useState<Record<string, boolean>>({});
+  
+  // État pour la lesson en cours de modification
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if (propSelectedModuleId) {
@@ -189,6 +193,53 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
     setUploadErrors((prev) => ({ ...prev, [lessonId]: "" }));
   };
 
+  // ========== FONCTIONS POUR MODIFIER/SUPPRIMER LES LESSONS EXISTANTES ==========
+  
+  const handleEditLesson = (lesson: Lesson) => {
+    setEditingLesson(lesson);
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingLesson(null);
+  };
+  
+  const handleUpdateLesson = async (lessonId: string, data: { title: string; content: string; duration: number }) => {
+    if (!selectedModuleId) return;
+    
+    setIsUpdating(true);
+    try {
+      await CoursesApi.updateLesson(lessonId, data);
+      toast.success("Leçon modifiée avec succès");
+      setEditingLesson(null);
+      // Recharger les données du module
+      await loadModuleData(selectedModuleId);
+    } catch (error) {
+      console.error("Erreur lors de la modification de la leçon:", error);
+      toast.error("Erreur lors de la modification de la leçon");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  const handleDeleteLesson = async (lessonId: string) => {
+    if (!selectedModuleId) return;
+    
+    // Demander confirmation
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette leçon ?")) {
+      return;
+    }
+    
+    try {
+      await CoursesApi.deleteLesson(lessonId);
+      toast.success("Leçon supprimée avec succès");
+      // Recharger les données du module
+      await loadModuleData(selectedModuleId);
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la leçon:", error);
+      toast.error("Erreur lors de la suppression de la leçon");
+    }
+  };
+
   const handleSaveNewLessons = async () => {
     if (!selectedModuleId || newLessons.length === 0) {
       toast.error("Aucune nouvelle leçon à ajouter");
@@ -285,19 +336,126 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
             <div className="space-y-3">
               {existingLessons.map((lesson, index) => (
                 <Card key={lesson.id || `existing-${index}`}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                        <span className="text-gray-600 font-medium">{index + 1}</span>
+                  {/* Si la lesson est en cours d'édition, afficher le formulaire */}
+                  {editingLesson?.id === lesson.id ? (
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-medium text-lg">Modifier la leçon</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancelEdit}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="flex-grow">
-                        <p className="font-medium text-gray-900">{lesson.title || "Sans titre"}</p>
-                        <p className="text-sm text-gray-500">
-                          {lesson.content ? `${lesson.content.substring(0, 50)}...` : 'Sans contenu'}
-                        </p>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const formData = new FormData(e.currentTarget);
+                          handleUpdateLesson(lesson.id!, {
+                            title: formData.get("title") as string,
+                            content: formData.get("content") as string,
+                            duration: parseInt(formData.get("duration") as string) || 0,
+                          });
+                        }}
+                        className="space-y-4"
+                      >
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Titre de la leçon *
+                          </label>
+                          <Input
+                            name="title"
+                            defaultValue={lesson.title}
+                            placeholder="Entrez le titre de la leçon"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Contenu de la leçon *
+                          </label>
+                          <Textarea
+                            name="content"
+                            defaultValue={lesson.content}
+                            placeholder="Écrivez le contenu de la leçon..."
+                            rows={4}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Durée (minutes)
+                          </label>
+                          <Input
+                            name="duration"
+                            type="number"
+                            defaultValue={lesson.duration || 0}
+                            placeholder="0"
+                            min="0"
+                          />
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleCancelEdit}
+                          >
+                            Annuler
+                          </Button>
+                          <Button type="submit" disabled={isUpdating}>
+                            {isUpdating ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Sauvegarde...
+                              </>
+                            ) : (
+                              "Enregistrer"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  ) : (
+                    /* Affichage normal de la leçon */
+                    <CardContent className="py-4">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                          <span className="text-gray-600 font-medium">{index + 1}</span>
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-medium text-gray-900">{lesson.title || "Sans titre"}</p>
+                          <p className="text-sm text-gray-500">
+                            {lesson.content ? `${lesson.content.substring(0, 50)}...` : 'Sans contenu'}
+                          </p>
+                          {lesson.duration > 0 && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Durée: {lesson.duration} min
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditLesson(lesson)}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteLesson(lesson.id!)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  )}
                 </Card>
               ))}
             </div>
@@ -481,7 +639,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                                 </div>
                               ) : currentProgress > 0 && currentProgress < 100 ? (
                                 <div className="space-y-3">
-                                  <Loader2Icon className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+                                  <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
                                   <div className="space-y-2">
                                     <p className="text-sm font-medium text-gray-900">
                                       Téléchargement en cours...

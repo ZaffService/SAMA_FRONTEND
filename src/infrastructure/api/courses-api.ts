@@ -1684,4 +1684,99 @@ export class CoursesApi {
     
     return responseData;
   }
+
+  /**
+   * Met à jour une leçon spécifique
+   * Endpoint: PUT /course/lesson/{lessonId}
+   * Body: {title, content, duration}
+   */
+  static async updateLesson(
+    lessonId: string,
+    lessonData: {
+      title: string;
+      content: string;
+      duration: number;
+    },
+  ): Promise<{ message: string }> {
+    console.log(`🔄 [CoursesApi] Mise à jour de la leçon ${lessonId}`);
+    console.log("📦 [CoursesApi] Données:", lessonData);
+
+    const response = await fetch(
+      buildApiUrl(`/course/lesson/${lessonId}`),
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(lessonData),
+      },
+    );
+
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur mise à jour leçon:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Leçon mise à jour:", responseData);
+
+    return responseData;
+  }
+
+  /**
+   * Supprime une leçon spécifique
+   * Endpoint: DELETE /course/lesson/{lessonId}
+   */
+  static async deleteLesson(lessonId: string): Promise<{ message: string }> {
+    console.log(`🗑️ [CoursesApi] Suppression de la leçon ${lessonId}`);
+
+    const response = await fetch(
+      buildApiUrl(`/course/lesson/${lessonId}`),
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur suppression leçon:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Leçon supprimée:", responseData);
+
+    return responseData;
+  }
 }
+
