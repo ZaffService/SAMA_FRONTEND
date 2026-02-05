@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,13 +21,15 @@ interface AddLessonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onLessonAdded: () => void;
+  existingLessonsCount?: number; // Nombre de leçons existantes pour calculer orderIndex
 }
 
 export function AddLessonDialog({ 
   moduleId, 
   open, 
   onOpenChange, 
-  onLessonAdded 
+  onLessonAdded,
+  existingLessonsCount = 0
 }: AddLessonDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,11 +48,18 @@ export function AddLessonDialog({
 
     setIsLoading(true);
     try {
-      await CoursesApi.addLessonToModule(moduleId, {
+      const tempId = `lesson-${Date.now()}-0-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Calculer orderIndex: max existant + 1
+      const orderIndex = existingLessonsCount + 1;
+      
+      await CoursesApi.addLessonsToModule(moduleId, [{
+        tempId,
         title: formData.title,
         content: formData.content,
-        duration: formData.duration
-      });
+        duration: formData.duration,
+        orderIndex, // Envoyer orderIndex calculé
+      }]);
       toast.success("Leçon ajoutée avec succès");
       onLessonAdded();
       onOpenChange(false);

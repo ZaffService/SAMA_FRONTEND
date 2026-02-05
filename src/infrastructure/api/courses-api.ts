@@ -1498,6 +1498,94 @@ export class CoursesApi {
   }
 
   /**
+   * Ajoute de nouvelles leçons à un module existant
+   * Endpoint: POST /course/module/{moduleId}/lessons
+   */
+  static async addLessonsToModule(
+    moduleId: string,
+    lessons: Array<{
+      tempId: string;
+      title: string;
+      content: string;
+      duration?: number;
+      videoFile?: File;
+      orderIndex: number; // Calculé côté frontend
+    }>,
+  ): Promise<{
+    message: string;
+    lessonsAdded: number;
+    lessons: Array<{
+      id: string;
+      title: string;
+      orderIndex: number;
+      status: string;
+    }>;
+  }> {
+    console.log(`🎓 API: Ajout de ${lessons.length} leçon(s) au module ${moduleId}`);
+
+    const formData = new FormData();
+
+    // Préparer les données des leçons AVEC orderIndex
+    const lessonsData = lessons.map((lesson) => ({
+      tempId: lesson.tempId,
+      title: lesson.title,
+      content: lesson.content,
+      orderIndex: lesson.orderIndex, // Envoyé par le frontend
+      ...(lesson.duration && { duration: lesson.duration }),
+    }));
+
+    // Ajouter le JSON des leçons
+    formData.append("data", JSON.stringify({ lessons: lessonsData }));
+    console.log("📦 [CoursesApi] Données leçons:", JSON.stringify(lessonsData, null, 2));
+
+    // Ajouter les vidéos avec leur tempId
+    let videoCount = 0;
+    lessons.forEach((lesson) => {
+      if (lesson.videoFile) {
+        formData.append(`lessonVideos[${lesson.tempId}]`, lesson.videoFile);
+        videoCount++;
+        console.log(`🎥 [CoursesApi] Vidéo ajoutée pour ${lesson.tempId}: ${lesson.videoFile.name}`);
+      }
+    });
+    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+
+    const url = buildApiUrl(API_ENDPOINTS.MODULES.ADD_LESSONS(moduleId));
+    console.log("📡 [CoursesApi] URL:", url);
+
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+      // ⚠️ NE PAS définir Content-Type - laisse le navigateur le faire pour multipart/form-data
+    });
+
+    console.log(
+      "📡 [CoursesApi] Statut réponse:",
+      response.status,
+      response.statusText,
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        errorMessage = errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Leçons ajoutées:", responseData);
+
+    return responseData;
+  }
+
+  /**
    * Met à jour les leçons d'un module
    */
   static async updateModuleLessons(

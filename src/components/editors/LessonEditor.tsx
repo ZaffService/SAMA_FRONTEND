@@ -87,11 +87,11 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
   };
 
   const addLesson = useCallback(() => {
+    const index = existingLessons.length + newLessons.length;
     const newLesson: Lesson = {
-      tempId: `temp-${Date.now()}`,
+      tempId: `lesson-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
       title: "",
       content: "",
-      orderIndex: existingLessons.length + newLessons.length + 1,
       duration: 0,
     };
     setNewLessons([...newLessons, newLesson]);
@@ -106,12 +106,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
 
   const removeNewLesson = (index: number) => {
     const updatedLessons = newLessons.filter((_, i) => i !== index);
-    // Recalculer les orderIndex
-    const reorderedLessons = updatedLessons.map((lesson, i) => ({
-      ...lesson,
-      orderIndex: existingLessons.length + i + 1,
-    }));
-    setNewLessons(reorderedLessons);
+    setNewLessons(updatedLessons);
   };
 
   const validateVideoFile = (file: File): string | null => {
@@ -215,16 +210,32 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
 
     setIsSaving(true);
     try {
-      const allLessons = [...existingLessons, ...newLessons];
-      await CoursesApi.updateModuleLessons(selectedModuleId, allLessons);
+      // Calculer orderIndex: index max des leçons existantes + 1
+      const maxExistingOrderIndex = existingLessons.reduce(
+        (max, lesson) => Math.max(max, lesson.orderIndex || 0),
+        -1
+      );
+
+      // Préparer les données pour l'API AVEC orderIndex
+      const lessonsData = newLessons.map((lesson, index) => ({
+        tempId: lesson.tempId!,
+        title: lesson.title,
+        content: lesson.content,
+        orderIndex: maxExistingOrderIndex + 1 + index, // Calculé côté frontend
+        ...(lesson.duration && { duration: lesson.duration }),
+        videoFile: lesson.videoFile,
+      }));
+
+      // Appel API avec le nouvel endpoint
+      await CoursesApi.addLessonsToModule(selectedModuleId, lessonsData);
       toast.success(`${newLessons.length} leçon(s) ajoutée(s) avec succès`);
       
       // Recharger les données du module
       await loadModuleData(selectedModuleId);
       setNewLessons([]);
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde des nouvelles leçons:", error);
-      toast.error("Erreur lors de la sauvegarde des leçons");
+      console.error("Erreur lors de l'ajout des leçons:", error);
+      toast.error("Erreur lors de l'ajout des leçons");
     } finally {
       setIsSaving(false);
     }

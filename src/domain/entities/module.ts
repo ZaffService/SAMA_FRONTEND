@@ -3,7 +3,7 @@ export interface Lesson {
   tempId?: string;
   title: string;
   content: string;
-  orderIndex: number;
+  orderIndex?: number; // Optionnel - calculé automatiquement par le backend
   duration: number;
   videoUrl?: string;
   videoFile?: File;
