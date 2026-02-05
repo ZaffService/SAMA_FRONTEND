@@ -38,10 +38,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
+import { getErrorMapping } from "@/shared/helpers/error-mapping";
 import {
   MoreVertical,
   Search,
@@ -74,13 +75,59 @@ const { user } = useLocalAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [courseToDelete, setCourseToDelete] = useState<BackendCourse | null>(
-    null,
-  );
   const [courseToArchive, setCourseToArchive] = useState<BackendCourse | null>(
     null,
   );
   const [courseToEditBasic, setCourseToEditBasic] = useState<BackendCourse | null>(null);
+
+  const handleConfirmDelete = async (course: BackendCourse) => {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Confirmer la suppression",
+      text: `Êtes-vous sûr de vouloir supprimer le cours "${course.title}" ? Cette action est irréversible.`,
+      showCancelButton: true,
+      confirmButtonColor: "#d32f2f",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Supprimer",
+      cancelButtonText: "Annuler",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await CoursesApi.deleteCourse(course.id);
+        await Swal.fire({
+          icon: "success",
+          title: "Cours supprimé",
+          text: "Le cours a été supprimé avec succès",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        fetchCourses();
+        onCourseUpdated?.();
+      } catch (error: any) {
+        console.error("Erreur lors de la suppression:", error);
+
+        // Vérifier si c'est une erreur COURSE_ALREADY_ENROLLED
+        if (error.code === "COURSE_ALREADY_ENROLLED") {
+          await Swal.fire({
+            icon: "error",
+            title: "Suppression impossible",
+            text: "Vous ne pouvez pas supprimer un cours qui a des étudiants inscrits",
+            confirmButtonColor: "#d32f2f",
+          });
+        } else {
+          // Utiliser le mapping d'erreur pour afficher un message approprié
+          const errorMapping = getErrorMapping(error);
+          await Swal.fire({
+            icon: "error",
+            title: errorMapping.title,
+            text: errorMapping.message,
+            confirmButtonColor: "#d32f2f",
+          });
+        }
+      }
+    }
+  };
 
   const handleEditCourse = (course: BackendCourse) => {
     router.push(`/admin/edit-course/${course.id}`);
@@ -130,22 +177,6 @@ const { user } = useLocalAuth();
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error);
       toast.error("Erreur lors de la mise à jour du statut");
-    }
-  };
-
-  const handleDeleteCourse = async () => {
-    if (!courseToDelete) return;
-
-    try {
-      await CoursesApi.deleteCourse(courseToDelete.id);
-      toast.success("Cours supprimé avec succès");
-      setCourseToDelete(null);
-      fetchCourses();
-      onCourseUpdated?.();
-    } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
-      toast.error("Erreur lors de la suppression du cours");
-      setCourseToDelete(null);
     }
   };
 
@@ -370,6 +401,17 @@ const { user } = useLocalAuth();
                                   Voir statut vidéos
                                 </DropdownMenuItem>
                               )}
+
+                            {/* Option Supprimer - Visible pour ADMIN */}
+                            {user?.role === "ADMIN" && (
+                              <DropdownMenuItem
+                                onClick={() => handleConfirmDelete(course)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -381,31 +423,6 @@ const { user } = useLocalAuth();
           )}
         </CardContent>
       </Card>
-
-      {/* Dialogue de confirmation de suppression */}
-      <AlertDialog
-        open={!!courseToDelete}
-        onOpenChange={() => setCourseToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer le cours "
-              {courseToDelete?.title}" ? Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteCourse}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Dialogue de confirmation d'archivage */}
       <AlertDialog

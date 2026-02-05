@@ -1395,10 +1395,16 @@ export class CoursesApi {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message ||
+      // Créer une erreur avec le code pour pouvoir le détecter côté frontend
+      const error = new Error(
+        errorData.error?.message ||
+          errorData.message ||
           `Erreur lors de la suppression: ${response.status}`,
       );
+      (error as any).code = errorData.error?.code || errorData.code;
+      (error as any).timestamp = errorData.error?.timestamp;
+      (error as any).path = errorData.error?.path;
+      throw error;
     }
 
     const data = await response.json();

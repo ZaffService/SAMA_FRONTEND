@@ -52,6 +52,13 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
     action: "NONE",
   },
 
+  // Course deletion errors
+  COURSE_HAS_ENROLLMENTS: {
+    title: "Suppression impossible",
+    message: "Vous ne pouvez pas supprimer un cours qui a des étudiants inscrits.",
+    action: "NONE",
+  },
+
   // Quiz errors
   QUIZ_NOT_AVAILABLE: {
     title: "Quiz indisponible",
