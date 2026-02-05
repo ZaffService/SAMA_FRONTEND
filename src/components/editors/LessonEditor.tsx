@@ -10,6 +10,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { Lesson } from "@/domain/entities/module";
+import {
+  showDeleteLessonConfirmation,
+  showLessonDeletedSuccess,
+  showLessonUpdatedSuccess,
+} from "@/shared/helpers/sweet-alert";
 
 interface LessonEditorProps {
   courseId: string;
@@ -209,7 +214,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
     setIsUpdating(true);
     try {
       await CoursesApi.updateLesson(lessonId, data);
-      toast.success("Leçon modifiée avec succès");
+      showLessonUpdatedSuccess();
       setEditingLesson(null);
       // Recharger les données du module
       await loadModuleData(selectedModuleId);
@@ -221,19 +226,26 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
     }
   };
   
-  const handleDeleteLesson = async (lessonId: string) => {
+  const handleDeleteLesson = async (lessonId: string, lessonTitle: string = "cette leçon") => {
     if (!selectedModuleId) return;
     
-    // Demander confirmation
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette leçon ?")) {
+    // Demander confirmation avec SweetAlert
+    const result = await showDeleteLessonConfirmation(lessonTitle);
+    
+    if (!result.isConfirmed) {
       return;
     }
     
     try {
-      await CoursesApi.deleteLesson(lessonId);
-      toast.success("Leçon supprimée avec succès");
-      // Recharger les données du module
-      await loadModuleData(selectedModuleId);
+      const deleteResult = await CoursesApi.deleteLesson(lessonId);
+      
+      if (deleteResult.message && deleteResult.message.includes('deleted')) {
+        showLessonDeletedSuccess();
+        // Recharger les données du module
+        await loadModuleData(selectedModuleId);
+      } else {
+        toast.error("Erreur lors de la suppression de la leçon");
+      }
     } catch (error) {
       console.error("Erreur lors de la suppression de la leçon:", error);
       toast.error("Erreur lors de la suppression de la leçon");
@@ -447,7 +459,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDeleteLesson(lesson.id!)}
+                            onClick={() => handleDeleteLesson(lesson.id!, lesson.title)}
                             className="text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />

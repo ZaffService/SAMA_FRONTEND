@@ -218,3 +218,44 @@ export function showContactFormSuccess() {
     timerProgressBar: true,
   });
 }
+
+export function showDeleteLessonConfirmation(
+  lessonTitle: string,
+): Promise<{ isConfirmed: boolean; isDenied: boolean }> {
+  return Swal.fire({
+    title: "Supprimer la leçon ?",
+    text: `Êtes-vous sûr de vouloir supprimer "${lessonTitle}" ? Cette action est irréversible.`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Oui, supprimer",
+    cancelButtonText: "Annuler",
+  });
+}
+
+export function showLessonDeletedSuccess() {
+  Swal.fire({
+    icon: "success",
+    title: "Leçon supprimée",
+    text: "La leçon a été supprimée avec succès.",
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+  });
+}
+
+export function showLessonUpdatedSuccess() {
+  Swal.fire({
+    icon: "success",
+    title: "Leçon modifiée",
+    text: "La leçon a été modifiée avec succès.",
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+  });
+}
