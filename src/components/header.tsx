@@ -8,6 +8,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronRight,
   LogOut,
   LayoutDashboard,
   User,
@@ -20,6 +21,8 @@ import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useAvatar } from "@/infrastructure/storage/AvatarContext";
 import { MegaMenuOverlay } from "@/components/mega-menu-overlay";
 import { CoursesApi, BackendCourse } from "@/infrastructure/api/courses-api";
+import { CategoriesApi } from "@/infrastructure/api/categories-api";
+import type { Category } from "@/domain/entities/course";
 
 export function Header() {
   const router = useRouter();
@@ -31,28 +34,41 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<BackendCourse[]>([]);
+  const [suggestions, setSuggestions] = useState<(BackendCourse & { type: 'course' })[]>([]);
+  const [categorySuggestions, setCategorySuggestions] = useState<(Category & { type: 'category' })[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [allCourses, setAllCourses] = useState<BackendCourse[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
 
   const { user, logout, isLoading, isAuthenticated } = useLocalAuth();
   const { avatarUrl, firstName, lastName } = useAvatar();
 
-  // Charger tous les cours pour les suggestions (une seule fois au mount)
+  // Charger tous les cours et catégories pour les suggestions (une seule fois au mount)
   useEffect(() => {
-    const loadAllCourses = async () => {
+    const loadAllData = async () => {
       try {
         setCoursesLoading(true);
-        const result = await CoursesApi.getCourses(1, 100);
-        setAllCourses(result.courses);
+        const coursesResult = await CoursesApi.getCourses(1, 100);
+        setAllCourses(coursesResult.courses);
       } catch (error) {
         console.error("Erreur lors du chargement des cours:", error);
       } finally {
         setCoursesLoading(false);
       }
+
+      try {
+        setCategoriesLoading(true);
+        const categoriesResult = await CategoriesApi.getCategories();
+        setAllCategories(categoriesResult);
+      } catch (error) {
+        console.error("Erreur lors du chargement des catégories:", error);
+      } finally {
+        setCategoriesLoading(false);
+      }
     };
-    loadAllCourses();
+    loadAllData();
   }, []);
 
   // Détection du scroll pour la transition du header
@@ -79,22 +95,36 @@ export function Header() {
     };
   }, [mobileMenuOpen]);
 
-  // Filtrer les suggestions en temps réel
+  // Filtrer les suggestions en temps réel (cours et catégories)
   useEffect(() => {
-    if (searchQuery.trim() && allCourses.length > 0) {
-      const filtered = allCourses.filter(
+    if (searchQuery.trim()) {
+      // Filtrer les cours
+      const filteredCourses = allCourses.filter(
         (course) =>
           course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           course.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setSuggestions(filtered.slice(0, 6)); // Max 6 suggestions
+      
+      // Filtrer les catégories
+      const filteredCategories = allCategories.filter(
+        (category) =>
+          category.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      
+      // Combiner les résultats (max 6 suggestions: mix de cours et catégories)
+      const courseSuggestions = filteredCourses.slice(0, 4).map(c => ({ ...c, type: 'course' as const }));
+      const categorySuggestionsResult = filteredCategories.slice(0, 2).map(c => ({ ...c, type: 'category' as const }));
+      
+      setSuggestions(courseSuggestions);
+      setCategorySuggestions(categorySuggestionsResult);
       setShowSuggestions(true);
     } else {
       setSuggestions([]);
+      setCategorySuggestions([]);
       setShowSuggestions(false);
     }
-  }, [searchQuery, allCourses]);
+  }, [searchQuery, allCourses, allCategories]);
 
   const displayName =
     firstName && lastName
@@ -134,9 +164,16 @@ export function Header() {
     }
   };
 
-  // Handler pour sélectionner une suggestion
-  const handleSuggestionClick = (courseId: string) => {
-    router.push(`/course-details/${courseId}`);
+  // Handler pour sélectionner une suggestion (cours ou catégorie)
+  const handleSuggestionClick = (item: (BackendCourse & { type: 'course' }) | (Category & { type: 'category' })) => {
+    if ('type' in item && item.type === 'category') {
+      // Catégorie: rediriger vers la page d'accueil avec le paramètre de catégorie
+      router.push(`/?category=${item.id}#formations-section`);
+    } else {
+      // Cours: rediriger vers la page de détails du cours
+      const course = item as BackendCourse;
+      router.push(`/course-details/${course.id}`);
+    }
     setSearchOpen(false);
     setSearchQuery("");
     setShowSuggestions(false);
@@ -279,60 +316,108 @@ export function Header() {
                           <div className="p-4 text-center text-gray-500">
                             Recherche en cours...
                           </div>
-                        ) : suggestions.length > 0 ? (
+                        ) : (
                           <>
-                            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                Formations suggérées
-                              </p>
-                            </div>
-                            <div className="max-h-80 overflow-y-auto">
-                              {suggestions.map((course) => (
-                                <button
-                                  key={course.id}
-                                  onClick={() => handleSuggestionClick(course.id)}
-                                  className="w-full flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
-                                >
-                                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                                    {course.thumbnailUrl ? (
-                                      <img
-                                        src={course.thumbnailUrl}
-                                        alt={course.title}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-[var(--bibocom-red)]/10">
-                                        <BookOpen className="h-6 w-6 text-[var(--bibocom-red)]" />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex-1 text-left">
-                                    <h4 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-[var(--bibocom-red)]">
-                                      {course.title}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                                      {course.categoryName}
-                                    </p>
-                                    <div className="flex items-center gap-3 mt-2">
-                                      {course.level && (
-                                        <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">
-                                          {course.level}
-                                        </span>
-                                      )}
-                                      {course.price === 0 ? (
-                                        <span className="text-xs font-semibold text-green-600">
-                                          Gratuit
-                                        </span>
-                                      ) : (
-                                        <span className="text-xs font-semibold text-gray-900">
-                                          {course.price?.toLocaleString()} CFA
-                                        </span>
-                                      )}
+                            {/* Suggestions de catégories */}
+                            {categorySuggestions.length > 0 && (
+                              <>
+                                <div className="px-4 py-2 bg-purple-50 border-b border-purple-100">
+                                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">
+                                    Catégories
+                                  </p>
+                                </div>
+                                {categorySuggestions.map((category) => (
+                                  <button
+                                    key={category.id}
+                                    onClick={() => handleSuggestionClick(category)}
+                                    className="w-full flex items-center gap-4 p-4 hover:bg-purple-50 transition-colors border-b border-gray-50 last:border-b-0"
+                                  >
+                                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                      <Search className="h-5 w-5 text-purple-600" />
                                     </div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
+                                    <div className="flex-1 text-left">
+                                      <h4 className="font-bold text-gray-900 text-sm">
+                                        {category.name}
+                                      </h4>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Voir toutes les formations dans {category.name}
+                                      </p>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                            
+                            {/* Suggestions de formations */}
+                            {suggestions.length > 0 && (
+                              <>
+                                <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Formations suggérées
+                                  </p>
+                                </div>
+                                <div className="max-h-80 overflow-y-auto">
+                                  {suggestions.map((course) => (
+                                    <button
+                                      key={course.id}
+                                      onClick={() => handleSuggestionClick(course)}
+                                      className="w-full flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-b-0"
+                                    >
+                                      <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                                        {course.thumbnailUrl ? (
+                                          <img
+                                            src={course.thumbnailUrl}
+                                            alt={course.title}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-[var(--bibocom-red)]/10">
+                                            <BookOpen className="h-6 w-6 text-[var(--bibocom-red)]" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 text-left">
+                                        <h4 className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-[var(--bibocom-red)]">
+                                          {course.title}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                          {course.categoryName}
+                                        </p>
+                                        <div className="flex items-center gap-3 mt-2">
+                                          {course.level && (
+                                            <span className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">
+                                              {course.level}
+                                            </span>
+                                          )}
+                                          {course.price === 0 ? (
+                                            <span className="text-xs font-semibold text-green-600">
+                                              Gratuit
+                                            </span>
+                                          ) : (
+                                            <span className="text-xs font-semibold text-gray-900">
+                                              {course.price?.toLocaleString()} CFA
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                            
+                            {/* Aucun résultat */}
+                            {suggestions.length === 0 && categorySuggestions.length === 0 && (
+                              <div className="p-6 text-center">
+                                <Search className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                                <p className="text-gray-500">Aucune formation trouvée</p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                  Essayez avec un autre mot-clé
+                                </p>
+                              </div>
+                            )}
+                            
                             <div className="p-3 bg-gray-50 border-t border-gray-100">
                               <button
                                 onClick={handleSearchSubmit}
@@ -342,14 +427,6 @@ export function Header() {
                               </button>
                             </div>
                           </>
-                        ) : (
-                          <div className="p-6 text-center">
-                            <Search className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                            <p className="text-gray-500">Aucune formation trouvée</p>
-                            <p className="text-sm text-gray-400 mt-1">
-                              Essayez avec un autre mot-clé
-                            </p>
-                          </div>
                         )}
                       </div>
                     )}

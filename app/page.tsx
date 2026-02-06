@@ -77,13 +77,26 @@ const Index = () => {
   const { enrolledCourses } = useEnrolledCourses();
   const { categories, loading: categoriesLoading } = useCategories();
 
-  // Pre-fill search query from URL params
+  // Pre-fill search query and category from URL params
   useEffect(() => {
     const searchParam = searchParams.get("search");
+    const categoryParam = searchParams.get("category");
+    
     if (searchParam) {
       setSearchQuery(searchParam);
     }
-  }, [searchParams]);
+    
+    if (categoryParam) {
+      // Si une catégorie est spécifiée, sélectionner automatiquement cette catégorie
+      setSelectedCategoryId(categoryParam);
+      setFilterCategories(categoryParam ? [categoryParam] : []);
+      
+      // Scroll vers la section formations après un court délai
+      setTimeout(() => {
+        document.getElementById("formations-section")?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    }
+  }, [searchParams, setFilterCategories]);
 
   /**  Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
