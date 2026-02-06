@@ -1282,18 +1282,18 @@ function CourseDetailsPageComponent() {
                     </div>
                   )}
 
-                  {/* Bouton Quiz du Module */}
-                  {moduleQuiz && isModuleCompleted && (
-                    <button
-                      onClick={() => handleStartQuiz(module.id)}
-                      className="w-full flex items-center gap-2 p-2 mt-2 rounded text-left transition-colors text-xs lg:text-sm bg-yellow-50 hover:bg-yellow-100 text-yellow-900 font-semibold border border-yellow-200"
-                    >
-                      <BookOpen className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate flex-1">
-                        Quiz: {moduleQuiz.title}
-                      </span>
-                    </button>
-                  )}
+                 {/* Bouton Quiz du Module */}
+                          {moduleQuiz && isModuleCompleted && (
+                            <button
+                              onClick={() => handleStartQuiz(module.id)}
+                              className="w-full flex items-center gap-2 p-2 mt-2 rounded text-left transition-colors text-xs lg:text-sm bg-green-50 hover:bg-green-100 text-green-900 font-semibold border border-green-200"
+                            >
+                              <BookOpen className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate flex-1">
+                                Passer le quiz
+                              </span>
+                            </button>
+                          )}
                 </div>
               );
             })}
