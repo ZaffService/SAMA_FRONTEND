@@ -374,22 +374,23 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                       variant="outline"
                       size="sm"
                       onClick={() => onManageLessons(module.id || module.tempId || '')}
+                      disabled={!module.id}
                       className={`flex items-center gap-1 border-gray-200 hover:bg-gray-50 ${
-                        !module.id && !expandedModules[index] ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-gray-600'
+                        !module.id ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-gray-600'
                       }`}
-                      title={!module.id && !expandedModules[index] ? "Ouvrez le module pour gérer les leçons" : "Gérer les leçons"}
+                      title={!module.id ? "Enregistrez le module pour gérer les leçons" : "Gérer les leçons"}
                     >
                       <Settings className="h-4 w-4" />
                       Gérer
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setDeleteConfirmModule(module)}
                       className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
 
