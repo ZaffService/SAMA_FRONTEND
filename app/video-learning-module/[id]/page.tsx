@@ -73,6 +73,18 @@ export default function VideoLearningModule() {
     error,
   } = useCourseDetails(id);
 
+  // Fonction pour trouver le quiz du dernier module
+  const getLastModuleQuiz = () => {
+    if (!topics || topics.length === 0) return null;
+    // Trouver le dernier module avec un quiz
+    for (let i = topics.length - 1; i >= 0; i--) {
+      if (topics[i].quiz && topics[i].quiz.id) {
+        return topics[i].quiz;
+      }
+    }
+    return null;
+  };
+
   // Restore state from sessionStorage
   useEffect(() => {
     if (isIdValid && allLessons.length > 0 && typeof window !== "undefined") {
@@ -603,7 +615,13 @@ export default function VideoLearningModule() {
                   </Button>
 
                   {currentLessonIndex === allLessons.length - 1 ? (
-                    <Link href={`/quiz-assessment/7562?courseId=${id}`}>
+                    <Link
+                      href={
+                        getLastModuleQuiz()
+                          ? `/quiz/${getLastModuleQuiz()!.id}?courseId=${id}`
+                          : `/quiz-assessment/${getLastModuleQuiz()?.id || ""}?courseId=${id}`
+                      }
+                    >
                       <Button
                         className="bg-green-600 hover:bg-green-700 text-white gap-1 text-base"
                         onClick={() => {

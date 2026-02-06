@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { PaymentApi } from "@/infrastructure/api/payment-api";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import Swal from "sweetalert2";
+import CoursePurchaseCongrats from "@/components/CoursePurchaseCongrats";
 import {
   CheckCircle,
   XCircle,

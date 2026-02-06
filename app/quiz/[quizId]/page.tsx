@@ -1,9 +1,11 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { EnrollmentApi } from "@/infrastructure/api/enrollment-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
+import { QuizApi } from "@/infrastructure/api/quiz-api";
+import { CourseDetailsApi } from "@/infrastructure/api/course-details-api";
 import { ArrowLeft, CheckCircle, XCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { showQuizFailureModal } from "@/shared/helpers/sweet-alert";
@@ -26,7 +28,9 @@ interface QuizData {
 export default function QuizPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const quizId = params.quizId as string;
+  const courseId = searchParams.get("courseId");
 
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -35,24 +39,68 @@ export default function QuizPage() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Trouver le moduleId à partir du quizId et courseId
+  const findModuleIdByQuizId = async (
+    quizId: string,
+    courseId: string,
+  ): Promise<string | null> => {
+    try {
+      console.log(`🔍 Recherche du module pour quizId: ${quizId}`);
+
+      // Récupérer les détails du cours
+      const courseDetails = await CourseDetailsApi.getCourseDetails(courseId);
+
+      // Chercher le module qui contient ce quiz
+      if (courseDetails.modules) {
+        for (const module of courseDetails.modules) {
+          if (module.quiz && module.quiz.id === quizId) {
+            console.log(`✅ Module trouvé: ${module.id}`);
+            return module.id;
+          }
+        }
+      }
+
+      console.warn(`❌ Aucun module trouvé pour le quiz: ${quizId}`);
+      return null;
+    } catch (err) {
+      console.error("Erreur lors de la recherche du module:", err);
+      return null;
+    }
+  };
 
   // Charger les questions du quiz
   useEffect(() => {
     const fetchQuiz = async () => {
-      try {
-        // TODO: Replace with actual quiz questions endpoint when backend is updated
-        const response = await fetch(
-          buildApiUrl(API_ENDPOINTS.QUIZ.QUESTIONS(quizId)),
-          {
-            credentials: "include",
-          },
-        );
+      if (!quizId) {
+        setError("Quiz ID manquant.");
+        setLoading(false);
+        return;
+      }
 
-        if (!response.ok) {
-          throw new Error("Erreur lors du chargement du quiz");
+      // Le courseId est requis pour trouver le module
+      if (!courseId) {
+        setError("Course ID manquant. Veuillez accéder au quiz depuis la page du cours.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // D'abord, trouver le moduleId à partir du quizId
+        const moduleId = await findModuleIdByQuizId(quizId, courseId);
+
+        if (!moduleId) {
+          setError("Module non trouvé pour ce quiz.");
+          setLoading(false);
+          return;
         }
 
-        const data = await response.json();
+        console.log(`📡 Récupération du quiz avec moduleId: ${moduleId}`);
+
+        // Utiliser le moduleId pour récupérer les questions
+        const data = await QuizApi.getQuizQuestions(moduleId);
+
         setQuiz({
           id: data.quiz.id,
           title: data.quiz.title,
@@ -62,18 +110,19 @@ export default function QuizPage() {
             id: q.id,
             question: q.question,
             options: q.options,
-            correctAnswer: q.correctAnswer,
+            correctAnswer: q.correctAnswer || q.correct_answer,
           })),
         });
-      } catch (error) {
-        console.error("Erreur chargement quiz:", error);
+      } catch (err: any) {
+        console.error("Erreur chargement quiz:", err);
+        setError(err.message || "Erreur lors du chargement du quiz");
       } finally {
         setLoading(false);
       }
     };
 
     fetchQuiz();
-  }, [quizId]);
+  }, [quizId, courseId]);
 
   const currentQuestion = quiz?.questions[currentQuestionIndex];
   const isLastQuestion =
@@ -165,6 +214,26 @@ export default function QuizPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Chargement du quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 text-red-600 p-4 rounded-lg mb-4">
+            <p className="font-medium">Erreur</p>
+            <p className="text-sm mt-1">{error}</p>
+          </div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Retour à l'accueil
+          </Link>
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Award, Play, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -20,16 +21,17 @@ export function QuizCTA({
   hasPassedQuiz = false,
   onQuizStart,
 }: QuizCTAProps) {
+  const router = useRouter();
   const [isStarting, setIsStarting] = useState(false);
 
   const handleStartQuiz = async () => {
-    if (!quizId) return;
+    if (!quizId || !moduleId) return;
 
     setIsStarting(true);
     try {
       onQuizStart?.();
-      // TODO: Navigation vers la page du quiz
-      // router.push(`/quiz/${quizId}`);
+      // Navigation vers la page du quiz avec le moduleId en paramètre
+      router.push(`/quiz/${quizId}?moduleId=${moduleId}`);
     } finally {
       setIsStarting(false);
     }

@@ -90,33 +90,44 @@ export default function QuizAssessment() {
 
         console.log("🔍 Chargement du quiz ID:", quizId);
 
-        // TODO: Implement API call when backend is ready
-        // try {
-        //   const quiz = await QuizApi.getQuizById(quizId)
-        //   console.log("📡 Réponse API:", quiz)
-        //
-        //   if (quiz && quiz.questions && Array.isArray(quiz.questions) && quiz.questions.length > 0) {
-        //     // Convertir les données API au format attendu par le frontend
-        //     const formattedData = quiz.questions.map((q, idx) => ({
-        //       id: q.id,
-        //       question: q.question,
-        //       type: q.type === 'multiple_choice' ? 'single' : q.type === 'true_false' ? 'single' : 'text' as "single" | "multiple" | "text",
-        //       points: q.points,
-        //       order: idx + 1,
-        //       options: q.options,
-        //       correctAnswer: q.correct_answer,
-        //       explanation: q.explanation,
-        //     }))
-        //
-        //     setQuizData(formattedData)
-        //     console.log("✅ Quiz chargé avec succès:", formattedData.length, "questions")
-        //     return
-        //   }
-        // } catch (quizErr) {
-        //   console.error("❌ Erreur API quiz:", quizErr)
-        // }
+        // Essayer d'abord d'appeler l'API
+        try {
+          const quiz = await QuizApi.getQuizQuestions(quizId.toString());
+          console.log("📡 Réponse API:", quiz);
 
-        // Fallback: données mockées
+          if (
+            quiz &&
+            quiz.questions &&
+            Array.isArray(quiz.questions) &&
+            quiz.questions.length > 0
+          ) {
+            // Convertir les données API au format attendu par le frontend
+            const formattedData: QuizQuestion[] = quiz.questions.map((q: any, idx) => ({
+              id: parseInt(q.id) || idx + 1,
+              question: q.question,
+              type: (q.type === "multiple_choice"
+                ? "single"
+                : q.type === "true_false"
+                  ? "single"
+                  : "text") as "single" | "multiple" | "text",
+              points: q.points || 4,
+              order: idx + 1,
+              options: q.options || [],
+              correctAnswer: q.correctAnswer ?? 0,
+              explanation: q.explanation,
+            }));
+
+            setQuizData(formattedData);
+            console.log("✅ Quiz chargé avec succès:", formattedData.length, "questions");
+            setLoading(false);
+            return;
+          }
+        } catch (quizErr) {
+          console.error("❌ Erreur API quiz:", quizErr);
+          // Continuer vers les données mockées
+        }
+
+        // Fallback: données mockées si l'API échoue
         console.log("🔄 Utilisation des données mockées");
         const mockQuizData: QuizQuestion[] = [
           {

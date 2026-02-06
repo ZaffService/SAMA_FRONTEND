@@ -130,6 +130,7 @@ export function useCourseDetails(courseId: string) {
               post_title: module.title,
               orderIndex: module.orderIndex,
               lessons: sortedLessons,
+              quiz: module.quiz, // Inclure le quiz du module
             };
           })
           .sort((a: any, b: any) => a.orderIndex - b.orderIndex);

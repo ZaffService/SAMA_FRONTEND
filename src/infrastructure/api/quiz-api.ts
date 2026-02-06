@@ -64,6 +64,7 @@ export interface QuizResult {
 export class QuizApi {
   /**
    * Récupérer les questions d'un quiz
+   * NOTE: Le backend utilise /course/quiz/module/:moduleId/questions
    */
   static async getQuizQuestions(moduleId: string): Promise<{
     quiz: {
@@ -85,7 +86,7 @@ export class QuizApi {
         `📡 API: Récupération des questions du quiz pour le module: ${moduleId}`,
       );
 
-      // Correction: La route backend est /course/quiz/module/:moduleId/questions
+      // L'endpoint correct est /course/quiz/module/:moduleId/questions
       const endpoint = `course/quiz/module/${moduleId}/questions`;
       console.log(`📡 API: Endpoint utilisé: ${endpoint}`);
 
@@ -100,7 +101,7 @@ export class QuizApi {
         const errorText = await response.text();
         console.error(`❌ API: Erreur ${response.status}: ${errorText}`);
         throw new Error(
-          `Erreur ${response.status}: Impossible de charger le quiz pour ce module`,
+          `Erreur ${response.status}: Impossible de charger le quiz`,
         );
       }
 

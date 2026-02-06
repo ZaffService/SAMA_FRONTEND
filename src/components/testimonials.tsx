@@ -31,13 +31,13 @@ export function Testimonials() {
       <div className="relative">
         <div className="grid grid-cols-1 lg:grid-cols-2">
           {/* Left Side - Light blue gradient background */}
-          <div className="relative bg-[#e8f4fc] py-8 px-4 lg:px-8 lg:py-12">
+          <div className="relative bg-[#e8f4fc] py-8 px-4 lg:px-8 lg:py-12 bg-amber-500 h-[20rem] ">
             {/* Decorative wave pattern at top */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0A2A66] via-[#0A2A66] to-[#0A2A66] opacity-30"></div>
             
-            <div className="relative max-w-md mx-auto lg:ml-auto lg:mr-8">
+            <div className="relative max-w-md mx-auto lg:ml-auto lg:mr-8 ">
               {/* Avatar positioned to the left, overlapping */}
-              <div className="absolute -left-4 lg:-left-12 top-8 z-10">
+              <div className="absolute -left-4 lg:-left-25 top-4 z-10">
                 <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full border-4 border-[#d93030] overflow-hidden shadow-xl bg-white">
                   <img
                     src="/hero-instructor.jpg"
