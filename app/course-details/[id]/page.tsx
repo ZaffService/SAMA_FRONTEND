@@ -803,7 +803,7 @@ function CourseDetailsPageComponent() {
       return;
     }
 
-    setCurrentQuizId(quiz.id);
+    setCurrentQuizId(moduleId); // Passer le moduleId au lieu du quizId
     setCurrentQuizData(quiz);
     setShowQuizModal(true);
   };

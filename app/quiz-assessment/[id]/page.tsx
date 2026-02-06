@@ -43,7 +43,7 @@ export default function QuizAssessment() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const quizId = Number.parseInt(params.id as string);
+  const moduleId = params.id as string;
 
   const [courseId, setCourseId] = useState<string | null>(null);
   const [canAccess, setCanAccess] = useState(true); // Declare canAccess variable
@@ -88,33 +88,35 @@ export default function QuizAssessment() {
         setLoading(true);
         setError(null);
 
-        console.log("🔍 Chargement du quiz ID:", quizId);
+        console.log("🔍 Chargement du quiz pour le module ID:", moduleId);
 
-        // TODO: Implement API call when backend is ready
-        // try {
-        //   const quiz = await QuizApi.getQuizById(quizId)
-        //   console.log("📡 Réponse API:", quiz)
-        //
-        //   if (quiz && quiz.questions && Array.isArray(quiz.questions) && quiz.questions.length > 0) {
-        //     // Convertir les données API au format attendu par le frontend
-        //     const formattedData = quiz.questions.map((q, idx) => ({
-        //       id: q.id,
-        //       question: q.question,
-        //       type: q.type === 'multiple_choice' ? 'single' : q.type === 'true_false' ? 'single' : 'text' as "single" | "multiple" | "text",
-        //       points: q.points,
-        //       order: idx + 1,
-        //       options: q.options,
-        //       correctAnswer: q.correct_answer,
-        //       explanation: q.explanation,
-        //     }))
-        //
-        //     setQuizData(formattedData)
-        //     console.log("✅ Quiz chargé avec succès:", formattedData.length, "questions")
-        //     return
-        //   }
-        // } catch (quizErr) {
-        //   console.error("❌ Erreur API quiz:", quizErr)
-        // }
+        // Try to load from API first
+        try {
+          const quizResponse = await QuizApi.getQuizQuestions(moduleId);
+          console.log("📡 Réponse API quiz:", quizResponse);
+
+          if (quizResponse && quizResponse.quiz && quizResponse.questions && Array.isArray(quizResponse.questions) && quizResponse.questions.length > 0) {
+            // Convertir les données API au format attendu par le frontend
+            const formattedData = quizResponse.questions.map((q: any, idx: number) => ({
+              id: q.id,
+              question: q.question,
+              type: q.type === 'multiple_choice' ? 'single' : q.type === 'true_false' ? 'single' : q.type === 'multiple_response' ? 'multiple' : 'text' as "single" | "multiple" | "text",
+              points: q.points || 4,
+              order: idx + 1,
+              options: q.options || [],
+              correctAnswer: q.correct_answer,
+              correctAnswers: q.correct_answers,
+              explanation: q.explanation,
+              minWords: q.min_words,
+            }));
+
+            setQuizData(formattedData);
+            console.log("✅ Quiz chargé avec succès depuis l'API:", formattedData.length, "questions");
+            return;
+          }
+        } catch (quizErr) {
+          console.error("❌ Erreur API quiz:", quizErr);
+        }
 
         // Fallback: données mockées
         console.log("🔄 Utilisation des données mockées");
@@ -176,7 +178,7 @@ export default function QuizAssessment() {
     };
 
     loadQuizData();
-  }, [quizId]); // Dépendance quizId
+  }, [moduleId]); // Dépendance moduleId
 
   // Timer pour le quiz - CONDITION À L'INTÉRIEUR du useEffect
   useEffect(() => {

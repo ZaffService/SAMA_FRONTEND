@@ -603,38 +603,52 @@ export default function VideoLearningModule() {
                   </Button>
 
                   {currentLessonIndex === allLessons.length - 1 ? (
-                    <Link href={`/quiz-assessment/7562?courseId=${id}`}>
-                      <Button
-                        className="bg-green-600 hover:bg-green-700 text-white gap-1 text-base"
-                        onClick={() => {
-                          // Mark as attempted when clicking the button
-                          setHasAttemptedQuiz(true);
-                          // Save to sessionStorage immediately
-                          try {
-                            const saved = sessionStorage.getItem(
-                              `lesson_state_${id}`,
-                            );
-                            const state = saved ? JSON.parse(saved) : {};
-                            state.hasAttemptedQuiz = true;
-                            state.timestamp = Date.now();
-                            sessionStorage.setItem(
-                              `lesson_state_${id}`,
-                              JSON.stringify(state),
-                            );
-                          } catch (e) {
-                            console.warn(
-                              "[VideoLearningModule] Failed to save quiz attempt state:",
-                              e,
-                            );
-                          }
-                        }}
-                      >
-                        {hasAttemptedQuiz
-                          ? "Refaire le quizz"
-                          : "Passer aux quiz"}
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                    (() => {
+                      // Find the module with a quiz
+                      const moduleWithQuiz = course?.modules?.find((module: any) => module.quizzes && module.quizzes.length > 0);
+                      const moduleId = moduleWithQuiz?.id;
+                      return moduleId ? (
+                        <Link href={`/quiz-assessment/${moduleId}?courseId=${id}`}>
+                          <Button
+                            className="bg-green-600 hover:bg-green-700 text-white gap-1 text-base"
+                            onClick={() => {
+                              // Mark as attempted when clicking the button
+                              setHasAttemptedQuiz(true);
+                              // Save to sessionStorage immediately
+                              try {
+                                const saved = sessionStorage.getItem(
+                                  `lesson_state_${id}`,
+                                );
+                                const state = saved ? JSON.parse(saved) : {};
+                                state.hasAttemptedQuiz = true;
+                                state.timestamp = Date.now();
+                                sessionStorage.setItem(
+                                  `lesson_state_${id}`,
+                                  JSON.stringify(state),
+                                );
+                              } catch (e) {
+                                console.warn(
+                                  "[VideoLearningModule] Failed to save quiz attempt state:",
+                                  e,
+                                );
+                              }
+                            }}
+                          >
+                            {hasAttemptedQuiz
+                              ? "Refaire le quizz"
+                              : "Passer aux quiz"}
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button
+                          disabled
+                          className="bg-gray-400 text-white gap-1 text-base"
+                        >
+                          Aucun quiz disponible
+                        </Button>
+                      );
+                    })()
                   ) : (
                     <Button
                       onClick={(e) => handleNextLesson(e)}
