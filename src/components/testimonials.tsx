@@ -37,7 +37,7 @@ export function Testimonials() {
             
             <div className="relative max-w-md mx-auto lg:ml-auto lg:mr-8">
               {/* Avatar positioned to the left, overlapping */}
-              <div className="absolute -left-4 lg:-left-12 top-8 z-10">
+              <div className="absolute -left-4 lg:-left-25 top-4 z-10">
                 <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full border-4 border-[#d93030] overflow-hidden shadow-xl bg-white">
                   <img
                     src="/hero-instructor.jpg"
