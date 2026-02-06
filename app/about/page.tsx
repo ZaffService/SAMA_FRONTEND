@@ -28,12 +28,12 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: "50+", label: "Formations disponibles" },
-  { value: "5K+", label: "Apprenants formés" },
-  { value: "98%", label: "Taux de satisfaction" },
-  { value: "24/7", label: "Support disponible" },
-];
+// const stats = [
+//   { value: "50+", label: "Formations disponibles" },
+//   { value: "5K+", label: "Apprenants formés" },
+//   { value: "98%", label: "Taux de satisfaction" },
+//   { value: "24/7", label: "Support disponible" },
+// ];
 
 export default function AboutPage() {
   return (
@@ -57,7 +57,7 @@ export default function AboutPage() {
       </div>
 
       {/* Stats Section */}
-      <div className="bg-[var(--bibocom-blue)] text-white py-12">
+      {/* <div className="bg-[var(--bibocom-blue)] text-white py-12">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -68,7 +68,7 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Notre Mission */}
       <section className="py-16 lg:py-24">

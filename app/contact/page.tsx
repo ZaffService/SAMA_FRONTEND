@@ -106,14 +106,14 @@ export default function ContactPage() {
     {
       icon: Mail,
       title: "Email",
-      value: "bibocomdigital.com",
-      href: "mailto:bibocomdigital.com",
+      value: "contact@bibocomdigital.com",
+      // href: "mailto:contact@bibocomdigital.com",
     },
     {
       icon: Phone,
       title: "Téléphone",
-      value: "+221 78 878 40 40",
-      href: "tel:+221788784040",
+      value: "+221 33 801 01 84",
+      // href: "tel:+221 33 801 01 84",
     },
     {
       icon: MapPin,
@@ -123,8 +123,8 @@ export default function ContactPage() {
     },
     {
       icon: Clock,
-      title: "Heures d'ouverture",
-      value: "Lun-Ven: 9h-18h | Sam: 9h-13h",
+      title: "Horaires",
+      value: "Lun-Ven: 9h-18h",
       href: "#",
     },
   ];
@@ -152,17 +152,17 @@ export default function ContactPage() {
       <div className="container mx-auto px-6 -mt-16">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {contactInfo.map((info, index) => (
-            <a
+            <p
               key={index}
-              href={info.href}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+              // href={info.href}
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group "
             >
               <div className="w-14 h-14 bg-[var(--bibocom-blue)]/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-[var(--bibocom-blue)] transition-colors">
                 <info.icon className="w-7 h-7 text-[var(--bibocom-blue)] group-hover:text-white transition-colors" />
               </div>
               <h3 className="font-semibold text-gray-500 text-sm mb-1">{info.title}</h3>
               <p className="text-gray-900 font-medium">{info.value}</p>
-            </a>
+            </p>
           ))}
         </div>
       </div>
@@ -194,7 +194,7 @@ export default function ContactPage() {
                       <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
                         <Phone className="w-5 h-5" />
                       </div>
-                      <span>+221 33 123 45 67</span>
+                      <span>+221 33 801 01 84</span>
                     </div>
                   </div>
                 </div>

@@ -32,4 +32,5 @@ export interface GetUsersParams {
   role?: Role;
   page?: number;
   limit?: number;
+  search?: string;
 }

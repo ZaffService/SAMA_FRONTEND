@@ -36,6 +36,7 @@ export const userService = {
     if (params.role) queryParams.append("role", params.role);
     if (params.page) queryParams.append("page", params.page.toString());
     if (params.limit) queryParams.append("limit", params.limit.toString());
+    if (params.search) queryParams.append("search", params.search);
 
     const url = `${buildApiUrl(API_ENDPOINTS.USER.BY_ROLE)}?${queryParams}`;
 

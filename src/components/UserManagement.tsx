@@ -12,14 +12,13 @@ const UserManagement: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<Role | "ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [limit, setLimit] = useState(10);
   const [stats, setStats] = useState({
     total: 0,
     students: 0,
     instructors: 0,
     admins: 0,
   });
-
-  const limit = 10;
 
   // Charger les statistiques au montage (après que currentUser soit disponible)
   useEffect(() => {
@@ -31,7 +30,7 @@ const UserManagement: React.FC = () => {
   // Recharger les utilisateurs quand le filtre change
   useEffect(() => {
     loadUsers();
-  }, [selectedRole, currentPage]);
+  }, [selectedRole, currentPage, limit]);
 
   const loadStats = async () => {
     try {
@@ -62,16 +61,10 @@ const UserManagement: React.FC = () => {
 
       const response: UsersResponse = await userService.getUsersByRole(params);
 
-      // Get current admin ID as string for comparison
-      const currentAdminId = currentUser?.id?.toString();
-
-      // Filter out the current admin user from the list
-      const filteredUsers = response.users.filter(
-        (user) => user.id.toString() !== currentAdminId,
-      );
-
-      setUsers(filteredUsers);
-      setTotalUsers(response.total - 1); // Adjust total since we removed one user
+      // Utiliser directement les utilisateurs du backend sans filtrage
+      // La pagination est gérée uniquement par le backend
+      setUsers(response.users);
+      setTotalUsers(response.total);
     } catch (error) {
       console.error("Erreur chargement utilisateurs:", error);
     } finally {
@@ -84,6 +77,11 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1); // Reset à la première page
   };
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setCurrentPage(1); // Reset à la première page
+  };
+
   const totalPages = Math.ceil(totalUsers / limit);
 
   return (
@@ -91,7 +89,7 @@ const UserManagement: React.FC = () => {
       <h1 className="text-2xl font-bold mb-6">Gestion des Utilisateurs</h1>
 
       {/* Statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold text-blue-800">Total</h3>
           <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
@@ -100,21 +98,10 @@ const UserManagement: React.FC = () => {
           <h3 className="text-lg font-semibold text-green-800">Étudiants</h3>
           <p className="text-2xl font-bold text-green-600">{stats.students}</p>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-purple-800">
-            Instructeurs
-          </h3>
-          <p className="text-2xl font-bold text-purple-600">
-            {stats.instructors}
-          </p>
-        </div>
-        <div className="bg-red-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-red-800">Admins</h3>
-        </div>
       </div>
 
-      {/* Filtres */}
-      <div className="mb-4 flex gap-4">
+      {/* Filtres et limite */}
+      <div className="mb-4 flex gap-4 items-center">
         <select
           value={selectedRole}
           onChange={(e) => handleRoleChange(e.target.value as Role | "ALL")}
@@ -124,6 +111,17 @@ const UserManagement: React.FC = () => {
           <option value="STUDENT">Étudiants</option>
           <option value="INSTRUCTOR">Instructeurs</option>
           <option value="ADMIN">Administrateurs</option>
+        </select>
+
+        <select
+          value={limit}
+          onChange={(e) => handleLimitChange(Number(e.target.value))}
+          className="px-3 py-2 border rounded-md"
+        >
+          <option value={5}>5 par page</option>
+          <option value={10}>10 par page</option>
+          <option value={20}>20 par page</option>
+          <option value={50}>50 par page</option>
         </select>
       </div>
 
@@ -261,9 +259,9 @@ const UserManagement: React.FC = () => {
                   </div>
                   <div>
                     <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                      {/* Boutons de pagination simplifiés */}
+                      {/* Boutons de pagination */}
                       {Array.from(
-                        { length: Math.min(5, totalPages) },
+                        { length: Math.min(7, totalPages) },
                         (_, i) => {
                           const pageNum = i + 1;
                           return (
@@ -280,6 +278,11 @@ const UserManagement: React.FC = () => {
                             </button>
                           );
                         },
+                      )}
+                      {totalPages > 7 && (
+                        <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                          ...
+                        </span>
                       )}
                     </nav>
                   </div>
