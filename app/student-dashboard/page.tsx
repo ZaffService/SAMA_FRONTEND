@@ -46,7 +46,7 @@ const StudentDashboard = () => {
         id: course.id || index,
         type: course.status === "COMPLETED" ? "completed" : "in_progress",
         title: course.title || "Cours sans titre",
-        progress: course.progressPercentage || course.progress || 0,
+        progress: Math.round(course.progressPercentage || course.progress || 0),
         completed: course.status === "COMPLETED",
         time: "Récemment",
       };
