@@ -37,7 +37,7 @@ export function Testimonials() {
             
             <div className="relative max-w-md mx-auto lg:ml-auto lg:mr-8">
               {/* Avatar positioned to the left, overlapping */}
-              <div className="absolute -left-4 lg:-left-25 top-4 z-10">
+              <div className="absolute -left-4 lg:-left-25 z-10">
                 <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full border-4 border-[#d93030] overflow-hidden shadow-xl bg-white">
                   <img
                     src="/hero-instructor.jpg"
@@ -67,9 +67,9 @@ export function Testimonials() {
       <StarRating />
     </div>
 
-    <span className="block mt-2 text-xs text-gray-500 italic">
+    {/* <span className="block mt-2 text-xs text-gray-500 italic">
       Blandine V.
-    </span>
+    </span> */}
   </div>
 </div>
 
@@ -90,7 +90,7 @@ export function Testimonials() {
                   />
                 </div>
                 
-                <h3 className="text-xl md:text-2xl font-bold mb-3">Arnaud K.</h3>
+                {/* <h3 className="text-xl md:text-2xl font-bold mb-3">Arnaud K.</h3> */}
                 
                 <p className="text-white/95 text-sm md:text-base leading-relaxed mb-4">
                   Des cours de qualité et des formateurs au top.<br />
