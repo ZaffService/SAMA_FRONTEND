@@ -416,7 +416,7 @@ export function Header() {
                       </div>
 <div className="flex flex-col">
   <Link
-    href="/student-dashboard"
+    href={ user?.role === "ADMIN" ? "/admin-dashboard" : user?.role === "INSTRUCTOR" ? "/instructor-dashboard" : user?.role === "STUDENT" ? "/student-dashboard" : "/" }
     onClick={() => setMobileMenuOpen(false)}
     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
   >

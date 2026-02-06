@@ -54,6 +54,7 @@ import {
   Trash2,
   Edit3,
   Video,
+  Eye,
 } from "lucide-react";
 import { CourseEditor } from "./CourseEditor";
 import { CourseBasicInfoEditor } from "./editors/CourseBasicInfoEditor";
@@ -401,6 +402,17 @@ const { user } = useLocalAuth();
                                   Voir statut vidéos
                                 </DropdownMenuItem>
                               )}
+
+                            {/* Option Aperçu - Visible pour ADMIN et INSTRUCTOR */}
+                            {(user?.role === "ADMIN" ||
+                              user?.role === "INSTRUCTOR") && (
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/course-details/${course.id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-2 text-indigo-600" />
+                                Aperçu
+                              </DropdownMenuItem>
+                            )}
 
                             {/* Option Supprimer - Visible pour ADMIN */}
                             {user?.role === "ADMIN" && (
