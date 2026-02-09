@@ -14,7 +14,7 @@ import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useToast } from "@/infrastructure/storage/ToastContext";
-import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
+import { getAuthErrorMessage, getErrorMapping } from "@/shared/helpers/error-mapping";
 import { COUNTRIES, type Country } from "@/lib/countries";
 import {
   Select,
@@ -242,25 +242,39 @@ export default function Register() {
         throw new Error("Réponse inattendue du serveur");
       }
     } catch (err) {
+      console.error("Erreur inscription:", err);
+
       // Utiliser le système de mapping d'erreurs pour traduire en français
-      const errorMessage = getAuthErrorMessage(err);
+      const errorMapping = getErrorMapping(err);
+      const errorMessage = errorMapping.message;
+
+      // Si l'erreur a un code connu, utiliser le message du mapping
+      const displayMessage = (err as any)?.code && errorMapping 
+        ? errorMessage 
+        : (err as any)?.message || errorMessage;
 
       // Déterminer si l'erreur concerne l'email ou le téléphone
-      const originalMessage =
-        (err instanceof Error ? err.message : String(err))?.toLowerCase() || "";
+      const code = (err as any)?.code?.toLowerCase() || "";
+      const originalMessage = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+      
       if (
+        code.includes("email") || 
+        code.includes("user") ||
         originalMessage.includes("email") ||
         originalMessage.includes("user")
       ) {
-        setEmailError(errorMessage);
+        setEmailError(displayMessage);
       } else if (
+        code.includes("phone") || 
+        code.includes("telephone") ||
+        code.includes("téléphone") ||
         originalMessage.includes("phone") ||
-        originalMessage.includes("téléphone") ||
-        originalMessage.includes("indicatif")
+        originalMessage.includes("telephone") ||
+        originalMessage.includes("téléphone")
       ) {
-        setPhoneError(errorMessage);
+        setPhoneError(displayMessage);
       } else {
-        setEmailError(errorMessage); // Par défaut sur email
+        setEmailError(displayMessage); // Par défaut sur email
       }
     } finally {
       setIsLoading(false);

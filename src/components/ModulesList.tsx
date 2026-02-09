@@ -155,7 +155,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
           console.warn(`⚠️ [ModulesList] Vérification de persistance: ÉCHEC`);
           console.warn(`📊 [ModulesList] Données attendues:`, moduleToSave.title);
           console.warn(`📊 [ModulesList] Données reçues:`, response.module?.title);
-          
+
           Swal.fire({
             icon: "warning",
             title: "Attention",
@@ -212,10 +212,15 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       setExpandedModules(prev => ({ ...prev, [index]: false }));
     } catch (error) {
       console.error("❌ [ModulesList] Erreur lors de la sauvegarde du module:", error);
+
+      // Utiliser le système de mapping d'erreurs
+      const { getErrorMapping } = await import("@/shared/helpers/error-mapping");
+      const errorMapping = getErrorMapping(error);
+
       Swal.fire({
         icon: "error",
-        title: "Erreur",
-        text: error instanceof Error ? error.message : "Une erreur est survenue lors de la sauvegarde du module",
+        title: errorMapping.title,
+        text: errorMapping.message,
         confirmButtonColor: "#dc3545",
       });
     }
@@ -277,10 +282,15 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       });
     } catch (error: any) {
       console.error('❌ [ModulesList] Erreur lors de la suppression:', error);
+
+      // Utiliser le système de mapping d'erreurs
+      const { getErrorMapping } = await import("@/shared/helpers/error-mapping");
+      const errorMapping = getErrorMapping(error);
+
       Swal.fire({
         icon: 'error',
-        title: 'Erreur',
-        text: error.message || 'Une erreur est survenue lors de la suppression du module.',
+        title: errorMapping.title,
+        text: errorMapping.message,
         confirmButtonColor: '#dc3545',
       });
     }

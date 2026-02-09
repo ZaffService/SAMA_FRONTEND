@@ -15,9 +15,13 @@ export class AuthApi {
     const data = await res.json();
 
     if (!res.ok) {
-      // Propager l'objet d'erreur complet pour permettre le mapping par code
+      // Propager l'objet d'erreur complet avec code et message pour permettre le mapping
       if (data?.error) {
-        throw data.error;
+        const errorObj = new Error(data.error.message || "Échec de la connexion");
+        (errorObj as any).code = data.error.code;
+        (errorObj as any).timestamp = data.error.timestamp;
+        (errorObj as any).path = data.error.path;
+        throw errorObj;
       }
       throw new Error(data.message || "Échec de la connexion");
     }
@@ -38,7 +42,12 @@ export class AuthApi {
 
     if (!res.ok) {
       if (responseData?.error) {
-        throw responseData.error;
+        // Propager l'erreur avec code pour permettre le mapping
+        const errorObj = new Error(responseData.error.message || "Échec de l'inscription");
+        (errorObj as any).code = responseData.error.code;
+        (errorObj as any).timestamp = responseData.error.timestamp;
+        (errorObj as any).path = responseData.error.path;
+        throw errorObj;
       }
       throw new Error(responseData.message || "Échec de l'inscription");
     }
@@ -179,8 +188,15 @@ export class AuthApi {
     const data = await res.json();
 
     if (!res.ok) {
-      // Propager l'erreur complète pour permettre la vérification de data.error.code
-      throw data;
+      // Propager l'erreur avec code pour permettre le mapping
+      if (data?.error) {
+        const errorObj = new Error(data.error.message || "Échec de vérification");
+        (errorObj as any).code = data.error.code;
+        (errorObj as any).timestamp = data.error.timestamp;
+        (errorObj as any).path = data.error.path;
+        throw errorObj;
+      }
+      throw new Error(data.message || "Échec de vérification");
     }
 
     return data;
@@ -260,6 +276,14 @@ export class AuthApi {
     const responseData = await res.json();
 
     if (!res.ok) {
+      if (responseData?.error) {
+        // Propager l'erreur avec code pour permettre le mapping
+        const errorObj = new Error(responseData.error.message || "Échec de la création du compte");
+        (errorObj as any).code = responseData.error.code;
+        (errorObj as any).timestamp = responseData.error.timestamp;
+        (errorObj as any).path = responseData.error.path;
+        throw errorObj;
+      }
       throw new Error(responseData.message || "Échec de la création du compte");
     }
 

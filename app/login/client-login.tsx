@@ -12,7 +12,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
-import { getAuthErrorMessage } from "@/shared/helpers/error-mapping";
+import { getAuthErrorMessage, getErrorMapping } from "@/shared/helpers/error-mapping";
 import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -111,23 +111,35 @@ export default function ClientLogin() {
       console.error("Erreur login:", err);
 
       // Utiliser le système de mapping d'erreurs pour traduire en français
-      const errorMessage = getAuthErrorMessage(err);
+      const errorMapping = getErrorMapping(err);
+      const errorMessage = errorMapping.message;
+
+      // Si l'erreur a un code connu, utiliser le message du mapping
+      // Sinon, utiliser le message original du backend
+      const displayMessage = err?.code && errorMapping 
+        ? errorMessage 
+        : err?.message || errorMessage;
 
       // Déterminer si l'erreur concerne l'email ou le mot de passe
+      const code = err?.code?.toLowerCase() || "";
       const message = err.message?.toLowerCase() || "";
+      
       if (
-        message.includes("email") &&
-        (message.includes("not found") || message.includes("not verified"))
+        code.includes("email") || 
+        code.includes("not found") || 
+        code.includes("not_verified") ||
+        (message.includes("email") && (message.includes("not found") || message.includes("not verified")))
       ) {
-        setEmailError(errorMessage);
+        setEmailError(displayMessage);
       } else if (
-        message.includes("password") &&
-        message.includes("incorrect")
+        code.includes("password") || 
+        code.includes("incorrect") ||
+        (message.includes("password") && message.includes("incorrect"))
       ) {
-        setPasswordError(errorMessage);
+        setPasswordError(displayMessage);
       } else {
         // Par défaut, afficher sur le champ email
-        setEmailError(errorMessage);
+        setEmailError(displayMessage);
       }
     } finally {
       setIsLoading(false);

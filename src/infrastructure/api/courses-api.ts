@@ -1770,10 +1770,17 @@ export class CoursesApi {
     console.log(`🔄 [CoursesApi] Module ID: ${moduleId}`);
     console.log(`🔄 [CoursesApi] Données reçues:`, moduleData);
 
+    // ✅ RÉCUPÉRER LE TOKEN D'AUTHENTIFICATION
+    const accessToken = Cookies.get("access_token");
+    if (!accessToken) {
+      console.error("❌ [CoursesApi] Token absent pour updateModule");
+      throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
+
     const url = `/course/module/${moduleId}`;
     console.log(`🔄 [CoursesApi] URL complète:`, buildApiUrl(url));
     console.log(`🔄 [CoursesApi] Méthode: PUT`);
-    console.log(`🔄 [CoursesApi] Credentials: include`);
+    console.log(`🔄 [CoursesApi] Authorization: Bearer ${accessToken.substring(0, 20)}...`);
     console.log(`🔄 [CoursesApi] JSON envoyé:`, JSON.stringify(moduleData));
 
     const response = await fetch(
@@ -1782,6 +1789,7 @@ export class CoursesApi {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
         },
         credentials: "include",
         body: JSON.stringify(moduleData),

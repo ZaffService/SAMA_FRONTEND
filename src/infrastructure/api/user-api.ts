@@ -444,6 +444,16 @@ export class UserApi {
           .json()
           .catch(() => ({ message: "Erreur inconnue" }));
         console.error(`❌ API: Erreur ${response.status}:`, errorData);
+        
+        // Propager l'erreur avec code pour permettre le mapping
+        if (errorData?.error) {
+          const errorObj = new Error(errorData.error.message || "Erreur de mise à jour du profil");
+          (errorObj as any).code = errorData.error.code;
+          (errorObj as any).timestamp = errorData.error.timestamp;
+          (errorObj as any).path = errorData.error.path;
+          throw errorObj;
+        }
+        
         throw new Error(
           errorData.message ||
             `Erreur ${response.status}: Impossible de mettre à jour le profil`,

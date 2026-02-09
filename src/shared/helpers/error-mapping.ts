@@ -32,118 +32,28 @@ export interface ParsedApiError {
 }
 
 export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
-  // Course enrollment errors
-  COURSE_NOT_ENROLLED: {
-    title: "Accès refusé",
-    message: "Vous devez vous inscrire ou acheter ce cours pour continuer.",
-    action: "REDIRECT_TO_PAYMENT_OR_ENROLL",
-  },
-
-  COURSE_PAID_REQUIRED: {
-    title: "Cours payant",
-    message:
-      "Ce cours est payant. Veuillez procéder au paiement pour accéder au contenu.",
-    action: "REDIRECT_TO_PAYMENT",
-  },
-
-  COURSE_ALREADY_ENROLLED: {
-    title: "Déjà inscrit",
-    message: "Vous êtes déjà inscrit à ce cours.",
-    action: "NONE",
-  },
-
-  // Course deletion errors
-  COURSE_HAS_ENROLLMENTS: {
-    title: "Suppression impossible",
-    message: "Vous ne pouvez pas supprimer un cours qui a des étudiants inscrits.",
-    action: "NONE",
-  },
-
-  // Quiz errors
-  QUIZ_NOT_AVAILABLE: {
-    title: "Quiz indisponible",
-    message: "Ce quiz n'est pas encore disponible.",
-    action: "NONE",
-  },
-
-  QUIZ_ALREADY_SUBMITTED: {
-    title: "Quiz déjà soumis",
-    message: "Vous avez déjà soumis ce quiz.",
-    action: "REDIRECT_TO_RESULTS",
-  },
-
-  QUIZ_ATTEMPT_LIMIT_REACHED: {
-    title: "Limite de tentatives atteinte",
-    message: "Vous avez atteint le nombre maximum de tentatives pour ce quiz.",
-    action: "NONE",
-  },
-
-  QUIZ_NOT_STARTED: {
-    title: "Quiz non commencé",
-    message: "Vous devez démarrer le quiz avant de soumettre vos réponses.",
-    action: "NONE",
-  },
-
-  // Enrollment errors
-  ENROLLMENT_NOT_FOUND: {
-    title: "Inscription non trouvée",
-    message: "Aucune inscription active pour ce cours.",
-    action: "REDIRECT_TO_PAYMENT_OR_ENROLL",
-  },
-
-  ENROLLMENT_EXPIRED: {
-    title: "Inscription expirée",
-    message: "Votre inscription à ce cours a expiré.",
-    action: "REDIRECT_TO_PAYMENT",
-  },
-
-  // Payment errors
-  PAYMENT_FAILED: {
-    title: "Échec du paiement",
-    message: "Le paiement n'a pas pu être traité. Veuillez réessayer.",
-    action: "RETRY",
-  },
-
-  PAYMENT_ALREADY_PROCESSED: {
-    title: "Paiement déjà effectué",
-    message: "Ce paiement a déjà été traité.",
-    action: "NONE",
-  },
-
-  INVALID_PAYMENT_AMOUNT: {
-    title: "Montant invalide",
-    message: "Le montant du paiement ne correspond pas au prix du cours.",
-    action: "RETRY",
-  },
-
   // Authentication errors
-  USER_ALREADY_EXISTS: {
-    title: "Utilisateur déjà inscrit",
-    message: "Cet email est déjà utilisé.",
-    action: "NONE",
-  },
-
   CONFLICTING_OPERATION: {
-    title: "Utilisateur déjà inscrit",
-    message: "Cet email est déjà utilisé.",
+    title: "Email déjà utilisé",
+    message: "Un compte avec cet email existe déjà.",
     action: "NONE",
   },
 
   EMAIL_NOT_FOUND: {
     title: "Email introuvable",
-    message: "Cette adresse email n'existe pas.",
+    message: "Aucun compte trouvé avec cet email",
     action: "NONE",
   },
 
   INCORRECT_PASSWORD: {
     title: "Mot de passe incorrect",
-    message: "Le mot de passe saisi est incorrect.",
+    message: "Mot de passe incorrect",
     action: "NONE",
   },
 
   EMAIL_NOT_VERIFIED: {
     title: "Email non vérifié",
-    message: "Veuillez vérifier votre email avant de vous connecter.",
+    message: "Veuillez vérifier votre email avant de vous connecter",
     action: "NONE",
   },
 
@@ -167,8 +77,129 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
 
   TOKEN_EXPIRED: {
     title: "Session expirée",
-    message: "Votre session a expiré. Veuillez vous reconnecter.",
+    message: "Votre session a expiré. Veuillez vous reconnecter",
     action: "LOGOUT",
+  },
+
+  TOKEN_INVALID: {
+    title: "Token invalide",
+    message: "Token is invalid",
+    action: "LOGOUT",
+  },
+
+  WEAK_PASSWORD: {
+    title: "Mot de passe faible",
+    message: "Password does not meet security requirements",
+    action: "RETRY",
+  },
+
+  // User creation & validation errors
+  USER_ALREADY_EXISTS: {
+    title: "Utilisateur déjà inscrit",
+    message: "Un compte avec cet email existe déjà",
+    action: "NONE",
+  },
+
+  EMAIL_ALREADY_EXIST: {
+    title: "Email déjà utilisé",
+    message: "Un compte avec cet email existe déjà.",
+    action: "NONE",
+  },
+
+  TELEPHONE_ALREADY_EXIST: {
+    title: "Téléphone déjà utilisé",
+    message: "Un compte avec ce numéro de téléphone existe déjà.",
+    action: "NONE",
+  },
+
+  TELEPHONE_INVALID: {
+    title: "Numéro invalide",
+    message: "Le numéro de téléphone n'est pas valide.",
+    action: "RETRY",
+  },
+
+  TELEPHONE_FORMAT_INVALID: {
+    title: "Format invalide",
+    message: "Le format du numéro de téléphone est incorrect.",
+    action: "RETRY",
+  },
+
+  INDICATEUR_INVALIDE: {
+    title: "Indicatif invalide",
+    message: "L'indicatif téléphonique n'est pas valide.",
+    action: "RETRY",
+  },
+
+  INVALID_EMAIL_FORMAT: {
+    title: "Email invalide",
+    message: "Le format de l'email n'est pas valide.",
+    action: "RETRY",
+  },
+
+  INVALID_EMAIL: {
+    title: "Email invalide",
+    message: "L'adresse email n'est pas valide.",
+    action: "RETRY",
+  },
+
+  EMAIL_ALREADY_VERIFIED: {
+    title: "Email déjà vérifié",
+    message: "Cette adresse email est déjà vérifiée.",
+    action: "NONE",
+  },
+
+  TOKEN_MISSING: {
+    title: "Token manquant",
+    message: "Token d'authentification manquant.",
+    action: "LOGOUT",
+  },
+
+  TOKEN_REVOKED: {
+    title: "Token révoqué",
+    message: "Le token a été révoqué.",
+    action: "LOGOUT",
+  },
+
+  SESSION_EXPIRED: {
+    title: "Session expirée",
+    message: "Votre session a expiré.",
+    action: "LOGOUT",
+  },
+
+  UNAUTHORIZED_ACCESS: {
+    title: "Accès non autorisé",
+    message: "Tentative d'accès non autorisée.",
+    action: "LOGOUT",
+  },
+
+  ACCESS_DENIED: {
+    title: "Accès refusé",
+    message: "Accès refusé. Rôle non autorisé.",
+    action: "NONE",
+  },
+
+  AUTHENTICATION_REQUIRED: {
+    title: "Authentification requise",
+    message: "L'authentification est requise.",
+    action: "LOGOUT",
+  },
+
+  USER_CREATION_FAILED: {
+    title: "Échec création compte",
+    message: "Échec de la création du compte utilisateur.",
+    action: "RETRY",
+  },
+
+  USER_DISABLED: {
+    title: "Compte désactivé",
+    message: "Le compte utilisateur a été désactivé.",
+    action: "NONE",
+  },
+
+  PASSWORD_RESET_FAILED: {
+    title: "Échec réinitialisation",
+    message: "Échec de la réinitialisation du mot de passe.",
+    action: "RETRY",
   },
 
   // Validation errors
@@ -207,6 +238,26 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
   QUIZ_NOT_FOUND: {
     title: "Quiz non trouvé",
     message: "Ce quiz n'existe pas.",
+    action: "NONE",
+  },
+
+  // Course enrollment errors
+  COURSE_NOT_ENROLLED: {
+    title: "Accès refusé",
+    message: "Vous devez vous inscrire ou acheter ce cours pour continuer.",
+    action: "REDIRECT_TO_PAYMENT_OR_ENROLL",
+  },
+
+  COURSE_PAID_REQUIRED: {
+    title: "Cours payant",
+    message:
+      "Ce cours est payant. Veuillez procéder au paiement pour accéder au contenu.",
+    action: "REDIRECT_TO_PAYMENT",
+  },
+
+  COURSE_ALREADY_ENROLLED: {
+    title: "Déjà inscrit",
+    message: "Vous êtes déjà inscrit à ce cours.",
     action: "NONE",
   },
 
@@ -258,11 +309,6 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
     title: "Délai dépassé",
     message: "La requête a expiré. Veuillez réessayer.",
     action: "RETRY",
-  },
-  TELEPHONE_ALREADY_EXISTS: {
-    title: "Téléphone déjà utilisé",
-    message: "Ce numéro de téléphone est déjà utilisé.",
-    action: "NONE",
   },
 };
 

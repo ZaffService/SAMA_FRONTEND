@@ -38,6 +38,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useProtectRoute } from "@/application/use-cases/useProtectRoute";
+import { getErrorMapping } from "@/shared/helpers/error-mapping";
 
 import {
   UserApi,
@@ -261,19 +262,30 @@ export default function CompleteProfile() {
     } catch (error) {
       console.error("Erreur lors de la completion du profil:", error);
       
-      const errorMessage = error instanceof Error ? error.message : "Impossible de compléter le profil";
+      // Utiliser le système de mapping d'erreurs
+      const errorMapping = getErrorMapping(error);
+      const errorMessage = errorMapping.message;
+      
+      // Si l'erreur a un code connu, utiliser le message du mapping
+      const displayMessage = (error as any)?.code && errorMapping 
+        ? errorMessage 
+        : (error as Error)?.message || errorMessage;
       
       // Vérifier si c'est une erreur de téléphone duplicata
+      const code = (error as any)?.code?.toLowerCase() || "";
+      const errorMsg = (error as Error)?.message?.toLowerCase() || "";
+      
       if (
-        errorMessage.includes("téléphone") || 
-        errorMessage.includes("TELEPHONE") ||
-        errorMessage.includes("Already") ||
-        errorMessage.includes("401")
+        code.includes("telephone") || 
+        code.includes("phone") ||
+        errorMsg.includes("téléphone") || 
+        errorMsg.includes("telephone") ||
+        errorMsg.includes("phone")
       ) {
-        setPhoneConflictError("Le numéro de téléphone doit être unique. Veuillez vérifier votre numéro.");
+        setPhoneConflictError(displayMessage);
         setTimeout(() => setPhoneConflictError(null), 5000);
       } else {
-        toast.error(`Erreur: ${errorMessage}`);
+        toast.error(`Erreur: ${displayMessage}`);
       }
     } finally {
       setIsSaving(false);
