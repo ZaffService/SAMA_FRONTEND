@@ -52,12 +52,18 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
     }
   };
 
-  const handleModulesChange = useCallback((updatedModules: Module[]) => {
-    console.log('🔄 [ModuleEditor] handleModulesChange appelé avec:', updatedModules.length, 'modules');
-    updatedModules.forEach((m, i) => {
-      console.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
+  const handleModulesChange = useCallback((updatedModulesOrFn: Module[] | ((prev: Module[]) => Module[])) => {
+    setModules(prevModules => {
+      const updatedModules = typeof updatedModulesOrFn === 'function'
+        ? updatedModulesOrFn(prevModules)
+        : updatedModulesOrFn;
+      
+      console.log('🔄 [ModuleEditor] handleModulesChange:');
+      console.log('  Précédent:', prevModules.map(m => m.title));
+      console.log('  Nouveau:', updatedModules.map(m => m.title));
+      
+      return updatedModules;
     });
-    setModules(updatedModules);
   }, []);
 
   const handleSaveModule = async (module: Module, index: number) => {

@@ -544,29 +544,41 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
     setError(null);
 
     try {
+      console.log(`🔄 [ModuleManager] Début modification module: ${editingModule.moduleId}`);
+      console.log(`📦 [ModuleManager] Données envoyées:`, {
+        title: editingModule.title,
+        description: editingModule.description
+      });
+      
       const response = await CoursesApi.updateModule(editingModule.moduleId, {
         title: editingModule.title,
         description: editingModule.description || undefined,
       });
 
-      console.log("✅ Module modifié:", response);
+      console.log(`✅ [ModuleManager] Réponse API:`, response);
+      console.log(`✅ [ModuleManager] Module mis à jour par le serveur:`, response.module);
       setSuccess(true);
 
-      // Mettre à jour le module dans la liste locale
-      const moduleIndex = modules.findIndex((m) => m.id === editingModule.moduleId);
-      if (moduleIndex !== -1) {
-        updateModule(moduleIndex, {
-          title: response.module.title,
-          description: response.module.description,
-        });
-      }
+      // Mettre à jour le module avec les données du serveur
+      const updatedModules = modules.map((module) =>
+        module.id === editingModule.moduleId
+          ? { 
+              ...module, 
+              title: response.module.title, 
+              description: response.module.description 
+            }
+          : module
+      );
+      
+      console.log(`📦 [ModuleManager] Modules mis à jour: ${modules.length} → ${updatedModules.length}`);
+      onModulesChange(updatedModules);
 
       // Fermer le dialogue après un court délai
       setTimeout(() => {
         closeEditDialog();
       }, 1500);
     } catch (err: any) {
-      console.error("❌ Erreur modification module:", err);
+      console.error("❌ [ModuleManager] Erreur modification module:", err);
       setError(err.message || "Erreur lors de la modification");
     } finally {
       setIsSubmitting(false);

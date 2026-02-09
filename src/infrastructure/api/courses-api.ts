@@ -1749,7 +1749,7 @@ export class CoursesApi {
   /**
    * Met à jour un module spécifique
    * Endpoint: PUT /course/module/{moduleId}
-   * Format: multipart/form-data avec champ "data" (JSON stringifié)
+   * Body: { "title": "...", "description": "..." }
    */
   static async updateModule(
     moduleId: string,
@@ -1766,27 +1766,30 @@ export class CoursesApi {
       orderIndex: number;
     };
   }> {
-    console.log(`🔄 [CoursesApi] Mise à jour du module ${moduleId}`);
-    console.log("📦 [CoursesApi] Données:", moduleData);
+    console.log(`🔄 [CoursesApi] === DÉBUT MISE À JOUR MODULE ===`);
+    console.log(`🔄 [CoursesApi] Module ID: ${moduleId}`);
+    console.log(`🔄 [CoursesApi] Données reçues:`, moduleData);
 
-    const formData = new FormData();
-
-    // Le backend attend {"data": "{"title": "...", "description": "..."}"}
-    formData.append("data", JSON.stringify(moduleData));
-    console.log("📦 [CoursesApi] JSON data:", JSON.stringify(moduleData, null, 2));
+    const url = `/course/module/${moduleId}`;
+    console.log(`🔄 [CoursesApi] URL complète:`, buildApiUrl(url));
+    console.log(`🔄 [CoursesApi] Méthode: PUT`);
+    console.log(`🔄 [CoursesApi] Credentials: include`);
+    console.log(`🔄 [CoursesApi] JSON envoyé:`, JSON.stringify(moduleData));
 
     const response = await fetch(
-      buildApiUrl(API_ENDPOINTS.MODULES.UPDATE_MODULE(moduleId)),
+      buildApiUrl(url),
       {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
-        body: formData,
-        // ⚠️ NE PAS définir Content-Type - laisse le navigateur le faire pour multipart/form-data
+        body: JSON.stringify(moduleData),
       },
     );
 
     console.log(
-      "📡 [CoursesApi] Statut réponse:",
+      `🔄 [CoursesApi] Statut réponse:`,
       response.status,
       response.statusText,
     );
@@ -1796,18 +1799,20 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur mise à jour module:", errorData);
+        console.error(`❌ [CoursesApi] Erreur backend:`, errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        console.error(`❌ [CoursesApi] Impossible de parser l'erreur`);
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Module mis à jour:", responseData);
+    console.log(`✅ [CoursesApi] === SUCCÈS MISE À JOUR MODULE ===`);
+    console.log(`✅ [CoursesApi] Réponse complète:`, responseData);
+    console.log(`✅ [CoursesApi] Module mis à jour:`, responseData.module);
 
     return responseData;
   }

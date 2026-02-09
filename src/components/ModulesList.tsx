@@ -105,8 +105,10 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       return;
     }
 
+    // Récupérer les modules actuels via callback pour éviter le stale state
+    let currentModules = modules;
     const moduleToSave = {
-      ...modules[index],
+      ...currentModules[index],
       title: values.title,
       description: values.description,
     };
@@ -114,24 +116,53 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     try {
       if (moduleToSave.id) {
         // Module existant - utiliser l'endpoint de modification
-        await CoursesApi.updateModule(moduleToSave.id, {
+        console.log(`🔄 [ModulesList] Début modification module existant: ${moduleToSave.id}`);
+        console.log(`📦 [ModulesList] Données envoyées:`, {
+          title: moduleToSave.title,
+          description: moduleToSave.description
+        });
+        
+        const response = await CoursesApi.updateModule(moduleToSave.id, {
           title: moduleToSave.title,
           description: moduleToSave.description
         });
 
-        // Mettre à jour le module dans la liste locale
-        const updatedModules = modules.map((module, i) =>
-          i === index ? { ...module, title: values.title, description: values.description } : module
-        );
-        onModulesChange(updatedModules);
+        console.log(`✅ [ModulesList] Réponse API:`, response);
+        console.log(`✅ [ModulesList] Module mis à jour par le serveur:`, response.module);
 
-        Swal.fire({
-          icon: "success",
-          title: "Succès !",
-          text: "Le module a été modifié avec succès",
-          timer: 2000,
-          showConfirmButton: false,
-        });
+        // Vérifier que les données ont été correctement persistées
+        if (response.module && response.module.title === moduleToSave.title) {
+          console.log(`✅ [ModulesList] Vérification de persistance: SUCCÈS`);
+          
+          // Mettre à jour le module avec les données du serveur (depuis la closure de handleModulesChange)
+          const updatedModules = currentModules.map((module, i) =>
+            i === index ? { 
+              ...module, 
+              title: response.module.title, 
+              description: response.module.description 
+            } : module
+          );
+          onModulesChange(updatedModules);
+
+          Swal.fire({
+            icon: "success",
+            title: "Succès !",
+            text: "Le module a été modifié avec succès",
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        } else {
+          console.warn(`⚠️ [ModulesList] Vérification de persistance: ÉCHEC`);
+          console.warn(`📊 [ModulesList] Données attendues:`, moduleToSave.title);
+          console.warn(`📊 [ModulesList] Données reçues:`, response.module?.title);
+          
+          Swal.fire({
+            icon: "warning",
+            title: "Attention",
+            text: "La modification peut ne pas avoir été sauvegardée. Veuillez vérifier.",
+            confirmButtonColor: "#2563eb",
+          });
+        }
       } else {
         // Nouveau module - utiliser l'endpoint d'ajout
         if (!courseId) {
@@ -148,8 +179,8 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
           await onSaveModule(moduleToSave, index);
         } else {
           // Fallback si onSaveModule n'est pas fourni
-          const orderIndex = modules.length > 0
-            ? Math.max(...modules.map(m => m.orderIndex || 0)) + 1
+          const orderIndex = currentModules.length > 0
+            ? Math.max(...currentModules.map(m => m.orderIndex || 0)) + 1
             : 1;
 
           const moduleData = {
@@ -178,13 +209,13 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
         }
       }
 
-      setExpandedModules({ ...expandedModules, [index]: false });
+      setExpandedModules(prev => ({ ...prev, [index]: false }));
     } catch (error) {
-      console.error("Erreur lors de la sauvegarde du module:", error);
+      console.error("❌ [ModulesList] Erreur lors de la sauvegarde du module:", error);
       Swal.fire({
         icon: "error",
         title: "Erreur",
-        text: "Une erreur est survenue lors de la sauvegarde du module",
+        text: error instanceof Error ? error.message : "Une erreur est survenue lors de la sauvegarde du module",
         confirmButtonColor: "#dc3545",
       });
     }
