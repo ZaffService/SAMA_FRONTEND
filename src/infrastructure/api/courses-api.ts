@@ -1850,5 +1850,44 @@ export class CoursesApi {
 
     return responseData;
   }
+
+  /**
+   * Supprime un module spécifique
+   * Endpoint: DELETE /course/module/{moduleId}
+   */
+  static async deleteModule(moduleId: string): Promise<{ message: string }> {
+    console.log(`🗑️ [CoursesApi] Suppression du module ${moduleId}`);
+
+    const response = await fetch(
+      buildApiUrl(`/course/module/${moduleId}`),
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur suppression module:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Module supprimé:", responseData);
+
+    return responseData;
+  }
 }
 

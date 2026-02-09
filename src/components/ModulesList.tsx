@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   Plus, 
   Edit3, 
@@ -40,6 +40,14 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [editingValues, setEditingValues] = useState<Record<number, { title: string; description: string }>>({});
+
+  // Log pour déboguer les changements de props modules
+  useEffect(() => {
+    console.log('📦 [ModulesList] Props modules mis à jour:', modules.length, 'modules');
+    modules.forEach((m, i) => {
+      console.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
+    });
+  }, [modules]);
 
   const addModule = () => {
     const newModule: Module = {
@@ -195,27 +203,57 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     }
   };
 
-  const handleDeleteModule = () => {
-    if (deleteConfirmModule) {
-      const updatedModules = modules.filter(
-        m => m.id !== deleteConfirmModule.id && m.tempId !== deleteConfirmModule.tempId
-      );
+  // Callback stable pour les changements de modules
+  const stableOnModulesChange = useCallback((updatedModules: Module[]) => {
+    onModulesChange(updatedModules);
+  }, [onModulesChange]);
+
+  // Callback stable pour handleDeleteModule
+  const stableHandleDeleteModule = useCallback(async () => {
+    if (!deleteConfirmModule?.id) return;
+    
+    const moduleTitle = deleteConfirmModule.title;
+    const moduleId = deleteConfirmModule.id;
+    
+    console.log('🗑️ [ModulesList] Suppression du module:', moduleTitle, '(id:', moduleId + ')');
+    
+    // D'abord fermer le dialog
+    setDeleteConfirmModule(null);
+    
+    try {
+      // Appel à l'API via CoursesApi.deleteModule
+      const data = await CoursesApi.deleteModule(moduleId);
+      console.log('✅ [ModulesList] Module supprimé du serveur:', data.message);
+
+      // Supprimer le module de la liste locale
+      const updatedModules = modules.filter(m => m.id !== moduleId);
+      console.log('📦 [ModulesList] Modules restants après filtrage:', updatedModules.length);
+      
       const reorderedModules = updatedModules.map((m, i) => ({
         ...m,
         orderIndex: i + 1,
       }));
-      onModulesChange(reorderedModules);
-      setDeleteConfirmModule(null);
       
+      // Mettre à jour l'état parent
+      stableOnModulesChange(reorderedModules);
+
+      // Ensuite afficher le message de succès
       Swal.fire({
-        icon: "success",
-        title: "Supprimé !",
-        text: "Le module a été supprimé avec succès",
-        timer: 2000,
-        showConfirmButton: false,
+        icon: 'success',
+        title: 'Module supprimé avec succès',
+        text: data.message || `Le module "${moduleTitle}" a été supprimé avec succès`,
+        confirmButtonColor: '#2563eb',
+      });
+    } catch (error: any) {
+      console.error('❌ [ModulesList] Erreur lors de la suppression:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: error.message || 'Une erreur est survenue lors de la suppression du module.',
+        confirmButtonColor: '#dc3545',
       });
     }
-  };
+  }, [deleteConfirmModule, modules, stableOnModulesChange]);
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     e.stopPropagation();
@@ -383,14 +421,30 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                       <Settings className="h-4 w-4" />
                       Gérer
                     </Button>
-                    {/* <Button
+                    <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setDeleteConfirmModule(module)}
-                      className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                      onClick={() => {
+                        if (module.id) {
+                          setDeleteConfirmModule(module);
+                        } else {
+                          // Pour les modules non sauvegardés, suppression directe
+                          const updatedModules = modules.filter(
+                            (_, i) => i !== index
+                          );
+                          const reorderedModules = updatedModules.map((m, i) => ({
+                            ...m,
+                            orderIndex: i + 1,
+                          }));
+                          onModulesChange(reorderedModules);
+                        }
+                      }}
+                      disabled={!module.id}
+                      className={`flex items-center gap-1 ${!module.id ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-red-600 border-red-200 hover:bg-red-50'}`}
+                      title={!module.id ? "Enregistrez le module pour pouvoir le supprimer" : "Supprimer ce module"}
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button> */}
+                    </Button>
                   </div>
                 </div>
 
@@ -482,7 +536,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
             <Button variant="outline" onClick={() => setDeleteConfirmModule(null)}>
               Annuler
             </Button>
-            <Button onClick={handleDeleteModule} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={stableHandleDeleteModule} className="bg-red-600 hover:bg-red-700">
               <Trash2 className="h-4 w-4 mr-2" />
               Supprimer
             </Button>
