@@ -39,6 +39,100 @@ import {
 } from "lucide-react";
 import Cookies from "js-cookie";
 
+// ✅ Utilitaires pour persistance état enrollment (Cookies + LocalStorage pour mobile)
+
+// 🔐 Sauvegarder état AVANT redirection Paydunya
+const savePendingEnrollment = (courseId: string, userId?: string | number) => {
+  // Cookies - pour compatibilité backend
+  Cookies.set("pendingCourseId", courseId, { expires: 1 }); // 1 jour
+  Cookies.set("pendingEnrollmentTime", Date.now().toString(), { expires: 1 });
+
+  // LocalStorage - PLUS FIABLE sur mobile
+  const pendingData = {
+    courseId,
+    userId,
+    timestamp: Date.now(),
+    status: "AWAITING_PAYMENT",
+    returnUrl: typeof window !== "undefined" ? window.location.href : "",
+  };
+  if (typeof window !== "undefined") {
+    localStorage.setItem("pendingEnrollment", JSON.stringify(pendingData));
+    console.log("✅ État sauvegardé avant redirection Paydunya:", pendingData);
+  }
+};
+
+// 🔄 Restaurer état APRÈS retour Paydunya
+const restorePendingEnrollment = () => {
+  if (typeof window === "undefined") return null;
+
+  // LocalStorage en priorité (plus fiable mobile)
+  const localData = localStorage.getItem("pendingEnrollment");
+
+  if (localData) {
+    const data = JSON.parse(localData);
+
+    // Vérifier expiration (30 minutes)
+    if (Date.now() - data.timestamp < 30 * 60 * 1000) {
+      console.log("🔄 Enrollment pending retrouvé:", data);
+      return data;
+    } else {
+      localStorage.removeItem("pendingEnrollment");
+      console.log("⏰ Pending enrollment expiré");
+    }
+  }
+
+  // Fallback cookies
+  const courseId = Cookies.get("pendingCourseId");
+  const time = Cookies.get("pendingEnrollmentTime");
+
+  if (courseId && time) {
+    return {
+      courseId,
+      timestamp: parseInt(time),
+      source: "cookies",
+    };
+  }
+
+  return null;
+};
+
+// 🧹 Nettoyer après vérification réussie
+const clearPendingEnrollment = () => {
+  Cookies.remove("pendingCourseId");
+  Cookies.remove("pendingEnrollmentTime");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("pendingEnrollment");
+    console.log("🧹 Pending enrollment nettoyé");
+  }
+};
+
+// ✅ Composant pour afficher un spinner pendant le chargement de l'iframe YouTube
+function VideoWithLoading({ videoId, title }: { videoId: string; title?: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div className="absolute inset-0 w-full h-full bg-black">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+          <div className="text-center text-white">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-sm">Chargement de la vidéo...</p>
+          </div>
+        </div>
+      )}
+      <iframe
+        src={`https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0&autoplay=0`}
+        title={title || "Vidéo YouTube"}
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className={`w-full h-full ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        onLoad={() => setIsLoading(false)}
+      />
+    </div>
+  );
+}
+
 function CourseDetailsPageComponent() {
   const params = useParams();
   const router = useRouter();
@@ -426,6 +520,80 @@ function CourseDetailsPageComponent() {
     checkQuizzesForCompletedModules();
   }, [courseData?.modules, lessonProgress, isEnrolled, moduleQuizzes]);
 
+  // ✅ NOUVEAU: Détection retour paiement Paydunya
+  useEffect(() => {
+    const detectPaymentReturn = async () => {
+      // Détecter paramètres Paydunya dans l'URL
+      const hasPaymentReturn =
+        searchParams.get("success") === "true" ||
+        searchParams.get("payment_status") === "completed" ||
+        searchParams.get("tx_ref") ||
+        searchParams.get("transaction_id");
+
+      if (hasPaymentReturn && courseId) {
+        console.log("🔄 Retour paiement Paydunya détecté");
+
+        // Restaurer état pending
+        const pending = restorePendingEnrollment();
+
+        if (pending && pending.courseId === courseId) {
+          console.log("🔍 Vérification inscription après paiement...");
+
+          // Attendre 2 secondes que backend traite le paiement
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // Forcer vérification enrollment
+          try {
+            const isNowEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
+
+            if (isNowEnrolled) {
+              console.log("✅ Inscription confirmée après paiement !");
+              setIsEnrolled(true);
+              setIsPaid(true);
+
+              // Nettoyer état pending
+              clearPendingEnrollment();
+
+              // Message succès
+              Swal.fire({
+                title: "Paiement confirmé! 🎉",
+                text: "Votre cours est maintenant accessible. Bon apprentissage !",
+                icon: "success",
+                timer: 3000,
+                confirmButtonColor: "#6366f1",
+              });
+
+              // Scroll vers vidéo sur mobile
+              if (isMobile) {
+                setTimeout(() => {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }, 500);
+              }
+            } else {
+              console.log("⏳ Paiement en traitement, nouvelle vérification...");
+              // Retry après 5 secondes
+              setTimeout(async () => {
+                const retry = await CoursesApi.checkEnrollmentStatus(courseId);
+                if (retry) {
+                  setIsEnrolled(true);
+                  setIsPaid(true);
+                  clearPendingEnrollment();
+                }
+              }, 5000);
+            }
+          } catch (error) {
+            console.error("❌ Erreur vérification post-paiement:", error);
+          }
+        }
+
+        // Nettoyer URL
+        window.history.replaceState({}, "", `/course-details/${courseId}`);
+      }
+    };
+
+    detectPaymentReturn();
+  }, [searchParams, courseId, isMobile]);
+
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
       const newSet = new Set(prev);
@@ -497,8 +665,9 @@ function CourseDetailsPageComponent() {
 
       if (result && "payment_url" in result && result.payment_url) {
         // 🔄 Redirection vers le paiement (cours payant)
-        console.log("💳 Redirection vers le paiement:", result.payment_url);
-        Cookies.set("pendingCourseId", courseId, { expires: 1 });
+        console.log("💳 Redirection vers Paydunya:", result.payment_url);
+        // 🔐 CRITIQUE: Sauvegarder état AVANT redirection
+        savePendingEnrollment(courseId, user?.id);
         window.location.href = result.payment_url;
       } else if (result && result.course && result.status === "ACTIVE") {
         // ✅ Inscription réussie (cours gratuit)
@@ -1340,13 +1509,20 @@ function CourseDetailsPageComponent() {
 
             <div className="flex-1 flex items-center justify-center bg-black">
               {selectedLesson?.hasVideo ? (
-                <SecureVideoPlayer
-                  url={selectedLesson.videoUrl}
-                  key={selectedLesson?.id}
-                  lessonId={selectedLesson.id}
-                  title={selectedLesson.title || course.title}
-                  className="w-full h-full"
-                />
+                (() => {
+                  const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
+                  return videoId ? (
+                    <VideoWithLoading videoId={videoId} title={selectedLesson.title || course.title} />
+                  ) : (
+                    <SecureVideoPlayer
+                      url={selectedLesson.videoUrl}
+                      key={selectedLesson?.id}
+                      lessonId={selectedLesson.id}
+                      title={selectedLesson.title || course.title}
+                      className="w-full h-full"
+                    />
+                  );
+                })()
               ) : (
                 <div className="text-center text-white px-4">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
@@ -1403,22 +1579,13 @@ function CourseDetailsPageComponent() {
                   {isEnrolled === true || isAdmin ? (
                     /* ✅ Utilisateur inscrit ou admin - Vérifier si videoUrl existe */
                     selectedLesson?.videoUrl ? (
-                      /* Afficher directement la vidéo YouTube */
+                      /* Afficher directement la vidéo YouTube avec spinner de chargement */
                       (() => {
                         const videoId = getYouTubeVideoId(
                           selectedLesson.videoUrl,
                         );
                         return videoId ? (
-                          <div className="absolute inset-0 w-full h-full">
-                            <iframe
-                              src={`https://www.youtube.com/embed/${videoId}?controls=1&modestbranding=1&rel=0&autoplay=0`}
-                              title={selectedLesson.title || course.title}
-                              frameBorder="0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              className="w-full h-full"
-                            />
-                          </div>
+                          <VideoWithLoading videoId={videoId} title={selectedLesson.title || course.title} />
                         ) : (
                           <SecureVideoPlayer
                             url={selectedLesson.videoUrl}

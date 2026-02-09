@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -23,6 +23,14 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
     loadModules();
   }, [courseId]);
 
+  // Log pour déboguer les changements d'état
+  useEffect(() => {
+    console.log('📦 [ModuleEditor] État modules mis à jour:', modules.length, 'modules');
+    modules.forEach((m, i) => {
+      console.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
+    });
+  }, [modules]);
+
   const loadModules = async () => {
     setIsLoading(true);
     try {
@@ -44,9 +52,13 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
     }
   };
 
-  const handleModulesChange = (updatedModules: Module[]) => {
+  const handleModulesChange = useCallback((updatedModules: Module[]) => {
+    console.log('🔄 [ModuleEditor] handleModulesChange appelé avec:', updatedModules.length, 'modules');
+    updatedModules.forEach((m, i) => {
+      console.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
+    });
     setModules(updatedModules);
-  };
+  }, []);
 
   const handleSaveModule = async (module: Module, index: number) => {
     try {
