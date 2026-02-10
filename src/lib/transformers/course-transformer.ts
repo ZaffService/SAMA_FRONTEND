@@ -1,6 +1,58 @@
 import type { CourseDetailsData } from "@/types/course";
 
+// Constante pour l'URL de base Bunny CDN
+const BUNNY_CDN_URL = "https://video.bunnycdn.com";
+// Library ID pour Bunny (devrait venir des variables d'environnement en production)
+const BUNNY_LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID || "library-id";
+
+/**
+ * Construit l'URL Bunny CDN pour une vidéo
+ */
+function buildBunnyVideoUrl(videoAssetId: string): string {
+  if (!videoAssetId) return "";
+  return `${BUNNY_CDN_URL}/library/${BUNNY_LIBRARY_ID}/videos/${videoAssetId}`;
+}
+
+/**
+ * Transforme les données d'une leçon en incluant l'URL vidéo
+ */
+function transformLesson(lesson: any) {
+  const lessonData = {
+    id: lesson.id,
+    title: lesson.title,
+    content: lesson.content,
+    hasVideo: lesson.hasVideo,
+    orderIndex: lesson.orderIndex,
+    duration: lesson.duration,
+    status: lesson.status,
+  };
+
+  // Construire l'URL vidéo
+  let videoUrl = lesson.videoUrl;
+  
+  // Si pas d'URL directe mais on a un assetId Bunny
+  if (!videoUrl && lesson.videoAssetId && lesson.videoProvider === 'BUNNY') {
+    videoUrl = buildBunnyVideoUrl(lesson.videoAssetId);
+    console.log(`🎥 [Transformer] URL Bunny construite: ${videoUrl}`);
+  }
+  
+  // Si l'URL est toujours absente, vérifier si la leçon a un statut indiquant une vidéo
+  if (!videoUrl && lesson.status === 'VIDEO_UPLOADED') {
+    console.warn(`⚠️ [Transformer] Vidéo uploadée mais pas d'URL pour la leçon ${lesson.id}`);
+  }
+
+  return {
+    ...lessonData,
+    videoUrl,
+    videoAssetId: lesson.videoAssetId,
+    videoProvider: lesson.videoProvider,
+  };
+}
+
 export function transformCourseDetails(data: any): CourseDetailsData {
+  console.log("📦 Transformer: Données reçues:", JSON.stringify(data, null, 2));
+  console.log("📎 Transformer: Attachment dans data:", data.course?.attachment);
+  
   return {
     course: {
       id: data.course.id,
@@ -9,22 +61,16 @@ export function transformCourseDetails(data: any): CourseDetailsData {
       categoryId: data.course.categoryId,
       level: data.course.level,
       price: data.course.price,
+      thumbnailUrl: data.course.thumbnailUrl,
+      attachment: data.course.attachment,  // ← URL Cloudinary du PDF
+      isEnrolled: data.course.isEnrolled,  // ← Statut d'inscription
     },
     modules: data.modules.map((module: any) => ({
       id: module.id,
       title: module.title,
       description: module.description,
       orderIndex: module.orderIndex,
-      lessons: module.lessons.map((lesson: any) => ({
-        id: lesson.id,
-        title: lesson.title,
-        content: lesson.content,
-        hasVideo: lesson.hasVideo,
-        videoUrl: lesson.videoUrl,
-        orderIndex: lesson.orderIndex,
-        duration: lesson.duration,
-        status: lesson.status,
-      })),
+      lessons: module.lessons.map(transformLesson),
       // Transformer les quiz (underscore → camelCase)
       quiz:
         module.quiz?.map((q: any) => ({

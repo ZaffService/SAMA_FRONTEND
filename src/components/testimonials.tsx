@@ -59,9 +59,9 @@ export function Testimonials() {
   {/* Message bubble */}
   <div className="bg-white rounded-2xl shadow-md p-4 max-w-md">
     <p className="text-[#0A2A66] text-sm md:text-base leading-relaxed">
-      Super expérience de formation ! <br />
-      Grâce à BIBOCOM Digital, j’ai trouvé un nouvel emploi !
-    </p>
+  Super expérience de formation ! <br />
+  Grâce à BIBOCOM Digital, j'ai trouvé un nouvel emploi !
+</p>
 
     <div className="mt-2">
       <StarRating />

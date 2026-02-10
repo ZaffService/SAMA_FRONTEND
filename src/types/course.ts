@@ -126,7 +126,9 @@ export interface CourseDetailsData {
     level: string;
     price: number;
     thumbnailUrl?: string;
+    attachment?: string | null;  // ← URL du fichier PDF attaché (Cloudinary)
     isFree?: boolean;
+    isEnrolled?: boolean;  // ← Statut d'inscription de l'utilisateur
   };
   modules: Array<{
     id: string;
@@ -138,7 +140,9 @@ export interface CourseDetailsData {
       title: string;
       content: string;
       hasVideo?: boolean;
-      videoUrl?: string;
+      videoUrl?: string;  // ← URL directe de la vidéo (YouTube, Bunny CDN)
+      videoAssetId?: string;  // ← Asset ID Bunny pour construire l'URL
+      videoProvider?: string;  // ← 'BUNNY' ou autre
       orderIndex: number;
       duration: number;
       status: string;

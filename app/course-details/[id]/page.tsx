@@ -277,6 +277,14 @@ function CourseDetailsPageComponent() {
           data.course.price === 0 || data.course.isFree === true;
         setIsFree(courseIsFree);
 
+        // ✅ Utiliser isEnrolled depuis les données du cours si disponible
+        if (data.course.isEnrolled !== undefined) {
+          console.log(`✅ Statut d'inscription depuis le backend: ${data.course.isEnrolled}`);
+          setIsEnrolled(data.course.isEnrolled);
+          setIsPaid(data.course.isEnrolled);
+          setEnrollmentCheckComplete(true);
+        }
+
         if (data.modules && data.modules.length > 0) {
           // ✅ Ouvrir le premier module par défaut UNIQUEMENT sur desktop
           // Sur mobile, on garde tous les modules fermés
@@ -1470,10 +1478,80 @@ function CourseDetailsPageComponent() {
         )}
 
         {activeTab === "resources" && (
-          <div className="p-4 lg:p-6 text-center">
-            <p className="text-gray-600 text-xs lg:text-sm">
-              Les ressources pour ce cours seront bientôt disponibles.
-            </p>
+          <div className="p-4 lg:p-6">
+            {/* ✅ CORRECTION: Vérifier si attachment existe et n'est pas "undefined" */}
+            {course.attachment && course.attachment !== "undefined" ? (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-600" />
+                   Ressources du cours
+                </h3>
+
+                <a
+                  href={course.attachment}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 
+                             hover:from-indigo-100 hover:to-purple-100 rounded-xl border-2 border-indigo-200 
+                             transition-all duration-300 group shadow-sm hover:shadow-md"
+                >
+                  {/* Icône PDF */}
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg 
+                                  flex items-center justify-center flex-shrink-0 shadow-md
+                                  group-hover:scale-110 transition-transform duration-300">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  
+                  {/* Informations */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 mb-1">
+                      📄 Document de cours (PDF)
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Cliquez pour télécharger ou ouvrir dans un nouvel onglet
+                    </p>
+                  </div>
+                  
+                  {/* Icône de téléchargement */}
+                  <div className="flex-shrink-0">
+                    <svg 
+                      className="w-6 h-6 text-indigo-600 group-hover:text-indigo-700 
+                                 group-hover:translate-y-1 transition-all duration-300" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" 
+                      />
+                    </svg>
+                  </div>
+                </a>
+                
+                {/* Info pour utilisateurs non inscrits (optionnel) */}
+                {!isEnrolled && !isAdmin && (
+                  <div className="mt-4 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
+                    <p className="text-sm text-amber-800 flex items-center gap-2">
+                      <span>💡</span>
+                      <span>Inscrivez-vous au cours pour accéder à toutes les ressources</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 text-sm">
+                  Aucune ressource disponible pour ce cours.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

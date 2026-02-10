@@ -77,8 +77,10 @@ interface CourseDetailsResponse {
     level: string;
     price: number;
     thumbnailUrl?: string;
+    attachment?: string | null;  // ← URL Cloudinary du fichier PDF
     isFree?: boolean;
     isComplete?: boolean;
+    isEnrolled?: boolean;  // ← Statut d'inscription de l'utilisateur
   };
   modules: Array<{
     id: string;
@@ -90,6 +92,9 @@ interface CourseDetailsResponse {
       title: string;
       content: string;
       hasVideo?: boolean;
+      videoUrl?: string;  // ← URL directe de la vidéo
+      videoAssetId?: string;  // ← Asset ID Bunny
+      videoProvider?: string;  // ← 'BUNNY' ou autre
       orderIndex: number;
       duration: number;
       status: LessonStatus | string;
@@ -267,6 +272,7 @@ export class CoursesApi {
       JSON.stringify(data, null, 2),
     );
     console.log("📚 API: Nombre de modules:", data.modules?.length || 0);
+    console.log("📎 API: Attachment:", data.course?.attachment || "Aucun");
 
     return data;
   }
