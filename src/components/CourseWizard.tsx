@@ -250,6 +250,9 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   };
 
   const prepareCourseData = (statusOverride?: CourseStatus) => {
+    // Debug: Afficher les attachments avant envoi
+    console.log("📎 [Wizard] prepareCourseData - attachments:", formData.attachments);
+    
     // instructorId sera null et récupéré par le backend depuis les cookies JWT
     return {
       ...formData,

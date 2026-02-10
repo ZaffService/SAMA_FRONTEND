@@ -18,19 +18,14 @@ import {
   Loader2,
   Save,
   X,
-  Plus,
-  Trash2,
-  GripVertical,
-  ChevronDown,
-  ChevronUp,
   Edit3,
+  FileText,
 } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { ModuleManager } from "./ModuleManager";
 import { ThumbnailUploader } from "./ThumbnailUploader";
-import { QuizManager } from "./QuizManager";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
-import { Module, Lesson } from "@/domain/entities/module";
+import { Module } from "@/domain/entities/module";
 import { toast } from "sonner";
 
 interface Category {
@@ -49,6 +44,7 @@ interface Course {
   price: number;
   status?: string;
   thumbnailUrl?: string;
+  attachment?: string | null;
   modules?: any[];
 }
 
@@ -72,9 +68,9 @@ export function CourseEditor({
   const [error, setError] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-  const [expandedModules, setExpandedModules] = useState<
-    Record<string, boolean>
-  >({});
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [existingAttachmentUrl, setExistingAttachmentUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -147,6 +143,9 @@ export function CourseEditor({
       setThumbnailUrl(
         details.course.thumbnailUrl || course.thumbnailUrl || null,
       );
+      
+      // Charger l'attachment existant
+      setExistingAttachmentUrl(details.course.attachment || null);
     } catch (err) {
       console.error("Erreur lors du chargement du cours:", err);
       setError("Erreur lors du chargement du cours");
@@ -186,13 +185,24 @@ export function CourseEditor({
     setThumbnailFile(null);
   };
 
-  const toggleModule = (index: number) => {
-    const module = formData.modules[index];
-    const moduleKey = module?.id || module?.tempId || `module-${index}`;
-    setExpandedModules((prev) => ({
-      ...prev,
-      [moduleKey]: !prev[moduleKey],
-    }));
+  // Gérer la sélection du fichier PDF
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Valider que c'est un PDF
+      if (file.type !== 'application/pdf') {
+        toast.error('Seuls les fichiers PDF sont acceptés');
+        return;
+      }
+      setAttachmentFile(file);
+      setAttachmentPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Supprimer l'attachment PDF
+  const handleAttachmentRemove = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
   };
 
   const validateForm = (): string | null => {
@@ -232,6 +242,7 @@ export function CourseEditor({
         ...formData,
         thumbnail: thumbnailFile || undefined,
         thumbnailUrl: thumbnailUrl || undefined,
+        attachments: attachmentFile || undefined,
       });
 
       toast.success("Cours modifié avec succès");
@@ -451,6 +462,93 @@ export function CourseEditor({
                       existingThumbnailUrl={thumbnailUrl || undefined}
                     />
                   </div>
+
+                  {/* Attachment PDF */}
+                  <div className="border-t pt-6 mt-6">
+                    <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-indigo-600" />
+                      <span>Document PDF du cours (optionnel)</span>
+                    </h3>
+                    
+                    {!attachmentFile && !existingAttachmentUrl ? (
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          onChange={handleAttachmentChange}
+                          className="hidden"
+                          id="attachment-upload-edit"
+                        />
+                        <label
+                          htmlFor="attachment-upload-edit"
+                          className="cursor-pointer flex flex-col items-center"
+                        >
+                          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3">
+                            <FileText className="w-6 h-6 text-indigo-600" />
+                          </div>
+                          <p className="text-sm font-medium text-gray-700 mb-1">
+                            Cliquez pour sélectionner un fichier PDF
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Taille max: 10MB • Format: PDF uniquement
+                          </p>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="bg-indigo-50 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                              <FileText className="w-5 h-5 text-red-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {attachmentFile ? attachmentFile.name : 'Document PDF existant'}
+                              </p>
+                              {attachmentFile && (
+                                <p className="text-xs text-gray-500">
+                                  {(attachmentFile.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleAttachmentRemove}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        {/* Prévisualisation du PDF */}
+                        {(attachmentPreview || existingAttachmentUrl) && (
+                          <div className="mt-4">
+                            <embed
+                              src={attachmentPreview || existingAttachmentUrl || ''}
+                              type="application/pdf"
+                              width="100%"
+                              height="300px"
+                              className="rounded-lg border border-gray-200"
+                            />
+                          </div>
+                        )}
+                        {/* Lien vers l'attachment existant */}
+                        {existingAttachmentUrl && !attachmentFile && (
+                          <div className="mt-4">
+                            <a
+                              href={existingAttachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-indigo-600 hover:underline flex items-center gap-1"
+                            >
+                              <FileText className="w-4 h-4" />
+                              Ouvrir le document PDF actuel
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -468,9 +566,6 @@ export function CourseEditor({
                   <ModuleManager
                     modules={formData.modules}
                     onModulesChange={handleModulesChange}
-                    courseId={course?.id}
-                    expandedModules={expandedModules}
-                    onToggleModule={toggleModule}
                   />
                 </CardContent>
               </Card>

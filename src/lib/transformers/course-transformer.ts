@@ -51,7 +51,21 @@ function transformLesson(lesson: any) {
 
 export function transformCourseDetails(data: any): CourseDetailsData {
   console.log("📦 Transformer: Données reçues:", JSON.stringify(data, null, 2));
-  console.log("📎 Transformer: Attachment dans data:", data.course?.attachment);
+  
+  // Gérer les deux cas: attachment (string) ou attachments (array)
+  let attachmentUrl = data.course?.attachment;
+  if (!attachmentUrl && data.course?.attachments) {
+    // Si c'est un array, prendre le premier élément
+    if (Array.isArray(data.course.attachments) && data.course.attachments.length > 0) {
+      attachmentUrl = data.course.attachments[0];
+      console.log("📎 Transformer: Attachment Array -> URL:", attachmentUrl);
+    } else if (typeof data.course.attachments === 'string') {
+      attachmentUrl = data.course.attachments;
+      console.log("📎 Transformer: Attachment String:", attachmentUrl);
+    }
+  }
+  
+  console.log("📎 Transformer: Attachment final:", attachmentUrl);
   
   return {
     course: {
@@ -62,7 +76,7 @@ export function transformCourseDetails(data: any): CourseDetailsData {
       level: data.course.level,
       price: data.course.price,
       thumbnailUrl: data.course.thumbnailUrl,
-      attachment: data.course.attachment,  // ← URL Cloudinary du PDF
+      attachment: attachmentUrl,  // ← URL Cloudinary du PDF
       isEnrolled: data.course.isEnrolled,  // ← Statut d'inscription
     },
     modules: data.modules.map((module: any) => ({

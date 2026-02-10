@@ -267,12 +267,17 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log(
-      "📦 API: Réponse backend complète:",
-      JSON.stringify(data, null, 2),
-    );
+    
+    // DEBUG: Afficher la structure complète de la réponse
+    console.log("📦 API: Réponse backend complète:", JSON.stringify(data, null, 2));
+    
+    // Vérifier tous les champs possibles pour l'attachment
+    console.log("📎 API: data.course:", data.course);
+    console.log("📎 API: data.course.attachment:", data.course?.attachment);
+    console.log("📎 API: data.course.attachments:", data.course?.attachments);
+    console.log("📎 API: Toutes les clés de data.course:", Object.keys(data.course || {}));
+    
     console.log("📚 API: Nombre de modules:", data.modules?.length || 0);
-    console.log("📎 API: Attachment:", data.course?.attachment || "Aucun");
 
     return data;
   }
@@ -875,21 +880,24 @@ export class CoursesApi {
     });
     console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
-    // Ajouter les fichiers joints
-    let attachmentCount = 0;
-    if (courseData.attachments && courseData.attachments.length > 0) {
-      courseData.attachments.forEach((attachment: any) => {
-        formData.append("attachments", attachment.file);
-        attachmentCount++;
-        console.log(
-          `📎 [CoursesApi] Fichier joint ajouté: ${attachment.file.name}`,
-        );
+    // ✅ Ajouter l'attachment PDF si présent
+    // AttachmentManager stocke les fichiers dans un tableau d'objets { file: File, id, preview }
+    console.log("📎 [CoursesApi] Attachments reçus:", courseData.attachments);
+    console.log("📎 [CoursesApi] Type d'attachments:", typeof courseData.attachments, Array.isArray(courseData.attachments));
+    
+    if (courseData.attachments && Array.isArray(courseData.attachments) && courseData.attachments.length > 0) {
+      courseData.attachments.forEach((attachment: any, index: number) => {
+        console.log(`📎 [CoursesApi] Attachment ${index}:`, attachment);
+        if (attachment.file) {
+          formData.append("attachments", attachment.file);
+          console.log("📎 [CoursesApi] Attachment PDF ajouté:", attachment.file.name);
+        }
       });
+    } else {
+      console.log("📎 [CoursesApi] Aucun attachment à uploader");
     }
-    console.log(`📎 [CoursesApi] Total fichiers joints: ${attachmentCount}`);
 
-    console.log(
-      "📡 [CoursesApi] Envoi vers:",
+    console.log("📡 [CoursesApi] Envoi vers:",
       buildApiUrl(API_ENDPOINTS.COURSES.CREATE),
     );
     console.log("🔐 [CoursesApi] Credentials: include");
@@ -1020,20 +1028,16 @@ export class CoursesApi {
     });
     console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
-    // Ajouter les fichiers joints
-    let attachmentCount = 0;
-    if (courseData.attachments && courseData.attachments.length > 0) {
+    // ✅ Ajouter l'attachment PDF si présent
+    // AttachmentManager stocke les fichiers dans un tableau d'objets { file: File, id, preview }
+    if (courseData.attachments && Array.isArray(courseData.attachments)) {
       courseData.attachments.forEach((attachment: any) => {
-        if (attachment.file && typeof attachment.file !== "string") {
+        if (attachment.file) {
           formData.append("attachments", attachment.file);
-          attachmentCount++;
-          console.log(
-            `📎 [CoursesApi] Fichier joint ajouté: ${attachment.file.name}`,
-          );
+          console.log("📎 [CoursesApi] Attachment PDF ajouté:", attachment.file.name);
         }
       });
     }
-    console.log(`📎 [CoursesApi] Total fichiers joints: ${attachmentCount}`);
 
     console.log(
       "📡 [CoursesApi] Envoi vers:",
@@ -1907,6 +1911,51 @@ export class CoursesApi {
     console.log("✅ [CoursesApi] Module supprimé:", responseData);
 
     return responseData;
+  }
+
+  /**
+   * Upload un attachment PDF pour un cours
+   * Endpoint: PUT /course/{courseId}/attachment
+   */
+  static async uploadCourseAttachment(
+    courseId: string,
+    file: File,
+  ): Promise<{ attachmentUrl: string }> {
+    console.log(`📎 [CoursesApi] Upload attachment PDF pour le cours ${courseId}`);
+    console.log(`📄 [CoursesApi] Fichier: ${file.name} (${file.size} bytes)`);
+
+    const formData = new FormData();
+    formData.append("attachment", file);
+
+    const response = await fetch(
+      buildApiUrl(`/course/${courseId}/attachment`),
+      {
+        method: "PUT",
+        credentials: "include",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        console.error("❌ [CoursesApi] Erreur upload attachment:", errorData);
+        errorMessage = errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    console.log("✅ [CoursesApi] Attachment uploadé:", responseData);
+
+    return {
+      attachmentUrl: responseData.attachmentUrl || responseData.url || responseData,
+    };
   }
 }
 

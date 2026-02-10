@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Save, Eye, AlertCircle, Image } from "lucide-react";
+import { Loader2, Save, Eye, AlertCircle, Image, FileText, X } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { ModuleManager } from "./ModuleManager";
 import { ThumbnailUploader } from "./ThumbnailUploader";
@@ -63,6 +63,8 @@ export function CourseCreationForm({
   const [success, setSuccess] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<CourseFormData>({
@@ -138,6 +140,26 @@ export function CourseCreationForm({
     setThumbnailFile(null);
   };
 
+  // Gérer la sélection du fichier PDF
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Valider que c'est un PDF
+      if (file.type !== 'application/pdf') {
+        alert('Seuls les fichiers PDF sont acceptés');
+        return;
+      }
+      setAttachmentFile(file);
+      setAttachmentPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Supprimer l'attachment PDF
+  const handleAttachmentRemove = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
+  };
+
   const validateForm = (): string | null => {
     if (!formData.title.trim()) return "Le titre du cours est requis";
     if (!formData.description.trim())
@@ -169,6 +191,7 @@ export function CourseCreationForm({
       ...formData,
       instructorId: formData.instructorId || user?.id?.toString() || "",
       thumbnail: thumbnailFile || undefined,
+      attachments: attachmentFile || undefined,
     };
   };
 
@@ -499,6 +522,77 @@ export function CourseCreationForm({
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Attachment PDF Section */}
+                <div className="border-t pt-6 mt-6">
+                  <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-indigo-600" />
+                    <span>Document PDF du cours (optionnel)</span>
+                  </h3>
+                  
+                  {!attachmentFile ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={handleAttachmentChange}
+                        className="hidden"
+                        id="attachment-upload"
+                      />
+                      <label
+                        htmlFor="attachment-upload"
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-3">
+                          <FileText className="w-6 h-6 text-indigo-600" />
+                        </div>
+                        <p className="text-sm font-medium text-gray-700 mb-1">
+                          Cliquez pour sélectionner un fichier PDF
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Taille max: 10MB • Format: PDF uniquement
+                        </p>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="bg-indigo-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-red-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {attachmentFile.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(attachmentFile.size / 1024 / 1024).toFixed(2)} MB • PDF
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAttachmentRemove}
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      {/* Prévisualisation du PDF */}
+                      {attachmentPreview && (
+                        <div className="mt-4">
+                          <embed
+                            src={attachmentPreview}
+                            type="application/pdf"
+                            width="100%"
+                            height="300px"
+                            className="rounded-lg border border-gray-200"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
