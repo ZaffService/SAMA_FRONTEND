@@ -550,25 +550,33 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
         description: editingModule.description
       });
       
+      // Mettre à jour immédiatement le dialogue avec les nouvelles valeurs
+      // pour que l'utilisateur voie les changements immédiatement
+      setEditingModule(prev => prev ? {
+        ...prev,
+        title: editingModule.title,
+        description: editingModule.description
+      } : null);
+      
       const response = await CoursesApi.updateModule(editingModule.moduleId, {
         title: editingModule.title,
         description: editingModule.description || undefined,
       });
 
       console.log(`✅ [ModuleManager] Réponse API:`, response);
-      console.log(`✅ [ModuleManager] Module mis à jour par le serveur:`, response.module);
       setSuccess(true);
 
-      // Mettre à jour le module avec les données du serveur
-      const updatedModules = modules.map((module) =>
-        module.id === editingModule.moduleId
-          ? { 
-              ...module, 
-              title: response.module.title, 
-              description: response.module.description 
-            }
-          : module
-      );
+      // Mettre à jour le module avec les données du serveur (si disponibles)
+      const updatedModules = modules.map((module) => {
+        if (module.id === editingModule.moduleId) {
+          return { 
+            ...module, 
+            title: response.module?.title || editingModule.title, 
+            description: response.module?.description || editingModule.description 
+          };
+        }
+        return module;
+      });
       
       console.log(`📦 [ModuleManager] Modules mis à jour: ${modules.length} → ${updatedModules.length}`);
       onModulesChange(updatedModules);
