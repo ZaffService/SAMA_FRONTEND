@@ -7,24 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   BookOpen,
   Users,
   FolderOpen,
   Plus,
   UserCheck,
-  Settings,
+  List,
 } from "lucide-react";
 import { useAdminStats } from "@/application/use-cases/useAdminStats";
-
-type DashboardView =
-  | "overview"
-  | "create-course"
-  | "manage-courses"
-  | "manage-users"
-  | "video-status";
+import { type DashboardView } from "./AdminLayout";
 
 interface AdminOverviewProps {
   onViewChange: (view: DashboardView) => void;
@@ -89,12 +81,20 @@ export function AdminOverview({
       bgColor: "bg-blue-50",
     },
     {
-      title: "Gérer les catégories",
-      description: "Organiser les catégories de cours",
-      icon: Settings,
+      title: "Créer une catégorie",
+      description: "Ajouter une nouvelle catégorie",
+      icon: Plus,
       action: onOpenCategoryDialog,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
+    },
+    {
+      title: "Détails des catégories",
+      description: "Voir et gérer toutes les catégories",
+      icon: List,
+      action: () => onViewChange("manage-categories"),
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
     },
   ];
 
@@ -155,7 +155,7 @@ export function AdminOverview({
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Actions rapides
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action, index) => (
             <Card
               key={index}
@@ -186,9 +186,9 @@ export function AdminOverview({
         <Card>
           <CardContent className="p-6">
             <p className="text-gray-600">
-              Bienvenue sur votre tableau de bord d'administration. Utilisez les
+              Bienvenue sur votre tableau de bord d&apos;administration. Utilisez les
               actions rapides ci-dessus pour gérer votre plateforme
-              d'apprentissage.
+              d&apos;apprentissage.
             </p>
           </CardContent>
         </Card>

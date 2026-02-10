@@ -3,12 +3,14 @@
 import { ReactNode } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminOverview } from "./AdminOverview";
+import { CategoriesManagement } from "./CategoriesManagement";
 
-type DashboardView =
+export type DashboardView =
   | "overview"
   | "create-course"
   | "manage-courses"
   | "manage-users"
+  | "manage-categories"
   | "video-status";
 
 interface AdminLayoutProps {
@@ -21,6 +23,7 @@ interface AdminLayoutProps {
   renderCreateCourse?: () => ReactNode;
   renderManageUsers?: () => ReactNode;
   renderVideoStatus?: () => ReactNode;
+  onCategoryUpdated?: () => void;
 }
 
 export function AdminLayout({
@@ -33,6 +36,7 @@ export function AdminLayout({
   renderCreateCourse,
   renderManageUsers,
   renderVideoStatus,
+  onCategoryUpdated,
 }: AdminLayoutProps) {
   const renderContent = () => {
     switch (currentView) {
@@ -60,6 +64,13 @@ export function AdminLayout({
           renderManageUsers()
         ) : (
           <div>Gestion des utilisateurs</div>
+        );
+      case "manage-categories":
+        return (
+          <CategoriesManagement
+            onBack={() => onViewChange("overview")}
+            onCategoryUpdated={onCategoryUpdated}
+          />
         );
       case "video-status":
         return renderVideoStatus ? (

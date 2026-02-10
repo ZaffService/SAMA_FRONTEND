@@ -10,15 +10,8 @@ import { CategoryDialog } from "@/components/category-dialog";
 import UserManagement from "@/components/UserManagement";
 import { VideoStatusIndicator } from "@/components/VideoStatusIndicator";
 import { useCategories } from "@/application/use-cases/useCategories";
-import { AdminLayout } from "@/components/AdminLayout";
+import { AdminLayout, type DashboardView } from "@/components/AdminLayout";
 import { toast } from "sonner";
-
-type DashboardView =
-  | "overview"
-  | "create-course"
-  | "manage-courses"
-  | "manage-users"
-  | "video-status";
 
 export default function AdminDashboard() {
   const router = useRouter();

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   LayoutDashboard,
   BookOpen,
@@ -18,13 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
-
-type DashboardView =
-  | "overview"
-  | "create-course"
-  | "manage-courses"
-  | "manage-users"
-  | "video-status";
+import { type DashboardView } from "./AdminLayout";
 
 interface AdminSidebarProps {
   user: any;
@@ -77,10 +70,10 @@ export function AdminSidebar({
       badge: "Bientôt",
     },
     {
-      id: "categories" as const,
+      id: "manage-categories" as const,
       label: "Catégories",
       icon: FolderOpen,
-      active: false,
+      active: currentView === "manage-categories",
       disabled: false,
       badge: null,
     },
@@ -113,11 +106,10 @@ export function AdminSidebar({
       item.id === "overview" ||
       item.id === "create-course" ||
       item.id === "manage-courses" ||
-      item.id === "manage-users"
+      item.id === "manage-users" ||
+      item.id === "manage-categories"
     ) {
       onViewChange(item.id);
-    } else if (item.id === "categories" && onOpenCategoryDialog) {
-      onOpenCategoryDialog();
     }
   };
 
