@@ -305,7 +305,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         // Cours entièrement prêt
         showCourseCreatedSuccess(formData.title, () => {
           onCourseCreated?.();
-          router.push("/admin-dashboard");
+          router.push("/admin-dashboard?courseCreated=true");  // Rediriger vers la liste des cours
         });
       } else {
         // Cours créé mais vidéos en cours d'upload
@@ -313,7 +313,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
           `${formData.title} - Vidéos en cours d'upload`,
           () => {
             onCourseCreated?.();
-            router.push("/admin-dashboard");
+            router.push("/admin-dashboard?courseCreated=true");  // Rediriger vers la liste des cours
           },
           "Le cours a été créé avec succès ! Les vidéos sont en cours d'upload en arrière-plan. Vous pourrez publier le cours une fois toutes les vidéos uploadées.",
         );

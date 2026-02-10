@@ -231,7 +231,7 @@ export function CourseCreationForm({
 
       // Afficher la popup de succès avec SweetAlert
       showCourseCreatedSuccess(formData.title, () => {
-        router.push("/instructor-dashboard");
+        router.push("/admin-dashboard?courseCreated=true");  // Rediriger vers la liste des cours
       });
     } catch (err) {
       closeLoading();
