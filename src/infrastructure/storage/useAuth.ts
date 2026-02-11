@@ -216,6 +216,62 @@ export function useProvideAuth(): AuthContextType {
     }
   };
 
+  const loginWithGoogle = async (idToken: string) => {
+    setIsLoading(true);
+
+    try {
+      const response = await AuthApi.loginWithGoogle(idToken);
+      console.log("🔐 [useAuth] Google Login response:", response);
+
+      const isComplete = (response.user as any).isProfileComplete;
+
+      const mappedUser: User = {
+        id: response.user.id,
+        email: response.user.email,
+        firstName: response.user.first_name || "",
+        lastName: response.user.last_name || "",
+        telephone: response.user.telephone || "",
+        role: response.user.role,
+        createdAt: response.user.created_at || "",
+        first_name: response.user.first_name,
+        last_name: response.user.last_name,
+        created_at: response.user.created_at,
+      };
+
+      setUser(mappedUser);
+      setIsAuthenticated(true);
+      setIsProfileComplete(isComplete ?? null);
+
+      let redirectUrl: string | undefined;
+      switch (mappedUser.role) {
+        case "ADMIN":
+          redirectUrl = "/admin-dashboard";
+          break;
+        case "INSTRUCTOR":
+          redirectUrl = "/instructor-dashboard";
+          break;
+        case "STUDENT":
+        default:
+          redirectUrl = undefined;
+          break;
+      }
+
+      if (redirectAfterLogin) {
+        redirectUrl = redirectAfterLogin;
+        setRedirectAfterLogin(null);
+      }
+
+      return { success: true, redirectUrl };
+    } catch (error) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsProfileComplete(null);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     console.log("🚪 [useAuth] Début logout - Réinitialisation état local");
     setUser(null);
@@ -269,6 +325,7 @@ export function useProvideAuth(): AuthContextType {
     isProfileComplete,
     login,
     register,
+    loginWithGoogle,
     logout,
     canAccessCourse,
     redirectAfterLogin,

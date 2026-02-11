@@ -101,4 +101,11 @@ export const API_ENDPOINTS = {
     GET: (quizId: string) => `/quizzes/${quizId}`,
     GET_BY_MODULE: (moduleId: string) => `/modules/${moduleId}/quizzes`,
   },
+  AUTH: {
+    GOOGLE: "/auth/google", // endpoint pour valider le token Google côté backend
+    GOOGLE_CALLBACK: "/auth/google/callback",
+    LOGIN: "/user/login",
+    LOGOUT: "/user/logout",
+    PROFILE: "/user/profile",
+  },
 } as const;

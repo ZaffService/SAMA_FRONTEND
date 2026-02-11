@@ -1,6 +1,6 @@
 import type { User, LoginData, AuthResponse } from "@/domain/entities/user";
 import type { RegisterData } from "@/types/auth";
-import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
+import { buildApiUrl, API_ENDPOINTS, API_BASE_URL } from "./baseConfig";
 
 export class AuthApi {
   static async login(credentials: LoginData): Promise<AuthResponse> {
@@ -291,7 +291,32 @@ export class AuthApi {
   }
 
   static getGoogleAuthUrl(): string {
-    // TODO: Implement Google auth URL
-    return "";
+    const backendUrl = API_BASE_URL.replace("/api", "");
+    return `${backendUrl}/oauth2/authorization/google`;
+  }
+
+  static async loginWithGoogle(idToken: string): Promise<AuthResponse> {
+    console.log("🔐 [AuthApi] Login avec Google token");
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.GOOGLE), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ idToken }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data?.error) {
+        const errorObj = new Error(data.error.message || "Échec de la connexion Google");
+        (errorObj as any).code = data.error.code;
+        (errorObj as any).timestamp = data.error.timestamp;
+        (errorObj as any).path = data.error.path;
+        throw errorObj;
+      }
+      throw new Error(data.message || "Échec de la connexion Google");
+    }
+
+    return data;
   }
 }

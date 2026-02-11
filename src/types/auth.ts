@@ -25,6 +25,7 @@ export interface AuthContextType {
     password: string,
   ) => Promise<{ success: boolean; redirectUrl?: string }>;
   register: (data: RegisterData) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<{ success: boolean; redirectUrl?: string }>;
   logout: () => Promise<void>;
   canAccessCourse: (courseId: number, isPaid: boolean) => boolean;
   redirectAfterLogin: string | null;

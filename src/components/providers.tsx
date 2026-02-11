@@ -5,21 +5,26 @@ import { LocalAuthProvider } from "@/infrastructure/storage/LocalAuthProvider";
 import { AvatarProvider } from "@/infrastructure/storage/AvatarContext";
 import { LoadingProvider } from "@/components/loading-provider";
 import { QueryProvider } from "@/shared/helpers/query-client";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 interface ProvidersProps {
   children: React.ReactNode;
 }
 
 export function Providers({ children }: ProvidersProps) {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
   return (
-    <QueryProvider>
-      <ToastProvider>
-        <LocalAuthProvider>
-          <AvatarProvider>
-            <LoadingProvider>{children}</LoadingProvider>
-          </AvatarProvider>
-        </LocalAuthProvider>
-      </ToastProvider>
-    </QueryProvider>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <QueryProvider>
+        <ToastProvider>
+          <LocalAuthProvider>
+            <AvatarProvider>
+              <LoadingProvider>{children}</LoadingProvider>
+            </AvatarProvider>
+          </LocalAuthProvider>
+        </ToastProvider>
+      </QueryProvider>
+    </GoogleOAuthProvider>
   );
 }

@@ -40,6 +40,7 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
+    "@react-oauth/google": "^0.13.4",
     "@tanstack/react-query": "latest",
     "@tanstack/react-query-devtools": "latest",
     "@types/js-cookie": "^3.0.6",

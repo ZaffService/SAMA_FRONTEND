@@ -36,4 +36,8 @@ export class AuthUseCases {
   static async adminCreateUser(data: CreateUserData): Promise<ApiUser> {
     return UserApi.adminCreateUser(data);
   }
+
+  static async loginWithGoogle(idToken: string): Promise<AuthResponse> {
+    return AuthApi.loginWithGoogle(idToken);
+  }
 }

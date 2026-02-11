@@ -13,6 +13,7 @@ import { Logo } from "@/components/logo";
 import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { getAuthErrorMessage, getErrorMapping } from "@/shared/helpers/error-mapping";
 import { COUNTRIES, type Country } from "@/lib/countries";
@@ -23,6 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { useGoogleLogin } from "@react-oauth/google";
+import { showLoginError } from "@/shared/helpers/sweet-alert";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +54,8 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
+
+  const { loginWithGoogle } = useLocalAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -79,6 +85,32 @@ export default function Register() {
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [termsError, setTermsError] = useState("");
+  const handleGoogleSignIn = useGoogleLogin({
+    onSuccess: async (response) => {
+      setIsLoading(true);
+      try {
+
+        // @ts-ignore - credential est disponible dans le flux implicite
+        const result = await loginWithGoogle(response.access_token);
+        if (result.success) {
+          if (result.redirectUrl) {
+            router.push(result.redirectUrl);
+          } else {
+            router.push("/");
+          }
+        }
+      } catch (err: any) {
+        console.error("Erreur Google login:", err);
+        const errorMapping = getErrorMapping(err);
+        showLoginError(errorMapping.message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      showLoginError("Échec de la connexion Google. Veuillez réessayer.");
+    },
+  });
 
   // Analyse de la force du mot de passe en temps réel
   useEffect(() => {
@@ -362,6 +394,16 @@ export default function Register() {
               <p className="text-muted-foreground text-xs lg:text-base">
                 Rejoignez nos milliers d'apprenants
               </p>
+            </div>
+
+            <div className="mb-4 lg:mb-6">
+              <GoogleSignInButton onClick={handleGoogleSignIn} isLoading={isLoading} />
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-background px-3 text-muted-foreground">ou avec votre email</span>
+                </div>
+              </div>
             </div>
 
             {/* Registration Form */}
