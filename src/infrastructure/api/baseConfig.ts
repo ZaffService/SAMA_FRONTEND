@@ -102,7 +102,7 @@ export const API_ENDPOINTS = {
     GET_BY_MODULE: (moduleId: string) => `/modules/${moduleId}/quizzes`,
   },
   AUTH: {
-    GOOGLE: "/auth/google", // endpoint pour valider le token Google côté backend
+    GOOGLE: "/user/google-login", // endpoint backend Google OAuth (idToken)
     GOOGLE_CALLBACK: "/auth/google/callback",
     LOGIN: "/user/login",
     LOGOUT: "/user/logout",

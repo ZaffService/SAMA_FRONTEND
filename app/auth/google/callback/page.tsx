@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { AuthApi } from "@/infrastructure/api/auth-api";
 
 export default function GoogleCallbackPage() {
   const router = useRouter();
@@ -11,7 +12,11 @@ export default function GoogleCallbackPage() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const idToken = searchParams.get("id_token");
+      const idToken =
+        searchParams.get("id_token") ||
+        searchParams.get("access_token") ||
+        searchParams.get("credential") ||
+        searchParams.get("token");
       const errorParam = searchParams.get("error");
 
       if (errorParam) {
@@ -19,28 +24,13 @@ export default function GoogleCallbackPage() {
         return;
       }
 
-      if (!idToken) {
+      if (!idToken || !idToken.trim()) {
         setError("Token d'authentification manquant");
         return;
       }
-      
 
       try {
-        // Envoyer le token au backend pour validation et création de session
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ idToken }),
-          }
-        );
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || "Échec de l'authentification Google");
-        }
+        await AuthApi.loginWithGoogle(idToken);
 
         // Redirection vers la page d'accueil après succès
         router.push("/");

@@ -17,7 +17,6 @@ import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
-import { useGoogleLogin } from "@react-oauth/google";
 
 export default function ClientLogin() {
   const router = useRouter();
@@ -149,31 +148,25 @@ export default function ClientLogin() {
     }
   };
 
-  // Google login function using the SDK
-  const handleGoogleSignIn = useGoogleLogin({
-    onSuccess: async (response) => {
-      setIsLoading(true);
-      try {
-        const result = await loginWithGoogle(response.access_token);
-        if (result.success) {
-          if (result.redirectUrl) {
-            router.push(result.redirectUrl);
-          } else {
-            router.push("/");
-          }
+  const handleGoogleSignIn = async (idToken: string) => {
+    setIsLoading(true);
+    try {
+      const result = await loginWithGoogle(idToken);
+      if (result.success) {
+        if (result.redirectUrl) {
+          router.push(result.redirectUrl);
+        } else {
+          router.push("/");
         }
-      } catch (err: any) {
-        console.error("Erreur Google login:", err);
-        const errorMapping = getErrorMapping(err);
-        loginError(errorMapping.message);
-      } finally {
-        setIsLoading(false);
       }
-    },
-    onError: () => {
-      loginError("Échec de la connexion Google. Veuillez réessayer.");
-    },
-  });
+    } catch (err: any) {
+      console.error("Erreur Google login:", err);
+      const errorMapping = getErrorMapping(err);
+      loginError(errorMapping.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
@@ -201,7 +194,13 @@ export default function ClientLogin() {
             </div>
 
             <div className="mb-4 lg:mb-6">
-              <GoogleSignInButton onClick={handleGoogleSignIn} isLoading={isLoading} />
+              <GoogleSignInButton
+                onSuccess={handleGoogleSignIn}
+                onError={() =>
+                  loginError("Échec de la connexion Google. Veuillez réessayer.")
+                }
+                isLoading={isLoading}
+              />
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs">

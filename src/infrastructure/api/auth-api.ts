@@ -296,7 +296,16 @@ export class AuthApi {
   }
 
   static async loginWithGoogle(idToken: string): Promise<AuthResponse> {
-    console.log("🔐 [AuthApi] Login avec Google token");
+    if (!idToken || !idToken.trim()) {
+      throw new Error("Token d'authentification Google manquant");
+    }
+    if (idToken.split(".").length !== 3) {
+      throw new Error(
+        "Token Google invalide: le frontend doit envoyer un ID Token JWT.",
+      );
+    }
+
+    console.log("🔐 [AuthApi] Login Google via:", API_ENDPOINTS.AUTH.GOOGLE);
     const res = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.GOOGLE), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -314,7 +323,11 @@ export class AuthApi {
         (errorObj as any).path = data.error.path;
         throw errorObj;
       }
-      throw new Error(data.message || "Échec de la connexion Google");
+      throw new Error(
+        data.message ||
+          data.error?.message ||
+          "Échec de la connexion Google",
+      );
     }
 
     return data;

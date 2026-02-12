@@ -76,6 +76,21 @@ export function useProvideAuth(): AuthContextType {
     null,
   );
 
+  const mapBackendUserToLocalUser = (rawUser: any): User => {
+    return {
+      id: rawUser?.id,
+      email: rawUser?.email || "",
+      firstName: rawUser?.firstName || rawUser?.first_name || "",
+      lastName: rawUser?.lastName || rawUser?.last_name || "",
+      telephone: rawUser?.telephone || "",
+      role: rawUser?.role,
+      createdAt: rawUser?.createdAt || rawUser?.created_at || "",
+      first_name: rawUser?.first_name,
+      last_name: rawUser?.last_name,
+      created_at: rawUser?.created_at,
+    };
+  };
+
   useEffect(() => {
     console.log("🎬 [useAuth] useEffect déclenché - App montée");
 
@@ -97,18 +112,7 @@ export function useProvideAuth(): AuthContextType {
             "Telephone:",
             currentUser.telephone,
           );
-          const mappedUser: User = {
-            id: currentUser.id,
-            email: currentUser.email,
-            firstName: currentUser.firstName || currentUser.first_name || "",
-            lastName: currentUser.lastName || currentUser.last_name || "",
-            telephone: currentUser.telephone || "",
-            role: currentUser.role,
-            createdAt: currentUser.createdAt || currentUser.created_at || "",
-            first_name: currentUser.first_name,
-            last_name: currentUser.last_name,
-            created_at: currentUser.created_at,
-          };
+          const mappedUser = mapBackendUserToLocalUser(currentUser);
 
           setUser(mappedUser);
           setIsAuthenticated(true);
@@ -154,18 +158,7 @@ export function useProvideAuth(): AuthContextType {
       const isComplete = (response.user as any).isProfileComplete;
       console.log("🔐 [useAuth] isProfileComplete from response:", isComplete);
 
-      const mappedUser: User = {
-        id: response.user.id,
-        email: response.user.email,
-        firstName: response.user.first_name || "",
-        lastName: response.user.last_name || "",
-        telephone: response.user.telephone || "",
-        role: response.user.role,
-        createdAt: response.user.created_at || "",
-        first_name: response.user.first_name,
-        last_name: response.user.last_name,
-        created_at: response.user.created_at,
-      };
+      const mappedUser = mapBackendUserToLocalUser(response.user);
 
       setUser(mappedUser);
       setIsAuthenticated(true);
@@ -225,18 +218,7 @@ export function useProvideAuth(): AuthContextType {
 
       const isComplete = (response.user as any).isProfileComplete;
 
-      const mappedUser: User = {
-        id: response.user.id,
-        email: response.user.email,
-        firstName: response.user.first_name || "",
-        lastName: response.user.last_name || "",
-        telephone: response.user.telephone || "",
-        role: response.user.role,
-        createdAt: response.user.created_at || "",
-        first_name: response.user.first_name,
-        last_name: response.user.last_name,
-        created_at: response.user.created_at,
-      };
+      const mappedUser = mapBackendUserToLocalUser(response.user);
 
       setUser(mappedUser);
       setIsAuthenticated(true);
