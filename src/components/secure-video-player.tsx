@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { VideoApi } from "@/infrastructure/api/video-api";
 
 interface SecureVideoPlayerProps {
@@ -16,6 +16,87 @@ interface SecureVideoPlayerProps {
   ) => void;
   onEnded?: () => void;
 }
+
+const TRACKING_TICK_SECONDS = 2;
+const COMPLETION_THRESHOLD = 0.95;
+const PLAYERJS_SCRIPT_ID = "bunny-playerjs-sdk";
+const PLAYERJS_SCRIPT_SRC =
+  "https://assets.mediadelivery.net/playerjs/player-0.1.0.min.js";
+
+type PlayerJsEventPayload =
+  | {
+      seconds?: number | string;
+      duration?: number | string;
+      percent?: number | string;
+    }
+  | number
+  | string
+  | null
+  | undefined;
+
+type PlayerJsCallback = (value?: PlayerJsEventPayload) => void;
+
+type PlayerJsInstance = {
+  on: (eventName: string, callback: PlayerJsCallback) => boolean;
+  off: (eventName: string, callback: PlayerJsCallback) => boolean;
+  getCurrentTime: (callback: (value: number | string) => void) => void;
+  getDuration: (callback: (value: number | string) => void) => void;
+};
+
+type PlayerJsGlobal = {
+  Player: new (element: HTMLIFrameElement | string) => PlayerJsInstance;
+};
+
+declare global {
+  interface Window {
+    playerjs?: PlayerJsGlobal;
+  }
+}
+
+let playerJsLoaderPromise: Promise<void> | null = null;
+
+const loadPlayerJs = (): Promise<void> => {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.playerjs?.Player) return Promise.resolve();
+  if (playerJsLoaderPromise) return playerJsLoaderPromise;
+
+  playerJsLoaderPromise = new Promise<void>((resolve, reject) => {
+    const existingScript = document.getElementById(
+      PLAYERJS_SCRIPT_ID,
+    ) as HTMLScriptElement | null;
+
+    const handleLoaded = () => {
+      if (window.playerjs?.Player) {
+        resolve();
+        return;
+      }
+      reject(new Error("playerjs chargé mais indisponible sur window"));
+    };
+
+    const handleError = () => {
+      reject(new Error("Impossible de charger playerjs"));
+    };
+
+    if (existingScript) {
+      existingScript.addEventListener("load", handleLoaded, { once: true });
+      existingScript.addEventListener("error", handleError, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = PLAYERJS_SCRIPT_ID;
+    script.src = PLAYERJS_SCRIPT_SRC;
+    script.async = true;
+    script.onload = handleLoaded;
+    script.onerror = handleError;
+    document.body.appendChild(script);
+  }).catch((error) => {
+    playerJsLoaderPromise = null;
+    throw error;
+  });
+
+  return playerJsLoaderPromise as Promise<void>;
+};
 
 export function SecureVideoPlayer({
   lessonId,
@@ -33,15 +114,31 @@ export function SecureVideoPlayer({
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const trackingIntervalRef = useRef<number | null>(null);
   const lastTrackedTimeRef = useRef(0);
-  const bunnyTimeEventSeenRef = useRef(false);
+  const lastKnownDurationRef = useRef(0);
+  const completionNotifiedRef = useRef(false);
+  const onProgressWindowRef = useRef(onProgressWindow);
+
+  useEffect(() => {
+    onProgressWindowRef.current = onProgressWindow;
+  }, [onProgressWindow]);
 
   const isIframeEmbedUrl = useCallback((input?: string) => {
     if (!input) return false;
     return (
-      input.includes("player.mediadelivery.net/embed/") ||
+      input.includes("mediadelivery.net/embed/") ||
+      input.includes("mediadelivery.net/play/") ||
       input.includes("youtube.com/embed/") ||
       input.includes("youtu.be/")
     );
+  }, []);
+
+  const toFiniteNumber = useCallback((value: unknown): number | undefined => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return undefined;
   }, []);
 
   const parseBunnyMessage = useCallback((rawData: unknown) => {
@@ -59,24 +156,37 @@ export function SecureVideoPlayer({
       data?.time,
       data?.seconds,
       data?.position,
+      data?.detail?.currentTime,
+      data?.detail?.time,
+      data?.detail?.seconds,
       data?.value?.currentTime,
       data?.value?.time,
+      data?.value?.seconds,
+      data?.value?.position,
       data?.data?.currentTime,
       data?.data?.time,
+      data?.data?.seconds,
+      data?.data?.position,
+      data?.payload?.currentTime,
+      data?.payload?.time,
+      data?.payload?.seconds,
+      data?.payload?.position,
     ];
     const durationCandidates = [
       data?.duration,
       data?.totalDuration,
+      data?.detail?.duration,
       data?.value?.duration,
       data?.data?.duration,
+      data?.payload?.duration,
     ];
 
-    const currentTime = currentTimeCandidates.find(
-      (v) => typeof v === "number" && Number.isFinite(v),
-    );
-    const duration = durationCandidates.find(
-      (v) => typeof v === "number" && Number.isFinite(v),
-    );
+    const currentTime = currentTimeCandidates
+      .map(toFiniteNumber)
+      .find((v) => typeof v === "number");
+    const duration = durationCandidates
+      .map(toFiniteNumber)
+      .find((v) => typeof v === "number");
 
     const eventName = String(
       data?.event || data?.type || data?.name || data?.action || "",
@@ -91,7 +201,55 @@ export function SecureVideoPlayer({
         currentTime >= duration - 0.5);
 
     return { data, currentTime, duration, ended, eventName };
-  }, []);
+  }, [toFiniteNumber]);
+
+  const resolvedIframeUrl = useMemo(() => {
+    if (!videoUrl) return videoUrl;
+    if (!videoUrl.includes("mediadelivery.net/")) return videoUrl;
+
+    try {
+      const parsed = new URL(videoUrl);
+      if (!parsed.searchParams.has("playerjs")) {
+        parsed.searchParams.set("playerjs", "1");
+      }
+      return parsed.toString();
+    } catch {
+      return videoUrl;
+    }
+  }, [videoUrl]);
+
+  const maybeNotifyCompleted = useCallback(
+    (currentTime: number, duration: number, source: string) => {
+      if (completionNotifiedRef.current) return;
+      if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) {
+        return;
+      }
+
+      const ratio = currentTime / duration;
+      if (ratio >= COMPLETION_THRESHOLD) {
+        completionNotifiedRef.current = true;
+        console.log("[TRACKING][player] seuil 95% atteint", {
+          lessonId,
+          source,
+          currentTime,
+          duration,
+          ratio: Number((ratio * 100).toFixed(2)),
+        });
+        onEnded?.();
+      }
+    },
+    [lessonId, onEnded],
+  );
+
+  const maybeNotifyEnded = useCallback(
+    (source: string) => {
+      if (completionNotifiedRef.current) return;
+      completionNotifiedRef.current = true;
+      console.log("[TRACKING][player] fin de lecture", { lessonId, source });
+      onEnded?.();
+    },
+    [lessonId, onEnded],
+  );
 
   // Fonction pour récupérer l'URL signée depuis l'API (utilisée quand aucune URL directe n'est fournie)
   const fetchSignedUrl = useCallback(async () => {
@@ -122,14 +280,199 @@ export function SecureVideoPlayer({
 
   useEffect(() => {
     lastTrackedTimeRef.current = 0;
-    bunnyTimeEventSeenRef.current = false;
+    lastKnownDurationRef.current =
+      typeof durationHintSeconds === "number" && durationHintSeconds > 0
+        ? durationHintSeconds
+        : 0;
+    completionNotifiedRef.current = false;
     console.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
-  }, [lessonId, videoUrl]);
+  }, [durationHintSeconds, lessonId, videoUrl]);
 
   useEffect(() => {
-    if (!videoUrl || !isIframeEmbedUrl(videoUrl)) return;
+    if (!resolvedIframeUrl || !isIframeEmbedUrl(resolvedIframeUrl)) return;
 
-    console.log("[BUNNY TRACKING] mode iframe actif", { lessonId, videoUrl });
+    console.log("[BUNNY TRACKING] mode iframe actif", { lessonId, videoUrl: resolvedIframeUrl });
+
+    let isMounted = true;
+    let playerInstance: PlayerJsInstance | null = null;
+
+    const resolveDuration = (candidate?: number): number => {
+      if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
+        lastKnownDurationRef.current = candidate;
+        return candidate;
+      }
+      if (lastKnownDurationRef.current > 0) {
+        return lastKnownDurationRef.current;
+      }
+      if (typeof durationHintSeconds === "number" && durationHintSeconds > 0) {
+        lastKnownDurationRef.current = durationHintSeconds;
+        return durationHintSeconds;
+      }
+      return 0;
+    };
+
+    const sendProgressWindow = (
+      nextTimeCandidate: unknown,
+      durationCandidate: unknown,
+      source: string,
+    ) => {
+      const nextTime = toFiniteNumber(nextTimeCandidate);
+      if (typeof nextTime !== "number" || nextTime < 0) return;
+
+      const duration = resolveDuration(toFiniteNumber(durationCandidate));
+      const previousTime = lastTrackedTimeRef.current;
+      const progressHandler = onProgressWindowRef.current;
+
+      if (nextTime + 0.5 < previousTime) {
+        lastTrackedTimeRef.current = nextTime;
+        console.log("[BUNNY TRACKING] saut arrière détecté", {
+          lessonId,
+          source,
+          from: previousTime,
+          to: nextTime,
+        });
+        maybeNotifyCompleted(nextTime, duration, source);
+        return;
+      }
+
+      if (progressHandler && duration > 0) {
+        progressHandler(previousTime, nextTime, duration);
+        console.log("[BUNNY TRACKING] progression envoyée", {
+          lessonId,
+          source,
+          from: previousTime,
+          to: nextTime,
+          duration,
+        });
+      }
+
+      lastTrackedTimeRef.current = nextTime;
+      maybeNotifyCompleted(nextTime, duration, source);
+    };
+
+    const probePlayerDuration = () => {
+      if (!playerInstance) return;
+      playerInstance.getDuration((value) => {
+        if (!isMounted) return;
+        const duration = toFiniteNumber(value);
+        if (typeof duration === "number" && duration > 0) {
+          lastKnownDurationRef.current = duration;
+          console.log("[BUNNY TRACKING][playerjs] durée réelle détectée", {
+            lessonId,
+            duration,
+          });
+          maybeNotifyCompleted(
+            lastTrackedTimeRef.current,
+            duration,
+            "playerjs_duration_probe",
+          );
+        }
+      });
+    };
+
+    const initPlayerJs = async () => {
+      try {
+        await loadPlayerJs();
+        if (!isMounted) return;
+        if (!iframeRef.current || !window.playerjs?.Player) return;
+
+        playerInstance = new window.playerjs.Player(iframeRef.current);
+        console.log("[BUNNY TRACKING][playerjs] SDK initialisé", { lessonId });
+
+        const onReady: PlayerJsCallback = () => {
+          console.log("[BUNNY TRACKING][playerjs] ready", { lessonId });
+          probePlayerDuration();
+        };
+
+        const onTimeUpdate: PlayerJsCallback = (payload) => {
+          const data =
+            payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+          const duration = toFiniteNumber(data.duration);
+          const percent = toFiniteNumber(data.percent);
+          const currentTimeFromData = toFiniteNumber(
+            data.seconds ?? data.currentTime ?? data.time ?? data.position,
+          );
+          const resolvedDuration = resolveDuration(duration);
+          const currentTime =
+            typeof currentTimeFromData === "number"
+              ? currentTimeFromData
+              : typeof percent === "number" && resolvedDuration > 0
+                ? Math.max(0, Math.min(1, percent)) * resolvedDuration
+                : undefined;
+          sendProgressWindow(currentTime, resolvedDuration, "playerjs_timeupdate");
+        };
+
+        const onSeeked: PlayerJsCallback = (payload) => {
+          const data =
+            payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+          const duration = toFiniteNumber(data.duration);
+          const percent = toFiniteNumber(data.percent);
+          const secondsFromData = toFiniteNumber(
+            data.seconds ?? data.currentTime ?? data.time ?? data.position,
+          );
+          const resolvedDuration = resolveDuration(duration);
+          const seconds =
+            typeof secondsFromData === "number"
+              ? secondsFromData
+              : typeof percent === "number" && resolvedDuration > 0
+                ? Math.max(0, Math.min(1, percent)) * resolvedDuration
+                : undefined;
+
+          sendProgressWindow(seconds, resolvedDuration, "playerjs_seeked");
+          probePlayerDuration();
+        };
+
+        const onEnded: PlayerJsCallback = () => {
+          maybeNotifyEnded("playerjs_ended");
+        };
+
+        playerInstance.on("ready", onReady);
+        playerInstance.on("timeupdate", onTimeUpdate);
+        playerInstance.on("seeked", onSeeked);
+        playerInstance.on("ended", onEnded);
+
+        const safeOff = (eventName: string, callback: PlayerJsCallback) => {
+          if (!playerInstance) return;
+          try {
+            playerInstance.off(eventName, callback);
+          } catch (error) {
+            console.warn("[BUNNY TRACKING][playerjs] off() ignoré", {
+              lessonId,
+              eventName,
+              error,
+            });
+          }
+        };
+
+        return () => {
+          if (!playerInstance) return;
+          if (!iframeRef.current?.contentWindow) {
+            playerInstance = null;
+            return;
+          }
+          safeOff("ready", onReady);
+          safeOff("timeupdate", onTimeUpdate);
+          safeOff("seeked", onSeeked);
+          safeOff("ended", onEnded);
+          playerInstance = null;
+        };
+      } catch (error) {
+        console.warn("[BUNNY TRACKING][playerjs] indisponible, fallback postMessage", {
+          lessonId,
+          error,
+        });
+        return undefined;
+      }
+    };
+
+    let cleanupPlayerJs: (() => void) | undefined;
+    void initPlayerJs().then((cleanup) => {
+      if (!isMounted) {
+        cleanup?.();
+        return;
+      }
+      cleanupPlayerJs = cleanup;
+    });
 
     const handleMessage = (event: MessageEvent) => {
       if (
@@ -146,37 +489,11 @@ export function SecureVideoPlayer({
         raw: parsed.data,
       });
 
-      const nextTime =
-        typeof parsed.currentTime === "number"
-          ? parsed.currentTime
-          : lastTrackedTimeRef.current;
-      const duration =
-        typeof parsed.duration === "number" && parsed.duration > 0
-          ? parsed.duration
-          : typeof durationHintSeconds === "number" && durationHintSeconds > 0
-            ? durationHintSeconds
-            : 0;
-
-      if (
-        onProgressWindow &&
-        typeof parsed.currentTime === "number" &&
-        parsed.currentTime >= lastTrackedTimeRef.current
-      ) {
-        bunnyTimeEventSeenRef.current = true;
-        const previousTime = lastTrackedTimeRef.current;
-        onProgressWindow(previousTime, parsed.currentTime, duration);
-        lastTrackedTimeRef.current = parsed.currentTime;
-        console.log("[BUNNY TRACKING] progression envoyée", {
-          lessonId,
-          from: previousTime,
-          to: nextTime,
-          duration,
-        });
-      }
+      sendProgressWindow(parsed.currentTime, parsed.duration, "iframe_message");
 
       if (parsed.ended) {
         console.log("[BUNNY TRACKING] vidéo terminée", { lessonId });
-        onEnded?.();
+        maybeNotifyEnded("iframe_message_ended");
       }
     };
 
@@ -198,52 +515,54 @@ export function SecureVideoPlayer({
       commands.forEach((cmd) => {
         target.postMessage(cmd, "*");
       });
+
+      if (playerInstance) {
+        playerInstance.getCurrentTime((value) => {
+          if (!isMounted) return;
+          const currentTime = toFiniteNumber(value);
+          if (typeof currentTime !== "number") return;
+
+          const previous = lastTrackedTimeRef.current;
+          if (Math.abs(currentTime - previous) < 0.1) return;
+          sendProgressWindow(
+            currentTime,
+            lastKnownDurationRef.current,
+            "playerjs_poll_current_time",
+          );
+        });
+
+        probePlayerDuration();
+      }
     };
 
     window.addEventListener("message", handleMessage);
     const pollId = window.setInterval(requestPlayerState, 2000);
 
-    // Fallback si le player iframe ne publie pas currentTime via postMessage.
-    const fallbackId = window.setInterval(() => {
-      if (!onProgressWindow) return;
-      if (bunnyTimeEventSeenRef.current) return;
-      if (!durationHintSeconds || durationHintSeconds <= 0) return;
-      if (document.visibilityState !== "visible") return;
-
-      const from = lastTrackedTimeRef.current;
-      const to = Math.min(durationHintSeconds, from + 2);
-      if (to <= from) return;
-
-      onProgressWindow(from, to, durationHintSeconds);
-      lastTrackedTimeRef.current = to;
-      console.log("[BUNNY TRACKING][fallback] progression envoyée", {
-        lessonId,
-        from,
-        to,
-        duration: durationHintSeconds,
-      });
-
-      if (to >= durationHintSeconds - 0.5) {
-        console.log("[BUNNY TRACKING][fallback] durée atteinte", { lessonId });
-        onEnded?.();
-      }
-    }, 2000);
-
     requestPlayerState();
 
     return () => {
+      isMounted = false;
+      try {
+        cleanupPlayerJs?.();
+      } catch (error) {
+        console.warn("[BUNNY TRACKING] cleanup playerjs ignoré", {
+          lessonId,
+          error,
+        });
+      }
       window.removeEventListener("message", handleMessage);
       window.clearInterval(pollId);
-      window.clearInterval(fallbackId);
     };
   }, [
     isIframeEmbedUrl,
     lessonId,
     onEnded,
-    onProgressWindow,
     parseBunnyMessage,
+    maybeNotifyCompleted,
+    maybeNotifyEnded,
     durationHintSeconds,
-    videoUrl,
+    resolvedIframeUrl,
+    toFiniteNumber,
   ]);
 
   // Gestionnaire d'erreur vidéo - retente de récupérer une nouvelle URL signée
@@ -253,12 +572,17 @@ export function SecureVideoPlayer({
   }, [fetchSignedUrl]);
 
   const flushTracking = useCallback(() => {
-    if (!videoRef.current || !onProgressWindow) return;
+    const progressHandler = onProgressWindowRef.current;
+    if (!videoRef.current || !progressHandler) return;
     const currentTime = Number(videoRef.current.currentTime) || 0;
     const duration = Number(videoRef.current.duration) || 0;
-    onProgressWindow(lastTrackedTimeRef.current, currentTime, duration);
+    if (duration > 0) {
+      lastKnownDurationRef.current = duration;
+    }
+    progressHandler(lastTrackedTimeRef.current, currentTime, duration);
     lastTrackedTimeRef.current = currentTime;
-  }, [onProgressWindow]);
+    maybeNotifyCompleted(currentTime, duration, "html5_flush");
+  }, [maybeNotifyCompleted]);
 
   const stopTracking = useCallback(() => {
     if (trackingIntervalRef.current) {
@@ -268,12 +592,12 @@ export function SecureVideoPlayer({
   }, []);
 
   const startTracking = useCallback(() => {
-    if (!onProgressWindow) return;
+    if (!onProgressWindowRef.current) return;
     stopTracking();
     trackingIntervalRef.current = window.setInterval(() => {
       flushTracking();
-    }, 2000);
-  }, [flushTracking, onProgressWindow, stopTracking]);
+    }, TRACKING_TICK_SECONDS * 1000);
+  }, [flushTracking, stopTracking]);
 
   useEffect(() => {
     return () => {
@@ -333,13 +657,16 @@ export function SecureVideoPlayer({
         isIframeEmbedUrl(videoUrl) ? (
           <iframe
             ref={iframeRef}
-            src={videoUrl}
+            src={resolvedIframeUrl}
             title={title}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
             className={`h-full w-full border-0 ${className}`}
             onLoad={() => {
-              console.log("[BUNNY TRACKING] iframe chargé", { lessonId, videoUrl });
+              console.log("[BUNNY TRACKING] iframe chargé", {
+                lessonId,
+                videoUrl: resolvedIframeUrl,
+              });
             }}
           />
         ) : (
@@ -353,6 +680,10 @@ export function SecureVideoPlayer({
             title={title}
             onLoadedMetadata={() => {
               lastTrackedTimeRef.current = Number(videoRef.current?.currentTime) || 0;
+              const duration = Number(videoRef.current?.duration) || 0;
+              if (duration > 0) {
+                lastKnownDurationRef.current = duration;
+              }
             }}
             onPlay={startTracking}
             onPause={() => {
@@ -361,10 +692,15 @@ export function SecureVideoPlayer({
             }}
             onSeeking={flushTracking}
             onSeeked={flushTracking}
+            onTimeUpdate={() => {
+              const currentTime = Number(videoRef.current?.currentTime) || 0;
+              const duration = Number(videoRef.current?.duration) || 0;
+              maybeNotifyCompleted(currentTime, duration, "html5_timeupdate");
+            }}
             onEnded={() => {
               stopTracking();
               flushTracking();
-              onEnded?.();
+              maybeNotifyEnded("html5_ended");
             }}
             onError={() => {
               stopTracking();

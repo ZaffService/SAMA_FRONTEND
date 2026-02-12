@@ -36,12 +36,9 @@ import {
 } from "lucide-react";
 import Cookies from "js-cookie";
 
-const TRACKING_SEGMENT_SECONDS = 5;
 const TRACKING_INTERVAL_MS = 2000;
 const TRACKING_COMPLETION_THRESHOLD = 0.95;
-const TRACKING_NEAR_END_THRESHOLD = 0.9;
-const TRACKING_FALLBACK_MIN_SEGMENTS = 8;
-const TRACKING_SUSPICIOUS_DURATION_SECONDS = 600;
+const TRACKING_PROGRESS_STEP = 0.05;
 
 // ✅ Utilitaires pour persistance état enrollment (Cookies + LocalStorage pour mobile)
 
@@ -334,10 +331,12 @@ function CourseDetailsPageComponent() {
 
   // Tracking automatique de progression vidéo
   const lessonProgressRef = useRef<Record<string, boolean>>({});
-  const trackedSegmentsRef = useRef<Record<string, Set<number>>>({});
+  const lessonMaxProgressRef = useRef<Record<string, number>>({});
+  const lessonLastReportedProgressRef = useRef<Record<string, number>>({});
   const lessonDurationsRef = useRef<Record<string, number>>({});
   const completionInFlightRef = useRef<Set<string>>(new Set());
   const syncedCompletedLessonsRef = useRef<Set<string>>(new Set());
+  const handledPaymentReturnRef = useRef<Set<string>>(new Set());
 
   // Helper function to validate UUID format (defined before useEffects)
   const isValidUUID = (id: string): boolean => {
@@ -525,6 +524,11 @@ function CourseDetailsPageComponent() {
     const fetchProgress = async () => {
       // Ne pas bloquer si isEnrolled est false au démarrage
       if (!courseId) return;
+      if (!(isEnrolled === true || isAdmin)) {
+        console.log("ℹ️ Skip fetchProgress: utilisateur non inscrit");
+        setLessonProgress({});
+        return;
+      }
 
       // Valider le format du courseId avant de faire l'appel API
       if (!isValidUUID(courseId)) {
@@ -604,13 +608,15 @@ function CourseDetailsPageComponent() {
     if (isEnrolled !== undefined) {
       fetchProgress();
     }
-  }, [courseId, isEnrolled]);
+  }, [courseId, isEnrolled, isAdmin]);
 
   useEffect(() => {
     lessonProgressRef.current = lessonProgress;
     Object.entries(lessonProgress).forEach(([lessonId, completed]) => {
       if (completed) {
         syncedCompletedLessonsRef.current.add(lessonId);
+        lessonMaxProgressRef.current[lessonId] = 1;
+        lessonLastReportedProgressRef.current[lessonId] = 1;
       }
     });
   }, [lessonProgress]);
@@ -676,76 +682,179 @@ function CourseDetailsPageComponent() {
   // ✅ NOUVEAU: Détection retour paiement Paydunya
   useEffect(() => {
     const detectPaymentReturn = async () => {
+      const paymentToken = searchParams.get("token");
+      const paymentStatus = searchParams.get("payment_status");
+      const successParam = searchParams.get("success");
+      const txRef = searchParams.get("tx_ref");
+      const transactionId = searchParams.get("transaction_id");
+
       // Détecter paramètres Paydunya dans l'URL
       const hasPaymentReturn =
-        searchParams.get("success") === "true" ||
-        searchParams.get("payment_status") === "completed" ||
-        searchParams.get("tx_ref") ||
-        searchParams.get("transaction_id");
+        successParam === "true" ||
+        paymentStatus === "completed" ||
+        paymentStatus === "success" ||
+        Boolean(txRef) ||
+        Boolean(transactionId) ||
+        Boolean(paymentToken);
 
       if (hasPaymentReturn && courseId) {
-        console.log("🔄 Retour paiement Paydunya détecté");
+        const returnKey = `${courseId}:${paymentToken || txRef || transactionId || "return"}`;
+        if (handledPaymentReturnRef.current.has(returnKey)) {
+          console.log("ℹ️ Retour paiement déjà traité, skip", { returnKey });
+          return;
+        }
+        handledPaymentReturnRef.current.add(returnKey);
+
+        console.log("🔄 Retour paiement Paydunya détecté", {
+          courseId,
+          paymentToken,
+          paymentStatus,
+          successParam,
+          txRef,
+          transactionId,
+        });
 
         // Restaurer état pending
         const pending = restorePendingEnrollment();
+        const pendingMatchesCourse = pending?.courseId === courseId;
 
-        if (pending && pending.courseId === courseId) {
-          console.log("🔍 Vérification inscription après paiement...");
-
-          // Attendre 2 secondes que backend traite le paiement
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          // Forcer vérification enrollment
-          try {
-            const isNowEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
-
-            if (isNowEnrolled) {
-              console.log("✅ Inscription confirmée après paiement !");
-              setIsEnrolled(true);
-              setIsPaid(true);
-
-              // Nettoyer état pending
-              clearPendingEnrollment();
-
-              // Message succès
-              Swal.fire({
-                title: "Paiement confirmé! 🎉",
-                text: "Votre cours est maintenant accessible. Bon apprentissage !",
-                icon: "success",
-                timer: 3000,
-                confirmButtonColor: "#6366f1",
-              });
-
-              // Scroll vers vidéo sur mobile
-              if (isMobile) {
-                setTimeout(() => {
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }, 500);
-              }
-            } else {
-              console.log("⏳ Paiement en traitement, nouvelle vérification...");
-              // Retry après 5 secondes
-              setTimeout(async () => {
-                const retry = await CoursesApi.checkEnrollmentStatus(courseId);
-                if (retry) {
-                  setIsEnrolled(true);
-                  setIsPaid(true);
-                  clearPendingEnrollment();
-                }
-              }, 5000);
-            }
-          } catch (error) {
-            console.error("❌ Erreur vérification post-paiement:", error);
-          }
+        if (!pendingMatchesCourse && !paymentToken) {
+          console.log("ℹ️ Aucun contexte pending/token pour confirmer le paiement");
+          return;
         }
 
-        // Nettoyer URL
-        window.history.replaceState({}, "", `/course-details/${courseId}`);
+        console.log("🔍 Vérification inscription après paiement...");
+
+        const normalizePaymentStatus = (payload: any): string => {
+          return String(
+            payload?.status ||
+              payload?.paymentStatus ||
+              payload?.payment_status ||
+              payload?.data?.status ||
+              payload?.result?.status ||
+              "",
+          ).toUpperCase();
+        };
+
+        const isPaymentConfirmedStatus = (status: string): boolean =>
+          [
+            "SUCCESS",
+            "SUCCEEDED",
+            "COMPLETED",
+            "ACTIVE",
+            "PAID",
+            "APPROVED",
+          ].includes(status);
+
+        const isPaymentFailedStatus = (status: string): boolean =>
+          ["FAILED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"].includes(
+            status,
+          );
+
+        let paymentConfirmed =
+          successParam === "true" ||
+          paymentStatus === "completed" ||
+          paymentStatus === "success";
+
+        try {
+          if (paymentToken) {
+            console.log("🔍 Vérification token PayDunya avec polling...");
+            for (let attempt = 1; attempt <= 12; attempt++) {
+              const verification = await verifyPayment(paymentToken);
+              const status = normalizePaymentStatus(verification);
+              console.log("🔍 Résultat verifyPayment", {
+                attempt,
+                status,
+                verification,
+              });
+
+              if (isPaymentConfirmedStatus(status)) {
+                paymentConfirmed = true;
+                console.log("✅ Paiement confirmé par verifyPayment", {
+                  attempt,
+                  status,
+                });
+                break;
+              }
+
+              if (isPaymentFailedStatus(status)) {
+                paymentConfirmed = false;
+                console.error("❌ Paiement rejeté/échoué", { attempt, status });
+                break;
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+            }
+          }
+        } catch (error) {
+          console.error("❌ verifyPayment a échoué:", error);
+        }
+
+        if (paymentConfirmed) {
+          console.log(
+            "✅ Déblocage immédiat côté UI après confirmation paiement",
+          );
+          setIsEnrolled(true);
+          setIsPaid(true);
+          setEnrollmentCheckComplete(true);
+        }
+
+        try {
+          let isNowEnrolled = false;
+          for (let attempt = 1; attempt <= 12; attempt++) {
+            isNowEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
+            console.log("🔍 Tentative check enrollment post-paiement", {
+              attempt,
+              isNowEnrolled,
+            });
+            if (isNowEnrolled) break;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+
+          if (isNowEnrolled) {
+            console.log("✅ Inscription confirmée après paiement !");
+            setIsEnrolled(true);
+            setIsPaid(true);
+            setEnrollmentCheckComplete(true);
+            clearPendingEnrollment();
+
+            Swal.fire({
+              title: "Paiement confirmé! 🎉",
+              text: "Votre cours est maintenant accessible. Bon apprentissage !",
+              icon: "success",
+              timer: 3000,
+              confirmButtonColor: "#6366f1",
+            });
+
+            if (isMobile) {
+              setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }, 500);
+            }
+          } else {
+            console.warn(
+              "⚠️ Paiement retourné mais inscription non active après retries",
+              { courseId, paymentToken, pending, paymentConfirmed },
+            );
+
+            Swal.fire({
+              title: "Paiement en cours de confirmation",
+              text: "Votre paiement est reçu. L'activation du cours peut prendre quelques instants.",
+              icon: "info",
+              confirmButtonColor: "#6366f1",
+            });
+          }
+        } catch (error) {
+          console.error("❌ Erreur vérification post-paiement:", error);
+        } finally {
+          // Nettoyer URL
+          window.history.replaceState({}, "", `/course-details/${courseId}`);
+        }
       }
     };
 
     detectPaymentReturn();
-  }, [searchParams, courseId, isMobile]);
+  }, [searchParams, courseId, isMobile, verifyPayment]);
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
@@ -1055,23 +1164,6 @@ function CourseDetailsPageComponent() {
     }
   }, [currentLessonIndex, isMobile]);
 
-  const handleNextLesson = useCallback(() => {
-    if (currentLessonIndex < lessonsWithVideos.length - 1) {
-      setCurrentLessonIndex(currentLessonIndex + 1);
-      setContentMode("video");
-      setActiveQuizModuleId(null);
-      setActiveTab("videos");
-      if (isMobile) {
-        setTimeout(() => {
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-          });
-        }, 100);
-      }
-    }
-  }, [currentLessonIndex, isMobile, lessonsWithVideos.length]);
-
   // ✅ Handler quiz complété
   const handleQuizCompleted = useCallback((passed: boolean, score: number) => {
     Swal.fire({
@@ -1209,13 +1301,25 @@ function CourseDetailsPageComponent() {
         const raw = localStorage.getItem(getTrackingStorageKey(lessonId));
         if (!raw) return null;
         const parsed = JSON.parse(raw) as {
-          segments?: number[];
+          maxProgress?: number;
+          lastReportedProgress?: number;
           duration?: number;
           completed?: boolean;
         };
 
         return {
-          segments: Array.isArray(parsed.segments) ? parsed.segments : [],
+          maxProgress:
+            typeof parsed.maxProgress === "number" &&
+            parsed.maxProgress >= 0 &&
+            parsed.maxProgress <= 1
+              ? parsed.maxProgress
+              : 0,
+          lastReportedProgress:
+            typeof parsed.lastReportedProgress === "number" &&
+            parsed.lastReportedProgress >= 0 &&
+            parsed.lastReportedProgress <= 1
+              ? parsed.lastReportedProgress
+              : 0,
           duration:
             typeof parsed.duration === "number" && parsed.duration > 0
               ? parsed.duration
@@ -1233,9 +1337,12 @@ function CourseDetailsPageComponent() {
   const persistTrackingToStorage = useCallback(
     (
       lessonId: string,
-      duration: number,
-      segments: Set<number>,
-      completed: boolean,
+      payload: {
+        duration: number;
+        maxProgress: number;
+        completed: boolean;
+        lastReportedProgress: number;
+      },
     ) => {
       if (typeof window === "undefined") return;
 
@@ -1243,9 +1350,10 @@ function CourseDetailsPageComponent() {
         localStorage.setItem(
           getTrackingStorageKey(lessonId),
           JSON.stringify({
-            duration,
-            segments: Array.from(segments).sort((a, b) => a - b),
-            completed,
+            duration: payload.duration,
+            maxProgress: payload.maxProgress,
+            completed: payload.completed,
+            lastReportedProgress: payload.lastReportedProgress,
             updatedAt: Date.now(),
           }),
         );
@@ -1256,46 +1364,115 @@ function CourseDetailsPageComponent() {
     [getTrackingStorageKey],
   );
 
-  const getViewedRatio = useCallback((segments: Set<number>, duration: number) => {
-    if (!Number.isFinite(duration) || duration <= 0) return 0;
-    const totalSegments = Math.max(
-      1,
-      Math.ceil(duration / TRACKING_SEGMENT_SECONDS),
-    );
-    const validCount = Array.from(segments).filter(
-      (segment) => segment >= 0 && segment < totalSegments,
-    ).length;
-    return validCount / totalSegments;
-  }, []);
-
   const markLessonCompletedAutomatically = useCallback(
-    async (lessonId: string) => {
+    async (
+      lessonId: string,
+      options?: {
+        forceComplete?: boolean;
+        source?: string;
+      },
+    ) => {
       if (!lessonId) return;
       if (completionInFlightRef.current.has(lessonId)) return;
       if (syncedCompletedLessonsRef.current.has(lessonId)) return;
 
       completionInFlightRef.current.add(lessonId);
       try {
-        const response = await fetch(
-          buildApiUrl(API_ENDPOINTS.LESSONS.COMPLETE(lessonId)),
-          {
-            method: "POST",
-            credentials: "include",
-          },
-        );
+        let marked = false;
+        let lastError: unknown = null;
 
-        if (!response.ok && response.status !== 409) {
-          console.error(
-            "❌ Tracking auto: erreur marquage leçon",
+        // Endpoint principal déjà utilisé ailleurs dans l'app.
+        try {
+          await CoursesApi.markLessonCompleted(lessonId, {
+            forceComplete: options?.forceComplete === true,
+          });
+          marked = true;
+          console.log("✅ [TRACKING] complétion via CoursesApi.markLessonCompleted", {
             lessonId,
-            response.status,
+            source: options?.source || "unknown",
+            forceComplete: options?.forceComplete === true,
+          });
+        } catch (error) {
+          lastError = error;
+          console.warn("⚠️ [TRACKING] endpoint principal a échoué, fallback...", {
+            lessonId,
+            source: options?.source || "unknown",
+            forceComplete: options?.forceComplete === true,
+            error,
+          });
+        }
+
+        // Fallback sur l'autre route utilisée par certains environnements.
+        if (!marked) {
+          const fallbackPayload: Record<string, unknown> = {};
+          if (options?.forceComplete === true) {
+            fallbackPayload.forceComplete = true;
+          }
+          const hasFallbackBody = Object.keys(fallbackPayload).length > 0;
+
+          const fallbackResponse = await fetch(
+            buildApiUrl(API_ENDPOINTS.LESSONS.COMPLETE(lessonId)),
+            {
+              method: "POST",
+              credentials: "include",
+              headers: hasFallbackBody
+                ? { "Content-Type": "application/json" }
+                : undefined,
+              body: hasFallbackBody
+                ? JSON.stringify(fallbackPayload)
+                : undefined,
+            },
           );
-          return;
+
+          if (!fallbackResponse.ok && fallbackResponse.status !== 409) {
+            const legacyPayload: Record<string, unknown> = { lessonId };
+            if (options?.forceComplete === true) {
+              legacyPayload.forceComplete = true;
+            }
+
+            const legacyResponse = await fetch(
+              buildApiUrl("/course/mark-lesson-completed"),
+              {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(legacyPayload),
+              },
+            );
+
+            if (!legacyResponse.ok && legacyResponse.status !== 409) {
+              console.error("❌ Tracking auto: erreur marquage leçon", {
+                lessonId,
+                source: options?.source || "unknown",
+                forceComplete: options?.forceComplete === true,
+                fallbackStatus: fallbackResponse.status,
+                legacyStatus: legacyResponse.status,
+                lastError,
+              });
+              return;
+            }
+
+            console.log("✅ [TRACKING] complétion via endpoint legacy", {
+              lessonId,
+              source: options?.source || "unknown",
+              forceComplete: options?.forceComplete === true,
+              status: legacyResponse.status,
+            });
+          } else {
+            console.log("✅ [TRACKING] complétion via endpoint fallback", {
+              lessonId,
+              source: options?.source || "unknown",
+              forceComplete: options?.forceComplete === true,
+              status: fallbackResponse.status,
+            });
+          }
         }
 
         console.log("✅ [TRACKING] leçon marquée complétée", {
           lessonId,
-          status: response.status,
+          source: options?.source || "unknown",
+          forceComplete: options?.forceComplete === true,
+          status: "OK",
         });
 
         syncedCompletedLessonsRef.current.add(lessonId);
@@ -1304,13 +1481,21 @@ function CourseDetailsPageComponent() {
           [lessonId]: true,
         }));
 
-        const currentSegments = trackedSegmentsRef.current[lessonId] || new Set();
         const currentDuration = lessonDurationsRef.current[lessonId] || 0;
+        const currentMaxProgress = Math.max(
+          lessonMaxProgressRef.current[lessonId] || 0,
+          1,
+        );
+        lessonMaxProgressRef.current[lessonId] = currentMaxProgress;
+        lessonLastReportedProgressRef.current[lessonId] = 1;
         persistTrackingToStorage(
           lessonId,
-          currentDuration,
-          currentSegments,
-          true,
+          {
+            duration: currentDuration,
+            maxProgress: currentMaxProgress,
+            completed: true,
+            lastReportedProgress: 1,
+          },
         );
       } catch (error) {
         console.error("💥 Tracking auto: échec marquage leçon:", error);
@@ -1334,24 +1519,14 @@ function CourseDetailsPageComponent() {
         return;
       }
 
-      const totalSegments = Math.max(
-        1,
-        Math.ceil(duration / TRACKING_SEGMENT_SECONDS),
-      );
-      const minTime = Math.max(0, Math.min(fromTime, toTime));
       const maxTime = Math.max(0, Math.max(fromTime, toTime));
-      const startSegment = Math.min(
-        totalSegments - 1,
-        Math.floor(minTime / TRACKING_SEGMENT_SECONDS),
-      );
-      const endSegment = Math.min(
-        totalSegments - 1,
-        Math.floor(maxTime / TRACKING_SEGMENT_SECONDS),
-      );
+      const currentProgress = Math.min(1, Math.max(0, maxTime / duration));
 
-      if (!trackedSegmentsRef.current[lessonId]) {
+      if (typeof lessonMaxProgressRef.current[lessonId] !== "number") {
         const stored = readTrackingFromStorage(lessonId);
-        trackedSegmentsRef.current[lessonId] = new Set(stored?.segments || []);
+        lessonMaxProgressRef.current[lessonId] = stored?.maxProgress || 0;
+        lessonLastReportedProgressRef.current[lessonId] =
+          stored?.lastReportedProgress || 0;
         if (stored?.duration && stored.duration > 0) {
           lessonDurationsRef.current[lessonId] = stored.duration;
         }
@@ -1360,79 +1535,111 @@ function CourseDetailsPageComponent() {
         }
       }
 
-      const trackedSegments = trackedSegmentsRef.current[lessonId];
-      for (let segment = startSegment; segment <= endSegment; segment++) {
-        trackedSegments.add(segment);
-      }
-
-      const sanitizedSegments = new Set(
-        Array.from(trackedSegments).filter(
-          (segment) => segment >= 0 && segment < totalSegments,
-        ),
+      const maxProgress = Math.max(
+        lessonMaxProgressRef.current[lessonId] || 0,
+        currentProgress,
       );
-      trackedSegmentsRef.current[lessonId] = sanitizedSegments;
+      lessonMaxProgressRef.current[lessonId] = maxProgress;
       lessonDurationsRef.current[lessonId] = duration;
 
-      const ratio = getViewedRatio(sanitizedSegments, duration);
       const isCompleted =
         lessonProgressRef.current[lessonId] ||
         syncedCompletedLessonsRef.current.has(lessonId);
-      const nearEndReached =
-        Number.isFinite(toTime) && duration > 0
-          ? toTime / duration >= TRACKING_NEAR_END_THRESHOLD
-          : false;
-      const suspiciousDuration =
-        duration >= TRACKING_SUSPICIOUS_DURATION_SECONDS;
-      const fallbackSegmentsReached =
-        suspiciousDuration &&
-        sanitizedSegments.size >= TRACKING_FALLBACK_MIN_SEGMENTS;
+      const previousReported = lessonLastReportedProgressRef.current[lessonId] || 0;
+      const steppedProgress =
+        Math.floor(maxProgress / TRACKING_PROGRESS_STEP) * TRACKING_PROGRESS_STEP;
+
+      if (
+        !isCompleted &&
+        steppedProgress > previousReported &&
+        steppedProgress < TRACKING_COMPLETION_THRESHOLD
+      ) {
+        lessonLastReportedProgressRef.current[lessonId] = steppedProgress;
+        console.log("[TRACKING] progression intermédiaire", {
+          lessonId,
+          progressPercent: Math.round(steppedProgress * 100),
+          fromTime,
+          toTime,
+          duration,
+        });
+      }
 
       console.log("[TRACKING] segment reçu", {
         lessonId,
         fromTime,
         toTime,
         duration,
-        trackedSegments: sanitizedSegments.size,
-        ratio: Number((ratio * 100).toFixed(2)),
-        nearEndReached,
-        suspiciousDuration,
-        fallbackSegmentsReached,
+        maxProgress: Number((maxProgress * 100).toFixed(2)),
+        currentProgress: Number((currentProgress * 100).toFixed(2)),
+        reportedProgress: Number(
+          (lessonLastReportedProgressRef.current[lessonId] * 100).toFixed(2),
+        ),
         isCompleted,
       });
 
-      persistTrackingToStorage(lessonId, duration, sanitizedSegments, isCompleted);
+      persistTrackingToStorage(lessonId, {
+        duration,
+        maxProgress,
+        completed: isCompleted,
+        lastReportedProgress:
+          lessonLastReportedProgressRef.current[lessonId] || 0,
+      });
 
-      if (
-        !isCompleted &&
-        (
-          ratio >= TRACKING_COMPLETION_THRESHOLD ||
-          nearEndReached ||
-          fallbackSegmentsReached
-        )
-      ) {
+      if (!isCompleted && maxProgress >= TRACKING_COMPLETION_THRESHOLD) {
+        lessonLastReportedProgressRef.current[lessonId] = 1;
         console.log("[TRACKING] seuil atteint, complétion auto", {
           lessonId,
-          ratio,
-          nearEndReached,
-          suspiciousDuration,
-          fallbackSegmentsReached,
-          reason:
-            ratio >= TRACKING_COMPLETION_THRESHOLD
-              ? "coverage_threshold"
-              : nearEndReached
-                ? "near_end_threshold"
-                : "fallback_segment_threshold",
+          maxProgress: Number((maxProgress * 100).toFixed(2)),
+          threshold: TRACKING_COMPLETION_THRESHOLD * 100,
+          reason: "threshold_95_percent",
         });
-        void markLessonCompletedAutomatically(lessonId);
+        void markLessonCompletedAutomatically(lessonId, {
+          forceComplete: true,
+          source: "threshold_95_percent",
+        });
       }
     },
     [
-      getViewedRatio,
       markLessonCompletedAutomatically,
       persistTrackingToStorage,
       readTrackingFromStorage,
     ],
   );
+
+  const handleLessonVideoEnded = useCallback(() => {
+    const lessonId = selectedLesson?.id;
+    if (lessonId) {
+      console.log("[TRACKING] fin vidéo détectée, complétion forcée", {
+        lessonId,
+      });
+      void markLessonCompletedAutomatically(lessonId, {
+        forceComplete: true,
+        source: "video_ended_event",
+      });
+    }
+    handleVideoEnd();
+  }, [handleVideoEnd, markLessonCompletedAutomatically, selectedLesson?.id]);
+
+  const handleNextLesson = useCallback(() => {
+    if (currentLessonIndex < lessonsWithVideos.length - 1) {
+      setCurrentLessonIndex(currentLessonIndex + 1);
+      setContentMode("video");
+      setActiveQuizModuleId(null);
+      setActiveTab("videos");
+      if (isMobile) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
+        }, 100);
+      }
+    }
+  }, [
+    currentLessonIndex,
+    isMobile,
+    lessonsWithVideos,
+  ]);
 
   useEffect(() => {
     if (!selectedLessonId) return;
@@ -1440,8 +1647,9 @@ function CourseDetailsPageComponent() {
     const stored = readTrackingFromStorage(selectedLessonId);
     if (!stored) return;
 
-    const segments = new Set(stored.segments || []);
-    trackedSegmentsRef.current[selectedLessonId] = segments;
+    lessonMaxProgressRef.current[selectedLessonId] = stored.maxProgress || 0;
+    lessonLastReportedProgressRef.current[selectedLessonId] =
+      stored.lastReportedProgress || 0;
     if (stored.duration > 0) {
       lessonDurationsRef.current[selectedLessonId] = stored.duration;
     }
@@ -1450,12 +1658,16 @@ function CourseDetailsPageComponent() {
     }
 
     const alreadyCompleted = lessonProgressRef.current[selectedLessonId];
-    const ratio = getViewedRatio(segments, stored.duration);
-    if (!alreadyCompleted && ratio >= TRACKING_COMPLETION_THRESHOLD) {
-      void markLessonCompletedAutomatically(selectedLessonId);
+    if (
+      !alreadyCompleted &&
+      (stored.completed || stored.maxProgress >= TRACKING_COMPLETION_THRESHOLD)
+    ) {
+      void markLessonCompletedAutomatically(selectedLessonId, {
+        forceComplete: true,
+        source: "storage_recovery",
+      });
     }
   }, [
-    getViewedRatio,
     markLessonCompletedAutomatically,
     readTrackingFromStorage,
     selectedLessonId,
@@ -1721,7 +1933,7 @@ function CourseDetailsPageComponent() {
                       videoId={videoId}
                       title={selectedLesson.title || course.title}
                       onTrackProgress={handleVideoTrackingProgress}
-                      onEnded={handleVideoEnd}
+                      onEnded={handleLessonVideoEnded}
                     />
                   ) : (
                     <SecureVideoPlayer
@@ -1739,7 +1951,7 @@ function CourseDetailsPageComponent() {
                           duration,
                         })
                       }
-                      onEnded={handleVideoEnd}
+                      onEnded={handleLessonVideoEnded}
                     />
                   );
                 })()
@@ -1853,7 +2065,7 @@ function CourseDetailsPageComponent() {
                                   videoId={videoId}
                                   title={selectedLesson.title || course.title}
                                   onTrackProgress={handleVideoTrackingProgress}
-                                  onEnded={handleVideoEnd}
+                                  onEnded={handleLessonVideoEnded}
                                 />
                               ) : (
                                 <SecureVideoPlayer
@@ -1870,7 +2082,7 @@ function CourseDetailsPageComponent() {
                                       duration,
                                     })
                                   }
-                                  onEnded={handleVideoEnd}
+                                  onEnded={handleLessonVideoEnded}
                                 />
                               );
                             })()
@@ -1889,7 +2101,7 @@ function CourseDetailsPageComponent() {
                                   duration,
                                 })
                               }
-                              onEnded={handleVideoEnd}
+                              onEnded={handleLessonVideoEnded}
                             />
                           )}
                         </div>

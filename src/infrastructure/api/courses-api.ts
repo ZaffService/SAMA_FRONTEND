@@ -337,17 +337,28 @@ export class CoursesApi {
    */
   static async markLessonCompleted(
     lessonId: string,
+    options?: {
+      forceComplete?: boolean;
+    },
   ): Promise<{ success: boolean }> {
     console.log(`✅ API: Marquage de la leçon ${lessonId} comme terminée`);
+    const payload: Record<string, unknown> = {};
+
+    if (options?.forceComplete === true) {
+      payload.forceComplete = true;
+    }
+
+    const hasBody = Object.keys(payload).length > 0;
 
     const response = await fetch(
-      buildApiUrl(`${API_ENDPOINTS.COURSES.LESSON_COMPLETE}/${lessonId}`),
+      buildApiUrl(API_ENDPOINTS.LESSONS.COMPLETE(lessonId)),
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
+        body: hasBody ? JSON.stringify(payload) : undefined,
       },
     );
 
@@ -1949,4 +1960,3 @@ export class CoursesApi {
     };
   }
 }
-
