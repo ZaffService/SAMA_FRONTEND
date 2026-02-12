@@ -18,34 +18,35 @@ function buildBunnyVideoUrl(videoAssetId: string): string {
  */
 function transformLesson(lesson: any) {
   const lessonData = {
-    id: lesson.id,
-    title: lesson.title,
-    content: lesson.content,
-    hasVideo: lesson.hasVideo,
-    orderIndex: lesson.orderIndex,
-    duration: lesson.duration,
-    status: lesson.status,
+    id: lesson?.id ?? "",
+    title: lesson?.title ?? "Leçon sans titre",
+    content: lesson?.content ?? "",
+    hasVideo: Boolean(lesson?.hasVideo),
+    orderIndex:
+      typeof lesson?.orderIndex === "number" ? lesson.orderIndex : 0,
+    duration: typeof lesson?.duration === "number" ? lesson.duration : 0,
+    status: lesson?.status ?? "",
   };
 
   // Construire l'URL vidéo
-  let videoUrl = lesson.videoUrl;
+  let videoUrl = lesson?.videoUrl;
   
   // Si pas d'URL directe mais on a un assetId Bunny
-  if (!videoUrl && lesson.videoAssetId && lesson.videoProvider === 'BUNNY') {
+  if (!videoUrl && lesson?.videoAssetId && lesson?.videoProvider === "BUNNY") {
     videoUrl = buildBunnyVideoUrl(lesson.videoAssetId);
     console.log(`🎥 [Transformer] URL Bunny construite: ${videoUrl}`);
   }
   
   // Si l'URL est toujours absente, vérifier si la leçon a un statut indiquant une vidéo
-  if (!videoUrl && lesson.status === 'VIDEO_UPLOADED') {
+  if (!videoUrl && lesson?.status === "VIDEO_UPLOADED") {
     console.warn(`⚠️ [Transformer] Vidéo uploadée mais pas d'URL pour la leçon ${lesson.id}`);
   }
 
   return {
     ...lessonData,
     videoUrl,
-    videoAssetId: lesson.videoAssetId,
-    videoProvider: lesson.videoProvider,
+    videoAssetId: lesson?.videoAssetId,
+    videoProvider: lesson?.videoProvider,
   };
 }
 
@@ -69,30 +70,35 @@ export function transformCourseDetails(data: any): CourseDetailsData {
   
   return {
     course: {
-      id: data.course.id,
-      title: data.course.title,
-      description: data.course.description,
-      categoryId: data.course.categoryId,
-      level: data.course.level,
-      price: data.course.price,
-      thumbnailUrl: data.course.thumbnailUrl,
+      id: data?.course?.id ?? "",
+      title: data?.course?.title ?? "Cours sans titre",
+      description: data?.course?.description ?? "",
+      categoryId: data?.course?.categoryId ?? "",
+      level: data?.course?.level ?? "BEGINNER",
+      price: typeof data?.course?.price === "number" ? data.course.price : 0,
+      thumbnailUrl: data?.course?.thumbnailUrl,
       attachment: attachmentUrl,  // ← URL Cloudinary du PDF
-      isEnrolled: data.course.isEnrolled,  // ← Statut d'inscription
+      isEnrolled: data?.course?.isEnrolled,  // ← Statut d'inscription
     },
-    modules: data.modules.map((module: any) => ({
-      id: module.id,
-      title: module.title,
-      description: module.description,
-      orderIndex: module.orderIndex,
-      lessons: module.lessons.map(transformLesson),
+    modules: (Array.isArray(data?.modules) ? data.modules : []).map(
+      (module: any) => ({
+      id: module?.id ?? "",
+      title: module?.title ?? "Module sans titre",
+      description: module?.description ?? "",
+      orderIndex:
+        typeof module?.orderIndex === "number" ? module.orderIndex : 0,
+      lessons: (Array.isArray(module?.lessons) ? module.lessons : []).map(
+        transformLesson,
+      ),
       // Transformer les quiz (underscore → camelCase)
       quiz:
-        module.quiz?.map((q: any) => ({
-          id: q._id,
-          title: q._title,
-          description: q._description,
-          passingScore: q._passingScore,
-          questions: q._questions.map((question: any) => ({
+        (Array.isArray(module?.quiz) ? module.quiz : []).map((q: any) => ({
+          id: q?._id ?? "",
+          title: q?._title ?? "Quiz",
+          description: q?._description ?? "",
+          passingScore:
+            typeof q?._passingScore === "number" ? q._passingScore : 0,
+          questions: (Array.isArray(q?._questions) ? q._questions : []).map((question: any) => ({
             id: question.id,
             question: question.question,
             type: question.questionType,
@@ -102,6 +108,6 @@ export function transformCourseDetails(data: any): CourseDetailsData {
           })),
         })) || [],
     })),
-    moduleCount: data.moduleCount,
+    moduleCount: typeof data?.moduleCount === "number" ? data.moduleCount : 0,
   };
 }

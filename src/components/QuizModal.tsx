@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useState, useEffect } from "react";
-import { X, CheckCircle, XCircle, Clock, Award } from "lucide-react";
+import { X, CheckCircle, XCircle, Clock, Award, ArrowLeft } from "lucide-react";
 import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
 
@@ -28,6 +28,7 @@ interface QuizModalProps {
   quizId: string | null;
   lessonId: string;
   onQuizCompleted: (passed: boolean, score: number) => void;
+  variant?: "modal" | "inline" | "page";
 }
 
 export function QuizModal({
@@ -36,6 +37,7 @@ export function QuizModal({
   quizId,
   lessonId,
   onQuizCompleted,
+  variant = "modal",
 }: QuizModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -181,55 +183,99 @@ export function QuizModal({
   const allQuestionsAnswered = quizData?.questions.every(
     (q) => answers[q.id] !== undefined,
   );
+  const isInline = variant === "inline";
+  const isPage = variant === "page";
 
   if (!isOpen) return null;
 
   if (error) {
+    const errorContent = (
+      <div
+        className={`bg-white overflow-hidden ${
+          isInline || isPage
+            ? "w-full rounded-xl border border-[#D1D7DC] shadow-sm"
+            : "w-full max-w-md mx-4 rounded-2xl shadow-2xl"
+        }`}
+      >
+        <div className="p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <svg
+              className="w-8 h-8 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Erreur de chargement
+          </h3>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+
+    if (isInline || isPage) {
+      return errorContent;
+    }
+
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Erreur de chargement
-            </h3>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
+        {errorContent}
       </div>
     );
   }
 
   if (!quizData) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md lg:max-w-3xl mx-auto overflow-hidden max-h-[95vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-start justify-between p-4 sm:p-6 border-b border-gray-100">
-          <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Award className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+  const quizContent = (
+    <div
+      className={`bg-white overflow-hidden flex flex-col ${
+        isInline || isPage
+          ? "w-full rounded-xl border border-[#D1D7DC] shadow-sm"
+          : "w-full max-w-sm sm:max-w-md lg:max-w-3xl mx-auto rounded-2xl shadow-2xl max-h-[95vh]"
+      }`}
+    >
+      {/* Header */}
+      {isPage ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D1D7DC] bg-[#F5F5F5] px-4 py-3">
+          <div className="flex items-start gap-3">
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-2 rounded border border-[#D1D7DC] bg-white px-3 py-2 text-sm font-semibold text-[#0056D2] hover:bg-[#F7F9FA]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Retour</span>
+            </button>
+            <div>
+              <h2 className="text-base font-semibold text-[#1F2937] sm:text-lg">
+                Quiz noté : {quizData.quiz.title}
+              </h2>
+              <p className="text-xs text-[#6B7280]">Devoir noté • 30 min</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-[#374151]">
+            <Clock className="h-4 w-4" />
+            <span>Date 7 févr. 23:59 PST</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start justify-between border-b border-gray-100 p-4 sm:p-6">
+          <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 sm:h-12 sm:w-12">
+              <Award className="h-5 w-5 text-blue-600 sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 leading-tight">
@@ -244,15 +290,18 @@ export function QuizModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 sm:p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0 ml-2"
+            className="ml-2 flex-shrink-0 rounded-full p-1.5 transition-colors hover:bg-gray-100 sm:p-1"
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+            <X className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
           </button>
         </div>
+      )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-8">
+      {/* Content */}
+      <div className={`${isInline ? "" : "flex-1"} overflow-y-auto`}>
+        <div
+          className={`${isPage ? "mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8" : "p-4 sm:p-6 lg:p-8"}`}
+        >
             {showResults ? (
               quizResult ? (
                 <QuizResults
@@ -310,33 +359,40 @@ export function QuizModal({
                     onAnswerChange={(answer) =>
                       handleAnswerChange(currentQuestion.id, answer)
                     }
+                    variant={isPage ? "page" : "modal"}
                   />
                 )}
               </>
             )}
-          </div>
         </div>
+      </div>
 
-        {/* Footer */}
-        {!showResults && (
-          <div className="border-t border-gray-100 bg-white">
-            {/* Progress counter - Mobile */}
-            <div className="px-4 py-2 sm:hidden">
-              <div className="text-xs text-gray-500 text-center">
-                {Object.keys(answers).length} / {quizData.questions.length}{" "}
-                répondues
-              </div>
+      {/* Footer */}
+      {!showResults && (
+        <div className="border-t border-gray-100 bg-white">
+          {/* Progress counter - Mobile */}
+          <div className="px-4 py-2 sm:hidden">
+            <div className="text-xs text-gray-500 text-center">
+              {Object.keys(answers).length} / {quizData.questions.length}{" "}
+              répondues
             </div>
+          </div>
 
-            {/* Footer buttons */}
-            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-              <button
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-                className="px-4 sm:px-5 py-2 sm:py-2.5 text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base"
-              >
-                ← Précédent
-              </button>
+          {/* Footer buttons */}
+          <div
+            className={`flex items-center justify-between px-4 py-4 sm:px-6 sm:py-6 ${
+              isPage ? "mx-auto w-full max-w-4xl lg:px-8" : ""
+            }`}
+          >
+            <button
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base ${
+                isPage ? "rounded border border-[#D1D7DC] bg-white hover:bg-[#F7F9FA]" : ""
+              }`}
+            >
+              ← Précédent
+            </button>
 
               {/* Progress counter - Desktop */}
               <div className="hidden sm:block text-xs sm:text-sm text-gray-500">
@@ -348,7 +404,9 @@ export function QuizModal({
                 <button
                   onClick={handleSubmitQuiz}
                   disabled={!allQuestionsAnswered || isSubmitting}
-                  className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base"
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base ${
+                    isPage ? "min-w-[140px] justify-center" : ""
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
@@ -367,7 +425,9 @@ export function QuizModal({
               ) : (
                 <button
                   onClick={handleNext}
-                  className="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium text-sm sm:text-base"
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium text-sm sm:text-base ${
+                    isPage ? "min-w-[140px]" : ""
+                  }`}
                 >
                   <span className="hidden sm:inline">Suivant</span>
                   <span className="sm:hidden">→</span>
@@ -376,7 +436,16 @@ export function QuizModal({
             </div>
           </div>
         )}
-      </div>
+    </div>
+  );
+
+  if (isInline || isPage) {
+    return quizContent;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+      {quizContent}
     </div>
   );
 }
@@ -385,6 +454,7 @@ function QuestionCard({
   question,
   answer,
   onAnswerChange,
+  variant = "modal",
 }: {
   question: {
     id: string;
@@ -395,35 +465,50 @@ function QuestionCard({
   };
   answer: number;
   onAnswerChange: (answer: number) => void;
+  variant?: "modal" | "page";
 }) {
+  const isPage = variant === "page";
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 leading-relaxed">
+      <h3
+        className={`font-semibold text-gray-900 leading-relaxed ${
+          isPage ? "text-lg sm:text-xl" : "text-base sm:text-lg lg:text-xl"
+        }`}
+      >
         {question.question}
       </h3>
 
       {question.type === "MULTIPLE_CHOICE" && question.options && (
-        <div className="space-y-2 sm:space-y-3">
+        <div className={isPage ? "space-y-3" : "space-y-2 sm:space-y-3"}>
           {question.options.map((option: string, index: number) => {
             const isSelected = answer === index;
             return (
               <label
                 key={index}
                 htmlFor={`option-${question.id}-${index}`}
-                className={`flex items-center gap-2 sm:gap-3 lg:gap-4 p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all group ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                className={`flex items-center gap-3 cursor-pointer transition-all group ${
+                  isPage
+                    ? "p-1"
+                    : `p-3 sm:p-4 border-2 rounded-xl ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                      }`
                 }`}
               >
                 <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 font-medium text-xs sm:text-sm transition-colors ${
-                    isSelected
-                      ? "bg-blue-200 text-blue-700"
-                      : "bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
+                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border text-xs font-medium transition-colors ${
+                    isPage
+                      ? isSelected
+                        ? "border-[#0056D2] bg-[#E8F1FF] text-[#0056D2]"
+                        : "border-[#9CA3AF] bg-white text-[#6B7280]"
+                      : isSelected
+                        ? "border-transparent bg-blue-200 text-blue-700"
+                        : "border-transparent bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
                   }`}
                 >
-                  {String.fromCharCode(65 + index)}
+                  {isPage ? "" : String.fromCharCode(65 + index)}
                 </div>
                 <input
                   type="radio"
@@ -434,10 +519,14 @@ function QuestionCard({
                   onChange={() => onAnswerChange(index)}
                   className="sr-only"
                 />
-                <span className="flex-1 text-sm sm:text-base text-gray-800 leading-relaxed">
+                <span
+                  className={`flex-1 text-gray-800 leading-relaxed ${
+                    isPage ? "text-[15px]" : "text-sm sm:text-base"
+                  }`}
+                >
                   {option}
                 </span>
-                {isSelected && (
+                {!isPage && isSelected && (
                   <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
                 )}
               </label>
@@ -447,27 +536,35 @@ function QuestionCard({
       )}
 
       {question.type === "TRUE_FALSE" && (
-        <div className="space-y-2 sm:space-y-3">
+        <div className={isPage ? "space-y-3" : "space-y-2 sm:space-y-3"}>
           {["Vrai", "Faux"].map((option, index) => {
             const isSelected = answer === index;
             return (
               <label
                 key={option}
                 htmlFor={`option-${question.id}-${index}`}
-                className={`flex items-center gap-2 sm:gap-3 lg:gap-4 p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all group ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                className={`flex items-center gap-3 cursor-pointer transition-all group ${
+                  isPage
+                    ? "p-1"
+                    : `p-3 sm:p-4 border-2 rounded-xl ${
+                        isSelected
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                      }`
                 }`}
               >
                 <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 font-medium text-xs sm:text-sm transition-colors ${
-                    isSelected
-                      ? "bg-blue-200 text-blue-700"
-                      : "bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
+                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border text-xs font-medium transition-colors ${
+                    isPage
+                      ? isSelected
+                        ? "border-[#0056D2] bg-[#E8F1FF] text-[#0056D2]"
+                        : "border-[#9CA3AF] bg-white text-[#6B7280]"
+                      : isSelected
+                        ? "border-transparent bg-blue-200 text-blue-700"
+                        : "border-transparent bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
                   }`}
                 >
-                  {String.fromCharCode(65 + index)}
+                  {isPage ? "" : String.fromCharCode(65 + index)}
                 </div>
                 <input
                   type="radio"
@@ -478,10 +575,14 @@ function QuestionCard({
                   onChange={() => onAnswerChange(index)}
                   className="sr-only"
                 />
-                <span className="flex-1 text-sm sm:text-base text-gray-800">
+                <span
+                  className={`flex-1 text-gray-800 ${
+                    isPage ? "text-[15px]" : "text-sm sm:text-base"
+                  }`}
+                >
                   {option}
                 </span>
-                {isSelected && (
+                {!isPage && isSelected && (
                   <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
                 )}
               </label>

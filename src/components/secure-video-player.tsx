@@ -1,24 +1,97 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { VideoApi } from "@/infrastructure/api/video-api";
 
 interface SecureVideoPlayerProps {
   lessonId: string;
   url?: string; // URL directe de la vidéo (si fournie, pas de fetch)
+  durationHintSeconds?: number;
   title?: string;
   className?: string;
+  onProgressWindow?: (
+    fromTime: number,
+    toTime: number,
+    duration: number,
+  ) => void;
+  onEnded?: () => void;
 }
 
 export function SecureVideoPlayer({
   lessonId,
   url,
+  durationHintSeconds,
   title = "Vidéo du cours",
   className = "",
+  onProgressWindow,
+  onEnded,
 }: SecureVideoPlayerProps) {
   const [videoUrl, setVideoUrl] = useState<string | undefined>(url);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const trackingIntervalRef = useRef<number | null>(null);
+  const lastTrackedTimeRef = useRef(0);
+  const bunnyTimeEventSeenRef = useRef(false);
+
+  const isIframeEmbedUrl = useCallback((input?: string) => {
+    if (!input) return false;
+    return (
+      input.includes("player.mediadelivery.net/embed/") ||
+      input.includes("youtube.com/embed/") ||
+      input.includes("youtu.be/")
+    );
+  }, []);
+
+  const parseBunnyMessage = useCallback((rawData: unknown) => {
+    let data: any = rawData;
+    if (typeof rawData === "string") {
+      try {
+        data = JSON.parse(rawData);
+      } catch {
+        data = { event: rawData };
+      }
+    }
+
+    const currentTimeCandidates = [
+      data?.currentTime,
+      data?.time,
+      data?.seconds,
+      data?.position,
+      data?.value?.currentTime,
+      data?.value?.time,
+      data?.data?.currentTime,
+      data?.data?.time,
+    ];
+    const durationCandidates = [
+      data?.duration,
+      data?.totalDuration,
+      data?.value?.duration,
+      data?.data?.duration,
+    ];
+
+    const currentTime = currentTimeCandidates.find(
+      (v) => typeof v === "number" && Number.isFinite(v),
+    );
+    const duration = durationCandidates.find(
+      (v) => typeof v === "number" && Number.isFinite(v),
+    );
+
+    const eventName = String(
+      data?.event || data?.type || data?.name || data?.action || "",
+    ).toLowerCase();
+
+    const ended =
+      data?.ended === true ||
+      eventName.includes("ended") ||
+      (typeof currentTime === "number" &&
+        typeof duration === "number" &&
+        duration > 0 &&
+        currentTime >= duration - 0.5);
+
+    return { data, currentTime, duration, ended, eventName };
+  }, []);
 
   // Fonction pour récupérer l'URL signée depuis l'API (utilisée quand aucune URL directe n'est fournie)
   const fetchSignedUrl = useCallback(async () => {
@@ -47,11 +120,166 @@ export function SecureVideoPlayer({
     // VideoApi gère le cache et l'expiration automatiquement
   }, [url, fetchSignedUrl]);
 
+  useEffect(() => {
+    lastTrackedTimeRef.current = 0;
+    bunnyTimeEventSeenRef.current = false;
+    console.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
+  }, [lessonId, videoUrl]);
+
+  useEffect(() => {
+    if (!videoUrl || !isIframeEmbedUrl(videoUrl)) return;
+
+    console.log("[BUNNY TRACKING] mode iframe actif", { lessonId, videoUrl });
+
+    const handleMessage = (event: MessageEvent) => {
+      if (
+        !event.origin.includes("mediadelivery.net") &&
+        !event.origin.includes("bunnycdn")
+      ) {
+        return;
+      }
+
+      const parsed = parseBunnyMessage(event.data);
+      console.log("[BUNNY TRACKING] message reçu", {
+        origin: event.origin,
+        eventName: parsed.eventName,
+        raw: parsed.data,
+      });
+
+      const nextTime =
+        typeof parsed.currentTime === "number"
+          ? parsed.currentTime
+          : lastTrackedTimeRef.current;
+      const duration =
+        typeof parsed.duration === "number" && parsed.duration > 0
+          ? parsed.duration
+          : typeof durationHintSeconds === "number" && durationHintSeconds > 0
+            ? durationHintSeconds
+            : 0;
+
+      if (
+        onProgressWindow &&
+        typeof parsed.currentTime === "number" &&
+        parsed.currentTime >= lastTrackedTimeRef.current
+      ) {
+        bunnyTimeEventSeenRef.current = true;
+        const previousTime = lastTrackedTimeRef.current;
+        onProgressWindow(previousTime, parsed.currentTime, duration);
+        lastTrackedTimeRef.current = parsed.currentTime;
+        console.log("[BUNNY TRACKING] progression envoyée", {
+          lessonId,
+          from: previousTime,
+          to: nextTime,
+          duration,
+        });
+      }
+
+      if (parsed.ended) {
+        console.log("[BUNNY TRACKING] vidéo terminée", { lessonId });
+        onEnded?.();
+      }
+    };
+
+    const requestPlayerState = () => {
+      const target = iframeRef.current?.contentWindow;
+      if (!target) return;
+
+      // Bunny peut ignorer certaines commandes selon version player.
+      // On envoie plusieurs formats pour maximiser la compatibilité.
+      const commands = [
+        { event: "getCurrentTime" },
+        { event: "getDuration" },
+        { type: "getCurrentTime" },
+        { type: "getDuration" },
+        "getCurrentTime",
+        "getDuration",
+      ];
+
+      commands.forEach((cmd) => {
+        target.postMessage(cmd, "*");
+      });
+    };
+
+    window.addEventListener("message", handleMessage);
+    const pollId = window.setInterval(requestPlayerState, 2000);
+
+    // Fallback si le player iframe ne publie pas currentTime via postMessage.
+    const fallbackId = window.setInterval(() => {
+      if (!onProgressWindow) return;
+      if (bunnyTimeEventSeenRef.current) return;
+      if (!durationHintSeconds || durationHintSeconds <= 0) return;
+      if (document.visibilityState !== "visible") return;
+
+      const from = lastTrackedTimeRef.current;
+      const to = Math.min(durationHintSeconds, from + 2);
+      if (to <= from) return;
+
+      onProgressWindow(from, to, durationHintSeconds);
+      lastTrackedTimeRef.current = to;
+      console.log("[BUNNY TRACKING][fallback] progression envoyée", {
+        lessonId,
+        from,
+        to,
+        duration: durationHintSeconds,
+      });
+
+      if (to >= durationHintSeconds - 0.5) {
+        console.log("[BUNNY TRACKING][fallback] durée atteinte", { lessonId });
+        onEnded?.();
+      }
+    }, 2000);
+
+    requestPlayerState();
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.clearInterval(pollId);
+      window.clearInterval(fallbackId);
+    };
+  }, [
+    isIframeEmbedUrl,
+    lessonId,
+    onEnded,
+    onProgressWindow,
+    parseBunnyMessage,
+    durationHintSeconds,
+    videoUrl,
+  ]);
+
   // Gestionnaire d'erreur vidéo - retente de récupérer une nouvelle URL signée
   const handleVideoError = useCallback(() => {
     // En cas d'erreur de lecture (possiblement expiration), retenter
     fetchSignedUrl();
   }, [fetchSignedUrl]);
+
+  const flushTracking = useCallback(() => {
+    if (!videoRef.current || !onProgressWindow) return;
+    const currentTime = Number(videoRef.current.currentTime) || 0;
+    const duration = Number(videoRef.current.duration) || 0;
+    onProgressWindow(lastTrackedTimeRef.current, currentTime, duration);
+    lastTrackedTimeRef.current = currentTime;
+  }, [onProgressWindow]);
+
+  const stopTracking = useCallback(() => {
+    if (trackingIntervalRef.current) {
+      window.clearInterval(trackingIntervalRef.current);
+      trackingIntervalRef.current = null;
+    }
+  }, []);
+
+  const startTracking = useCallback(() => {
+    if (!onProgressWindow) return;
+    stopTracking();
+    trackingIntervalRef.current = window.setInterval(() => {
+      flushTracking();
+    }, 2000);
+  }, [flushTracking, onProgressWindow, stopTracking]);
+
+  useEffect(() => {
+    return () => {
+      stopTracking();
+    };
+  }, [stopTracking]);
 
   if (loading) {
     return (
@@ -102,14 +330,48 @@ export function SecureVideoPlayer({
   return (
     <div className="relative w-full aspect-video overflow-hidden bg-black">
       {videoUrl ? (
-        <iframe
-          src={videoUrl}
-          className="absolute inset-0 w-full h-full"
-          allow="autoplay; fullscreen; encrypted-media"
-          allowFullScreen
-          title={title}
-          onError={handleVideoError as any}
-        />
+        isIframeEmbedUrl(videoUrl) ? (
+          <iframe
+            ref={iframeRef}
+            src={videoUrl}
+            title={title}
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+            allowFullScreen
+            className={`h-full w-full border-0 ${className}`}
+            onLoad={() => {
+              console.log("[BUNNY TRACKING] iframe chargé", { lessonId, videoUrl });
+            }}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            controls
+            playsInline
+            preload="metadata"
+            className={`h-full w-full ${className}`}
+            title={title}
+            onLoadedMetadata={() => {
+              lastTrackedTimeRef.current = Number(videoRef.current?.currentTime) || 0;
+            }}
+            onPlay={startTracking}
+            onPause={() => {
+              stopTracking();
+              flushTracking();
+            }}
+            onSeeking={flushTracking}
+            onSeeked={flushTracking}
+            onEnded={() => {
+              stopTracking();
+              flushTracking();
+              onEnded?.();
+            }}
+            onError={() => {
+              stopTracking();
+              handleVideoError();
+            }}
+          />
+        )
       ) : (
         <div className="flex items-center justify-center h-full text-white">
           Vidéo indisponible
