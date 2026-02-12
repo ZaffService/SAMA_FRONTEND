@@ -605,11 +605,14 @@ export function SecureVideoPlayer({
     };
   }, [stopTracking]);
 
+  const normalizedClassName = className.trim();
+  const containerClassName = normalizedClassName
+    ? `relative w-full overflow-hidden bg-black ${normalizedClassName}`
+    : "relative w-full aspect-video overflow-hidden bg-black";
+
   if (loading) {
     return (
-      <div
-        className={`relative bg-black aspect-video ${className} flex items-center justify-center`}
-      >
+      <div className={`${containerClassName} flex items-center justify-center`}>
         <div className="text-center text-white">
           <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
           <p className="text-sm">Chargement de la vidéo...</p>
@@ -620,9 +623,7 @@ export function SecureVideoPlayer({
 
   if (error) {
     return (
-      <div
-        className={`relative bg-black aspect-video ${className} flex items-center justify-center`}
-      >
+      <div className={`${containerClassName} flex items-center justify-center`}>
         <div className="text-center text-white px-4">
           <div className="w-12 h-12 mx-auto mb-4 bg-red-500 rounded-full flex items-center justify-center">
             <svg
@@ -642,7 +643,7 @@ export function SecureVideoPlayer({
           <p className="text-sm mb-2">{error}</p>
           <button
             onClick={fetchSignedUrl}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-[#002c75] text-white text-sm rounded hover:bg-[#001f54] transition-colors"
           >
             Réessayer
           </button>
@@ -652,7 +653,7 @@ export function SecureVideoPlayer({
   }
 
   return (
-    <div className="relative w-full aspect-video overflow-hidden bg-black">
+    <div className={containerClassName}>
       {videoUrl ? (
         isIframeEmbedUrl(videoUrl) ? (
           <iframe
@@ -661,7 +662,7 @@ export function SecureVideoPlayer({
             title={title}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
-            className={`h-full w-full border-0 ${className}`}
+            className="h-full w-full border-0"
             onLoad={() => {
               console.log("[BUNNY TRACKING] iframe chargé", {
                 lessonId,
@@ -676,7 +677,7 @@ export function SecureVideoPlayer({
             controls
             playsInline
             preload="metadata"
-            className={`h-full w-full ${className}`}
+            className="h-full w-full"
             title={title}
             onLoadedMetadata={() => {
               lastTrackedTimeRef.current = Number(videoRef.current?.currentTime) || 0;
