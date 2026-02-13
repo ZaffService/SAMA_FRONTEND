@@ -26,6 +26,7 @@ import {
   Play,
   ArrowLeft,
   ChevronDown,
+  AlertTriangle,
   X,
   Lock,
   Clock,
@@ -302,6 +303,7 @@ function CourseDetailsPageComponent() {
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [contentMode, setContentMode] = useState<"video" | "quiz">("video");
   const [activeQuizModuleId, setActiveQuizModuleId] = useState<string | null>(
@@ -313,6 +315,10 @@ function CourseDetailsPageComponent() {
   const [isPaid, setIsPaid] = useState(false);
   const [isFree, setIsFree] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [paymentNotice, setPaymentNotice] = useState<{
+    type: "warning" | "info";
+    message: string;
+  } | null>(null);
 
   // ✅ NOUVEAU: Flag pour éviter les requêtes d'enrollment multiples
   const [enrollmentCheckComplete, setEnrollmentCheckComplete] = useState(false);
@@ -687,14 +693,48 @@ function CourseDetailsPageComponent() {
   useEffect(() => {
     const detectPaymentReturn = async () => {
       const paymentToken = searchParams.get("token");
-      const paymentStatus = searchParams.get("payment_status");
-      const successParam = searchParams.get("success");
+      const paymentStatus = (searchParams.get("payment_status") || "").toLowerCase();
+      const statusParam = (searchParams.get("status") || "").toLowerCase();
+      const successParam = (searchParams.get("success") || "").toLowerCase();
+      const cancelledParam = (searchParams.get("cancelled") || "").toLowerCase();
       const txRef = searchParams.get("tx_ref");
       const transactionId = searchParams.get("transaction_id");
+
+      const isCancelledReturn =
+        cancelledParam === "true" ||
+        successParam === "false" ||
+        statusParam === "cancelled" ||
+        statusParam === "canceled" ||
+        paymentStatus === "cancelled" ||
+        paymentStatus === "canceled" ||
+        statusParam === "failed" ||
+        paymentStatus === "failed";
+
+      if (courseId && isCancelledReturn) {
+        const cancelKey = `${courseId}:cancelled:${paymentToken || txRef || transactionId || "return"}`;
+        if (handledPaymentReturnRef.current.has(cancelKey)) {
+          return;
+        }
+        handledPaymentReturnRef.current.add(cancelKey);
+
+        clearPendingEnrollment();
+        setPaymentNotice({
+          type: "warning",
+          message:
+            "Paiement annulé. Votre inscription n'a pas été finalisée. Vous pouvez relancer le paiement quand vous voulez.",
+        });
+
+        if (typeof window !== "undefined") {
+          window.history.replaceState({}, "", `/course-details/${courseId}`);
+        }
+        return;
+      }
 
       // Détecter paramètres Paydunya dans l'URL
       const hasPaymentReturn =
         successParam === "true" ||
+        statusParam === "completed" ||
+        statusParam === "success" ||
         paymentStatus === "completed" ||
         paymentStatus === "success" ||
         Boolean(txRef) ||
@@ -757,6 +797,8 @@ function CourseDetailsPageComponent() {
 
         let paymentConfirmed =
           successParam === "true" ||
+          statusParam === "completed" ||
+          statusParam === "success" ||
           paymentStatus === "completed" ||
           paymentStatus === "success";
 
@@ -852,7 +894,9 @@ function CourseDetailsPageComponent() {
           console.error("❌ Erreur vérification post-paiement:", error);
         } finally {
           // Nettoyer URL
-          window.history.replaceState({}, "", `/course-details/${courseId}`);
+          if (typeof window !== "undefined") {
+            window.history.replaceState({}, "", `/course-details/${courseId}`);
+          }
         }
       }
     };
@@ -1727,18 +1771,24 @@ function CourseDetailsPageComponent() {
   };
 
   // ✅ Composant Sidebar réutilisable
-  const LessonsSidebar = () => (
+  const LessonsSidebar = ({ onClose }: { onClose?: () => void }) => (
     <div className="flex h-full min-h-0 flex-col overflow-hidden border border-[#D1D7DC] bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-[#D1D7DC] px-4 py-4">
         <h3 className="text-xl font-bold leading-6 text-[#1C1D1F]">
           Contenu du cours
         </h3>
-        <button
-          type="button"
-          className="rounded-sm p-1 text-[#6A6F73] transition-colors duration-200 hover:bg-[#F7F9FA] hover:text-[#1C1D1F]"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer le panneau contenu du cours"
+            className="rounded-sm p-1 text-[#6A6F73] transition-colors duration-200 hover:bg-[#F7F9FA] hover:text-[#1C1D1F]"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        ) : (
+          <div className="h-7 w-7" />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -2045,6 +2095,29 @@ function CourseDetailsPageComponent() {
         </div>
       )}
 
+      {paymentNotice && (
+        <div className="mx-auto max-w-[1240px] px-4 pt-4 sm:px-6">
+          <div
+            className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
+              paymentNotice.type === "warning"
+                ? "border-[#F7CFA6] bg-[#FFF7ED] text-[#7C2D12]"
+                : "border-[#B9CCF6] bg-[#EEF4FF] text-[#1D4ED8]"
+            }`}
+          >
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <p className="flex-1 text-sm font-medium">{paymentNotice.message}</p>
+            <button
+              type="button"
+              onClick={() => setPaymentNotice(null)}
+              className="rounded p-1 transition-colors hover:bg-black/10"
+              aria-label="Fermer le message de paiement"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {hasCourseAccess ? (
         <div className="flex h-screen flex-col overflow-hidden bg-[#F7F9FA]">
           <header className="z-40 flex-shrink-0 border-b border-[#3E4143] bg-[#1C1D1F] text-white">
@@ -2099,12 +2172,12 @@ function CourseDetailsPageComponent() {
               </div>
             </main>
           ) : (
-            <main className="flex min-h-0 flex-1 overflow-hidden">
+            <main className="relative flex min-h-0 flex-1 overflow-hidden">
               <section className="min-h-0 flex-1 overflow-y-auto">
                 <section className="border-b border-[#D1D7DC] bg-white">
-                  <div className="flex flex-col bg-black">
+                  <div className="flex flex-col bg-white">
                     {hasVideo && hasVideoContent ? (
-                      <div className="relative w-full aspect-video max-h-[600px] bg-black">
+                      <div className="relative w-full aspect-video max-h-[600px] bg-white">
                         {selectedLesson?.videoUrl ? (
                           (() => {
                             const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
@@ -2279,9 +2352,38 @@ function CourseDetailsPageComponent() {
               </section>
 
               {!isMobile && hasVideoContent && (
-                <aside className="hidden w-[340px] min-w-[340px] flex-shrink-0 lg:flex lg:min-h-0 lg:flex-col lg:bg-white">
-                  <LessonsSidebar />
-                </aside>
+                <>
+                  <aside
+                    className={`hidden flex-shrink-0 overflow-hidden transition-[width,min-width] duration-300 ease-in-out lg:flex lg:min-h-0 lg:flex-col lg:bg-white ${
+                      isDesktopSidebarOpen
+                        ? "w-[340px] min-w-[340px]"
+                        : "w-0 min-w-0"
+                    }`}
+                  >
+                    <div
+                      className={`h-full w-[340px] transform transition-transform duration-300 ease-in-out ${
+                        isDesktopSidebarOpen ? "translate-x-0" : "translate-x-full"
+                      }`}
+                    >
+                      <LessonsSidebar
+                        onClose={() => {
+                          setIsDesktopSidebarOpen(false);
+                        }}
+                      />
+                    </div>
+                  </aside>
+
+                  {!isDesktopSidebarOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDesktopSidebarOpen(true)}
+                      aria-label="Ouvrir le panneau contenu du cours"
+                      className="absolute right-0 top-1/2 z-30 hidden h-12 w-9 -translate-y-1/2 items-center justify-center rounded-l-md bg-[#002c75] text-white shadow-lg transition-all duration-200 hover:bg-[#001f54] lg:flex"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                  )}
+                </>
               )}
             </main>
           )}

@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface QueryProviderProps {
   children: React.ReactNode;
@@ -20,6 +20,24 @@ export function QueryProvider({ children }: QueryProviderProps) {
         },
       }),
   );
+
+  useEffect(() => {
+    const clearClientCache = () => {
+      queryClient.clear();
+    };
+
+    window.addEventListener(
+      "auth:clear-client-cache",
+      clearClientCache as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "auth:clear-client-cache",
+        clearClientCache as EventListener,
+      );
+    };
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>

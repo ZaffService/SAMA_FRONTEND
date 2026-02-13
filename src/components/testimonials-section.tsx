@@ -1,156 +1,230 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
-import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { Quote, ChevronLeft, ChevronRight, Star } from "lucide-react";
 
-const testimonials = [
+interface Testimonial {
+  id: number;
+  name: string;
+  role: string;
+  content: string;
+  rating: number;
+  avatar: string;
+}
+
+const testimonials: Testimonial[] = [
   {
     id: 1,
-    name: "Aminata Diallo",
-    role: "Community Manager",
-    company: "Startup Dakar",
-    avatar: "/professional-african-woman.png",
+    name: "Mariama Bailo Diallo",
+    role: "Informatique Bureautique",
+    content:
+      "Grâce à cette formation en bureautique, je maîtrise désormais Word, Excel et PowerPoint. Aujourd’hui, je travaille avec assurance et efficacité dans mon entreprise.",
     rating: 5,
-    text: "Les cours de marketing digital m'ont permis de décrocher mon premier emploi en tant que Community Manager. Le contenu est clair, pratique et directement applicable. Je recommande à 100% !",
+    avatar: "/Mariama Bailo Diallo.png",
   },
   {
     id: 2,
-    name: "Moussa Ndiaye",
-    role: "Entrepreneur",
-    company: "E-commerce Sénégal",
-    avatar: "/professional-african-man-portrait-smiling.jpg",
+    name: "Mamadou Lamine Djiba",
+    role: "Audiovisuel",
+    content:
+      "J’ai appris le montage vidéo, la prise de vue et le sound design. Les cours sont pratiques et m’ont permis de produire mes propres contenus professionnels.",
     rating: 5,
-    text: "Grâce à Bibocom Digital, j'ai pu lancer ma boutique en ligne et maîtriser les techniques de marketing digital. Les formateurs sont accessibles et le support est excellent.",
+    avatar: "/Djiba.png",
   },
   {
     id: 3,
-    name: "Fatou Sow",
-    role: "Responsable Marketing",
-    company: "Agence Web",
-    avatar: "/professional-african-woman-business-portrait.png",
+    name: "Mamadou Kali Diallo",
+    role: "Infographie",
+    content:
+      "Grâce à la formation en infographie, je crée maintenant des logos, flyers et visuels professionnels. J’ai même commencé à travailler en freelance.",
     rating: 5,
-    text: "La qualité des cours est exceptionnelle. J'ai suivi plusieurs formations et chaque fois, j'ai appris des techniques concrètes que j'applique immédiatement dans mon travail.",
+    avatar: "/Bibo2.png",
+  },
+  {
+    id: 4,
+    name: "Fatou Sow",
+    role: "Gestion de caisse",
+    content:
+      "La formation en gestion de caisse m’a permis de mieux comprendre les opérations commerciales, la gestion des stocks et le suivi des ventes. Je suis beaucoup plus organisée maintenant.",
+    rating: 4,
+    avatar: "https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?w=100&h=100&fit=crop&crop=face",
+  },
+  {
+    id: 5,
+    name: "Youssouf Issa Bilal",
+    role: "Marketing Digital",
+    content:
+      "J’ai appris à gérer les réseaux sociaux, lancer des campagnes publicitaires et analyser les performances. Aujourd’hui, je développe la visibilité de plusieurs entreprises.",
+    rating: 5,
+    avatar: "/Youssouf.png",
   },
 ];
 
-/**
- * Section témoignages avec carousel
- */
-export function TestimonialsSection() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+const TestimonialCarousel = () => {
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(0);
 
-  const nextTestimonial = () => {
-    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-  };
+  const next = useCallback(() => {
+    setDirection(1);
+    setCurrent((prev) => (prev + 1) % testimonials.length);
+  }, []);
 
-  const prevTestimonial = () => {
-    setCurrentIndex(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length,
+  const prev = useCallback(() => {
+    setDirection(-1);
+    setCurrent(
+      (prev) => (prev - 1 + testimonials.length) % testimonials.length
     );
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(next, 5000);
+    return () => clearInterval(timer);
+  }, [next]);
+
+  const variants = {
+    enter: (d: number) => ({ x: d > 0 ? 300 : -300, opacity: 0, scale: 0.95 }),
+    center: { x: 0, opacity: 1, scale: 1 },
+    exit: (d: number) => ({ x: d > 0 ? -300 : 300, opacity: 0, scale: 0.95 }),
   };
+
+  const t = testimonials[current];
 
   return (
-    <section className="py-20 bg-gradient-to-b from-muted/50 to-background">
-      <div className="container mx-auto px-4">
+    <section className="bg-[#0A2A66] py-20 px-4 overflow-hidden">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-            Ce que disent nos étudiants
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Des milliers d'apprenants nous font confiance pour développer leurs
-            compétences
-          </p>
+        <div className="text-center mb-14">
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="inline-block text-[#d93030] font-semibold text-sm uppercase tracking-widest mb-3"
+          >
+            Témoignages
+          </motion.span>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl md:text-4xl font-bold text-white"
+          >
+            Ce que disent nos apprenants
+          </motion.h2>
         </div>
 
-        {/* Testimonials Carousel */}
-        <div className="relative max-w-4xl mx-auto">
-          <div className="bg-card border border-border/50 rounded-3xl p-8 md:p-12 shadow-lg">
-            {/* Quote Icon */}
-            <div className="absolute -top-6 left-8 md:left-12">
-              <div className="bg-primary p-4 rounded-2xl shadow-lg">
-                <Quote className="h-6 w-6 text-white" />
-              </div>
-            </div>
+        {/* Carousel */}
+        <div className="relative min-h-[320px] flex items-center justify-center">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={t.id}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="absolute w-full max-w-2xl mx-auto"
+            >
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 md:p-10 text-center">
+                {/* Quote icon */}
+                <Quote className="w-10 h-10 text-[#d93030] mx-auto mb-6 opacity-80" />
 
-            {/* Content */}
-            <div className="pt-4">
-              {/* Rating */}
-              <div className="flex gap-1 mb-6">
-                {[...Array(testimonials[currentIndex].rating)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-5 w-5 fill-amber-400 text-amber-400"
+                {/* Content */}
+                <p className="text-white/90 text-lg md:text-xl leading-relaxed mb-8 italic">
+                  "{t.content}"
+                </p>
+
+                {/* Stars */}
+                <div className="flex justify-center gap-1 mb-6">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < t.rating
+                          ? "text-[#d93030] fill-[#d93030]"
+                          : "text-white/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {/* Author */}
+                <div className="flex items-center justify-center gap-4">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-[#d93030]"
                   />
-                ))}
-              </div>
-
-              {/* Text */}
-              <p className="text-lg md:text-xl text-foreground leading-relaxed mb-8">
-                "{testimonials[currentIndex].text}"
-              </p>
-
-              {/* Author */}
-              <div className="flex items-center gap-4">
-                <Image
-                  src={testimonials[currentIndex].avatar || "/placeholder.svg"}
-                  alt={testimonials[currentIndex].name}
-                  width={64}
-                  height={64}
-                  className="rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-semibold text-foreground">
-                    {testimonials[currentIndex].name}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    {testimonials[currentIndex].role} •{" "}
-                    {testimonials[currentIndex].company}
-                  </p>
+                  <div className="text-left">
+                    <p className="text-white font-semibold">
+                      {t.name}
+                    </p>
+                    <p className="text-white/60 text-sm">
+                      {t.role}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-center gap-4 mt-8">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-12 w-12 rounded-full bg-transparent"
-              onClick={prevTestimonial}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-6 mt-10">
+          <button
+            onClick={prev}
+            className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center text-white hover:bg-[#d93030] hover:border-[#d93030] transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
 
-            {/* Dots */}
-            <div className="flex gap-2">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    index === currentIndex
-                      ? "w-8 bg-primary"
-                      : "w-2.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+          {/* Dots */}
+          <div className="flex gap-2 items-center">
+            {testimonials.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setDirection(i > current ? 1 : -1);
+                  setCurrent(i);
+                }}
+                className="group flex items-center justify-center p-0"
+                aria-label={`Aller au témoignage ${i + 1}`}
+              >
+                <span
+                  className={`block h-2 rounded-full transition-all duration-300 ${
+                    i === current
+                      ? "w-10 bg-[#d93030]"
+                      : "w-3 bg-white/30 group-hover:bg-white/50"
                   }`}
                 />
-              ))}
-            </div>
-
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-12 w-12 rounded-full bg-transparent"
-              onClick={nextTestimonial}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+              </button>
+            ))}
           </div>
+
+          <button
+            onClick={next}
+            className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center text-white hover:bg-[#d93030] hover:border-[#d93030] transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* CTA Button */}
+        <div className="text-center mt-12">
+          <Link
+            href="/contact"
+            className="inline-block bg-[#d93030] text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-[#b82828] transition-colors"
+          >
+            Rejoignez Bibocom digital
+          </Link>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default TestimonialCarousel;

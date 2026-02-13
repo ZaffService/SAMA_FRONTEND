@@ -1,8 +1,13 @@
 "use client";
 
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useCallback } from "react";
 import { AuthContext } from "./AuthContext";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import { setupAuthFetchInterceptor } from "@/infrastructure/api/fetch-auth-interceptor";
+import {
+  isProtectedRoutePath,
+  setAuthClientStatus,
+} from "@/infrastructure/storage/auth-client-state";
 import { UserApi } from "@/infrastructure/api/user-api";
 import { clearTokens } from "@/shared/helpers/auth";
 import type { AuthContextType, RegisterData } from "@/types/auth";
@@ -91,11 +96,65 @@ export function useProvideAuth(): AuthContextType {
     };
   };
 
+  const clearClientCaches = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent("auth:clear-client-cache"));
+  }, []);
+
+  const handleSessionExpired = useCallback(() => {
+    setAuthClientStatus("anonymous");
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsProfileComplete(null);
+    setIsLoading(false);
+    localStorage.removeItem("user_profile_cache");
+    clearTokens();
+    clearAuthCookies();
+    clearClientCaches();
+
+    if (typeof window !== "undefined") {
+      const currentPath = window.location.pathname;
+      if (!isProtectedRoutePath(currentPath)) {
+        return;
+      }
+
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `/login?returnTo=${encodeURIComponent(returnTo)}`;
+    }
+  }, [clearClientCaches]);
+
+  useEffect(() => {
+    setupAuthFetchInterceptor();
+
+    const onSessionExpired = () => {
+      console.warn(
+        "🚪 [useAuth] Session expirée détectée (event global), déconnexion...",
+      );
+      handleSessionExpired();
+    };
+
+    window.addEventListener(
+      "auth:session-expired",
+      onSessionExpired as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "auth:session-expired",
+        onSessionExpired as EventListener,
+      );
+    };
+  }, [handleSessionExpired]);
+
   useEffect(() => {
     console.log("🎬 [useAuth] useEffect déclenché - App montée");
 
     const initAuth = async () => {
       console.log("🔄 [useAuth] Début initAuth()");
+      setAuthClientStatus("unknown");
       setIsLoading(true);
 
       try {
@@ -116,6 +175,7 @@ export function useProvideAuth(): AuthContextType {
 
           setUser(mappedUser);
           setIsAuthenticated(true);
+          setAuthClientStatus("authenticated");
 
           // Fetch user profile to get isProfileComplete
           try {
@@ -130,12 +190,14 @@ export function useProvideAuth(): AuthContextType {
           console.log("❌ [useAuth] Aucun user trouvé (session invalide)");
           setUser(null);
           setIsAuthenticated(false);
+          setAuthClientStatus("anonymous");
           setIsProfileComplete(null);
         }
       } catch (error) {
         console.error("❌ [useAuth] Erreur initAuth:", error);
         setUser(null);
         setIsAuthenticated(false);
+        setAuthClientStatus("anonymous");
         setIsProfileComplete(null);
       } finally {
         console.log("🔄 [useAuth] Fin initAuth, isLoading = false");
@@ -145,6 +207,45 @@ export function useProvideAuth(): AuthContextType {
 
     initAuth();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const validateCurrentSession = async () => {
+      const currentUser = await AuthApi.validateSession();
+      if (!currentUser || !currentUser.id || !currentUser.email) {
+        console.warn(
+          "🚪 [useAuth] Session devenue invalide lors de la revalidation",
+        );
+        handleSessionExpired();
+      }
+    };
+
+    const handleFocus = () => {
+      void validateCurrentSession();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void validateCurrentSession();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    const intervalId = window.setInterval(() => {
+      void validateCurrentSession();
+    }, 60_000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.clearInterval(intervalId);
+    };
+  }, [isAuthenticated, handleSessionExpired]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -162,6 +263,7 @@ export function useProvideAuth(): AuthContextType {
 
       setUser(mappedUser);
       setIsAuthenticated(true);
+      setAuthClientStatus("authenticated");
       // Capture isProfileComplete from login response
       setIsProfileComplete(isComplete ?? null);
 
@@ -190,6 +292,7 @@ export function useProvideAuth(): AuthContextType {
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
+      setAuthClientStatus("anonymous");
       setIsProfileComplete(null);
       throw error;
     } finally {
@@ -222,6 +325,7 @@ export function useProvideAuth(): AuthContextType {
 
       setUser(mappedUser);
       setIsAuthenticated(true);
+      setAuthClientStatus("authenticated");
       setIsProfileComplete(isComplete ?? null);
 
       let redirectUrl: string | undefined;
@@ -247,6 +351,7 @@ export function useProvideAuth(): AuthContextType {
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
+      setAuthClientStatus("anonymous");
       setIsProfileComplete(null);
       throw error;
     } finally {
@@ -256,12 +361,15 @@ export function useProvideAuth(): AuthContextType {
 
   const logout = async () => {
     console.log("🚪 [useAuth] Début logout - Réinitialisation état local");
+    // Logout volontaire: basculer immédiatement en anonyme avant tout appel réseau.
+    setAuthClientStatus("anonymous");
     setUser(null);
     setIsAuthenticated(false);
     setIsProfileComplete(null);
     // Clear profile cache
     localStorage.removeItem("user_profile_cache");
     clearTokens(); // Vider les tokens locaux immédiatement
+    clearClientCaches();
     setIsLoading(true);
 
     try {

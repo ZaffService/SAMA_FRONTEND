@@ -84,12 +84,33 @@ export class AuthApi {
       console.log(
         '🔍 [AuthApi] Envoi requête GET /user/profile avec credentials: "include"',
       );
-      const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
+      let res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
         method: "GET",
         credentials: "include",
       });
 
       console.log("🔍 [AuthApi] Réponse reçue:", res.status, res.statusText);
+
+      if (res.status === 401) {
+        console.log(
+          "🔄 [AuthApi] Session invalide (401), tentative de refresh token...",
+        );
+        const refreshed = await this.refreshToken();
+        if (!refreshed) {
+          console.log("❌ [AuthApi] Refresh impossible, session expirée");
+          return null;
+        }
+
+        res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
+          method: "GET",
+          credentials: "include",
+        });
+        console.log(
+          "🔍 [AuthApi] Réponse après refresh:",
+          res.status,
+          res.statusText,
+        );
+      }
 
       if (!res.ok) {
         console.log("❌ [AuthApi] Réponse non-ok:", res.status, res.statusText);
@@ -203,8 +224,28 @@ export class AuthApi {
   }
 
   static async refreshToken(): Promise<boolean> {
-    // TODO: Implement refresh token logic
-    return false;
+    try {
+      const response = await fetch(buildApiUrl("/user/refresh-token"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        console.warn(
+          "❌ [AuthApi] Refresh token échoué:",
+          response.status,
+          response.statusText,
+        );
+        return false;
+      }
+
+      console.log("✅ [AuthApi] Token refreshé avec succès");
+      return true;
+    } catch (error) {
+      console.error("❌ [AuthApi] Erreur lors du refresh token:", error);
+      return false;
+    }
   }
 
   static async requestPasswordReset(
