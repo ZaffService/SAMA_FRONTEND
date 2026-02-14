@@ -61,14 +61,14 @@ export function AdminSidebar({
       icon: Users,
       active: currentView === "manage-users",
     },
-    {
-      id: "create-user" as const,
-      label: "Créer utilisateur",
-      icon: UserPlus,
-      active: false,
-      disabled: true,
-      badge: "Bientôt",
-    },
+    // {
+    //   id: "create-user" as const,
+    //   label: "Créer utilisateur",
+    //   icon: UserPlus,
+    //   active: false,
+    //   disabled: true,
+    //   badge: "Bientôt",
+    // },
     {
       id: "manage-categories" as const,
       label: "Catégories",
@@ -115,29 +115,52 @@ export function AdminSidebar({
 
   return (
     <div
-      className={`bg-[#171c26] border-r border-white/10 transition-all duration-300 ${
-        isCollapsed ? "w-16" : "w-64"
-      } flex flex-col h-screen`}
+      className={`relative flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[#001B4D] text-white transition-all duration-300 ${
+        isCollapsed ? "w-[72px]" : "w-72"
+      }`}
     >
+      {/* Brand */}
+      <div className={`${isCollapsed ? "px-3" : "px-5"} pt-6 pb-4`}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
+            <LayoutDashboard className="h-5 w-5 text-white" />
+          </div>
+          {!isCollapsed && (
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/70">
+                Bibocom
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-bold text-white">Admin</p>
+                <span className="h-2 w-2 rounded-full bg-[#FF3B3F]" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Navigation Menu */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 space-y-1.5 px-3 pb-4">
         {menuItems.map((item) => (
           <Button
             key={item.id}
             variant="ghost"
-            className={`w-full justify-start h-11 transition-all ${
+            className={`group relative w-full justify-start rounded-xl h-11 transition-all ${
               item.active
-                ? "bg-blue-500 text-white hover:bg-blue-600 shadow-lg shadow-blue-500/30"
-                : "text-gray-300 hover:bg-white/10 hover:text-white"
-            } ${
-              item.disabled ? "opacity-60 cursor-not-allowed" : ""
-            } ${isCollapsed ? "px-2" : "px-6"}`}
+                ? "bg-[#002c75] text-white hover:bg-[#01338A]"
+                : "text-white/75 hover:bg-white/10 hover:text-white"
+            } ${item.disabled ? "opacity-60 cursor-not-allowed" : ""} ${
+              isCollapsed ? "px-2" : "px-4"
+            }`}
             onClick={() => handleMenuClick(item)}
             disabled={item.disabled}
           >
+            {item.active && !isCollapsed && (
+              <span className="absolute left-0 top-2 h-7 w-1 rounded-full bg-[#FF3B3F]" />
+            )}
             <item.icon
               className={`h-5 w-5 ${
-                item.active ? "text-white" : "text-gray-400"
+                item.active ? "text-white" : "text-white/60"
               } ${isCollapsed ? "" : "mr-3"}`}
             />
             {!isCollapsed && (
@@ -148,7 +171,7 @@ export function AdminSidebar({
                 {item.badge && (
                   <Badge
                     variant="secondary"
-                    className="text-xs bg-gray-700 text-gray-300 border-0"
+                    className="text-[11px] bg-white/10 text-white/80 border border-white/20"
                   >
                     {item.badge}
                   </Badge>
@@ -160,27 +183,27 @@ export function AdminSidebar({
       </nav>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-white/10">
+      <div className="px-3 pb-4 border-t border-white/10">
         <Button
           variant="ghost"
-          className={`w-full justify-start h-11 text-gray-300 hover:bg-white/10 hover:text-white ${
+          className={`w-full justify-start h-11 rounded-xl text-white/80 hover:bg-white/10 hover:text-white ${
             isCollapsed ? "px-2" : "px-4"
           }`}
           onClick={onLogout}
         >
           <LogOut
-            className={`h-5 w-5 text-gray-400 ${isCollapsed ? "" : "mr-3"}`}
+            className={`h-5 w-5 text-white/60 ${isCollapsed ? "" : "mr-3"}`}
           />
           {!isCollapsed && <span className="font-medium">Déconnexion</span>}
         </Button>
       </div>
 
       {/* Collapse Button */}
-      <div className="p-4 border-t border-white/10">
+      <div className="px-3 pb-6 border-t border-white/10">
         <Button
           variant="ghost"
           size="sm"
-          className="w-full h-8 text-gray-400 hover:bg-white/10 hover:text-white"
+          className="w-full h-9 rounded-xl text-white/70 hover:bg-white/15 hover:text-white"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? (

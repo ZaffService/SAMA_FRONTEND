@@ -89,7 +89,7 @@ export function AdminLayout({
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-[#F4F7FC]">
       {/* Sidebar */}
       <AdminSidebar
         user={user}
@@ -100,8 +100,12 @@ export function AdminLayout({
       />
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <main className="p-6">{renderContent()}</main>
+      <div className="flex-1 overflow-y-auto">
+        <main className="min-h-screen px-6 py-6 lg:px-10 lg:py-8">
+          <div className="mx-auto w-full max-w-[1400px]">
+            {renderContent()}
+          </div>
+        </main>
       </div>
     </div>
   );

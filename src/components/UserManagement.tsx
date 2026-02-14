@@ -130,13 +130,26 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Gestion des Utilisateurs</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold">Gestion des Utilisateurs</h1>
+        <button
+          type="button"
+          onClick={() =>
+            window.alert(
+              "Cette fonctionnalité est en cours de développement.",
+            )
+          }
+          className="inline-flex items-center justify-center rounded-lg bg-[#002c75] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#001f54]"
+        >
+          Ajout en masse
+        </button>
+      </div>
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-blue-800">Total</h3>
-          <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+        <div className="bg-[#EAF1FF] p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-[#002c75]">Total</h3>
+          <p className="text-2xl font-bold text-[#002c75]">{stats.total}</p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold text-green-800">Étudiants</h3>
