@@ -353,18 +353,37 @@ export default function CompleteProfile() {
           </div>
 
           {/* Info Banner */}
-          <Card className="mb-6 border-amber-200 bg-amber-50">
-            <CardContent className="p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-amber-800 font-medium">
-                  Complétez votre profil pour continuer
-                </p>
-                <p className="text-sm text-amber-700 mt-1">
-                  Certaines fonctionnalités nécessitent que votre profil soit
-                  complet. Les champs marqués d'une étoile (*) sont
-                  obligatoires.
-                </p>
+          <Card className="mb-8 border-0 bg-gradient-to-r from-[#FFF7E6] via-white to-[#EEF4FF] shadow-md">
+            <CardContent className="relative p-5 sm:p-6">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#d93030]/10 blur-2xl" />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 shadow-sm ring-1 ring-amber-200">
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700/80">
+                      Important
+                    </p>
+                    <p className="text-base font-semibold text-[#1D2939] sm:text-lg">
+                      Complétez votre profil pour continuer
+                    </p>
+                    <p className="max-w-2xl text-sm text-[#475467]">
+                      Certaines fonctionnalités nécessitent un profil complet.
+                      Les champs marqués d&apos;une étoile (*) sont obligatoires.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-[#344054]">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 ring-1 ring-[#002c75]/10">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Accès complet
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 ring-1 ring-[#002c75]/10">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    Progression suivie
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>

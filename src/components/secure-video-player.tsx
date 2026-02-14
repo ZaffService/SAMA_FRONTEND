@@ -109,6 +109,7 @@ export function SecureVideoPlayer({
 }: SecureVideoPlayerProps) {
   const [videoUrl, setVideoUrl] = useState<string | undefined>(url);
   const [loading, setLoading] = useState(false);
+  const [isPlayerLoading, setIsPlayerLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -287,6 +288,14 @@ export function SecureVideoPlayer({
     completionNotifiedRef.current = false;
     console.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
   }, [durationHintSeconds, lessonId, videoUrl]);
+
+  useEffect(() => {
+    if (!videoUrl) {
+      setIsPlayerLoading(false);
+      return;
+    }
+    setIsPlayerLoading(true);
+  }, [videoUrl]);
 
   useEffect(() => {
     if (!resolvedIframeUrl || !isIframeEmbedUrl(resolvedIframeUrl)) return;
@@ -654,6 +663,14 @@ export function SecureVideoPlayer({
 
   return (
     <div className={containerClassName}>
+      {isPlayerLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="text-center text-white">
+            <div className="mx-auto mb-3 h-12 w-12 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+            <p className="text-sm">Chargement de la vidéo...</p>
+          </div>
+        </div>
+      )}
       {videoUrl ? (
         isIframeEmbedUrl(videoUrl) ? (
           <iframe
@@ -664,10 +681,14 @@ export function SecureVideoPlayer({
             allowFullScreen
             className="h-full w-full border-0"
             onLoad={() => {
+              setIsPlayerLoading(false);
               console.log("[BUNNY TRACKING] iframe chargé", {
                 lessonId,
                 videoUrl: resolvedIframeUrl,
               });
+            }}
+            onError={() => {
+              setIsPlayerLoading(false);
             }}
           />
         ) : (
@@ -679,12 +700,21 @@ export function SecureVideoPlayer({
             preload="metadata"
             className="h-full w-full"
             title={title}
+            onLoadStart={() => {
+              setIsPlayerLoading(true);
+            }}
             onLoadedMetadata={() => {
               lastTrackedTimeRef.current = Number(videoRef.current?.currentTime) || 0;
               const duration = Number(videoRef.current?.duration) || 0;
               if (duration > 0) {
                 lastKnownDurationRef.current = duration;
               }
+            }}
+            onLoadedData={() => {
+              setIsPlayerLoading(false);
+            }}
+            onCanPlay={() => {
+              setIsPlayerLoading(false);
             }}
             onPlay={startTracking}
             onPause={() => {
@@ -705,6 +735,7 @@ export function SecureVideoPlayer({
             }}
             onError={() => {
               stopTracking();
+              setIsPlayerLoading(false);
               handleVideoError();
             }}
           />

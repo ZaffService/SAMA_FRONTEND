@@ -920,6 +920,17 @@ function CourseDetailsPageComponent() {
     setIsFullscreen(!isFullscreen);
   };
 
+  const openCoursePlayer = useCallback(() => {
+    setActiveQuizModuleId(null);
+    setContentMode("video");
+    setActiveTab("videos");
+    if (isMobile) {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    }
+  }, [isMobile]);
+
   // Gestion du suivi du cours (inscription ou redirection paiement)
   const handleFollowCourse = async () => {
     if (!courseId) return;
@@ -939,13 +950,7 @@ function CourseDetailsPageComponent() {
         console.log("✅ Utilisateur déjà inscrit à ce cours");
         setIsEnrolled(true);
         setIsPaid(true);
-        Swal.fire({
-          title: "Déjà inscrit",
-          text: "Vous êtes déjà inscrit à ce cours. Vous pouvez commencer à apprendre !",
-          icon: "info",
-          confirmButtonText: "Commencer",
-          confirmButtonColor: "#6366f1",
-        });
+        openCoursePlayer();
         return;
       }
 
@@ -962,13 +967,7 @@ function CourseDetailsPageComponent() {
         if (checkResult) {
           setIsEnrolled(true);
           setIsPaid(true);
-          Swal.fire({
-            title: "Inscription confirmée",
-            text: "Votre inscription a été confirmée. Bonne apprentissage !",
-            icon: "success",
-            confirmButtonText: "Commencer",
-            confirmButtonColor: "#6366f1",
-          });
+          openCoursePlayer();
           return;
         }
       }
@@ -984,13 +983,7 @@ function CourseDetailsPageComponent() {
         console.log("✅ Inscription réussie pour cours gratuit");
         setIsEnrolled(true);
         setIsPaid(true);
-        Swal.fire({
-          title: "Inscription réussie",
-          text: "Vous êtes maintenant inscrit à ce cours gratuit. Bonne apprentissage !",
-          icon: "success",
-          confirmButtonText: "Commencer",
-          confirmButtonColor: "#6366f1",
-        });
+        openCoursePlayer();
       } else {
         // ❓ Cas inattendu
         console.warn("⚠️ Réponse inattendue de l'API:", result);
@@ -1017,13 +1010,7 @@ function CourseDetailsPageComponent() {
           console.log("✅ Utilisateur déjà inscrit (confirmation)");
           setIsEnrolled(true);
           setIsPaid(true);
-          Swal.fire({
-            title: "Inscription confirmée",
-            text: "Votre inscription a été confirmée. Bonne apprentissage !",
-            icon: "success",
-            confirmButtonText: "Commencer",
-            confirmButtonColor: "#6366f1",
-          });
+          openCoursePlayer();
           return;
         }
       }
@@ -1075,13 +1062,7 @@ function CourseDetailsPageComponent() {
   const handleEnrollClick = async () => {
     // ✅ Vérification rapide avant de procéder
     if (isEnrolled === true) {
-      Swal.fire({
-        title: "Déjà inscrit",
-        text: "Vous êtes déjà inscrit à ce cours !",
-        icon: "info",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#6366f1",
-      });
+      openCoursePlayer();
       return;
     }
 

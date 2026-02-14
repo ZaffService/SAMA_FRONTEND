@@ -134,13 +134,8 @@ export function CourseCard({
               Reprendre
             </div>
           ) : isFree ? (
-            <div className="text-center">
-              <span
-                className="text-[#10B981] font-bold text-3xl"
-                style={{ fontFamily: "Georgia, serif" }}
-              >
-                Gratuit
-              </span>
+            <div className="bg-[#3B82F6] text-white text-center py-3 px-4 rounded-lg font-bold text-base shadow-lg">
+              Gratuit
             </div>
           ) : (
             <div className="bg-gradient-to-r from-[#EF4444] to-[#DC2626] text-white text-center py-3 px-4 rounded-lg font-bold text-base shadow-lg hover:shadow-xl transition-shadow">
