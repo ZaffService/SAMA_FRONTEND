@@ -22,7 +22,7 @@ const testimonials: Testimonial[] = [
     content:
       "Grâce à cette formation en bureautique, je maîtrise désormais Word, Excel et PowerPoint. Aujourd’hui, je travaille avec assurance et efficacité dans mon entreprise.",
     rating: 5,
-    avatar: "/Mariama Bailo Diallo.png",
+    avatar: "/Mariama.jpg",
   },
   {
     id: 2,
@@ -31,7 +31,7 @@ const testimonials: Testimonial[] = [
     content:
       "J’ai appris le montage vidéo, la prise de vue et le sound design. Les cours sont pratiques et m’ont permis de produire mes propres contenus professionnels.",
     rating: 5,
-    avatar: "/Djiba.png",
+    avatar: "/Djiba.jpg",
   },
   {
     id: 3,
@@ -40,7 +40,7 @@ const testimonials: Testimonial[] = [
     content:
       "Grâce à la formation en infographie, je crée maintenant des logos, flyers et visuels professionnels. J’ai même commencé à travailler en freelance.",
     rating: 5,
-    avatar: "/Bibo2.png",
+    avatar: "/Momo.jpg",
   },
   {
     id: 4,
@@ -58,7 +58,7 @@ const testimonials: Testimonial[] = [
     content:
       "J’ai appris à gérer les réseaux sociaux, lancer des campagnes publicitaires et analyser les performances. Aujourd’hui, je développe la visibilité de plusieurs entreprises.",
     rating: 5,
-    avatar: "/Youssouf.png",
+    avatar: "/Youssou.jpg",
   },
 ];
 
@@ -153,11 +153,13 @@ const TestimonialCarousel = () => {
 
                 {/* Author */}
                 <div className="flex items-center justify-center gap-4">
-                  <img
-                    src={t.avatar}
-                    alt={t.name}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-[#d93030]"
-                  />
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#d93030] flex-shrink-0">
+                    <img
+                      src={t.avatar}
+                      alt={t.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="text-left">
                     <p className="text-white font-semibold">
                       {t.name}
