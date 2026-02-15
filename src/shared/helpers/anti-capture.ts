@@ -6,9 +6,6 @@ import { useEffect } from "react";
  */
 export function useAntiCapture() {
   useEffect(() => {
-    // En production, ceci pourrait utiliser des APIs comme Screen Capture API
-    // ou des overlays pour empêcher les captures
-    // Pour la démo, on se contente de logger
     console.log("🛡️ Protection anti-capture activée (mode démo)");
 
     // Empêcher le clic droit

@@ -1,9 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import {
+  GoogleLogin,
+  useGoogleOAuth,
+  type CredentialResponse,
+} from "@react-oauth/google";
 
 interface GoogleSignInButtonProps {
   onSuccess: (idToken: string) => void;
@@ -16,8 +20,46 @@ export function GoogleSignInButton({
   onError,
   isLoading,
 }: GoogleSignInButtonProps) {
+  const { clientId, scriptLoadedSuccessfully } = useGoogleOAuth();
+  const gsiMaxWidth = 400;
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [buttonWidth, setButtonWidth] = useState<number>(0);
   const buttonStyleClass =
-    "w-full h-10 lg:h-12 text-sm lg:text-base font-medium bg-[#002c75] hover:bg-[#001a4d] transition-colors text-white";
+    "w-full h-10 lg:h-12 text-sm lg:text-base font-medium bg-[#002c75] hover:bg-[#001a4d] transition-colors text-white cursor-pointer";
+  const canUseGsi = Boolean(clientId) && scriptLoadedSuccessfully;
+  const effectiveGsiWidth =
+    buttonWidth > 0 ? Math.min(buttonWidth, gsiMaxWidth) : gsiMaxWidth;
+  const scaleX =
+    buttonWidth > 0 && effectiveGsiWidth > 0
+      ? buttonWidth / effectiveGsiWidth
+      : 1;
+
+  useEffect(() => {
+    const element = overlayRef.current;
+    if (!element) return;
+
+    const updateWidth = () => {
+      const nextWidth = Math.floor(element.getBoundingClientRect().width);
+      if (nextWidth > 0) {
+        setButtonWidth(nextWidth);
+      }
+    };
+
+    updateWidth();
+
+    if (typeof window === "undefined") return;
+
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => updateWidth());
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, []);
 
   const handleSuccess = (credentialResponse: CredentialResponse) => {
     const idToken = credentialResponse.credential;
@@ -27,6 +69,11 @@ export function GoogleSignInButton({
     }
 
     onSuccess(idToken);
+  };
+
+  const handleUnavailableClick = () => {
+    if (isLoading) return;
+    onError?.();
   };
 
   return (
@@ -41,12 +88,13 @@ export function GoogleSignInButton({
           Connexion...
         </Button>
       ) : (
-        <div className="relative w-full overflow-hidden rounded-md">
+        <div className="relative w-full overflow-hidden rounded-md cursor-pointer">
           <Button
             type="button"
             aria-hidden="true"
             tabIndex={-1}
-            className={`${buttonStyleClass} pointer-events-none`}
+            onClick={canUseGsi ? undefined : handleUnavailableClick}
+            className={`${buttonStyleClass} ${canUseGsi ? "pointer-events-none" : ""}`}
           >
             <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-sm bg-white">
               <svg
@@ -76,21 +124,32 @@ export function GoogleSignInButton({
             Continuer avec Google
           </Button>
 
-          <div className="absolute inset-0 z-10 h-full w-full opacity-0">
-            <GoogleLogin
-              onSuccess={handleSuccess}
-              onError={onError}
-              shape="rectangular"
-              text="continue_with"
-              theme="filled_blue"
-              size="large"
-              width={420}
-              useOneTap={false}
-              containerProps={{
-                className: "h-full w-full",
-                style: { width: "100%", height: "100%" },
-              }}
-            />
+          <div
+            ref={overlayRef}
+            className={`absolute inset-0 z-10 h-full w-full opacity-0 ${canUseGsi ? "cursor-pointer" : "pointer-events-none"}`}
+            style={{ cursor: canUseGsi ? "pointer" : undefined }}
+          >
+            {canUseGsi ? (
+              <div
+                className="h-full w-full origin-left"
+                style={{ transform: scaleX !== 1 ? `scaleX(${scaleX})` : undefined }}
+              >
+                <GoogleLogin
+                  onSuccess={handleSuccess}
+                  onError={onError}
+                  shape="rectangular"
+                  text="continue_with"
+                  theme="filled_blue"
+                  size="large"
+                  width={effectiveGsiWidth}
+                  useOneTap={false}
+                  containerProps={{
+                    className: "h-full w-full",
+                    style: { width: "100%", height: "100%" },
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       )}

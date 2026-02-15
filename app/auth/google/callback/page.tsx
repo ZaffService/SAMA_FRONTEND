@@ -12,16 +12,47 @@ export default function GoogleCallbackPage() {
 
   useEffect(() => {
     const handleCallback = async () => {
+      const hashParams = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.hash.replace(/^#/, ""))
+        : new URLSearchParams();
+
+      const getParam = (key: string) =>
+        searchParams.get(key) || hashParams.get(key);
+
       const idToken =
-        searchParams.get("id_token") ||
-        searchParams.get("access_token") ||
-        searchParams.get("credential") ||
-        searchParams.get("token");
-      const errorParam = searchParams.get("error");
+        getParam("id_token") ||
+        getParam("access_token") ||
+        getParam("credential") ||
+        getParam("token");
+      const errorParam = getParam("error");
+      const stateParam = getParam("state");
+
+      if (typeof window !== "undefined" && window.location.hash) {
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}${window.location.search}`,
+        );
+      }
 
       if (errorParam) {
         setError(`Erreur d'authentification Google: ${errorParam}`);
         return;
+      }
+
+      try {
+        const expectedState = sessionStorage.getItem("google_oauth_state");
+        if (expectedState && stateParam && expectedState !== stateParam) {
+          setError("État OAuth invalide. Veuillez réessayer.");
+          return;
+        }
+      } finally {
+        try {
+          sessionStorage.removeItem("google_oauth_state");
+          sessionStorage.removeItem("google_oauth_nonce");
+        } catch {
+          // Ignore storage errors
+        }
       }
 
       if (!idToken || !idToken.trim()) {
