@@ -5,6 +5,8 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Mail, Phone, MapPin, Send, MessageCircle, Clock } from "lucide-react";
 import { showContactFormSuccess } from "@/shared/helpers/sweet-alert";
+import { FaWhatsappSquare } from "react-icons/fa";
+
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -118,15 +120,24 @@ export default function ContactPage() {
     {
       icon: MapPin,
       title: "Adresse",
-      value: "Dakar, Sénégal",
+      value: "Liberté 4,\nRésidence Bala ak Maram\nDakar, Sénégal",
       href: "#",
     },
     {
       icon: Clock,
       title: "Horaires",
-      value: "Lun-Ven: 9h-18h",
+      value: "Lun-Ven: 8h-20h\nSam: 10h-14h",
       href: "#",
     },
+
+  //   {
+  //   icon: MessageCircle,
+  //   title: "WhatsApp",
+  //   value: "+221 78 878 40 40",
+  //   href: "https://wa.me/221788784040",
+  //   iconColor: "text-green-500", // WhatsApp green
+  // },
+
   ];
 
   return (
@@ -149,23 +160,26 @@ export default function ContactPage() {
       </div>
 
       {/* Contact Info Cards */}
-      <div className="container mx-auto px-6 -mt-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {contactInfo.map((info, index) => (
-            <p
-              key={index}
-              // href={info.href}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group "
-            >
-              <div className="w-14 h-14 bg-[var(--bibocom-blue)]/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-[var(--bibocom-blue)] transition-colors">
-                <info.icon className="w-7 h-7 text-[var(--bibocom-blue)] group-hover:text-white transition-colors" />
-              </div>
-              <h3 className="font-semibold text-gray-500 text-sm mb-1">{info.title}</h3>
-              <p className="text-gray-900 font-medium">{info.value}</p>
-            </p>
-          ))}
+<div className="container mx-auto px-6 -mt-16">
+  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+    {contactInfo.map((info, index) => (
+      <div
+        key={index}
+        className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+      >
+        <div className="w-14 h-14 bg-[var(--bibocom-blue)]/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-[var(--bibocom-blue)] transition-colors">
+          <info.icon className="w-7 h-7 text-[var(--bibocom-blue)] group-hover:text-white transition-colors" />
         </div>
+        <h3 className="font-semibold text-gray-500 text-sm mb-1">
+          {info.title}
+        </h3>
+        <p className="text-gray-900 font-medium whitespace-pre-line">
+          {info.value}
+        </p>
       </div>
+    ))}
+  </div>
+</div>
 
       {/* Contact Form */}
       <section className="py-16 lg:py-24">
@@ -196,6 +210,16 @@ export default function ContactPage() {
                       </div>
                       <span>+221 33 801 01 84</span>
                     </div>
+
+                    <a href="https://wa.me/221788784040" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                        <FaWhatsappSquare className="w-5 h-5 text-green-600" />
+                      </div>
+                      <span>78 878 40 40</span>
+                    </div>
+                    </a>
+
                   </div>
                 </div>
 

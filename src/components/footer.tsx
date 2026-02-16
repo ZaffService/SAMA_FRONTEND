@@ -53,10 +53,19 @@ export function Footer() {
                 <li className="flex items-start gap-2">
                   <Mail className="mt-0.5 h-3.5 w-3.5 text-[var(--bibocom-red)]" />
                   <a
-                    href="mailto:contact@bibocomdigital.com"
+                    href="mailto:Recruformateur@bibocomdigital.com"
                     className="hover:text-[var(--bibocom-blue)] transition-colors"
                   >
                     contact@bibocomdigital.com
+                  </a>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Mail className="mt-0.5 h-3.5 w-3.5 text-[var(--bibocom-red)]" />
+                  <a
+                    href="mailto:contact@bibocomdigital.com"
+                    className="hover:text-[var(--bibocom-blue)] transition-colors"
+                  >
+                    Recruformateur@bibocomdigital.com
                   </a>
                 </li>
                 {/* <li className="flex items-start gap-2">

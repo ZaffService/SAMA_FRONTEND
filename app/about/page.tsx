@@ -8,22 +8,22 @@ import { Award, BookOpen, Users, Zap, ArrowRight, CheckCircle } from "lucide-rea
 const features = [
   {
     icon: BookOpen,
-    title: "Formations de Qualité",
+    title: "Formations 100% Pratiques en Langue Locale",
     description: "Des cours créés par des experts du secteur avec des contenus actualisés et pratiques.",
   },
   {
     icon: Users,
-    title: "Communauté Active",
+    title: "Accès en ligne et présentiel",
     description: "Rejoignez une communauté d'apprenants passionnés et échangez avec nos formateurs.",
   },
   {
     icon: Award,
-    title: "Certificats Reconnus",
+    title: "Formateurs experts",
     description: "Obtenez des certificats valorisés par les employeurs pour booster votre carrière.",
   },
   {
     icon: Zap,
-    title: "Apprentissage Flexible",
+    title: "Compétences pour l'emploi / entrepreneuriat",
     description: "Apprenez à votre rythme, quand vous voulez, où vous voulez, sur tout appareil.",
   },
 ];
@@ -110,7 +110,7 @@ export default function AboutPage() {
                 <div className="w-14 h-14 bg-[var(--bibocom-blue)]/10 rounded-xl flex items-center justify-center mb-4">
                   <feature.icon className="w-7 h-7 text-[var(--bibocom-blue)]" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <h6 className="font-bold mb-3">{feature.title}</h6>
                 <p className="text-gray-600">{feature.description}</p>
               </div>
             ))}

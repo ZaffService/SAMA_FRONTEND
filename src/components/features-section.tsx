@@ -5,7 +5,7 @@ import { CheckCircle, Clock, Award, Users, Zap, Shield } from "lucide-react";
 const features = [
   {
     icon: Zap,
-    title: "Apprentissage rapide",
+    title: "Formations 100% Pratiques en Langue Locale",
     description:
       "Des cours conçus pour maximiser votre apprentissage en un minimum de temps",
     color: "text-amber-500",
@@ -13,21 +13,21 @@ const features = [
   },
   {
     icon: Award,
-    title: "Certifications reconnues",
+    title: "Accès en ligne et présentiel",
     description: "Obtenez des certificats valorisés par les entreprises",
     color: "text-primary",
     bgColor: "bg-primary/10",
   },
   {
     icon: Users,
-    title: "Communauté active",
+    title: "Formateurs experts",
     description: "Rejoignez des milliers d'apprenants motivés comme vous",
     color: "text-emerald-500",
     bgColor: "bg-emerald-50",
   },
   {
     icon: Clock,
-    title: "Accès à vie",
+    title: "Compétences pour l'emploi / entrepreneuriat",
     description: "Une fois inscrit, accédez à vos cours quand vous voulez",
     color: "text-blue-500",
     bgColor: "bg-blue-50",

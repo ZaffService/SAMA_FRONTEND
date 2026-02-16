@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 import Swal from "sweetalert2";
 
@@ -445,6 +446,18 @@ const Index = () => {
 
       {/* Section Témoignages -仅 pour les utilisateurs non connectés */}
       <Testimonials />
+
+      <a
+        href="https://wa.me/221788784040"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="whatsapp-float"
+        aria-label="Contacter sur WhatsApp"
+        title="WhatsApp"
+      >
+        <span className="whatsapp-ping" aria-hidden="true" />
+        <FaWhatsapp className="whatsapp-icon" aria-hidden="true" />
+      </a>
 
       <Footer />
     </div>

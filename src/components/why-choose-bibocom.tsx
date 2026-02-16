@@ -11,11 +11,11 @@ interface FeatureItem {
 const features: FeatureItem[] = [
   {
     icon: <GraduationCap className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Formations Certifiantes",
+    label: "Formations 100% Pratiques en Langue Locale",
   },
   {
     icon: <Globe className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Accès 100% en Ligne",
+    label: "Accès en ligne et présentiel",
   },
   {
     icon: <Users className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-orange)]" />,
@@ -23,7 +23,7 @@ const features: FeatureItem[] = [
   },
   {
     icon: <Briefcase className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Compétences pour l'Emploi",
+    label: "Compétences pour l'emploi / entrepreneuriat",
   },
 ];
 
