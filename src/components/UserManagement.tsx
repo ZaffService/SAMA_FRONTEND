@@ -8,13 +8,13 @@ type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
 
 const UserManagement: React.FC = () => {
   const { user: currentUser } = useLocalAuth();
-  const [users, setUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | "ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
   const [limit, setLimit] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [stats, setStats] = useState({
     total: 0,
     students: 0,
@@ -29,10 +29,75 @@ const UserManagement: React.FC = () => {
     }
   }, [currentUser]);
 
-  // Recharger les utilisateurs quand le filtre change
+  // Debounce recherche
   useEffect(() => {
-    loadUsers();
-  }, [selectedRole, currentPage, limit]);
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
+  // Charger tous les utilisateurs (toutes pages) quand le rôle change
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAllUsers = async () => {
+      setLoading(true);
+      try {
+        const batchLimit = 100;
+        const baseParams = {
+          ...(selectedRole !== "ALL" && { role: selectedRole }),
+        };
+
+        const firstResponse: UsersResponse =
+          await userService.getUsersByRole({
+            page: 1,
+            limit: batchLimit,
+            ...baseParams,
+          });
+
+        const effectiveLimit = Math.min(
+          firstResponse.limit && firstResponse.limit > 0
+            ? firstResponse.limit
+            : batchLimit,
+          batchLimit,
+        );
+        const total =
+          typeof firstResponse.total === "number"
+            ? firstResponse.total
+            : firstResponse.users.length;
+        const totalPages = Math.max(1, Math.ceil(total / effectiveLimit));
+
+        let all: User[] = [...firstResponse.users];
+
+        for (let page = 2; page <= totalPages; page += 1) {
+          const response: UsersResponse = await userService.getUsersByRole({
+            page,
+            limit: effectiveLimit,
+            ...baseParams,
+          });
+          all = all.concat(response.users);
+        }
+
+        if (!cancelled) {
+          setAllUsers(all);
+        }
+      } catch (error) {
+        logger.error("Erreur chargement utilisateurs:", error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadAllUsers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRole]);
 
   const loadStats = async () => {
     try {
@@ -52,28 +117,6 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: currentPage,
-        limit,
-        ...(selectedRole !== "ALL" && { role: selectedRole }),
-      };
-
-      const response: UsersResponse = await userService.getUsersByRole(params);
-
-      // Utiliser directement les utilisateurs du backend sans filtrage
-      // La pagination est gérée uniquement par le backend
-      setUsers(response.users);
-      setTotalUsers(response.total);
-    } catch (error) {
-      logger.error("Erreur chargement utilisateurs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRoleChange = (role: Role | "ALL") => {
     setSelectedRole(role);
     setCurrentPage(1); // Reset à la première page
@@ -84,11 +127,11 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1); // Reset à la première page
   };
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredUsers = useMemo(() => {
-    if (!normalizedQuery) return users;
+    if (!debouncedSearch) return allUsers;
 
-    return users.filter((user) => {
+    const query = debouncedSearch.toLowerCase();
+    return allUsers.filter((user) => {
       const searchable = [
         user.firstName,
         user.lastName,
@@ -101,11 +144,19 @@ const UserManagement: React.FC = () => {
         .join(" ")
         .toLowerCase();
 
-      return searchable.includes(normalizedQuery);
+      return searchable.includes(query);
     });
-  }, [users, normalizedQuery]);
+  }, [allUsers, debouncedSearch]);
 
-  const totalPages = Math.ceil(totalUsers / limit);
+  const totalUsers = filteredUsers.length;
+  const totalPages = totalUsers > 0 ? Math.ceil(totalUsers / limit) : 0;
+  const startItem = totalUsers === 0 ? 0 : (currentPage - 1) * limit + 1;
+  const endItem = Math.min(currentPage * limit, totalUsers);
+
+  const pageUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * limit;
+    return filteredUsers.slice(startIndex, startIndex + limit);
+  }, [filteredUsers, currentPage, limit]);
 
   useEffect(() => {
     if (totalPages > 0 && currentPage > totalPages) {
@@ -208,7 +259,10 @@ const UserManagement: React.FC = () => {
           <input
             type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder="Rechercher un utilisateur..."
             className="w-full sm:w-72 px-3 py-2 border rounded-md"
             autoComplete="off"
@@ -246,7 +300,7 @@ const UserManagement: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
+                {pageUsers.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
@@ -256,7 +310,7 @@ const UserManagement: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
+                  pageUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -348,14 +402,9 @@ const UserManagement: React.FC = () => {
                   <div>
                     <p className="text-sm text-gray-700">
                       Affichage de{" "}
-                      <span className="font-medium">
-                        {(currentPage - 1) * limit + 1}
-                      </span>{" "}
-                      à{" "}
-                      <span className="font-medium">
-                        {Math.min(currentPage * limit, totalUsers)}
-                      </span>{" "}
-                      sur <span className="font-medium">{totalUsers}</span>{" "}
+                      <span className="font-medium">{startItem}</span> à{" "}
+                      <span className="font-medium">{endItem}</span> sur{" "}
+                      <span className="font-medium">{totalUsers}</span>{" "}
                       résultats
                     </p>
                   </div>
