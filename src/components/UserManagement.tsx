@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { userService } from "@/services/userService";
 import type { User, UsersResponse } from "@/types/user";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
@@ -14,6 +14,7 @@ const UserManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [limit, setLimit] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
   const [stats, setStats] = useState({
     total: 0,
     students: 0,
@@ -82,6 +83,27 @@ const UserManagement: React.FC = () => {
     setLimit(newLimit);
     setCurrentPage(1); // Reset à la première page
   };
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredUsers = useMemo(() => {
+    if (!normalizedQuery) return users;
+
+    return users.filter((user) => {
+      const searchable = [
+        user.firstName,
+        user.lastName,
+        `${user.firstName} ${user.lastName}`,
+        user.email,
+        user.telephone,
+        user.userProfile?.phone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(normalizedQuery);
+    });
+  }, [users, normalizedQuery]);
 
   const totalPages = Math.ceil(totalUsers / limit);
 
@@ -159,7 +181,7 @@ const UserManagement: React.FC = () => {
       </div>
 
       {/* Filtres et limite */}
-      <div className="mb-4 flex gap-4 items-center">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <select
           value={selectedRole}
           onChange={(e) => handleRoleChange(e.target.value as Role | "ALL")}
@@ -171,16 +193,27 @@ const UserManagement: React.FC = () => {
           <option value="ADMIN">Administrateurs</option>
         </select>
 
-        <select
-          value={limit}
-          onChange={(e) => handleLimitChange(Number(e.target.value))}
-          className="px-3 py-2 border rounded-md"
-        >
-          <option value={5}>5 par page</option>
-          <option value={10}>10 par page</option>
-          <option value={20}>20 par page</option>
-          <option value={50}>50 par page</option>
-        </select>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <select
+            value={limit}
+            onChange={(e) => handleLimitChange(Number(e.target.value))}
+            className="px-3 py-2 border rounded-md"
+          >
+            <option value={5}>5 par page</option>
+            <option value={10}>10 par page</option>
+            <option value={20}>20 par page</option>
+            <option value={50}>50 par page</option>
+          </select>
+
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un utilisateur..."
+            className="w-full sm:w-72 px-3 py-2 border rounded-md"
+            autoComplete="off"
+          />
+        </div>
       </div>
 
       {/* Table des utilisateurs */}
@@ -213,69 +246,80 @@ const UserManagement: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-700">
-                              {user.firstName[0]}
-                              {user.lastName[0]}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          {user.userProfile?.phone && (
-                            <div className="text-sm text-gray-500">
-                              {user.userProfile.phone}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.telephone || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.role === "ADMIN"
-                            ? "bg-red-100 text-red-800"
-                            : user.role === "INSTRUCTOR"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {user.role === "STUDENT"
-                          ? "Étudiant"
-                          : user.role === "INSTRUCTOR"
-                            ? "Instructeur"
-                            : "Admin"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.emailVerified
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {user.emailVerified ? "Vérifié" : "Non vérifié"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString("fr-FR")}
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-sm text-gray-500"
+                    >
+                      Aucun utilisateur trouvé.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                              <span className="text-sm font-medium text-gray-700">
+                                {user.firstName[0]}
+                                {user.lastName[0]}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {user.firstName} {user.lastName}
+                            </div>
+                            {user.userProfile?.phone && (
+                              <div className="text-sm text-gray-500">
+                                {user.userProfile.phone}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {user.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {user.telephone || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.role === "ADMIN"
+                              ? "bg-red-100 text-red-800"
+                              : user.role === "INSTRUCTOR"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {user.role === "STUDENT"
+                            ? "Étudiant"
+                            : user.role === "INSTRUCTOR"
+                              ? "Instructeur"
+                              : "Admin"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.emailVerified
+                              ? "bg-green-100 text-green-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {user.emailVerified ? "Vérifié" : "Non vérifié"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(user.createdAt).toLocaleDateString("fr-FR")}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 
