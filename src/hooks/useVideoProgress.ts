@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { useEffect, useRef, useCallback } from "react";
 
 interface UseVideoProgressProps {
@@ -34,12 +35,12 @@ export function useVideoProgress({
       try {
         // TODO: Appeler l'API backend pour sauvegarder la progression
         // await LessonApi.updateProgress(lessonId, progress);
-        console.log(`Progression sauvegardée: ${progress.toFixed(1)}%`);
+        logger.log(`Progression sauvegardée: ${progress.toFixed(1)}%`);
 
         lastSavedProgressRef.current = progress;
         onProgressUpdate?.(progress);
       } catch (error) {
-        console.error("Erreur sauvegarde progression:", error);
+        logger.error("Erreur sauvegarde progression:", error);
       }
     },
     [lessonId, onProgressUpdate],
@@ -52,10 +53,10 @@ export function useVideoProgress({
     try {
       // TODO: Appeler l'API backend pour marquer comme terminé
       // await LessonApi.completeLesson(lessonId);
-      console.log("Leçon marquée comme terminée");
+      logger.log("Leçon marquée comme terminée");
       onComplete?.();
     } catch (error) {
-      console.error("Erreur completion leçon:", error);
+      logger.error("Erreur completion leçon:", error);
     }
   }, [lessonId, onComplete]);
 

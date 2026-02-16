@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl } from "./baseConfig";
 
 export class PaymentApi {
@@ -20,9 +21,9 @@ export class PaymentApi {
 
   // PAS DE mock, PAS DE retour hardcodé
   static async verifyPayment(token: string) {
-    console.log(`🔍 PaymentApi.verifyPayment: Vérification du token ${token}`);
+    logger.log(`🔍 PaymentApi.verifyPayment: Vérification du token ${token}`);
     const url = buildApiUrl(`course/payments/verify?token=${token}`);
-    console.log(`🔍 URL appelée: ${url}`);
+    logger.log(`🔍 URL appelée: ${url}`);
 
     // Le backend attend un GET avec le token en query parameter
     const response = await fetch(url, {
@@ -31,15 +32,15 @@ export class PaymentApi {
       credentials: "include",
     });
 
-    console.log(`🔍 Statut réponse: ${response.status} ${response.statusText}`);
+    logger.log(`🔍 Statut réponse: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Erreur réponse: ${errorText}`);
+      logger.error(`❌ Erreur réponse: ${errorText}`);
 
       // Si l'endpoint n'existe pas (404), on assume succès pour les tests
       if (response.status === 404) {
-        console.log(`⚠️ Endpoint de vérification manquant, on assume succès`);
+        logger.log(`⚠️ Endpoint de vérification manquant, on assume succès`);
         return {
           status: "success",
           courseId: undefined, // Sera récupéré depuis les cookies
@@ -50,7 +51,7 @@ export class PaymentApi {
     }
 
     const data = await response.json();
-    console.log(`✅ Réponse backend:`, data);
+    logger.log(`✅ Réponse backend:`, data);
 
     // RETOURNE LA VRAIE RÉPONSE DU BACKEND
     return data; // { status: string, courseId?: string }

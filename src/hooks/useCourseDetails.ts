@@ -4,6 +4,7 @@ import {
   CourseDetails,
   CourseProgress,
 } from "@/infrastructure/api/course-details-api";
+import logger from "@/shared/helpers/logger";
 
 interface UseCourseDetailsProps {
   courseId: string;
@@ -134,7 +135,7 @@ export function useCourseDetails({ courseId }: UseCourseDetailsProps) {
         }),
       );
     } catch (err) {
-      console.error("Erreur completion leçon:", err);
+      logger.error("Erreur completion leçon:", err);
       throw err;
     }
   }, []);
@@ -155,7 +156,7 @@ export function useCourseDetails({ courseId }: UseCourseDetailsProps) {
           })),
         );
       } catch (err) {
-        console.error("Erreur mise à jour progression:", err);
+        logger.error("Erreur mise à jour progression:", err);
       }
     },
     [],

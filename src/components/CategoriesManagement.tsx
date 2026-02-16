@@ -13,6 +13,7 @@ import {
   Calendar,
   X,
 } from "lucide-react";
+import logger from "@/shared/helpers/logger";
 
 interface CategoriesManagementProps {
   onBack: () => void;
@@ -43,9 +44,9 @@ export function CategoriesManagement({
       setError(null);
       const data = await CategoriesApi.getCategories();
       setCategories(data);
-      console.log("✅ Catégories chargées:", data);
+      logger.log("✅ Catégories chargées:", data);
     } catch (err) {
-      console.error("❌ Erreur lors du chargement des catégories:", err);
+      logger.error("❌ Erreur lors du chargement des catégories:", err);
       setError(
         err instanceof Error ? err.message : "Erreur lors du chargement",
       );
@@ -94,7 +95,7 @@ export function CategoriesManagement({
       await fetchCategories();
       onCategoryUpdated?.();
     } catch (err) {
-      console.error("❌ Erreur lors de la création:", err);
+      logger.error("❌ Erreur lors de la création:", err);
       Swal.fire({
         title: "Erreur",
         text:
@@ -150,7 +151,7 @@ export function CategoriesManagement({
       await fetchCategories();
       onCategoryUpdated?.();
     } catch (err) {
-      console.error("❌ Erreur lors de la modification:", err);
+      logger.error("❌ Erreur lors de la modification:", err);
       Swal.fire({
         title: "Erreur",
         text:
@@ -191,7 +192,7 @@ export function CategoriesManagement({
       await fetchCategories();
       onCategoryUpdated?.();
     } catch (err) {
-      console.error("❌ Erreur lors de la suppression:", err);
+      logger.error("❌ Erreur lors de la suppression:", err);
 
       // Gérer les erreurs spécifiques
       if (

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { showLoginError } from "@/shared/helpers/sweet-alert";
+import logger from "@/shared/helpers/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,7 @@ export default function Register() {
         }
       }
     } catch (err: any) {
-      console.error("Erreur Google login:", err);
+      logger.error("Erreur Google login:", err);
       const errorMapping = getErrorMapping(err);
       showLoginError(errorMapping.message);
     } finally {
@@ -266,7 +267,7 @@ export default function Register() {
         throw new Error("Réponse inattendue du serveur");
       }
     } catch (err) {
-      console.error("Erreur inscription:", err);
+      logger.error("Erreur inscription:", err);
 
       // Utiliser le système de mapping d'erreurs pour traduire en français
       const errorMapping = getErrorMapping(err);

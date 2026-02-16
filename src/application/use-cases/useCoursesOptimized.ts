@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { Course } from "@/domain/entities/course";
 import { transformApiCourses } from "@/domain/entities/course";
+import logger from "@/shared/helpers/logger";
 
 // Cache mémoire avec SWR pattern
 const memoryCache = new Map<string, { data: Course[]; timestamp: number }>();
@@ -21,7 +22,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
     if (isRevalidating) return;
 
     setIsRevalidating(true);
-    console.log("🚀 Démarrage du chargement des cours optimisé...");
+    logger.log("🚀 Démarrage du chargement des cours optimisé...");
 
     try {
       // Déterminer la source de données selon les filtres
@@ -38,7 +39,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
         response = transformApiCourses((await CoursesApi.getCourses()).courses);
       }
 
-      console.log("✅ Cours chargés:", response.length);
+      logger.log("✅ Cours chargés:", response.length);
 
       if (response && response.length > 0) {
         setCourses(response);
@@ -51,12 +52,12 @@ export function useCoursesOptimized(category?: string, search?: string) {
 
         setError(null);
       } else {
-        console.log("⚠️ Aucun cours trouvé avec les filtres actuels");
+        logger.log("⚠️ Aucun cours trouvé avec les filtres actuels");
         setCourses([]);
         setError(null); // Pas d'erreur, simplement aucun résultat
       }
     } catch (err) {
-      console.error("❌ Erreur lors du chargement des cours:", err);
+      logger.error("❌ Erreur lors du chargement des cours:", err);
 
       // Ne pas écraser les données si on a du cache
       if (courses.length === 0) {
@@ -76,7 +77,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
     if (!category && !search && cached) {
       const age = Date.now() - cached.timestamp;
 
-      console.log("📦 Utilisation du cache, âge:", age, "ms");
+      logger.log("📦 Utilisation du cache, âge:", age, "ms");
       setCourses(cached.data);
       setLoading(false);
 
@@ -85,7 +86,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
         revalidateInBackground();
       }
     } else {
-      console.log("🔍 Filtres détectés ou pas de cache, chargement forcé...");
+      logger.log("🔍 Filtres détectés ou pas de cache, chargement forcé...");
       revalidateInBackground();
     }
   }, [category, search, revalidateInBackground]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -123,7 +124,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
     try {
       return transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement popular courses
     } catch (err) {
-      console.error("Erreur lors du chargement des cours populaires:", err);
+      logger.error("Erreur lors du chargement des cours populaires:", err);
       return [];
     }
   }, []);
@@ -133,7 +134,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
     try {
       return transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement free courses
     } catch (err) {
-      console.error("Erreur lors du chargement des cours gratuits:", err);
+      logger.error("Erreur lors du chargement des cours gratuits:", err);
       return [];
     }
   }, []);
@@ -143,7 +144,7 @@ export function useCoursesOptimized(category?: string, search?: string) {
     try {
       return transformApiCourses((await CoursesApi.getCourses()).courses); // TODO: Implement recent courses
     } catch (err) {
-      console.error("Erreur lors du chargement des cours récents:", err);
+      logger.error("Erreur lors du chargement des cours récents:", err);
       return [];
     }
   }, []);

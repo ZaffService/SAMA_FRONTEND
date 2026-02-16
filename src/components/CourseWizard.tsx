@@ -40,6 +40,7 @@ import {
 import { Module } from "@/domain/entities/module";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { ModuleManager } from '@/components/ModuleManager';
+import logger from "@/shared/helpers/logger";
 
 // Course status enum
 export enum CourseStatus {
@@ -98,12 +99,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        console.log("🔍 Wizard: Début du chargement des catégories...");
+        logger.log("🔍 Wizard: Début du chargement des catégories...");
         const cats = await CoursesApi.getCategories();
-        console.log(`✅ Wizard: ${cats.length} catégories reçues`);
+        logger.log(`✅ Wizard: ${cats.length} catégories reçues`);
         setCategories(cats);
       } catch (err) {
-        console.error(
+        logger.error(
           "❌ Wizard: Erreur lors du chargement des catégories:",
           err,
         );
@@ -153,7 +154,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
 
   const handleVideoUploadError = useCallback(
     (tempId: string, error: string) => {
-      console.error(`Erreur d'upload pour la vidéo ${tempId}:`, error);
+      logger.error(`Erreur d'upload pour la vidéo ${tempId}:`, error);
       // Ici, on pourrait ajouter une gestion d'erreur plus sophistiquée
     },
     [],
@@ -251,7 +252,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
 
   const prepareCourseData = (statusOverride?: CourseStatus) => {
     // Debug: Afficher les attachments avant envoi
-    console.log("📎 [Wizard] prepareCourseData - attachments:", formData.attachments);
+    logger.log("📎 [Wizard] prepareCourseData - attachments:", formData.attachments);
     
     // instructorId sera null et récupéré par le backend depuis les cookies JWT
     return {
@@ -289,9 +290,9 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         try {
           const details = await CoursesApi.getCourseDetails(result.courseId);
           updatedThumbnailUrl = details.course.thumbnailUrl;
-          console.log("✅ Miniature récupérée:", updatedThumbnailUrl);
+          logger.log("✅ Miniature récupérée:", updatedThumbnailUrl);
         } catch (detailsErr) {
-          console.warn(
+          logger.warn(
             "⚠️ Impossible de récupérer les détails du cours:",
             detailsErr,
           );
@@ -348,7 +349,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       );
       closeLoading();
       showDraftSavedSuccess(formData.title);
-      console.log("✅ Brouillon sauvegardé:", result);
+      logger.log("✅ Brouillon sauvegardé:", result);
     } catch (err) {
       closeLoading();
       const errorMessage =

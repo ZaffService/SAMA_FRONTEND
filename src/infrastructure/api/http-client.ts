@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl } from "./baseConfig";
 
 // Types for HTTP client
@@ -26,7 +27,7 @@ class HttpClient {
 
   private async refreshToken(): Promise<boolean> {
     try {
-      console.log("🔄 [HttpClient] Tentative de refresh du token...");
+      logger.log("🔄 [HttpClient] Tentative de refresh du token...");
 
       const response = await fetch(`${this.baseURL}/user/refresh-token`, {
         method: "POST",
@@ -37,27 +38,27 @@ class HttpClient {
       });
 
       if (response.ok) {
-        console.log("✅ [HttpClient] Token refreshé avec succès");
+        logger.log("✅ [HttpClient] Token refreshé avec succès");
         return true;
       } else {
-        console.log("❌ [HttpClient] Échec du refresh du token");
+        logger.log("❌ [HttpClient] Échec du refresh du token");
         return false;
       }
     } catch (error) {
-      console.error("❌ [HttpClient] Erreur lors du refresh:", error);
+      logger.error("❌ [HttpClient] Erreur lors du refresh:", error);
       return false;
     }
   }
 
   private async handle401Error(originalRequest: Request): Promise<Response> {
-    console.log("🚨 [HttpClient] Erreur 401 détectée, tentative de refresh...");
+    logger.log("🚨 [HttpClient] Erreur 401 détectée, tentative de refresh...");
 
     // Si un refresh est déjà en cours, attendre
     if (this.isRefreshing) {
       if (this.refreshPromise) {
         const refreshSuccess = await this.refreshPromise;
         if (refreshSuccess) {
-          console.log("🔄 [HttpClient] Retry après refresh réussi");
+          logger.log("🔄 [HttpClient] Retry après refresh réussi");
           return fetch(originalRequest);
         }
       }
@@ -72,12 +73,12 @@ class HttpClient {
       const refreshSuccess = await this.refreshPromise;
 
       if (refreshSuccess) {
-        console.log("🔄 [HttpClient] Retry après refresh réussi");
+        logger.log("🔄 [HttpClient] Retry après refresh réussi");
         // Retry la requête originale
         return fetch(originalRequest);
       } else {
         // Refresh échoué, déconnecter l'utilisateur
-        console.log("🚪 [HttpClient] Refresh échoué, déconnexion...");
+        logger.log("🚪 [HttpClient] Refresh échoué, déconnexion...");
         this.logoutUser();
         throw new Error("Session expirée");
       }

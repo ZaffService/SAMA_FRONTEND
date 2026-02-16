@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 /**
  * Hook pour charger les leçons d'un cours avec les vidéos et thumbnails
@@ -50,13 +51,13 @@ export function useCourseFirstLesson(courseId: string | number) {
             duration: lesson.video?.playtime || "00:00",
           };
 
-          console.log("✅ First lesson loaded:", mappedLesson);
+          logger.log("✅ First lesson loaded:", mappedLesson);
           setFirstLesson(mappedLesson);
         } else {
           setFirstLesson(null);
         }
       } catch (err) {
-        console.error("❌ Error fetching first lesson:", err);
+        logger.error("❌ Error fetching first lesson:", err);
         setError(
           err instanceof Error
             ? err.message

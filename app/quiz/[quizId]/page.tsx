@@ -7,6 +7,7 @@ import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
 import { ArrowLeft, CheckCircle, XCircle, Clock } from "lucide-react";
 import Link from "next/link";
 import { showQuizFailureModal } from "@/shared/helpers/sweet-alert";
+import logger from "@/shared/helpers/logger";
 
 interface QuizQuestion {
   id: string;
@@ -66,7 +67,7 @@ export default function QuizPage() {
           })),
         });
       } catch (error) {
-        console.error("Erreur chargement quiz:", error);
+        logger.error("Erreur chargement quiz:", error);
       } finally {
         setLoading(false);
       }
@@ -152,7 +153,7 @@ export default function QuizPage() {
       }
       setShowResults(true);
     } catch (error) {
-      console.error("Erreur soumission quiz:", error);
+      logger.error("Erreur soumission quiz:", error);
       // TODO: Afficher une erreur à l'utilisateur
     } finally {
       setSubmitting(false);

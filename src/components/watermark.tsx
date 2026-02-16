@@ -1,5 +1,6 @@
 "use client";
 
+import logger from "@/shared/helpers/logger";
 import { useEffect, useState } from "react";
 
 interface WatermarkProps {
@@ -77,7 +78,7 @@ export function useStudentData() {
     // Simulation d'un délai
     setTimeout(() => {
       setStudentData(mockStudentData);
-      console.log("✅ Watermark data mockée chargée");
+      logger.log("✅ Watermark data mockée chargée");
     }, 100);
   }, []);
 

@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import logger from "@/shared/helpers/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +31,10 @@ export default function VerifyEmail() {
     // Appeler l'endpoint backend pour vérifier l'email
     const verifyEmail = async () => {
       try {
-        console.log("🔍 Vérification de l'email avec le token:", token);
+        logger.log("🔍 Vérification de l'email avec le token:", token);
 
         const data = await AuthApi.verifyEmail(token);
-        console.log("📊 Réponse de vérification:", data);
+        logger.log("📊 Réponse de vérification:", data);
 
         // ✅ Email vérifié avec succès!
         // Afficher le message de succès
@@ -48,14 +49,14 @@ export default function VerifyEmail() {
           router.push("/");
         }, 2000);
       }catch (err: any) {
-  console.error("Erreur de vérification:", err);
+  logger.error("Erreur de vérification:", err);
 
   setStatus("already");
 
   const errorCode = err?.error?.code;
   const errorMessage = err?.error?.message;
 
-  console.log("code error ", errorCode);
+  logger.log("code error ", errorCode);
   
 
   if (errorCode === "EMAIL_ALREADY_VERIFIED") {

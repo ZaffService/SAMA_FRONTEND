@@ -54,6 +54,7 @@ import {
   ResidenceType,
   DisabilityType,
 } from "@/infrastructure/api/user-api";
+import logger from "@/shared/helpers/logger";
 
 // SweetAlert2 configuration for French locale
 const showSuccessAlert = async () => {
@@ -157,7 +158,7 @@ export default function UserProfile() {
         setInitialData(form);
       }
     } catch (error) {
-      console.error("Erreur lors de la récupération du profil:", error);
+      logger.error("Erreur lors de la récupération du profil:", error);
       await showErrorAlert(
         "Impossible de charger votre profil. Veuillez réessayer.",
       );
@@ -228,7 +229,7 @@ export default function UserProfile() {
       // Refetch profile from backend to get latest data
       await fetchProfile();
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du profil:", error);
+      logger.error("Erreur lors de la mise à jour du profil:", error);
       Swal.close();
       await showErrorAlert(
         error instanceof Error

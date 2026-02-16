@@ -15,6 +15,7 @@ import {
   showLessonDeletedSuccess,
   showLessonUpdatedSuccess,
 } from "@/shared/helpers/sweet-alert";
+import logger from "@/shared/helpers/logger";
 
 interface LessonEditorProps {
   courseId: string;
@@ -72,7 +73,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
         loadModuleData(firstModuleId);
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des modules:", error);
+      logger.error("Erreur lors du chargement des modules:", error);
       toast.error("Erreur lors du chargement des modules");
     } finally {
       setIsLoading(false);
@@ -88,7 +89,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
         setExistingLessons(module.lessons || []);
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des leçons:", error);
+      logger.error("Erreur lors du chargement des leçons:", error);
       toast.error("Erreur lors du chargement des leçons");
     } finally {
       setIsLoading(false);
@@ -219,7 +220,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
       // Recharger les données du module
       await loadModuleData(selectedModuleId);
     } catch (error) {
-      console.error("Erreur lors de la modification de la leçon:", error);
+      logger.error("Erreur lors de la modification de la leçon:", error);
       toast.error("Erreur lors de la modification de la leçon");
     } finally {
       setIsUpdating(false);
@@ -247,7 +248,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
         toast.error("Erreur lors de la suppression de la leçon");
       }
     } catch (error) {
-      console.error("Erreur lors de la suppression de la leçon:", error);
+      logger.error("Erreur lors de la suppression de la leçon:", error);
       toast.error("Erreur lors de la suppression de la leçon");
     }
   };
@@ -297,7 +298,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
       await loadModuleData(selectedModuleId);
       setNewLessons([]);
     } catch (error) {
-      console.error("Erreur lors de l'ajout des leçons:", error);
+      logger.error("Erreur lors de l'ajout des leçons:", error);
       toast.error("Erreur lors de l'ajout des leçons");
     } finally {
       setIsSaving(false);

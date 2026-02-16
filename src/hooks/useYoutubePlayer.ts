@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getYoutubeVideoId } from "@/lib/utils";
+import logger from "@/shared/helpers/logger";
 
 declare global {
   interface Window {
@@ -59,23 +60,23 @@ export function useYoutubePlayer(options: UseYoutubePlayerOptions = {}): {
   // Load YouTube API
   useEffect(() => {
     if (window.YT && window.YT.Player) {
-      console.log("YouTube API already loaded");
+      logger.log("YouTube API already loaded");
       setIsApiLoaded(true);
       return;
     }
 
-    console.log("Loading YouTube API...");
+    logger.log("Loading YouTube API...");
     const script = document.createElement("script");
     script.src = "https://www.youtube.com/iframe_api";
     script.async = true;
 
     window.onYouTubeIframeAPIReady = () => {
-      console.log("YouTube API ready");
+      logger.log("YouTube API ready");
       setIsApiLoaded(true);
     };
 
     script.onerror = () => {
-      console.error("Failed to load YouTube API");
+      logger.error("Failed to load YouTube API");
     };
 
     document.body.appendChild(script);
@@ -97,7 +98,7 @@ export function useYoutubePlayer(options: UseYoutubePlayerOptions = {}): {
     }
 
     try {
-      console.log("Creating YouTube player with videoId:", videoId);
+      logger.log("Creating YouTube player with videoId:", videoId);
       // Create new player with videoId
       playerInstanceRef.current = new window.YT.Player(playerRef.current, {
         videoId,
@@ -118,23 +119,23 @@ export function useYoutubePlayer(options: UseYoutubePlayerOptions = {}): {
         },
         events: {
           onReady: () => {
-            console.log("YouTube player ready");
+            logger.log("YouTube player ready");
             setIsReady(true);
             onReady?.();
           },
           onStateChange: (event: any) => {
-            console.log("YouTube player state changed:", event.data);
+            logger.log("YouTube player state changed:", event.data);
             onStateChange?.(event.data);
           },
           onError: (error: any) => {
-            console.error("YouTube player error:", error);
+            logger.error("YouTube player error:", error);
             onError?.(error);
           },
         },
       });
-      console.log("YouTube player created successfully");
+      logger.log("YouTube player created successfully");
     } catch (error) {
-      console.error("Error creating YouTube player:", error);
+      logger.error("Error creating YouTube player:", error);
     }
 
     return () => {
@@ -150,10 +151,10 @@ export function useYoutubePlayer(options: UseYoutubePlayerOptions = {}): {
       try {
         playerInstanceRef.current.playVideo();
       } catch (error) {
-        console.error("Error playing video:", error);
+        logger.error("Error playing video:", error);
       }
     } else {
-      console.warn("Player not ready or not available");
+      logger.warn("Player not ready or not available");
     }
   }, [isReady]);
 
@@ -193,7 +194,7 @@ export function useYoutubePlayer(options: UseYoutubePlayerOptions = {}): {
     try {
       return playerInstanceRef.current?.isMuted?.() || false;
     } catch (error) {
-      console.warn("isMuted method not available:", error);
+      logger.warn("isMuted method not available:", error);
       return false;
     }
   }, []);

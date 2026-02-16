@@ -30,6 +30,7 @@ import { useCourseDetails } from "@/application/use-cases/useCourseDetails";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useProtectRoute } from "@/application/use-cases/useProtectRoute";
 import { isValidResourceId } from "@/shared/helpers/safeFetch";
+import logger from "@/shared/helpers/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export default function VideoLearningModule() {
           }
         }
       } catch (e) {
-        console.warn("[VideoLearningModule] Failed to restore state:", e);
+        logger.warn("[VideoLearningModule] Failed to restore state:", e);
       }
     }
   }, [isIdValid, id, allLessons.length]);
@@ -118,7 +119,7 @@ export default function VideoLearningModule() {
             }),
           );
         } catch (e) {
-          console.warn("[VideoLearningModule] Failed to save state:", e);
+          logger.warn("[VideoLearningModule] Failed to save state:", e);
         }
       };
 
@@ -627,7 +628,7 @@ export default function VideoLearningModule() {
                                   JSON.stringify(state),
                                 );
                               } catch (e) {
-                                console.warn(
+                                logger.warn(
                                   "[VideoLearningModule] Failed to save quiz attempt state:",
                                   e,
                                 );

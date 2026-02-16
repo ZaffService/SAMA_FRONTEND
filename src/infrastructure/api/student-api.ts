@@ -1,5 +1,6 @@
 // src/infrastructure/api/StudentApi.ts
 
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface Student {
@@ -119,8 +120,8 @@ export class StudentApi {
 
   static async getEnrolledCourses(): Promise<Enrollment[]> {
     try {
-      console.log("🔍 [StudentApi] Appel getEnrolledCourses");
-      console.log(
+      logger.log("🔍 [StudentApi] Appel getEnrolledCourses");
+      logger.log(
         "🔍 [StudentApi] URL:",
         buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED),
       );
@@ -133,7 +134,7 @@ export class StudentApi {
         },
       );
 
-      console.log("🔍 [StudentApi] Réponse status:", response.status);
+      logger.log("🔍 [StudentApi] Réponse status:", response.status);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -143,37 +144,37 @@ export class StudentApi {
       }
 
       const data = await response.json();
-      console.log(
+      logger.log(
         "🔍 [StudentApi] Données brutes reçues:",
         JSON.stringify(data, null, 2),
       );
 
       const courses = data.courses ?? data.data ?? data ?? [];
-      console.log("🔍 [StudentApi] Cours extraits:", courses);
-      console.log("🔍 [StudentApi] Nombre de cours:", courses.length);
+      logger.log("🔍 [StudentApi] Cours extraits:", courses);
+      logger.log("🔍 [StudentApi] Nombre de cours:", courses.length);
 
       // 🔥 DEBUG spécifique pour Leadership
       const leadershipCourse = courses.find((c: any) =>
         c.title?.includes("Leadership"),
       );
       if (leadershipCourse) {
-        console.log(
+        logger.log(
           "🎯 [StudentApi] Cours Leadership trouvé dans enrolled:",
           leadershipCourse,
         );
-        console.log(
+        logger.log(
           "🆔 ID du cours Leadership:",
           leadershipCourse.id || leadershipCourse.course_id,
         );
       } else {
-        console.log(
+        logger.log(
           "❌ [StudentApi] Cours Leadership NON trouvé dans enrolled",
         );
       }
 
       return courses;
     } catch (error) {
-      console.error("❌ [StudentApi] Erreur getEnrolledCourses:", error);
+      logger.error("❌ [StudentApi] Erreur getEnrolledCourses:", error);
       throw error;
     }
   }
@@ -187,23 +188,23 @@ export class StudentApi {
     // PROGRESS est une fonction dans API_ENDPOINTS, on doit l'appeler avec le courseId
     const endpoint = API_ENDPOINTS.COURSES.PROGRESS(courseId);
     const url = buildApiUrl(endpoint);
-    console.log(
+    logger.log(
       `🌐 [StudentApi] Appel API getCourseProgress pour cours ID: ${courseId}`,
     );
-    console.log(`🌐 [StudentApi] URL: ${url}`);
+    logger.log(`🌐 [StudentApi] URL: ${url}`);
 
     const response = await fetch(url, {
       method: "GET",
       credentials: "include",
     });
 
-    console.log(
+    logger.log(
       `🌐 [StudentApi] Réponse status: ${response.status} ${response.statusText}`,
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
+      logger.error(
         `❌ [StudentApi] Erreur getCourseProgress pour cours ${courseId}:`,
         {
           status: response.status,
@@ -216,7 +217,7 @@ export class StudentApi {
 
     // ✅ RÉCUPÉRATION DE LA RÉPONSE BRUTE DU BACKEND
     const backendData = await response.json();
-    console.log(
+    logger.log(
       `🔍 [StudentApi] RÉPONSE BRUTE DU BACKEND:`,
       JSON.stringify(backendData, null, 2),
     );
@@ -255,7 +256,7 @@ export class StudentApi {
       last_accessed: backendData.currentLesson || null,
     };
 
-    console.log(`✅ [StudentApi] DONNÉES MAPPÉES:`, {
+    logger.log(`✅ [StudentApi] DONNÉES MAPPÉES:`, {
       progress: mappedData.progress,
       completed_lessons: mappedData.completed_lessons,
       total_lessons: mappedData.total_lessons,
@@ -278,10 +279,10 @@ export class StudentApi {
       );
 
       if (!response.ok) {
-        console.warn("Lesson completion endpoint not available");
+        logger.warn("Lesson completion endpoint not available");
       }
     } catch (error) {
-      console.warn("Lesson completion not supported:", error);
+      logger.warn("Lesson completion not supported:", error);
     }
   }
 
@@ -354,7 +355,7 @@ export class StudentApi {
         totalPages: data.totalPages || 0,
       };
     } catch (error) {
-      console.error(
+      logger.error(
         "Erreur lors de la récupération des cours disponibles:",
         error,
       );
@@ -390,7 +391,7 @@ export class StudentApi {
       const data = await response.json();
       return data || [];
     } catch (error) {
-      console.error("Erreur lors de la récupération des catégories:", error);
+      logger.error("Erreur lors de la récupération des catégories:", error);
       return [];
     }
   }
@@ -413,7 +414,7 @@ export class StudentApi {
 
       return response.json();
     } catch (error) {
-      console.error("Erreur getCourseDetails:", error);
+      logger.error("Erreur getCourseDetails:", error);
       throw error;
     }
   }
@@ -440,7 +441,7 @@ export class StudentApi {
           attempt.quizId === quizId || attempt.quiz_id === quizId,
       );
     } catch (error) {
-      console.error("Erreur getQuizAttempts:", error);
+      logger.error("Erreur getQuizAttempts:", error);
       return [];
     }
   }
@@ -465,7 +466,7 @@ export class StudentApi {
 
       return response.json();
     } catch (error) {
-      console.error("Erreur getQuizQuestions:", error);
+      logger.error("Erreur getQuizQuestions:", error);
       throw error;
     }
   }
@@ -501,14 +502,14 @@ export class StudentApi {
             const quiz = quizData.quiz;
             const passingScore = quiz.passingScore || 70; // Défaut 70 si non défini
 
-            console.log(
+            logger.log(
               `📊 Quiz: ${quiz.title}, passingScore: ${passingScore}`,
             );
 
             // Obtenir les tentatives pour ce quiz
             const attempts = await this.getQuizAttempts(quiz.id);
 
-            console.log(`   Tentatives trouvées: ${attempts.length}`);
+            logger.log(`   Tentatives trouvées: ${attempts.length}`);
 
             if (attempts.length === 0) continue; // Pas de tentatives, ignorer ce quiz
 
@@ -518,22 +519,22 @@ export class StudentApi {
               if (attempt.score !== null && attempt.score !== undefined) {
                 if (attempt.score >= passingScore) {
                   passedQuizzes++;
-                  console.log(`   ✅ Passé: ${attempt.score}`);
+                  logger.log(`   ✅ Passé: ${attempt.score}`);
                 } else {
                   failedQuizzes++;
-                  console.log(`   ❌ Échoué: ${attempt.score}`);
+                  logger.log(`   ❌ Échoué: ${attempt.score}`);
                 }
               }
             }
           } catch (error) {
             // Si erreur pour ce module/quiz, continuer avec les autres
-            console.warn(`Erreur pour le module ${module.id}:`, error);
+            logger.warn(`Erreur pour le module ${module.id}:`, error);
             continue;
           }
         }
       }
 
-      console.log(
+      logger.log(
         `📊 Total: ${passedQuizzes} passés, ${failedQuizzes} échoués`,
       );
 
@@ -542,7 +543,7 @@ export class StudentApi {
         failedQuizzes,
       };
     } catch (error) {
-      console.error("Erreur computeQuizStats:", error);
+      logger.error("Erreur computeQuizStats:", error);
       // Retourner des valeurs par défaut en cas d'erreur
       return {
         passedQuizzes: 0,
@@ -619,7 +620,7 @@ export class StudentApi {
         average_score: Math.round(average_score),
       };
     } catch (error) {
-      console.error("Erreur getQuizStatistics:", error);
+      logger.error("Erreur getQuizStatistics:", error);
       // Return default values on error
       return {
         passed_quizzes: 0,

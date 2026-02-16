@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { VideoApi } from "@/infrastructure/api/video-api";
+import logger from "@/shared/helpers/logger";
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -229,7 +230,7 @@ export function SecureVideoPlayer({
       const ratio = currentTime / duration;
       if (ratio >= COMPLETION_THRESHOLD) {
         completionNotifiedRef.current = true;
-        console.log("[TRACKING][player] seuil 95% atteint", {
+        logger.log("[TRACKING][player] seuil 95% atteint", {
           lessonId,
           source,
           currentTime,
@@ -246,7 +247,7 @@ export function SecureVideoPlayer({
     (source: string) => {
       if (completionNotifiedRef.current) return;
       completionNotifiedRef.current = true;
-      console.log("[TRACKING][player] fin de lecture", { lessonId, source });
+      logger.log("[TRACKING][player] fin de lecture", { lessonId, source });
       onEnded?.();
     },
     [lessonId, onEnded],
@@ -260,7 +261,7 @@ export function SecureVideoPlayer({
       const signedUrl = await VideoApi.getSignedVideoUrl(lessonId);
       setVideoUrl(signedUrl);
     } catch (err) {
-      console.error("Erreur lors de la récupération de l'URL signée:", err);
+      logger.error("Erreur lors de la récupération de l'URL signée:", err);
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setLoading(false);
@@ -286,7 +287,7 @@ export function SecureVideoPlayer({
         ? durationHintSeconds
         : 0;
     completionNotifiedRef.current = false;
-    console.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
+    logger.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
   }, [durationHintSeconds, lessonId, videoUrl]);
 
   useEffect(() => {
@@ -300,7 +301,7 @@ export function SecureVideoPlayer({
   useEffect(() => {
     if (!resolvedIframeUrl || !isIframeEmbedUrl(resolvedIframeUrl)) return;
 
-    console.log("[BUNNY TRACKING] mode iframe actif", { lessonId, videoUrl: resolvedIframeUrl });
+    logger.log("[BUNNY TRACKING] mode iframe actif", { lessonId, videoUrl: resolvedIframeUrl });
 
     let isMounted = true;
     let playerInstance: PlayerJsInstance | null = null;
@@ -334,7 +335,7 @@ export function SecureVideoPlayer({
 
       if (nextTime + 0.5 < previousTime) {
         lastTrackedTimeRef.current = nextTime;
-        console.log("[BUNNY TRACKING] saut arrière détecté", {
+        logger.log("[BUNNY TRACKING] saut arrière détecté", {
           lessonId,
           source,
           from: previousTime,
@@ -346,7 +347,7 @@ export function SecureVideoPlayer({
 
       if (progressHandler && duration > 0) {
         progressHandler(previousTime, nextTime, duration);
-        console.log("[BUNNY TRACKING] progression envoyée", {
+        logger.log("[BUNNY TRACKING] progression envoyée", {
           lessonId,
           source,
           from: previousTime,
@@ -366,7 +367,7 @@ export function SecureVideoPlayer({
         const duration = toFiniteNumber(value);
         if (typeof duration === "number" && duration > 0) {
           lastKnownDurationRef.current = duration;
-          console.log("[BUNNY TRACKING][playerjs] durée réelle détectée", {
+          logger.log("[BUNNY TRACKING][playerjs] durée réelle détectée", {
             lessonId,
             duration,
           });
@@ -386,10 +387,10 @@ export function SecureVideoPlayer({
         if (!iframeRef.current || !window.playerjs?.Player) return;
 
         playerInstance = new window.playerjs.Player(iframeRef.current);
-        console.log("[BUNNY TRACKING][playerjs] SDK initialisé", { lessonId });
+        logger.log("[BUNNY TRACKING][playerjs] SDK initialisé", { lessonId });
 
         const onReady: PlayerJsCallback = () => {
-          console.log("[BUNNY TRACKING][playerjs] ready", { lessonId });
+          logger.log("[BUNNY TRACKING][playerjs] ready", { lessonId });
           probePlayerDuration();
         };
 
@@ -445,7 +446,7 @@ export function SecureVideoPlayer({
           try {
             playerInstance.off(eventName, callback);
           } catch (error) {
-            console.warn("[BUNNY TRACKING][playerjs] off() ignoré", {
+            logger.warn("[BUNNY TRACKING][playerjs] off() ignoré", {
               lessonId,
               eventName,
               error,
@@ -466,7 +467,7 @@ export function SecureVideoPlayer({
           playerInstance = null;
         };
       } catch (error) {
-        console.warn("[BUNNY TRACKING][playerjs] indisponible, fallback postMessage", {
+        logger.warn("[BUNNY TRACKING][playerjs] indisponible, fallback postMessage", {
           lessonId,
           error,
         });
@@ -492,7 +493,7 @@ export function SecureVideoPlayer({
       }
 
       const parsed = parseBunnyMessage(event.data);
-      console.log("[BUNNY TRACKING] message reçu", {
+      logger.log("[BUNNY TRACKING] message reçu", {
         origin: event.origin,
         eventName: parsed.eventName,
         raw: parsed.data,
@@ -501,7 +502,7 @@ export function SecureVideoPlayer({
       sendProgressWindow(parsed.currentTime, parsed.duration, "iframe_message");
 
       if (parsed.ended) {
-        console.log("[BUNNY TRACKING] vidéo terminée", { lessonId });
+        logger.log("[BUNNY TRACKING] vidéo terminée", { lessonId });
         maybeNotifyEnded("iframe_message_ended");
       }
     };
@@ -554,7 +555,7 @@ export function SecureVideoPlayer({
       try {
         cleanupPlayerJs?.();
       } catch (error) {
-        console.warn("[BUNNY TRACKING] cleanup playerjs ignoré", {
+        logger.warn("[BUNNY TRACKING] cleanup playerjs ignoré", {
           lessonId,
           error,
         });
@@ -682,7 +683,7 @@ export function SecureVideoPlayer({
             className="h-full w-full border-0"
             onLoad={() => {
               setIsPlayerLoading(false);
-              console.log("[BUNNY TRACKING] iframe chargé", {
+              logger.log("[BUNNY TRACKING] iframe chargé", {
                 lessonId,
                 videoUrl: resolvedIframeUrl,
               });

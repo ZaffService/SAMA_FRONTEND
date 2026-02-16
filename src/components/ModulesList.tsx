@@ -25,6 +25,7 @@ import {
 import { Module } from "@/domain/entities/module";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import Swal from "sweetalert2";
+import logger from "@/shared/helpers/logger";
 
 interface ModulesListProps {
   modules: Module[];
@@ -43,9 +44,9 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
 
   // Log pour déboguer les changements de props modules
   useEffect(() => {
-    console.log('📦 [ModulesList] Props modules mis à jour:', modules.length, 'modules');
+    logger.log('📦 [ModulesList] Props modules mis à jour:', modules.length, 'modules');
     modules.forEach((m, i) => {
-      console.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
+      logger.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
     });
   }, [modules]);
 
@@ -116,8 +117,8 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     try {
       if (moduleToSave.id) {
         // Module existant - utiliser l'endpoint de modification
-        console.log(`🔄 [ModulesList] Début modification module existant: ${moduleToSave.id}`);
-        console.log(`📦 [ModulesList] Données envoyées:`, {
+        logger.log(`🔄 [ModulesList] Début modification module existant: ${moduleToSave.id}`);
+        logger.log(`📦 [ModulesList] Données envoyées:`, {
           title: moduleToSave.title,
           description: moduleToSave.description
         });
@@ -127,12 +128,12 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
           description: moduleToSave.description
         });
 
-        console.log(`✅ [ModulesList] Réponse API:`, response);
-        console.log(`✅ [ModulesList] Module mis à jour par le serveur:`, response.module);
+        logger.log(`✅ [ModulesList] Réponse API:`, response);
+        logger.log(`✅ [ModulesList] Module mis à jour par le serveur:`, response.module);
 
         // Vérifier que les données ont été correctement persistées
         if (response.module && response.module.title === moduleToSave.title) {
-          console.log(`✅ [ModulesList] Vérification de persistance: SUCCÈS`);
+          logger.log(`✅ [ModulesList] Vérification de persistance: SUCCÈS`);
           
           // Mettre à jour le module avec les données du serveur (depuis la closure de handleModulesChange)
           const updatedModules = currentModules.map((module, i) =>
@@ -152,9 +153,9 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
             showConfirmButton: false,
           });
         } else {
-          console.warn(`⚠️ [ModulesList] Vérification de persistance: ÉCHEC`);
-          console.warn(`📊 [ModulesList] Données attendues:`, moduleToSave.title);
-          console.warn(`📊 [ModulesList] Données reçues:`, response.module?.title);
+          logger.warn(`⚠️ [ModulesList] Vérification de persistance: ÉCHEC`);
+          logger.warn(`📊 [ModulesList] Données attendues:`, moduleToSave.title);
+          logger.warn(`📊 [ModulesList] Données reçues:`, response.module?.title);
 
           Swal.fire({
             icon: "warning",
@@ -211,7 +212,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
 
       setExpandedModules(prev => ({ ...prev, [index]: false }));
     } catch (error) {
-      console.error("❌ [ModulesList] Erreur lors de la sauvegarde du module:", error);
+      logger.error("❌ [ModulesList] Erreur lors de la sauvegarde du module:", error);
 
       // Utiliser le système de mapping d'erreurs
       const { getErrorMapping } = await import("@/shared/helpers/error-mapping");
@@ -251,7 +252,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     const moduleTitle = deleteConfirmModule.title;
     const moduleId = deleteConfirmModule.id;
     
-    console.log('🗑️ [ModulesList] Suppression du module:', moduleTitle, '(id:', moduleId + ')');
+    logger.log('🗑️ [ModulesList] Suppression du module:', moduleTitle, '(id:', moduleId + ')');
     
     // D'abord fermer le dialog
     setDeleteConfirmModule(null);
@@ -259,11 +260,11 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     try {
       // Appel à l'API via CoursesApi.deleteModule
       const data = await CoursesApi.deleteModule(moduleId);
-      console.log('✅ [ModulesList] Module supprimé du serveur:', data.message);
+      logger.log('✅ [ModulesList] Module supprimé du serveur:', data.message);
 
       // Supprimer le module de la liste locale
       const updatedModules = modules.filter(m => m.id !== moduleId);
-      console.log('📦 [ModulesList] Modules restants après filtrage:', updatedModules.length);
+      logger.log('📦 [ModulesList] Modules restants après filtrage:', updatedModules.length);
       
       const reorderedModules = updatedModules.map((m, i) => ({
         ...m,
@@ -281,7 +282,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
         confirmButtonColor: '#2563eb',
       });
     } catch (error: any) {
-      console.error('❌ [ModulesList] Erreur lors de la suppression:', error);
+      logger.error('❌ [ModulesList] Erreur lors de la suppression:', error);
 
       // Utiliser le système de mapping d'erreurs
       const { getErrorMapping } = await import("@/shared/helpers/error-mapping");

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { CoursesApi, LessonStatus } from "@/infrastructure/api/courses-api";
 import { VideoStatusItem } from "./VideoStatusItem";
+import logger from "@/shared/helpers/logger";
 
 interface Lesson {
   id: string;
@@ -81,7 +82,7 @@ export function VideoStatusIndicator({
       setCourse(courseData);
       onStatusChange?.(courseData.isComplete);
     } catch (err) {
-      console.error("Erreur lors du chargement du statut des vidéos:", err);
+      logger.error("Erreur lors du chargement du statut des vidéos:", err);
       setError("Impossible de charger le statut des vidéos");
     } finally {
       setLoading(false);

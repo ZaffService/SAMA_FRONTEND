@@ -56,6 +56,7 @@ import {
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { COUNTRIES } from "@/lib/countries";
+import logger from "@/shared/helpers/logger";
 
 // Helper to extract local number from full phone number
 const extractLocalNumber = (fullPhone: string, indicatif: string): string => {
@@ -163,7 +164,7 @@ export default function CompleteProfile() {
           }
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération du profil:", error);
+        logger.error("Erreur lors de la récupération du profil:", error);
       } finally {
         setIsLoading(false);
       }
@@ -260,7 +261,7 @@ export default function CompleteProfile() {
         }, 1500);
       }
     } catch (error) {
-      console.error("Erreur lors de la completion du profil:", error);
+      logger.error("Erreur lors de la completion du profil:", error);
       
       // Utiliser le système de mapping d'erreurs
       const errorMapping = getErrorMapping(error);

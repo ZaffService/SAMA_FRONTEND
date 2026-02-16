@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Image, Upload, X, Loader2 } from "lucide-react";
 import { showErrorToast } from "@/shared/helpers/sweet-alert";
+import logger from "@/shared/helpers/logger";
 
 interface ThumbnailUploaderProps {
   courseId?: string;
@@ -52,7 +53,7 @@ export function ThumbnailUploader({
       setThumbnailUrl(localUrl);
       onThumbnailUploaded(file);
     } catch (error) {
-      console.error("Error uploading thumbnail:", error);
+      logger.error("Error uploading thumbnail:", error);
       showErrorToast("Erreur", "Impossible de charger l'image");
     } finally {
       setIsUploading(false);

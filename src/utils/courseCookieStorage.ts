@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import Cookies from "js-cookie";
 
 const COOKIE_KEY = "bibocom_course_draft";
@@ -32,13 +33,13 @@ export const CourseCookieStorage = {
         secure: process.env.NODE_ENV === "production", // HTTPS en production
       });
 
-      console.log(
+      logger.log(
         "🍪 [Cookies] Brouillon sauvegardé:",
         new Date().toISOString(),
       );
       return true;
     } catch (err) {
-      console.error("❌ [Cookies] Erreur sauvegarde:", err);
+      logger.error("❌ [Cookies] Erreur sauvegarde:", err);
       return false;
     }
   },
@@ -50,10 +51,10 @@ export const CourseCookieStorage = {
       if (!draft) return null;
 
       const parsed = JSON.parse(draft);
-      console.log("📂 [Cookies] Brouillon récupéré:", parsed.lastSaved);
+      logger.log("📂 [Cookies] Brouillon récupéré:", parsed.lastSaved);
       return parsed;
     } catch (err) {
-      console.error("❌ [Cookies] Erreur récupération:", err);
+      logger.error("❌ [Cookies] Erreur récupération:", err);
       return null;
     }
   },
@@ -62,10 +63,10 @@ export const CourseCookieStorage = {
   clearDraft: (): boolean => {
     try {
       Cookies.remove(COOKIE_KEY);
-      console.log("🗑️ [Cookies] Brouillon supprimé");
+      logger.log("🗑️ [Cookies] Brouillon supprimé");
       return true;
     } catch (err) {
-      console.error("❌ [Cookies] Erreur suppression:", err);
+      logger.error("❌ [Cookies] Erreur suppression:", err);
       return false;
     }
   },

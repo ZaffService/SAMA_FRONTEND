@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import logger from "@/shared/helpers/logger";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -32,7 +33,7 @@ export default function Error({ error, reset }: ErrorProps) {
 
   useEffect(() => {
     // Log l'erreur pour debug
-    console.error("[Error Boundary]", error);
+    logger.error("[Error Boundary]", error);
   }, [error]);
 
   // Auto-reconnect timer

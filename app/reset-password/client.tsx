@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { useSearchParams } from "next/navigation";
+import logger from "@/shared/helpers/logger";
 
 export default function ResetPassword() {
   const searchParams = useSearchParams();
@@ -77,7 +78,7 @@ export default function ResetPassword() {
         window.location.href = "/login";
       }, 3000);
     } catch (err: any) {
-      console.error("Erreur lors de la réinitialisation:", err);
+      logger.error("Erreur lors de la réinitialisation:", err);
       // Pour les erreurs de token invalide/expiré, on peut gérer différemment
       if (err.message.includes("token") || err.message.includes("expiré")) {
         setIsTokenValid(false);

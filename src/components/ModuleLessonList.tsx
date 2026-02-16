@@ -1,6 +1,7 @@
 "use client";
 import { Play, CheckCircle2, Circle, Award, ChevronDown } from "lucide-react";
 import { TEXTS } from "@/lib/constants";
+import logger from "@/shared/helpers/logger";
 
 interface Lesson {
   id: string;
@@ -218,7 +219,7 @@ export function ModuleLessonList({
 
               <button
                 onClick={() => {
-                  console.log("Bouton Quiz cliqué pour module:", module.id);
+                  logger.log("Bouton Quiz cliqué pour module:", module.id);
                   onStartQuiz();
                 }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold text-sm rounded-lg shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"

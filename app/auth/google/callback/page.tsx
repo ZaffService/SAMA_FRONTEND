@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import logger from "@/shared/helpers/logger";
 
 export default function GoogleCallbackPage() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function GoogleCallbackPage() {
         // Redirection vers la page d'accueil après succès
         router.push("/");
       } catch (err: any) {
-        console.error("Erreur lors de l'authentification Google:", err);
+        logger.error("Erreur lors de l'authentification Google:", err);
         setError(err.message || "Erreur lors de l'authentification");
       }
     };

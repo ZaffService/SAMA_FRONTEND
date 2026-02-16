@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import type { CourseDetailsData } from "@/types/course";
 
 // Constante pour l'URL de base Bunny CDN
@@ -66,12 +67,12 @@ function transformLesson(lesson: any) {
   // Si pas d'URL directe mais on a un assetId Bunny
   if (!videoUrl && videoAssetId && videoProvider === "BUNNY") {
     videoUrl = buildBunnyVideoUrl(videoAssetId);
-    console.log(`🎥 [Transformer] URL Bunny construite: ${videoUrl}`);
+    logger.log(`🎥 [Transformer] URL Bunny construite: ${videoUrl}`);
   }
   
   // Si l'URL est toujours absente, vérifier si la leçon a un statut indiquant une vidéo
   if (!videoUrl && status === "VIDEO_UPLOADED" && (videoAssetId || videoProvider)) {
-    console.warn(`⚠️ [Transformer] Vidéo uploadée mais pas d'URL pour la leçon ${lessonId}`);
+    logger.warn(`⚠️ [Transformer] Vidéo uploadée mais pas d'URL pour la leçon ${lessonId}`);
   }
 
   return {
@@ -83,7 +84,7 @@ function transformLesson(lesson: any) {
 }
 
 export function transformCourseDetails(data: any): CourseDetailsData {
-  console.log("📦 Transformer: Données reçues:", JSON.stringify(data, null, 2));
+  logger.log("📦 Transformer: Données reçues:", JSON.stringify(data, null, 2));
   const rawCourse = data?.course ?? {};
   const rawModules = Array.isArray(data?.modules)
     ? data.modules
@@ -99,14 +100,14 @@ export function transformCourseDetails(data: any): CourseDetailsData {
     // Si c'est un array, prendre le premier élément
     if (Array.isArray(attachmentsCandidate) && attachmentsCandidate.length > 0) {
       attachmentUrl = attachmentsCandidate[0];
-      console.log("📎 Transformer: Attachment Array -> URL:", attachmentUrl);
+      logger.log("📎 Transformer: Attachment Array -> URL:", attachmentUrl);
     } else if (typeof attachmentsCandidate === "string") {
       attachmentUrl = attachmentsCandidate;
-      console.log("📎 Transformer: Attachment String:", attachmentUrl);
+      logger.log("📎 Transformer: Attachment String:", attachmentUrl);
     }
   }
   
-  console.log("📎 Transformer: Attachment final:", attachmentUrl);
+  logger.log("📎 Transformer: Attachment final:", attachmentUrl);
   
   return {
     course: {

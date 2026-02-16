@@ -25,6 +25,7 @@ import {
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
+import logger from "@/shared/helpers/logger";
 
 type TabType = "all" | "active" | "completed";
 
@@ -58,15 +59,15 @@ export default function MesApprentissagesPage() {
   const loadEnrolledCourses = async () => {
     try {
       setIsLoading(true);
-      console.log("📚 [Mes Apprentissages] Chargement des cours inscrits...");
+      logger.log("📚 [Mes Apprentissages] Chargement des cours inscrits...");
 
       const data = await EnrollmentApi.getEnrolledCourses();
-      console.log(
+      logger.log(
         `📚 [Mes Apprentissages] ${data.courses.length} cours récupérés depuis enrollment`,
       );
 
       // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE - COMME LE DASHBOARD
-      console.log(
+      logger.log(
         "📊 [Mes Apprentissages] Début récupération progression pour",
         data.courses.length,
         "cours",
@@ -76,16 +77,16 @@ export default function MesApprentissagesPage() {
           try {
             const courseId = course.id;
             if (!courseId) {
-              console.log("⚠️ [Mes Apprentissages] Cours sans ID:", course);
+              logger.log("⚠️ [Mes Apprentissages] Cours sans ID:", course);
               return course;
             }
 
-            console.log(
+            logger.log(
               `📚 [Mes Apprentissages] Récupération progression pour cours ID: ${courseId} - ${course.title}`,
             );
             const progressData = await StudentApi.getCourseProgress(courseId);
 
-            console.log(
+            logger.log(
               `✅ [Mes Apprentissages] Progression reçue pour cours ${courseId}:`,
               {
                 progress: progressData.progress,
@@ -104,7 +105,7 @@ export default function MesApprentissagesPage() {
               lastAccessed: progressData.last_accessed,
             };
           } catch (error) {
-            console.error(
+            logger.error(
               `❌ [Mes Apprentissages] Erreur récupération progression pour cours ${course.id}:`,
               error,
             );
@@ -119,19 +120,19 @@ export default function MesApprentissagesPage() {
         }),
       );
 
-      console.log(
+      logger.log(
         "✅ [Mes Apprentissages] Progression chargée pour tous les cours",
       );
-      console.log("📊 [Mes Apprentissages] Résumé des progressions:");
+      logger.log("📊 [Mes Apprentissages] Résumé des progressions:");
       coursesWithProgress.forEach((course) => {
-        console.log(
+        logger.log(
           `  - Cours ${course.id}: ${course.progressPercentage}% (${(course as any).completedLessons}/${(course as any).totalLessons} leçons)`,
         );
       });
 
       setCourses(coursesWithProgress);
     } catch (error) {
-      console.error(
+      logger.error(
         "❌ [Mes Apprentissages] Erreur globale chargement des cours:",
         error,
       );

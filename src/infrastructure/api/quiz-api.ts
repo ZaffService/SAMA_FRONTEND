@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface Question {
@@ -81,34 +82,34 @@ export class QuizApi {
     }>;
   }> {
     try {
-      console.log(
+      logger.log(
         `📡 API: Récupération des questions du quiz pour le module: ${moduleId}`,
       );
 
       // Correction: La route backend est /course/quiz/module/:moduleId/questions
       const endpoint = `course/quiz/module/${moduleId}/questions`;
-      console.log(`📡 API: Endpoint utilisé: ${endpoint}`);
+      logger.log(`📡 API: Endpoint utilisé: ${endpoint}`);
 
       const response = await fetch(buildApiUrl(endpoint), {
         method: "GET",
         credentials: "include",
       });
 
-      console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
+      logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ API: Erreur ${response.status}: ${errorText}`);
+        logger.error(`❌ API: Erreur ${response.status}: ${errorText}`);
         throw new Error(
           `Erreur ${response.status}: Impossible de charger le quiz pour ce module`,
         );
       }
 
       const data = await response.json();
-      console.log(`✅ API: Données reçues:`, data);
+      logger.log(`✅ API: Données reçues:`, data);
       return data;
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ API: Erreur lors de la récupération des questions:`,
         error,
       );
@@ -129,14 +130,14 @@ export class QuizApi {
     answers: Record<string, any>;
   }> {
     try {
-      console.log(
+      logger.log(
         `📤 API: Soumission du quiz ${quizId} avec les réponses:`,
         answers,
       );
 
       // Correction: La route backend est /course/quiz/:quizId
       const endpoint = `course/quiz/${quizId}`;
-      console.log(`📤 API: Endpoint utilisé pour soumission: ${endpoint}`);
+      logger.log(`📤 API: Endpoint utilisé pour soumission: ${endpoint}`);
 
       const response = await fetch(buildApiUrl(endpoint), {
         method: "POST",
@@ -145,11 +146,11 @@ export class QuizApi {
         body: JSON.stringify({ answers }),
       });
 
-      console.log(`📤 API: Réponse de soumission - Status: ${response.status}`);
+      logger.log(`📤 API: Réponse de soumission - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(
+        logger.error(
           `❌ API: Erreur ${response.status} lors de la soumission: ${errorText}`,
         );
 
@@ -196,10 +197,10 @@ export class QuizApi {
       }
 
       const data = await response.json();
-      console.log(`✅ API: Résultat de la soumission:`, data);
+      logger.log(`✅ API: Résultat de la soumission:`, data);
       return data;
     } catch (error) {
-      console.error(`❌ API: Erreur lors de la soumission du quiz:`, error);
+      logger.error(`❌ API: Erreur lors de la soumission du quiz:`, error);
       throw error;
     }
   }

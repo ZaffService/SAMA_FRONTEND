@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { X, CheckCircle, XCircle, Clock, Award, ArrowLeft } from "lucide-react";
 import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
+import logger from "@/shared/helpers/logger";
 
 interface QuizData {
   quiz: {
@@ -78,7 +79,7 @@ export function QuizModal({
       setStartTime(new Date());
       setTimeLeft(null);
     } catch (error) {
-      console.error("Erreur lors du chargement du quiz:", error);
+      logger.error("Erreur lors du chargement du quiz:", error);
       setError("Aucun quiz disponible pour ce module.");
     } finally {
       setLoading(false);
@@ -154,7 +155,7 @@ export function QuizModal({
       setShowResults(true);
       onQuizCompleted(result.passed, result.score);
     } catch (error) {
-      console.error("Error submitting quiz:", error);
+      logger.error("Error submitting quiz:", error);
       await Swal.fire({
         title: "Erreur",
         text: "Une erreur est survenue lors de la soumission du quiz",

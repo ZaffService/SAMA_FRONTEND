@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { StudentUseCases } from "./student-use-cases";
 import { Enrollment } from "@/infrastructure/api/student-api";
+import logger from "@/shared/helpers/logger";
 
 interface UseEnrolledCoursesState {
   enrolledCourses: Enrollment[];
@@ -22,14 +23,14 @@ export function useEnrolledCourses(): UseEnrolledCoursesState &
     try {
       setLoading(true);
       setError(null);
-      console.log(
+      logger.log(
         "🔍 [useEnrolledCourses] Début récupération des cours inscrits...",
       );
 
       const courses = await StudentUseCases.getEnrolledCourses();
 
-      console.log("📚 [useEnrolledCourses] Cours inscrits récupérés:", courses);
-      console.log(
+      logger.log("📚 [useEnrolledCourses] Cours inscrits récupérés:", courses);
+      logger.log(
         "📊 [useEnrolledCourses] Nombre de cours:",
         courses?.length || 0,
       );
@@ -39,14 +40,14 @@ export function useEnrolledCourses(): UseEnrolledCoursesState &
         c.title?.includes("Leadership"),
       );
       if (leadershipCourse) {
-        console.log(
+        logger.log(
           "🎯 [useEnrolledCourses] Cours Leadership trouvé:",
           leadershipCourse,
         );
-        console.log("🆔 ID du cours Leadership:", leadershipCourse.id);
-        console.log("🏷️ Titre du cours Leadership:", leadershipCourse.title);
+        logger.log("🆔 ID du cours Leadership:", leadershipCourse.id);
+        logger.log("🏷️ Titre du cours Leadership:", leadershipCourse.title);
       } else {
-        console.log(
+        logger.log(
           "❌ [useEnrolledCourses] Cours Leadership NON trouvé dans les cours inscrits",
         );
       }
@@ -58,7 +59,7 @@ export function useEnrolledCourses(): UseEnrolledCoursesState &
           ? err.message
           : "Erreur lors du chargement des cours inscrits";
       setError(errorMessage);
-      console.error("❌ [useEnrolledCourses] Erreur:", err);
+      logger.error("❌ [useEnrolledCourses] Erreur:", err);
     } finally {
       setLoading(false);
     }

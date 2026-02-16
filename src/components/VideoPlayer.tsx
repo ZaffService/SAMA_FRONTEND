@@ -4,6 +4,7 @@ import { useVideoProgress } from "@/hooks/useVideoProgress";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, CheckCircle } from "lucide-react";
 import { useState, useRef } from "react";
+import logger from "@/shared/helpers/logger";
 
 interface VideoPlayerProps {
   lessonId: string;
@@ -69,7 +70,7 @@ export function VideoPlayer({
     try {
       await markAsCompleted();
     } catch (error) {
-      console.error("Erreur lors du marquage manuel:", error);
+      logger.error("Erreur lors du marquage manuel:", error);
     }
   };
 

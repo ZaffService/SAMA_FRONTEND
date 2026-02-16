@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import logger from "@/shared/helpers/logger";
 
 interface AvatarContextType {
   avatarUrl: string | null;
@@ -54,7 +55,7 @@ export function AvatarProvider({ children }: { children: React.ReactNode }) {
           setFirstName(firstNameValue);
           setLastName(lastNameValue);
         } catch (error) {
-          console.error("Erreur lors du chargement des données avatar:", error);
+          logger.error("Erreur lors du chargement des données avatar:", error);
           setAvatarUrl(null);
           setFirstName(null);
           setLastName(null);

@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { promises as fs } from "fs";
 import { join, relative } from "path";
 
@@ -93,10 +94,10 @@ async function fixFileImports(filePath: string): Promise<void> {
 
     if (modified) {
       await fs.writeFile(filePath, content, "utf-8");
-      console.log(`Fixed imports in: ${filePath}`);
+      logger.log(`Fixed imports in: ${filePath}`);
     }
   } catch (error) {
-    console.error(`Error processing ${filePath}:`, error);
+    logger.error(`Error processing ${filePath}:`, error);
   }
 }
 
@@ -116,19 +117,19 @@ async function processDirectory(dir: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.error(`Error processing directory ${dir}:`, error);
+    logger.error(`Error processing directory ${dir}:`, error);
   }
 }
 
 async function main() {
-  console.log("Starting import fixes...");
+  logger.log("Starting import fixes...");
 
   for (const dir of DIRECTORIES_TO_FIX) {
-    console.log(`Processing directory: ${dir}`);
+    logger.log(`Processing directory: ${dir}`);
     await processDirectory(dir);
   }
 
-  console.log("Import fixes completed!");
+  logger.log("Import fixes completed!");
 }
 
-main().catch(console.error);
+main().catch(logger.error);

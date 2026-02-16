@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CategoriesApi } from "@/infrastructure/api/categories-api";
 import type { Category } from "@/domain/entities/course";
+import logger from "@/shared/helpers/logger";
 
 interface UseCategoriesState {
   categories: Category[];
@@ -32,19 +33,19 @@ export function useCategories(): UseCategoriesState & UseCategoriesActions {
       setLoading(true);
       setError(null);
 
-      console.log("🔄 Récupération des catégories...");
+      logger.log("🔄 Récupération des catégories...");
 
       const result = await CategoriesApi.getCategories();
 
       if (!abortControllerRef.current.signal.aborted) {
         setCategories(result);
-        console.log(`✅ ${result.length} catégories chargées avec succès`);
+        logger.log(`✅ ${result.length} catégories chargées avec succès`);
       }
     } catch (err) {
       if (!abortControllerRef.current.signal.aborted) {
         const errorMessage =
           err instanceof Error ? err.message : "Erreur inconnue";
-        console.error("❌ Erreur lors de la récupération des catégories:", err);
+        logger.error("❌ Erreur lors de la récupération des catégories:", err);
         setError(errorMessage);
         setCategories([]);
       }

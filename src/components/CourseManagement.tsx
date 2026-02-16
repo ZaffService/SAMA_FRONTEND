@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { CourseEditor } from "./CourseEditor";
 import { CourseBasicInfoEditor } from "./editors/CourseBasicInfoEditor";
+import logger from "@/shared/helpers/logger";
 
 interface CourseManagementProps {
   onCourseUpdated?: () => void;
@@ -106,7 +107,7 @@ const { user } = useLocalAuth();
         fetchCourses();
         onCourseUpdated?.();
       } catch (error: any) {
-        console.error("Erreur lors de la suppression:", error);
+        logger.error("Erreur lors de la suppression:", error);
 
         // Vérifier si c'est une erreur COURSE_ALREADY_ENROLLED
         if (error.code === "COURSE_ALREADY_ENROLLED") {
@@ -154,7 +155,7 @@ const { user } = useLocalAuth();
       const result = await CoursesApi.getCourses(1, 100, searchOptions);
       setCourses(result.courses);
     } catch (error) {
-      console.error("Erreur lors de la récupération des cours:", error);
+      logger.error("Erreur lors de la récupération des cours:", error);
       toast.error("Erreur lors de la récupération des cours");
     } finally {
       setIsLoading(false);
@@ -176,7 +177,7 @@ const { user } = useLocalAuth();
       fetchCourses();
       onCourseUpdated?.();
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut:", error);
+      logger.error("Erreur lors de la mise à jour du statut:", error);
       toast.error("Erreur lors de la mise à jour du statut");
     }
   };
@@ -191,7 +192,7 @@ const { user } = useLocalAuth();
       fetchCourses();
       onCourseUpdated?.();
     } catch (error) {
-      console.error("Erreur lors de l'archivage:", error);
+      logger.error("Erreur lors de l'archivage:", error);
       toast.error("Erreur lors de l'archivage du cours");
       setCourseToArchive(null);
     }

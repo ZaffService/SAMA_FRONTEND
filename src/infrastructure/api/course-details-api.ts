@@ -1,5 +1,6 @@
 // src/infrastructure/api/course-details-api.ts
 
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface CourseDetails {
@@ -55,7 +56,7 @@ export class CourseDetailsApi {
    */
   static async getCourseDetails(courseId: string): Promise<CourseDetails> {
     try {
-      console.log(
+      logger.log(
         `📤 [COURSE-DETAILS-API] Récupération détails cours: ${courseId}`,
       );
 
@@ -70,16 +71,16 @@ export class CourseDetailsApi {
       );
 
       if (!response.ok) {
-        console.error("❌ [COURSE-DETAILS-API] Erreur:", response.status);
+        logger.error("❌ [COURSE-DETAILS-API] Erreur:", response.status);
         throw new Error("Impossible de récupérer les détails du cours");
       }
 
       const data = await response.json();
-      console.log(`✅ [COURSE-DETAILS-API] Détails cours récupérés`);
+      logger.log(`✅ [COURSE-DETAILS-API] Détails cours récupérés`);
 
       return data;
     } catch (error) {
-      console.error("❌ [COURSE-DETAILS-API] Exception:", error);
+      logger.error("❌ [COURSE-DETAILS-API] Exception:", error);
       throw error;
     }
   }
@@ -89,7 +90,7 @@ export class CourseDetailsApi {
    */
   static async getCourseProgress(courseId: string): Promise<CourseProgress> {
     try {
-      console.log(
+      logger.log(
         `📤 [COURSE-PROGRESS-API] Récupération progression: ${courseId}`,
       );
 
@@ -105,18 +106,18 @@ export class CourseDetailsApi {
       );
 
       if (!response.ok) {
-        console.error("❌ [COURSE-PROGRESS-API] Erreur:", response.status);
+        logger.error("❌ [COURSE-PROGRESS-API] Erreur:", response.status);
         throw new Error("Impossible de récupérer la progression");
       }
 
       const data = await response.json();
-      console.log(
+      logger.log(
         `✅ [COURSE-PROGRESS-API] Progression récupérée: ${data.progressPercentage}%`,
       );
 
       return data;
     } catch (error) {
-      console.error("❌ [COURSE-PROGRESS-API] Exception:", error);
+      logger.error("❌ [COURSE-PROGRESS-API] Exception:", error);
       throw error;
     }
   }
@@ -129,7 +130,7 @@ export class CourseDetailsApi {
     progress: number,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      console.log(
+      logger.log(
         `📤 [LESSON-PROGRESS-API] Mise à jour leçon ${lessonId}: ${progress}%`,
       );
 
@@ -137,7 +138,7 @@ export class CourseDetailsApi {
       // Pour l'instant, on simule
       return { success: true, message: "Progression mise à jour" };
     } catch (error) {
-      console.error("❌ [LESSON-PROGRESS-API] Exception:", error);
+      logger.error("❌ [LESSON-PROGRESS-API] Exception:", error);
       throw error;
     }
   }
@@ -149,12 +150,12 @@ export class CourseDetailsApi {
     lessonId: string,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      console.log(`📤 [LESSON-API] Completion leçon: ${lessonId}`);
+      logger.log(`📤 [LESSON-API] Completion leçon: ${lessonId}`);
 
       // TODO: Implémenter l'endpoint backend
       return { success: true, message: "Leçon marquée comme terminée" };
     } catch (error) {
-      console.error("❌ [LESSON-API] Exception:", error);
+      logger.error("❌ [LESSON-API] Exception:", error);
       throw error;
     }
   }

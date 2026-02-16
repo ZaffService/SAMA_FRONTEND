@@ -2,6 +2,8 @@
  * Auth helper utilities
  */
 
+import logger from "./logger";
+
 function setCookie(name: string, value: string, days: number = 7) {
   const expires = new Date();
   expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
@@ -37,7 +39,7 @@ export async function refreshAccessToken(): Promise<boolean> {
   try {
     const refreshToken = getCookie("refresh_token");
     if (!refreshToken) {
-      console.log("No refresh token available");
+      logger.log("No refresh token available");
       return false;
     }
 
@@ -59,15 +61,15 @@ export async function refreshAccessToken(): Promise<boolean> {
         if (data.refresh_token) {
           setCookie("refresh_token", data.refresh_token, 7);
         }
-        console.log("Access token refreshed successfully");
+        logger.log("Access token refreshed successfully");
         return true;
       }
     }
 
-    console.log("Failed to refresh access token");
+    logger.log("Failed to refresh access token");
     return false;
   } catch (error) {
-    console.error("Error refreshing access token:", error);
+    logger.error("Error refreshing access token:", error);
     return false;
   }
 }

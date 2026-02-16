@@ -40,6 +40,7 @@ import {
   Search,
 } from "lucide-react";
 import Cookies from "js-cookie";
+import logger from "@/shared/helpers/logger";
 
 const TRACKING_INTERVAL_MS = 2000;
 const TRACKING_COMPLETION_THRESHOLD = 0.95;
@@ -63,7 +64,7 @@ const savePendingEnrollment = (courseId: string, userId?: string | number) => {
   };
   if (typeof window !== "undefined") {
     localStorage.setItem("pendingEnrollment", JSON.stringify(pendingData));
-    console.log("✅ État sauvegardé avant redirection Paydunya:", pendingData);
+    logger.log("✅ État sauvegardé avant redirection Paydunya:", pendingData);
   }
 };
 
@@ -79,11 +80,11 @@ const restorePendingEnrollment = () => {
 
     // Vérifier expiration (30 minutes)
     if (Date.now() - data.timestamp < 30 * 60 * 1000) {
-      console.log("🔄 Enrollment pending retrouvé:", data);
+      logger.log("🔄 Enrollment pending retrouvé:", data);
       return data;
     } else {
       localStorage.removeItem("pendingEnrollment");
-      console.log("⏰ Pending enrollment expiré");
+      logger.log("⏰ Pending enrollment expiré");
     }
   }
 
@@ -108,7 +109,7 @@ const clearPendingEnrollment = () => {
   Cookies.remove("pendingEnrollmentTime");
   if (typeof window !== "undefined") {
     localStorage.removeItem("pendingEnrollment");
-    console.log("🧹 Pending enrollment nettoyé");
+    logger.log("🧹 Pending enrollment nettoyé");
   }
 };
 
@@ -402,11 +403,11 @@ function CourseDetailsPageComponent() {
   useEffect(() => {
     const fetchCourseDetails = async () => {
       if (!courseId) {
-        console.log(" Pas d'ID de cours fourni");
+        logger.log(" Pas d'ID de cours fourni");
         return;
       }
 
-      console.log(`🔄 Composant: Chargement du cours ${courseId}`);
+      logger.log(`🔄 Composant: Chargement du cours ${courseId}`);
 
       try {
         setLoading(true);
@@ -414,7 +415,7 @@ function CourseDetailsPageComponent() {
 
         // ✅ Transformer les données
         const data = transformCourseDetails(rawData);
-        console.log("✅ Composant: Données transformées:", data);
+        logger.log("✅ Composant: Données transformées:", data);
 
         setCourseData(data);
 
@@ -424,7 +425,7 @@ function CourseDetailsPageComponent() {
 
         // ✅ Utiliser isEnrolled depuis les données du cours si disponible
         if (data.course.isEnrolled !== undefined) {
-          console.log(`✅ Statut d'inscription depuis le backend: ${data.course.isEnrolled}`);
+          logger.log(`✅ Statut d'inscription depuis le backend: ${data.course.isEnrolled}`);
           setIsEnrolled(data.course.isEnrolled);
           setIsPaid(data.course.isEnrolled);
           setEnrollmentCheckComplete(true);
@@ -465,7 +466,7 @@ function CourseDetailsPageComponent() {
           }
         }
       } catch (err) {
-        console.error("❌ Composant: Erreur lors du chargement:", err);
+        logger.error("❌ Composant: Erreur lors du chargement:", err);
         setError("Impossible de charger les détails du cours");
       } finally {
         setLoading(false);
@@ -480,12 +481,12 @@ function CourseDetailsPageComponent() {
     const checkEnrollmentStatus = async () => {
       // ✅ EMPÊCHER LES REQUÊTES MULTIPLES
       if (enrollmentCheckComplete) {
-        console.log("⚠️ Vérification d'inscription déjà effectuée, skip");
+        logger.log("⚠️ Vérification d'inscription déjà effectuée, skip");
         return;
       }
 
       if (!user?.id || !courseId) {
-        console.log(
+        logger.log(
           "ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription",
         );
         setIsEnrolled(false);
@@ -496,7 +497,7 @@ function CourseDetailsPageComponent() {
 
       // Valider le format du courseId avant de faire l'appel API
       if (!isValidUUID(courseId)) {
-        console.warn(`⚠️ Format de courseId invalide: ${courseId}`);
+        logger.warn(`⚠️ Format de courseId invalide: ${courseId}`);
         setIsEnrolled(false);
         setIsPaid(false);
         setEnrollmentCheckComplete(true);
@@ -504,20 +505,20 @@ function CourseDetailsPageComponent() {
       }
 
       try {
-        console.log("🔍 Vérification statut d'inscription...");
+        logger.log("🔍 Vérification statut d'inscription...");
         const isEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
 
         if (isEnrolled) {
-          console.log("✅ Utilisateur déjà inscrit au cours");
+          logger.log("✅ Utilisateur déjà inscrit au cours");
           setIsEnrolled(true);
           setIsPaid(true);
         } else {
-          console.log("ℹ️ Utilisateur non inscrit - accès limité au contenu");
+          logger.log("ℹ️ Utilisateur non inscrit - accès limité au contenu");
           setIsEnrolled(false);
           setIsPaid(false);
         }
       } catch (error) {
-        console.error("❌ Erreur vérification inscription:", error);
+        logger.error("❌ Erreur vérification inscription:", error);
         // En cas d'erreur, considérer comme non inscrit pour sécurité
         setIsEnrolled(false);
         setIsPaid(false);
@@ -535,20 +536,20 @@ function CourseDetailsPageComponent() {
       // Ne pas bloquer si isEnrolled est false au démarrage
       if (!courseId) return;
       if (!(isEnrolled === true || isAdmin)) {
-        console.log("ℹ️ Skip fetchProgress: utilisateur non inscrit");
+        logger.log("ℹ️ Skip fetchProgress: utilisateur non inscrit");
         setLessonProgress({});
         return;
       }
 
       // Valider le format du courseId avant de faire l'appel API
       if (!isValidUUID(courseId)) {
-        console.warn(`⚠️ Format de courseId invalide: ${courseId}`);
+        logger.warn(`⚠️ Format de courseId invalide: ${courseId}`);
         setLessonProgress({});
         return;
       }
 
       try {
-        console.log("📥 Tentative de chargement de la progression...");
+        logger.log("📥 Tentative de chargement de la progression...");
 
         const response = await fetch(
           buildApiUrl(API_ENDPOINTS.COURSES.PROGRESS(courseId)),
@@ -557,7 +558,7 @@ function CourseDetailsPageComponent() {
 
         if (response.ok) {
           const data = await response.json();
-          console.log("✅ Progression récupérée depuis l'API:", data);
+          logger.log("✅ Progression récupérée depuis l'API:", data);
 
           // Transformer les données en format { lessonId: completed }
           const progress: Record<string, boolean> = {};
@@ -570,15 +571,15 @@ function CourseDetailsPageComponent() {
             });
           }
 
-          console.log("💾 Progression transformée:", progress);
+          logger.log("💾 Progression transformée:", progress);
           setLessonProgress(progress);
         } else if (response.status === 400) {
           // Erreur de validation - ID invalide
-          console.warn("⚠️ Erreur de validation du courseId");
+          logger.warn("⚠️ Erreur de validation du courseId");
           setLessonProgress({});
           // Ne pas définir error state pour ce cas - c'est normal si non inscrit
         } else if (response.status === 404 || response.status === 403) {
-          console.log("ℹ️ Aucune progression trouvée (normal si non inscrit)");
+          logger.log("ℹ️ Aucune progression trouvée (normal si non inscrit)");
           setLessonProgress({});
         } else if (response.status === 500) {
           // Vérifier si c'est une erreur "not enrolled"
@@ -588,27 +589,27 @@ function CourseDetailsPageComponent() {
               errorData.message &&
               errorData.message.includes("not enrolled")
             ) {
-              console.log("ℹ️ Utilisateur non inscrit, progression vide");
+              logger.log("ℹ️ Utilisateur non inscrit, progression vide");
               setLessonProgress({});
               setIsEnrolled(false);
               return;
             }
             if (errorData.errorCode === "VALIDATION_FAILED") {
-              console.log("⚠️ Erreur de validation backend, progression vide");
+              logger.log("⚠️ Erreur de validation backend, progression vide");
               setLessonProgress({});
               return;
             }
           } catch (e) {
             // Ignore
           }
-          console.error("❌ Erreur récupération progression:", response.status);
+          logger.error("❌ Erreur récupération progression:", response.status);
           setLessonProgress({});
         } else {
-          console.error("❌ Erreur récupération progression:", response.status);
+          logger.error("❌ Erreur récupération progression:", response.status);
           setLessonProgress({});
         }
       } catch (error) {
-        console.error("💥 Erreur lors du chargement de la progression:", error);
+        logger.error("💥 Erreur lors du chargement de la progression:", error);
         setLessonProgress({});
       }
     };
@@ -744,12 +745,12 @@ function CourseDetailsPageComponent() {
       if (hasPaymentReturn && courseId) {
         const returnKey = `${courseId}:${paymentToken || txRef || transactionId || "return"}`;
         if (handledPaymentReturnRef.current.has(returnKey)) {
-          console.log("ℹ️ Retour paiement déjà traité, skip", { returnKey });
+          logger.log("ℹ️ Retour paiement déjà traité, skip", { returnKey });
           return;
         }
         handledPaymentReturnRef.current.add(returnKey);
 
-        console.log("🔄 Retour paiement Paydunya détecté", {
+        logger.log("🔄 Retour paiement Paydunya détecté", {
           courseId,
           paymentToken,
           paymentStatus,
@@ -763,11 +764,11 @@ function CourseDetailsPageComponent() {
         const pendingMatchesCourse = pending?.courseId === courseId;
 
         if (!pendingMatchesCourse && !paymentToken) {
-          console.log("ℹ️ Aucun contexte pending/token pour confirmer le paiement");
+          logger.log("ℹ️ Aucun contexte pending/token pour confirmer le paiement");
           return;
         }
 
-        console.log("🔍 Vérification inscription après paiement...");
+        logger.log("🔍 Vérification inscription après paiement...");
 
         const normalizePaymentStatus = (payload: any): string => {
           return String(
@@ -804,11 +805,11 @@ function CourseDetailsPageComponent() {
 
         try {
           if (paymentToken) {
-            console.log("🔍 Vérification token PayDunya avec polling...");
+            logger.log("🔍 Vérification token PayDunya avec polling...");
             for (let attempt = 1; attempt <= 12; attempt++) {
               const verification = await verifyPayment(paymentToken);
               const status = normalizePaymentStatus(verification);
-              console.log("🔍 Résultat verifyPayment", {
+              logger.log("🔍 Résultat verifyPayment", {
                 attempt,
                 status,
                 verification,
@@ -816,7 +817,7 @@ function CourseDetailsPageComponent() {
 
               if (isPaymentConfirmedStatus(status)) {
                 paymentConfirmed = true;
-                console.log("✅ Paiement confirmé par verifyPayment", {
+                logger.log("✅ Paiement confirmé par verifyPayment", {
                   attempt,
                   status,
                 });
@@ -825,7 +826,7 @@ function CourseDetailsPageComponent() {
 
               if (isPaymentFailedStatus(status)) {
                 paymentConfirmed = false;
-                console.error("❌ Paiement rejeté/échoué", { attempt, status });
+                logger.error("❌ Paiement rejeté/échoué", { attempt, status });
                 break;
               }
 
@@ -833,11 +834,11 @@ function CourseDetailsPageComponent() {
             }
           }
         } catch (error) {
-          console.error("❌ verifyPayment a échoué:", error);
+          logger.error("❌ verifyPayment a échoué:", error);
         }
 
         if (paymentConfirmed) {
-          console.log(
+          logger.log(
             "✅ Déblocage immédiat côté UI après confirmation paiement",
           );
           setIsEnrolled(true);
@@ -849,7 +850,7 @@ function CourseDetailsPageComponent() {
           let isNowEnrolled = false;
           for (let attempt = 1; attempt <= 12; attempt++) {
             isNowEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
-            console.log("🔍 Tentative check enrollment post-paiement", {
+            logger.log("🔍 Tentative check enrollment post-paiement", {
               attempt,
               isNowEnrolled,
             });
@@ -858,7 +859,7 @@ function CourseDetailsPageComponent() {
           }
 
           if (isNowEnrolled) {
-            console.log("✅ Inscription confirmée après paiement !");
+            logger.log("✅ Inscription confirmée après paiement !");
             setIsEnrolled(true);
             setIsPaid(true);
             setEnrollmentCheckComplete(true);
@@ -878,7 +879,7 @@ function CourseDetailsPageComponent() {
               }, 500);
             }
           } else {
-            console.warn(
+            logger.warn(
               "⚠️ Paiement retourné mais inscription non active après retries",
               { courseId, paymentToken, pending, paymentConfirmed },
             );
@@ -891,7 +892,7 @@ function CourseDetailsPageComponent() {
             });
           }
         } catch (error) {
-          console.error("❌ Erreur vérification post-paiement:", error);
+          logger.error("❌ Erreur vérification post-paiement:", error);
         } finally {
           // Nettoyer URL
           if (typeof window !== "undefined") {
@@ -937,7 +938,7 @@ function CourseDetailsPageComponent() {
 
     // ✅ EMPÊCHER LES REQUÊTES MULTIPLES
     if (enrolling) {
-      console.log("⚠️ Inscription déjà en cours, ignore");
+      logger.log("⚠️ Inscription déjà en cours, ignore");
       return;
     }
 
@@ -947,7 +948,7 @@ function CourseDetailsPageComponent() {
       // ✅ Vérifier d'abord si l'utilisateur est déjà inscrit (double vérification)
       const alreadyEnrolled = await CoursesApi.checkEnrollmentStatus(courseId);
       if (alreadyEnrolled) {
-        console.log("✅ Utilisateur déjà inscrit à ce cours");
+        logger.log("✅ Utilisateur déjà inscrit à ce cours");
         setIsEnrolled(true);
         setIsPaid(true);
         openCoursePlayer();
@@ -960,7 +961,7 @@ function CourseDetailsPageComponent() {
       // ✅ GESTION DES DIFFÉRENTS RÉSULTATS
       if (result.status === "DUPLICATE") {
         // L'inscription existe déjà (ou a été créée entre-temps)
-        console.log("⚠️ Inscription duplicate, vérification de l'état...");
+        logger.log("⚠️ Inscription duplicate, vérification de l'état...");
 
         // Vérifier si l'utilisateur est maintenant inscrit
         const checkResult = await CoursesApi.checkEnrollmentStatus(courseId);
@@ -974,23 +975,23 @@ function CourseDetailsPageComponent() {
 
       if (result && "payment_url" in result && result.payment_url) {
         // 🔄 Redirection vers le paiement (cours payant)
-        console.log("💳 Redirection vers Paydunya:", result.payment_url);
+        logger.log("💳 Redirection vers Paydunya:", result.payment_url);
         // 🔐 CRITIQUE: Sauvegarder état AVANT redirection
         savePendingEnrollment(courseId, user?.id);
         window.location.href = result.payment_url;
       } else if (result && result.course && result.status === "ACTIVE") {
         // ✅ Inscription réussie (cours gratuit)
-        console.log("✅ Inscription réussie pour cours gratuit");
+        logger.log("✅ Inscription réussie pour cours gratuit");
         setIsEnrolled(true);
         setIsPaid(true);
         openCoursePlayer();
       } else {
         // ❓ Cas inattendu
-        console.warn("⚠️ Réponse inattendue de l'API:", result);
+        logger.warn("⚠️ Réponse inattendue de l'API:", result);
         throw new Error("Réponse inattendue du serveur");
       }
     } catch (error) {
-      console.error("❌ Erreur lors du suivi du cours:", error);
+      logger.error("❌ Erreur lors du suivi du cours:", error);
 
       // ✅ Vérifier si l'erreur est due à une duplication
       const errorMessage =
@@ -1000,14 +1001,14 @@ function CourseDetailsPageComponent() {
         errorMessage.includes("duplicate") ||
         errorMessage.includes("already enrolled")
       ) {
-        console.log(
+        logger.log(
           "⚠️ Inscription duplicate détectée, vérification de l'état...",
         );
 
         // Vérifier si l'utilisateur est maintenant inscrit
         const checkResult = await CoursesApi.checkEnrollmentStatus(courseId);
         if (checkResult) {
-          console.log("✅ Utilisateur déjà inscrit (confirmation)");
+          logger.log("✅ Utilisateur déjà inscrit (confirmation)");
           setIsEnrolled(true);
           setIsPaid(true);
           openCoursePlayer();
@@ -1046,14 +1047,14 @@ function CourseDetailsPageComponent() {
     courseId: string,
   ): Promise<string | null> => {
     try {
-      console.log(
+      logger.log(
         `🔍 Vérification paiement en cours pour le cours ${courseId}`,
       );
       // Cette fonction pourrait appeler une API dédiée si nécessaire
       // Pour l'instant, on s'appuie sur la logique backend
       return null; // Le backend gère cette logique
     } catch (error) {
-      console.error("❌ Erreur vérification paiement en cours:", error);
+      logger.error("❌ Erreur vérification paiement en cours:", error);
       return null;
     }
   };
@@ -1073,12 +1074,12 @@ function CourseDetailsPageComponent() {
   const checkEnrollmentStatus = async () => {
     // ✅ EMPÊCHER LES REQUÊTES MULTIPLES
     if (enrollmentCheckComplete) {
-      console.log("⚠️ checkEnrollmentStatus déjà effectué, skip");
+      logger.log("⚠️ checkEnrollmentStatus déjà effectué, skip");
       return;
     }
 
     if (!user?.id || !courseId) {
-      console.log(
+      logger.log(
         "ℹ️ Pas d'utilisateur ou courseId, skip vérification inscription",
       );
       setEnrollmentCheckComplete(true);
@@ -1086,7 +1087,7 @@ function CourseDetailsPageComponent() {
     }
 
     try {
-      console.log("🔍 Vérification statut d'inscription...");
+      logger.log("🔍 Vérification statut d'inscription...");
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.COURSES.FOLLOW(courseId)),
         {
@@ -1096,16 +1097,16 @@ function CourseDetailsPageComponent() {
       );
 
       if (response.ok) {
-        console.log("✅ Utilisateur déjà inscrit au cours");
+        logger.log("✅ Utilisateur déjà inscrit au cours");
         setIsEnrolled(true);
         setIsPaid(true);
       } else {
-        console.log("ℹ️ Utilisateur non inscrit ou accès refusé");
+        logger.log("ℹ️ Utilisateur non inscrit ou accès refusé");
         setIsEnrolled(false);
         setIsPaid(false);
       }
     } catch (error) {
-      console.log("ℹ️ Erreur vérification inscription:", error);
+      logger.log("ℹ️ Erreur vérification inscription:", error);
       setIsEnrolled(false);
       setIsPaid(false);
     } finally {
@@ -1203,7 +1204,7 @@ function CourseDetailsPageComponent() {
       confirmButtonColor: "#6366f1",
     });
 
-    console.log(`Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`);
+    logger.log(`Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`);
   }, []);
 
   const checkQuizExists = async (moduleId: string): Promise<boolean> => {
@@ -1218,7 +1219,7 @@ function CourseDetailsPageComponent() {
     setCheckingQuizzes((prev) => new Set(prev).add(moduleId));
 
     try {
-      console.log(
+      logger.log(
         `🔍 Vérification de l'existence du quiz pour le module: ${moduleId}`,
       );
       const response = await fetch(
@@ -1234,19 +1235,19 @@ function CourseDetailsPageComponent() {
         // Vérifier si le quiz existe réellement (pas null)
         const exists = data.quiz !== null && data.quiz !== undefined;
         setModuleQuizzes((prev) => ({ ...prev, [moduleId]: exists }));
-        console.log(
+        logger.log(
           `✅ Quiz ${exists ? "existe" : "n'existe pas"} pour le module ${moduleId}`,
         );
         return exists;
       } else {
         setModuleQuizzes((prev) => ({ ...prev, [moduleId]: false }));
-        console.log(
+        logger.log(
           `❌ Quiz n'existe pas pour le module ${moduleId} (réponse non-ok)`,
         );
         return false;
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ Erreur lors de la vérification du quiz pour le module ${moduleId}:`,
         error,
       );
@@ -1263,7 +1264,7 @@ function CourseDetailsPageComponent() {
 
   // ✅ Handler pour démarrer un quiz
   const handleStartQuiz = (moduleId: string) => {
-    console.log("🎯 Démarrage du quiz pour le module:", moduleId);
+    logger.log("🎯 Démarrage du quiz pour le module:", moduleId);
 
     const quiz = getModuleQuiz(moduleId);
     if (!quiz) {
@@ -1290,7 +1291,7 @@ function CourseDetailsPageComponent() {
   // Gestion du clic sur un module
   const handleModuleClick = (moduleId: string) => {
     // Pour tous les utilisateurs, permettre l'expansion du module (aperçu)
-    console.log("Ouverture du module:", moduleId);
+    logger.log("Ouverture du module:", moduleId);
     toggleModule(moduleId);
   };
 
@@ -1356,7 +1357,7 @@ function CourseDetailsPageComponent() {
           completed: parsed.completed === true,
         };
       } catch (error) {
-        console.error("Erreur lecture tracking localStorage:", error);
+        logger.error("Erreur lecture tracking localStorage:", error);
         return null;
       }
     },
@@ -1387,7 +1388,7 @@ function CourseDetailsPageComponent() {
           }),
         );
       } catch (error) {
-        console.error("Erreur sauvegarde tracking localStorage:", error);
+        logger.error("Erreur sauvegarde tracking localStorage:", error);
       }
     },
     [getTrackingStorageKey],
@@ -1416,14 +1417,14 @@ function CourseDetailsPageComponent() {
             forceComplete: options?.forceComplete === true,
           });
           marked = true;
-          console.log("✅ [TRACKING] complétion via CoursesApi.markLessonCompleted", {
+          logger.log("✅ [TRACKING] complétion via CoursesApi.markLessonCompleted", {
             lessonId,
             source: options?.source || "unknown",
             forceComplete: options?.forceComplete === true,
           });
         } catch (error) {
           lastError = error;
-          console.warn("⚠️ [TRACKING] endpoint principal a échoué, fallback...", {
+          logger.warn("⚠️ [TRACKING] endpoint principal a échoué, fallback...", {
             lessonId,
             source: options?.source || "unknown",
             forceComplete: options?.forceComplete === true,
@@ -1470,7 +1471,7 @@ function CourseDetailsPageComponent() {
             );
 
             if (!legacyResponse.ok && legacyResponse.status !== 409) {
-              console.error("❌ Tracking auto: erreur marquage leçon", {
+              logger.error("❌ Tracking auto: erreur marquage leçon", {
                 lessonId,
                 source: options?.source || "unknown",
                 forceComplete: options?.forceComplete === true,
@@ -1481,14 +1482,14 @@ function CourseDetailsPageComponent() {
               return;
             }
 
-            console.log("✅ [TRACKING] complétion via endpoint legacy", {
+            logger.log("✅ [TRACKING] complétion via endpoint legacy", {
               lessonId,
               source: options?.source || "unknown",
               forceComplete: options?.forceComplete === true,
               status: legacyResponse.status,
             });
           } else {
-            console.log("✅ [TRACKING] complétion via endpoint fallback", {
+            logger.log("✅ [TRACKING] complétion via endpoint fallback", {
               lessonId,
               source: options?.source || "unknown",
               forceComplete: options?.forceComplete === true,
@@ -1497,7 +1498,7 @@ function CourseDetailsPageComponent() {
           }
         }
 
-        console.log("✅ [TRACKING] leçon marquée complétée", {
+        logger.log("✅ [TRACKING] leçon marquée complétée", {
           lessonId,
           source: options?.source || "unknown",
           forceComplete: options?.forceComplete === true,
@@ -1527,7 +1528,7 @@ function CourseDetailsPageComponent() {
           },
         );
       } catch (error) {
-        console.error("💥 Tracking auto: échec marquage leçon:", error);
+        logger.error("💥 Tracking auto: échec marquage leçon:", error);
       } finally {
         completionInFlightRef.current.delete(lessonId);
       }
@@ -1539,7 +1540,7 @@ function CourseDetailsPageComponent() {
     ({ lessonId, fromTime, toTime, duration }: VideoProgressWindow) => {
       if (!lessonId) return;
       if (!Number.isFinite(duration) || duration <= 0) {
-        console.warn("[TRACKING] durée invalide, progression ignorée", {
+        logger.warn("[TRACKING] durée invalide, progression ignorée", {
           lessonId,
           fromTime,
           toTime,
@@ -1584,7 +1585,7 @@ function CourseDetailsPageComponent() {
         steppedProgress < TRACKING_COMPLETION_THRESHOLD
       ) {
         lessonLastReportedProgressRef.current[lessonId] = steppedProgress;
-        console.log("[TRACKING] progression intermédiaire", {
+        logger.log("[TRACKING] progression intermédiaire", {
           lessonId,
           progressPercent: Math.round(steppedProgress * 100),
           fromTime,
@@ -1593,7 +1594,7 @@ function CourseDetailsPageComponent() {
         });
       }
 
-      console.log("[TRACKING] segment reçu", {
+      logger.log("[TRACKING] segment reçu", {
         lessonId,
         fromTime,
         toTime,
@@ -1616,7 +1617,7 @@ function CourseDetailsPageComponent() {
 
       if (!isCompleted && maxProgress >= TRACKING_COMPLETION_THRESHOLD) {
         lessonLastReportedProgressRef.current[lessonId] = 1;
-        console.log("[TRACKING] seuil atteint, complétion auto", {
+        logger.log("[TRACKING] seuil atteint, complétion auto", {
           lessonId,
           maxProgress: Number((maxProgress * 100).toFixed(2)),
           threshold: TRACKING_COMPLETION_THRESHOLD * 100,
@@ -1638,7 +1639,7 @@ function CourseDetailsPageComponent() {
   const handleLessonVideoEnded = useCallback(() => {
     const lessonId = selectedLesson?.id;
     if (lessonId) {
-      console.log("[TRACKING] fin vidéo détectée, complétion forcée", {
+      logger.log("[TRACKING] fin vidéo détectée, complétion forcée", {
         lessonId,
       });
       void markLessonCompletedAutomatically(lessonId, {

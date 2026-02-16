@@ -8,6 +8,7 @@ import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { ModulesList } from "@/components/ModulesList";
 import { Module } from "@/domain/entities/module";
 import Swal from "sweetalert2";
+import logger from "@/shared/helpers/logger";
 
 interface ModuleEditorProps {
   courseId: string;
@@ -25,9 +26,9 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
 
   // Log pour déboguer les changements d'état
   useEffect(() => {
-    console.log('📦 [ModuleEditor] État modules mis à jour:', modules.length, 'modules');
+    logger.log('📦 [ModuleEditor] État modules mis à jour:', modules.length, 'modules');
     modules.forEach((m, i) => {
-      console.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
+      logger.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
     });
   }, [modules]);
 
@@ -45,7 +46,7 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
       }));
       setModules(loadedModules);
     } catch (error) {
-      console.error("Erreur lors du chargement des modules:", error);
+      logger.error("Erreur lors du chargement des modules:", error);
       toast.error("Erreur lors du chargement des modules");
     } finally {
       setIsLoading(false);
@@ -58,9 +59,9 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
         ? updatedModulesOrFn(prevModules)
         : updatedModulesOrFn;
       
-      console.log('🔄 [ModuleEditor] handleModulesChange:');
-      console.log('  Précédent:', prevModules.map(m => m.title));
-      console.log('  Nouveau:', updatedModules.map(m => m.title));
+      logger.log('🔄 [ModuleEditor] handleModulesChange:');
+      logger.log('  Précédent:', prevModules.map(m => m.title));
+      logger.log('  Nouveau:', updatedModules.map(m => m.title));
       
       return updatedModules;
     });
@@ -102,7 +103,7 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
       // Recharger les modules pour inclure l'ID du nouveau module
       await loadModules();
     } catch (error) {
-      console.error("Erreur lors de l'ajout du module:", error);
+      logger.error("Erreur lors de l'ajout du module:", error);
       Swal.fire({
         icon: "error",
         title: "Erreur",

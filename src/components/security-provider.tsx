@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useAntiCapture } from "@/shared/helpers/anti-capture";
+import logger from "@/shared/helpers/logger";
 
 interface SecurityProviderProps {
   children: React.ReactNode;
@@ -45,7 +46,7 @@ export function SecurityProvider({ children }: SecurityProviderProps) {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // Possible capture détectée
-        console.warn("Tentative de capture détectée");
+        logger.warn("Tentative de capture détectée");
       }
     };
 

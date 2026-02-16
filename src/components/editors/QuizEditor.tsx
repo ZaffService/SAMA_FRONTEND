@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 // import { AddQuizDialog } from "./AddQuizDialog";
 
 interface Module {
@@ -54,7 +55,7 @@ export function QuizEditor({ courseId, onBack }: QuizEditorProps) {
         setSelectedModuleId(details.modules[0].id);
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des modules:", error);
+      logger.error("Erreur lors du chargement des modules:", error);
       toast.error("Erreur lors du chargement des modules");
     } finally {
       setIsLoading(false);
@@ -67,7 +68,7 @@ export function QuizEditor({ courseId, onBack }: QuizEditorProps) {
       // TODO: Implementer l'API pour charger les quiz d'un module
       setQuizzes([]);
     } catch (error) {
-      console.error("Erreur lors du chargement des quiz:", error);
+      logger.error("Erreur lors du chargement des quiz:", error);
       toast.error("Erreur lors du chargement des quiz");
     } finally {
       setIsLoading(false);
@@ -84,7 +85,7 @@ export function QuizEditor({ courseId, onBack }: QuizEditorProps) {
         loadQuizzes(selectedModuleId);
       }
     } catch (error) {
-      console.error("Erreur lors de la suppression:", error);
+      logger.error("Erreur lors de la suppression:", error);
       toast.error("Erreur lors de la suppression du quiz");
     }
   };

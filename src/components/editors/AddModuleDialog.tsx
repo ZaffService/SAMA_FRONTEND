@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 interface AddModuleDialogProps {
   courseId: string;
@@ -54,7 +55,7 @@ export function AddModuleDialog({
       onOpenChange(false);
       setFormData({ title: "", description: "", order: 0 });
     } catch (error) {
-      console.error("Erreur lors de l'ajout du module:", error);
+      logger.error("Erreur lors de l'ajout du module:", error);
       toast.error("Erreur lors de l'ajout du module");
     } finally {
       setIsLoading(false);

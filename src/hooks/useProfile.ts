@@ -7,6 +7,7 @@ import {
   CompleteProfileData,
 } from "@/infrastructure/api/user-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import logger from "@/shared/helpers/logger";
 
 const PROFILE_CACHE_KEY = "user_profile_cache";
 const PROFILE_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -64,7 +65,7 @@ export function useProfile() {
           // Cache the result
           saveToCache(response);
           
-          console.log("📋 Profil vérifié:", {
+          logger.log("📋 Profil vérifié:", {
             isProfileComplete: response.isProfileComplete,
             isNowComplete,
           });
@@ -73,7 +74,7 @@ export function useProfile() {
         }
         return null;
       } catch (error) {
-        console.error("Erreur vérification profil:", error);
+        logger.error("Erreur vérification profil:", error);
         return null;
       } finally {
         setIsLoading(false);
@@ -97,7 +98,7 @@ export function useProfile() {
           // Mettre à jour le cache
           saveToCache(response);
           
-          console.log("✅ Profil complété:", {
+          logger.log("✅ Profil complété:", {
             isProfileComplete: response.isProfileComplete,
             isNowComplete,
           });
@@ -106,7 +107,7 @@ export function useProfile() {
         }
         return null;
       } catch (error) {
-        console.error("Erreur complétion profil:", error);
+        logger.error("Erreur complétion profil:", error);
         throw error;
       } finally {
         setIsLoading(false);

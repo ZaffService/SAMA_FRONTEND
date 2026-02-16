@@ -10,6 +10,7 @@ import { CourseBasicInfoEditor } from "@/components/editors/CourseBasicInfoEdito
 import { ModuleEditor } from "@/components/editors/ModuleEditor";
 import { LessonEditor } from "@/components/editors/LessonEditor";
 import { QuizEditor } from "@/components/editors/QuizEditor";
+import logger from "@/shared/helpers/logger";
 
 interface CourseActionCardProps {
   title: string;
@@ -72,7 +73,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
   useEffect(() => {
     const getParams = async () => {
       const resolvedParams = await params;
-      console.log("📄 Course ID from params:", resolvedParams.courseId);
+      logger.log("📄 Course ID from params:", resolvedParams.courseId);
       setCourseId(resolvedParams.courseId);
     };
     getParams();

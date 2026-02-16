@@ -24,6 +24,7 @@ import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import { EmptyContent } from "@/components/ui/empty";
 import type { BackendCourse } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 const CoursesPage = () => {
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
@@ -142,7 +143,7 @@ const CoursesPage = () => {
 
   // Handlers pour les actions des cours
   const handleEnrollClick = useCallback((course: BackendCourse) => {
-    console.log("Inscription au cours:", course.title);
+    logger.log("Inscription au cours:", course.title);
     Swal.fire({
       title: "<strong>Inscription</strong>",
       text: `Inscription au cours "${course.title}"`,
@@ -153,7 +154,7 @@ const CoursesPage = () => {
 
   const handleVideoClick = useCallback(
     (course: BackendCourse) => {
-      console.log("Lecture vidéo du cours:", course.title);
+      logger.log("Lecture vidéo du cours:", course.title);
 
       if (!isAuthenticated) {
         setRedirectAfterLogin(`/course-details/${course.id}`);
@@ -191,7 +192,7 @@ const CoursesPage = () => {
     );
   }
 
-  console.log("📚 Cours récupérés:", courses, "longueur", courses.length);
+  logger.log("📚 Cours récupérés:", courses, "longueur", courses.length);
 
   // ✅ Afficher la page de maintenance si le backend ne répond pas
   if (showMaintenance) {
@@ -336,7 +337,7 @@ const CoursesPage = () => {
                   <button
                     key={category.id}
                     onClick={() => {
-                      console.log(
+                      logger.log(
                         "🖱️ Clic sur catégorie:",
                         category.name,
                         category.id,
@@ -346,7 +347,7 @@ const CoursesPage = () => {
                       )
                         ? filters.categories.filter((id) => id !== category.id)
                         : [...filters.categories, category.id];
-                      console.log("📋 Nouvelles catégories:", newCategories);
+                      logger.log("📋 Nouvelles catégories:", newCategories);
 
                       // ✅ PREMIÈRE: Mettre à jour le hook
                       setFilterCategories(newCategories);
@@ -426,7 +427,7 @@ const CoursesPage = () => {
                             type="checkbox"
                             checked={filters.categories.includes(category.id)}
                             onChange={() => {
-                              console.log(
+                              logger.log(
                                 "☑️ Checkbox catégorie:",
                                 category.name,
                                 category.id,
@@ -438,7 +439,7 @@ const CoursesPage = () => {
                                     (c) => c !== category.id,
                                   )
                                 : [...filters.categories, category.id];
-                              console.log(
+                              logger.log(
                                 "📋 Nouvelles catégories (checkbox):",
                                 newCategories,
                               );

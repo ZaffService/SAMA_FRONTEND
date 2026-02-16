@@ -12,6 +12,7 @@ import { UserApi } from "@/infrastructure/api/user-api";
 import { clearTokens } from "@/shared/helpers/auth";
 import type { AuthContextType, RegisterData } from "@/types/auth";
 import type { User } from "@/domain/entities/user";
+import logger from "@/shared/helpers/logger";
 
 // Fonction utilitaire pour forcer la suppression des cookies d'authentification
 function clearAuthCookies(): void {
@@ -130,7 +131,7 @@ export function useProvideAuth(): AuthContextType {
     setupAuthFetchInterceptor();
 
     const onSessionExpired = () => {
-      console.warn(
+      logger.warn(
         "🚪 [useAuth] Session expirée détectée (event global), déconnexion...",
       );
       handleSessionExpired();
@@ -150,20 +151,20 @@ export function useProvideAuth(): AuthContextType {
   }, [handleSessionExpired]);
 
   useEffect(() => {
-    console.log("🎬 [useAuth] useEffect déclenché - App montée");
+    logger.log("🎬 [useAuth] useEffect déclenché - App montée");
 
     const initAuth = async () => {
-      console.log("🔄 [useAuth] Début initAuth()");
+      logger.log("🔄 [useAuth] Début initAuth()");
       setAuthClientStatus("unknown");
       setIsLoading(true);
 
       try {
-        console.log("🔄 [useAuth] Appel AuthApi.validateSession()...");
+        logger.log("🔄 [useAuth] Appel AuthApi.validateSession()...");
         const currentUser = await AuthApi.validateSession();
-        console.log("🔄 [useAuth] Résultat validateSession:", currentUser);
+        logger.log("🔄 [useAuth] Résultat validateSession:", currentUser);
 
         if (currentUser && currentUser.id && currentUser.email) {
-          console.log(
+          logger.log(
             "✅ [useAuth] User trouvé:",
             currentUser.email,
             "Role:",
@@ -180,27 +181,27 @@ export function useProvideAuth(): AuthContextType {
           // Fetch user profile to get isProfileComplete
           try {
             const profile = await UserApi.getUserProfile();
-            console.log("🔄 [useAuth] Profile fetched:", profile);
+            logger.log("🔄 [useAuth] Profile fetched:", profile);
             setIsProfileComplete(profile?.isProfileComplete ?? null);
           } catch (error) {
-            console.error("❌ [useAuth] Error fetching profile:", error);
+            logger.error("❌ [useAuth] Error fetching profile:", error);
             setIsProfileComplete(null);
           }
         } else {
-          console.log("❌ [useAuth] Aucun user trouvé (session invalide)");
+          logger.log("❌ [useAuth] Aucun user trouvé (session invalide)");
           setUser(null);
           setIsAuthenticated(false);
           setAuthClientStatus("anonymous");
           setIsProfileComplete(null);
         }
       } catch (error) {
-        console.error("❌ [useAuth] Erreur initAuth:", error);
+        logger.error("❌ [useAuth] Erreur initAuth:", error);
         setUser(null);
         setIsAuthenticated(false);
         setAuthClientStatus("anonymous");
         setIsProfileComplete(null);
       } finally {
-        console.log("🔄 [useAuth] Fin initAuth, isLoading = false");
+        logger.log("🔄 [useAuth] Fin initAuth, isLoading = false");
         setIsLoading(false);
       }
     };
@@ -216,7 +217,7 @@ export function useProvideAuth(): AuthContextType {
     const validateCurrentSession = async () => {
       const currentUser = await AuthApi.validateSession();
       if (!currentUser || !currentUser.id || !currentUser.email) {
-        console.warn(
+        logger.warn(
           "🚪 [useAuth] Session devenue invalide lors de la revalidation",
         );
         handleSessionExpired();
@@ -252,12 +253,12 @@ export function useProvideAuth(): AuthContextType {
 
     try {
       const response = await AuthApi.login({ email, password });
-      console.log("🔐 [useAuth] Login response:", response);
-      console.log("🔐 [useAuth] Login response.user:", response.user);
+      logger.log("🔐 [useAuth] Login response:", response);
+      logger.log("🔐 [useAuth] Login response.user:", response.user);
 
       // Check if isProfileComplete exists in the response
       const isComplete = (response.user as any).isProfileComplete;
-      console.log("🔐 [useAuth] isProfileComplete from response:", isComplete);
+      logger.log("🔐 [useAuth] isProfileComplete from response:", isComplete);
 
       const mappedUser = mapBackendUserToLocalUser(response.user);
 
@@ -267,7 +268,7 @@ export function useProvideAuth(): AuthContextType {
       // Capture isProfileComplete from login response
       setIsProfileComplete(isComplete ?? null);
 
-      console.log("🔐 [useAuth] isProfileComplete state set to:", isComplete);
+      logger.log("🔐 [useAuth] isProfileComplete state set to:", isComplete);
 
       let redirectUrl: string | undefined;
       switch (mappedUser.role) {
@@ -317,7 +318,7 @@ export function useProvideAuth(): AuthContextType {
 
     try {
       const response = await AuthApi.loginWithGoogle(idToken);
-      console.log("🔐 [useAuth] Google Login response:", response);
+      logger.log("🔐 [useAuth] Google Login response:", response);
 
       const isComplete = (response.user as any).isProfileComplete;
 
@@ -360,7 +361,7 @@ export function useProvideAuth(): AuthContextType {
   };
 
   const logout = async () => {
-    console.log("🚪 [useAuth] Début logout - Réinitialisation état local");
+    logger.log("🚪 [useAuth] Début logout - Réinitialisation état local");
     // Logout volontaire: basculer immédiatement en anonyme avant tout appel réseau.
     setAuthClientStatus("anonymous");
     setUser(null);
@@ -373,18 +374,18 @@ export function useProvideAuth(): AuthContextType {
     setIsLoading(true);
 
     try {
-      console.log("🚪 [useAuth] Appel AuthApi.logout()");
+      logger.log("🚪 [useAuth] Appel AuthApi.logout()");
       await AuthApi.logout();
-      console.log("🚪 [useAuth] AuthApi.logout() terminé");
+      logger.log("🚪 [useAuth] AuthApi.logout() terminé");
     } catch (error) {
-      console.error("🚪 [useAuth] Erreur lors de AuthApi.logout():", error);
+      logger.error("🚪 [useAuth] Erreur lors de AuthApi.logout():", error);
       // Continue même en cas d'erreur
     } finally {
       // Nettoyage forcé des cookies pour la compatibilité mobile
       clearAuthCookies();
 
       setIsLoading(false);
-      console.log("🚪 [useAuth] Redirection vers /");
+      logger.log("🚪 [useAuth] Redirection vers /");
 
       // Redirection avec prévention du cache pour mobile
       const isMobile =

@@ -11,22 +11,22 @@ const API_KEY = "AIzaSyCaPHgcq-WClOHZb7de_Y2OUqyUNS6JPv0";
 const TEST_VIDEO_ID = "9VqJ5vH7q64";
 
 async function testYoutubeApi() {
-  console.log("🧪 Test de l'API YouTube Data v3");
-  console.log(`Video ID: ${TEST_VIDEO_ID}`);
-  console.log("---");
+  logger.log("🧪 Test de l'API YouTube Data v3");
+  logger.log(`Video ID: ${TEST_VIDEO_ID}`);
+  logger.log("---");
 
   try {
     // Construire l'URL
     const url = `https://www.googleapis.com/youtube/v3/videos?id=${TEST_VIDEO_ID}&key=${API_KEY}&part=contentDetails`;
 
     // Effectuer la requête
-    console.log("📡 Envoi de la requête à YouTube API...");
+    logger.log("📡 Envoi de la requête à YouTube API...");
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error(`❌ Erreur HTTP: ${response.status}`);
+      logger.error(`❌ Erreur HTTP: ${response.status}`);
       const error = await response.json();
-      console.error("Détails:", error);
+      logger.error("Détails:", error);
       process.exit(1);
     }
 
@@ -34,7 +34,7 @@ async function testYoutubeApi() {
 
     // Vérifier les résultats
     if (!data.items || data.items.length === 0) {
-      console.error("❌ Vidéo non trouvée");
+      logger.error("❌ Vidéo non trouvée");
       process.exit(1);
     }
 
@@ -48,19 +48,19 @@ async function testYoutubeApi() {
     const seconds = parseInt(matches?.[3] || "0", 10);
 
     // Afficher les résultats
-    console.log("✅ Succès!");
-    console.log("---");
-    console.log(`⏱  Durée brute (ISO 8601): ${duration}`);
-    console.log(`📊 Heures: ${hours}h`);
-    console.log(`📊 Minutes: ${minutes}m`);
-    console.log(`📊 Secondes: ${seconds}s`);
-    console.log(`📊 Format: ${hours}h ${minutes}m ${seconds}s`);
-    console.log("---");
-    console.log("🎉 La clé API fonctionne correctement!");
+    logger.log("✅ Succès!");
+    logger.log("---");
+    logger.log(`⏱  Durée brute (ISO 8601): ${duration}`);
+    logger.log(`📊 Heures: ${hours}h`);
+    logger.log(`📊 Minutes: ${minutes}m`);
+    logger.log(`📊 Secondes: ${seconds}s`);
+    logger.log(`📊 Format: ${hours}h ${minutes}m ${seconds}s`);
+    logger.log("---");
+    logger.log("🎉 La clé API fonctionne correctement!");
 
     process.exit(0);
   } catch (error) {
-    console.error("❌ Erreur:", error.message);
+    logger.error("❌ Erreur:", error.message);
     process.exit(1);
   }
 }

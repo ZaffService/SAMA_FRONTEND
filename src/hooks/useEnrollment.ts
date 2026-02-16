@@ -10,6 +10,7 @@ import {
   PendingEnrollment,
   PaymentStatus,
 } from "@/types/enrollment";
+import logger from "@/shared/helpers/logger";
 
 interface UseEnrollmentReturn {
   // States
@@ -53,7 +54,7 @@ export function useEnrollment(): UseEnrollmentReturn {
    * Clear pending enrollment cookies
    */
   const clearPendingEnrollment = useCallback(() => {
-    console.log("🗑️ [useEnrollment] Nettoyage des cookies d'inscription");
+    logger.log("🗑️ [useEnrollment] Nettoyage des cookies d'inscription");
     Cookies.remove(ENROLLMENT_COOKIE_NAME);
     sessionStorage.removeItem("pendingCourseId");
     sessionStorage.removeItem("pendingEnrollment");
@@ -66,15 +67,15 @@ export function useEnrollment(): UseEnrollmentReturn {
     try {
       const data = Cookies.get(ENROLLMENT_COOKIE_NAME);
       if (!data) {
-        console.log("ℹ️ [useEnrollment] Aucune inscription en attente trouvée");
+        logger.log("ℹ️ [useEnrollment] Aucune inscription en attente trouvée");
         return null;
       }
 
       const pending: PendingEnrollment = JSON.parse(data);
-      console.log("📋 [useEnrollment] Inscription en attente:", pending);
+      logger.log("📋 [useEnrollment] Inscription en attente:", pending);
       return pending;
     } catch (err) {
-      console.error("❌ [useEnrollment] Erreur lecture cookie:", err);
+      logger.error("❌ [useEnrollment] Erreur lecture cookie:", err);
       return null;
     }
   }, []);
@@ -91,7 +92,7 @@ export function useEnrollment(): UseEnrollmentReturn {
         status: "pending",
       };
 
-      console.log("💾 [useEnrollment] Stockage inscription en cours:", pending);
+      logger.log("💾 [useEnrollment] Stockage inscription en cours:", pending);
 
       Cookies.set(ENROLLMENT_COOKIE_NAME, JSON.stringify(pending), {
         expires: ENROLLMENT_COOKIE_EXPIRY,
@@ -117,14 +118,14 @@ export function useEnrollment(): UseEnrollmentReturn {
       setCourseId(id);
 
       try {
-        console.log(
+        logger.log(
           `🔄 [useEnrollment] Tentative d'inscription au cours: ${id}`,
         );
 
         // Check if already enrolled
         const alreadyEnrolled = await CoursesApi.checkEnrollmentStatus(id);
         if (alreadyEnrolled) {
-          console.log("✅ [useEnrollment] Utilisateur déjà inscrit");
+          logger.log("✅ [useEnrollment] Utilisateur déjà inscrit");
           setIsEnrolled(true);
           return { enrolled: true };
         }
@@ -137,7 +138,7 @@ export function useEnrollment(): UseEnrollmentReturn {
           // Vérifier si l'utilisateur est maintenant inscrit
           const checkResult = await CoursesApi.checkEnrollmentStatus(id);
           if (checkResult) {
-            console.log(
+            logger.log(
               "✅ [useEnrollment] Inscription confirmée malgré duplicate",
             );
             setIsEnrolled(true);
@@ -149,7 +150,7 @@ export function useEnrollment(): UseEnrollmentReturn {
 
         if (result.payment_url) {
           // 🔄 Paid course - Redirect to PayDunya
-          console.log(
+          logger.log(
             "💳 [useEnrollment] Redirection vers paiement:",
             result.payment_url,
           );
@@ -165,7 +166,7 @@ export function useEnrollment(): UseEnrollmentReturn {
           return { paymentUrl: result.payment_url };
         } else if (result.course && result.status === "ACTIVE") {
           // ✅ Free course - Enrollment successful
-          console.log("✅ [useEnrollment] Inscription gratuite réussie");
+          logger.log("✅ [useEnrollment] Inscription gratuite réussie");
           setIsEnrolled(true);
           setPaymentStatus("COMPLETED");
           clearPendingEnrollment();
@@ -173,11 +174,11 @@ export function useEnrollment(): UseEnrollmentReturn {
           return { enrolled: true };
         } else {
           // Unexpected response
-          console.warn("⚠️ [useEnrollment] Réponse inattendue:", result);
+          logger.warn("⚠️ [useEnrollment] Réponse inattendue:", result);
           throw new Error("Réponse inattendue du serveur");
         }
       } catch (err) {
-        console.error("❌ [useEnrollment] Erreur d'inscription:", err);
+        logger.error("❌ [useEnrollment] Erreur d'inscription:", err);
 
         // Handle specific error codes
         let errorCode: EnrollmentErrorCode = EnrollmentErrorCode.UNKNOWN_ERROR;
@@ -230,22 +231,22 @@ export function useEnrollment(): UseEnrollmentReturn {
    */
   const checkStatus = useCallback(async (id: string): Promise<boolean> => {
     try {
-      console.log(`🔍 [useEnrollment] Vérification statut inscription: ${id}`);
+      logger.log(`🔍 [useEnrollment] Vérification statut inscription: ${id}`);
 
       const isEnrolledStatus = await CoursesApi.checkEnrollmentStatus(id);
 
       if (isEnrolledStatus) {
-        console.log("✅ [useEnrollment] Utilisateur inscrit");
+        logger.log("✅ [useEnrollment] Utilisateur inscrit");
         setIsEnrolled(true);
         setPaymentStatus("COMPLETED");
       } else {
-        console.log("ℹ️ [useEnrollment] Utilisateur non inscrit");
+        logger.log("ℹ️ [useEnrollment] Utilisateur non inscrit");
         setIsEnrolled(false);
       }
 
       return isEnrolledStatus;
     } catch (err) {
-      console.error("❌ [useEnrollment] Erreur vérification statut:", err);
+      logger.error("❌ [useEnrollment] Erreur vérification statut:", err);
       return false;
     }
   }, []);
@@ -259,7 +260,7 @@ export function useEnrollment(): UseEnrollmentReturn {
       setPaymentStatus("VERIFYING");
 
       try {
-        console.log(
+        logger.log(
           `🔍 [useEnrollment] Vérification paiement avec token: ${token}`,
         );
 
@@ -276,7 +277,7 @@ export function useEnrollment(): UseEnrollmentReturn {
         const result = await PaymentApi.verifyPayment(token);
 
         if (result.status === "success") {
-          console.log("✅ [useEnrollment] Paiement confirmé");
+          logger.log("✅ [useEnrollment] Paiement confirmé");
           setPaymentStatus("COMPLETED");
           setIsEnrolled(true);
           clearPendingEnrollment();
@@ -286,10 +287,10 @@ export function useEnrollment(): UseEnrollmentReturn {
             setCourseId(result.courseId);
           }
         } else if (result.status === "pending") {
-          console.log("⏳ [useEnrollment] Paiement en attente");
+          logger.log("⏳ [useEnrollment] Paiement en attente");
           setPaymentStatus("PENDING");
         } else {
-          console.error("❌ [useEnrollment] Paiement échoué:", result);
+          logger.error("❌ [useEnrollment] Paiement échoué:", result);
           setPaymentStatus("ERROR");
           setError({
             code: EnrollmentErrorCode.PAYMENT_FAILED,
@@ -298,7 +299,7 @@ export function useEnrollment(): UseEnrollmentReturn {
           });
         }
       } catch (err) {
-        console.error("❌ [useEnrollment] Erreur vérification paiement:", err);
+        logger.error("❌ [useEnrollment] Erreur vérification paiement:", err);
 
         // Check if already enrolled despite error
         const pending = getPendingEnrollment();
@@ -308,7 +309,7 @@ export function useEnrollment(): UseEnrollmentReturn {
               pending.courseId,
             );
             if (alreadyEnrolled) {
-              console.log(
+              logger.log(
                 "✅ [useEnrollment] Utilisateur déjà inscrit (vérification par cours)",
               );
               setPaymentStatus("COMPLETED");
@@ -338,7 +339,7 @@ export function useEnrollment(): UseEnrollmentReturn {
    * Clear error state
    */
   const clearError = useCallback(() => {
-    console.log("🧹 [useEnrollment] Nettoyage erreur");
+    logger.log("🧹 [useEnrollment] Nettoyage erreur");
     setError(null);
   }, []);
 
@@ -346,7 +347,7 @@ export function useEnrollment(): UseEnrollmentReturn {
    * Reset all states
    */
   const resetState = useCallback(() => {
-    console.log("🔄 [useEnrollment] Réinitialisation état");
+    logger.log("🔄 [useEnrollment] Réinitialisation état");
     setIsEnrolled(false);
     setIsLoading(false);
     setIsRedirecting(false);
@@ -361,7 +362,7 @@ export function useEnrollment(): UseEnrollmentReturn {
   useEffect(() => {
     const pending = getPendingEnrollment();
     if (pending) {
-      console.log(
+      logger.log(
         "📋 [useEnrollment] Inscription en attente détectée au montage",
       );
       setCourseId(pending.courseId);

@@ -27,6 +27,7 @@ import { ThumbnailUploader } from "./ThumbnailUploader";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { Module } from "@/domain/entities/module";
 import { toast } from "sonner";
+import logger from "@/shared/helpers/logger";
 
 interface Category {
   id?: string;
@@ -96,7 +97,7 @@ export function CourseEditor({
         const cats = await CoursesApi.getCategories();
         setCategories(cats);
       } catch (err) {
-        console.error("Erreur lors du chargement des catégories:", err);
+        logger.error("Erreur lors du chargement des catégories:", err);
       }
     };
     loadCategories();
@@ -147,7 +148,7 @@ export function CourseEditor({
       // Charger l'attachment existant
       setExistingAttachmentUrl(details.course.attachment || null);
     } catch (err) {
-      console.error("Erreur lors du chargement du cours:", err);
+      logger.error("Erreur lors du chargement du cours:", err);
       setError("Erreur lors du chargement du cours");
     } finally {
       setIsLoading(false);
@@ -159,7 +160,7 @@ export function CourseEditor({
   };
 
   const handleModulesChange = (modules: Module[]) => {
-    console.log(
+    logger.log(
       "[CourseEditor] Modules changed:",
       modules.map((m) => ({
         id: m.id,

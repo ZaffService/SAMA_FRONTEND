@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 interface Module {
   id: string;
@@ -72,7 +73,7 @@ export function EditModuleDialog({
       onModuleUpdated();
       onOpenChange(false);
     } catch (error) {
-      console.error("Erreur lors de la modification du module:", error);
+      logger.error("Erreur lors de la modification du module:", error);
       toast.error("Erreur lors de la modification du module");
     } finally {
       setIsLoading(false);

@@ -25,6 +25,7 @@ import {
   showQuitConfirmation,
   showQuizFailureModal,
 } from "@/shared/helpers/sweet-alert";
+import logger from "@/shared/helpers/logger";
 
 interface QuizQuestion {
   id: number;
@@ -88,12 +89,12 @@ export default function QuizAssessment() {
         setLoading(true);
         setError(null);
 
-        console.log("🔍 Chargement du quiz pour le module ID:", moduleId);
+        logger.log("🔍 Chargement du quiz pour le module ID:", moduleId);
 
         // Try to load from API first
         try {
           const quizResponse = await QuizApi.getQuizQuestions(moduleId);
-          console.log("📡 Réponse API quiz:", quizResponse);
+          logger.log("📡 Réponse API quiz:", quizResponse);
 
           if (quizResponse && quizResponse.quiz && quizResponse.questions && Array.isArray(quizResponse.questions) && quizResponse.questions.length > 0) {
             // Convertir les données API au format attendu par le frontend
@@ -111,15 +112,15 @@ export default function QuizAssessment() {
             }));
 
             setQuizData(formattedData);
-            console.log("✅ Quiz chargé avec succès depuis l'API:", formattedData.length, "questions");
+            logger.log("✅ Quiz chargé avec succès depuis l'API:", formattedData.length, "questions");
             return;
           }
         } catch (quizErr) {
-          console.error("❌ Erreur API quiz:", quizErr);
+          logger.error("❌ Erreur API quiz:", quizErr);
         }
 
         // Fallback: données mockées
-        console.log("🔄 Utilisation des données mockées");
+        logger.log("🔄 Utilisation des données mockées");
         const mockQuizData: QuizQuestion[] = [
           {
             id: 1,
@@ -170,7 +171,7 @@ export default function QuizAssessment() {
 
         setQuizData(mockQuizData);
       } catch (err) {
-        console.error("Erreur chargement quiz:", err);
+        logger.error("Erreur chargement quiz:", err);
         setError("Erreur de chargement du quiz");
       } finally {
         setLoading(false);

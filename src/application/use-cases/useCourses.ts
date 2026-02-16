@@ -3,6 +3,7 @@ import { CoursesUseCases } from "./courses-use-cases";
 import { Course } from "@/domain/entities/course";
 import { CourseSearchOptions } from "@/infrastructure/api/baseConfig";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 /* =====================================================
    TYPES
@@ -168,7 +169,7 @@ export function useCourses(
       const data = await CoursesUseCases.getCourseFilters();
       setFilterData(data);
     } catch (err) {
-      console.error("❌ Erreur chargement filtres", err);
+      logger.error("❌ Erreur chargement filtres", err);
       setFilterData({
         categories: [],
         levels: [],

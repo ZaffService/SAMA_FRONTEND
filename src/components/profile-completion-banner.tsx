@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import logger from "@/shared/helpers/logger";
 
 export function ProfileCompletionBanner() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function ProfileCompletionBanner() {
   // Check profile status on mount and when user changes
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log("🔔 [ProfileCompletionBanner] Checking profile status...");
+      logger.log("🔔 [ProfileCompletionBanner] Checking profile status...");
       checkProfile().then(() => {
         setHasCheckedProfile(true);
       });
@@ -27,7 +28,7 @@ export function ProfileCompletionBanner() {
 
   // Debug logging
   useEffect(() => {
-    console.log("🔔 [ProfileCompletionBanner] Auth state:", {
+    logger.log("🔔 [ProfileCompletionBanner] Auth state:", {
       isAuthenticated,
       isComplete,
       userRole: user?.role,
@@ -44,7 +45,7 @@ export function ProfileCompletionBanner() {
     user?.role !== "ADMIN";
 
   useEffect(() => {
-    console.log("🔔 [ProfileCompletionBanner] Should show?", shouldShow);
+    logger.log("🔔 [ProfileCompletionBanner] Should show?", shouldShow);
   }, [shouldShow]);
 
   if (!shouldShow) {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
+import logger from "@/shared/helpers/logger";
 
 interface RecentActivity {
   id: string;
@@ -121,7 +122,7 @@ export function useAdminStats(): AdminStats {
           error: null,
         });
       } catch (error) {
-        console.error("Erreur lors de la récupération des stats:", error);
+        logger.error("Erreur lors de la récupération des stats:", error);
         setStats((prev) => ({
           ...prev,
           loading: false,

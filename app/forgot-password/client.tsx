@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import logger from "@/shared/helpers/logger";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function ForgotPassword() {
       await AuthApi.requestPasswordReset(email);
       setIsSuccess(true);
     } catch (err: any) {
-      console.error("Erreur lors de la demande de réinitialisation:", err);
+      logger.error("Erreur lors de la demande de réinitialisation:", err);
       setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsLoading(false);

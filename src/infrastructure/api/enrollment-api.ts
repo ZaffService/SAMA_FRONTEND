@@ -1,4 +1,5 @@
 // src/infrastructure/api/enrollment-api.ts
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface EnrolledCourse {
@@ -50,7 +51,7 @@ export class EnrollmentApi {
     limit: number = 10,
   ): Promise<EnrolledCoursesResponse> {
     try {
-      console.log(
+      logger.log(
         `📤 [ENROLLMENT-API] Récupération des cours inscrits (page ${page})...`,
       );
 
@@ -68,15 +69,15 @@ export class EnrollmentApi {
       );
 
       if (!response.ok) {
-        console.error("❌ [ENROLLMENT-API] Erreur:", response.status);
+        logger.error("❌ [ENROLLMENT-API] Erreur:", response.status);
         throw new Error("Impossible de récupérer les cours");
       }
 
       const data = await response.json();
-      console.log(`✅ [ENROLLMENT-API] ${data.total} cours récupérés`);
+      logger.log(`✅ [ENROLLMENT-API] ${data.total} cours récupérés`);
 
       // DEBUG: Afficher les données brutes pour diagnostiquer la catégorisation
-      console.log(
+      logger.log(
         "🔍 [ENROLLMENT-API] Données brutes:",
         JSON.stringify(data, null, 2),
       );
@@ -103,7 +104,7 @@ export class EnrollmentApi {
         // Utiliser la durée du backend
         let duration = course._duration || course.duration;
 
-        console.log(
+        logger.log(
           `📚 [ENROLLMENT-API] Cours "${course.title || course._title}" -> Catégorie backend: ${category || "AUCUNE"}`,
         );
 
@@ -120,7 +121,7 @@ export class EnrollmentApi {
         courses: enrichedCourses,
       };
     } catch (error) {
-      console.error("❌ [ENROLLMENT-API] Exception:", error);
+      logger.error("❌ [ENROLLMENT-API] Exception:", error);
       throw error;
     }
   }
@@ -133,7 +134,7 @@ export class EnrollmentApi {
     progressPercentage: number,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      console.log(
+      logger.log(
         `📤 [ENROLLMENT-API] Mise à jour progression ${enrollmentId}: ${progressPercentage}%`,
       );
 
@@ -153,16 +154,16 @@ export class EnrollmentApi {
       );
 
       if (!response.ok) {
-        console.error("❌ [ENROLLMENT-API] Erreur:", response.status);
+        logger.error("❌ [ENROLLMENT-API] Erreur:", response.status);
         throw new Error("Impossible de mettre à jour la progression");
       }
 
       const data = await response.json();
-      console.log(`✅ [ENROLLMENT-API] Progression mise à jour`);
+      logger.log(`✅ [ENROLLMENT-API] Progression mise à jour`);
 
       return data;
     } catch (error) {
-      console.error("❌ [ENROLLMENT-API] Exception:", error);
+      logger.error("❌ [ENROLLMENT-API] Exception:", error);
       throw error;
     }
   }
@@ -239,7 +240,7 @@ export class EnrollmentApi {
     answers: any[];
   }> {
     try {
-      console.log(`📤 [QUIZ-API] Soumission quiz ${data.quizId}`);
+      logger.log(`📤 [QUIZ-API] Soumission quiz ${data.quizId}`);
 
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.QUIZ.SUBMIT(data.quizId)),
@@ -254,16 +255,16 @@ export class EnrollmentApi {
       );
 
       if (!response.ok) {
-        console.error("❌ [QUIZ-API] Erreur:", response.status);
+        logger.error("❌ [QUIZ-API] Erreur:", response.status);
         throw new Error("Impossible de soumettre le quiz");
       }
 
       const result = await response.json();
-      console.log(`✅ [QUIZ-API] Quiz soumis - Score: ${result.score}%`);
+      logger.log(`✅ [QUIZ-API] Quiz soumis - Score: ${result.score}%`);
 
       return result;
     } catch (error) {
-      console.error("❌ [QUIZ-API] Exception:", error);
+      logger.error("❌ [QUIZ-API] Exception:", error);
       throw error;
     }
   }

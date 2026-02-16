@@ -1,5 +1,6 @@
 "use client";
 
+import logger from "@/shared/helpers/logger";
 import { API_BASE_URL, API_ENDPOINTS, buildApiUrl } from "./baseConfig";
 import {
   getAuthClientStatus,
@@ -64,7 +65,7 @@ async function refreshToken(
       });
       return response.ok;
     } catch (error) {
-      console.error(
+      logger.error(
         "❌ [fetch-auth-interceptor] Erreur pendant le refresh token:",
         error,
       );

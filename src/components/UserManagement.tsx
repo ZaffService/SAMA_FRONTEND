@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { userService } from "@/services/userService";
 import type { User, UsersResponse } from "@/types/user";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import logger from "@/shared/helpers/logger";
 
 type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
 
@@ -46,7 +47,7 @@ const UserManagement: React.FC = () => {
         admins: currentUser?.role === "ADMIN" ? stats.admins - 1 : stats.admins,
       });
     } catch (error) {
-      console.error("Erreur chargement stats:", error);
+      logger.error("Erreur chargement stats:", error);
     }
   };
 
@@ -66,7 +67,7 @@ const UserManagement: React.FC = () => {
       setUsers(response.users);
       setTotalUsers(response.total);
     } catch (error) {
-      console.error("Erreur chargement utilisateurs:", error);
+      logger.error("Erreur chargement utilisateurs:", error);
     } finally {
       setLoading(false);
     }

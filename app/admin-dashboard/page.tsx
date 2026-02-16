@@ -12,6 +12,7 @@ import { VideoStatusIndicator } from "@/components/VideoStatusIndicator";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { AdminLayout, type DashboardView } from "@/components/AdminLayout";
 import { toast } from "sonner";
+import logger from "@/shared/helpers/logger";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
             <VideoStatusIndicator
               courseId={selectedCourseId}
               onStatusChange={(isComplete) => {
-                console.log("Statut du cours mis à jour:", isComplete);
+                logger.log("Statut du cours mis à jour:", isComplete);
               }}
             />
           )

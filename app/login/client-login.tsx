@@ -17,6 +17,7 @@ import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import logger from "@/shared/helpers/logger";
 
 export default function ClientLogin() {
   const router = useRouter();
@@ -110,7 +111,7 @@ export default function ClientLogin() {
         }
       }
     } catch (err: any) {
-      console.error("Erreur login:", err);
+      logger.error("Erreur login:", err);
 
       // Utiliser le système de mapping d'erreurs pour traduire en français
       const errorMapping = getErrorMapping(err);
@@ -160,7 +161,7 @@ export default function ClientLogin() {
         }
       }
     } catch (err: any) {
-      console.error("Erreur Google login:", err);
+      logger.error("Erreur Google login:", err);
       const errorMapping = getErrorMapping(err);
       loginError(errorMapping.message);
     } finally {

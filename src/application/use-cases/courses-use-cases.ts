@@ -1,6 +1,7 @@
 import { BackendCourse, CoursesApi } from "@/infrastructure/api/courses-api";
 import { Course, CourseDetails } from "@/domain/entities/course";
 import { CourseSearchOptions } from "@/infrastructure/api/baseConfig";
+import logger from "@/shared/helpers/logger";
 
 export class CoursesUseCases {
   /**
@@ -21,7 +22,7 @@ export class CoursesUseCases {
     hasCoursesInDatabase: boolean;
   }> {
     try {
-      console.log("🔄 Récupération des cours depuis l'API...", {
+      logger.log("🔄 Récupération des cours depuis l'API...", {
         page,
         perPage,
         searchOptions,
@@ -29,14 +30,14 @@ export class CoursesUseCases {
 
       const result = await CoursesApi.getCourses(page, perPage, searchOptions);
 
-      console.log(`✅ ${result.courses.length} cours récupérés avec succès`);
+      logger.log(`✅ ${result.courses.length} cours récupérés avec succès`);
       return result;
     } catch (error) {
-      console.error("❌ Erreur lors de la récupération des cours:", error);
+      logger.error("❌ Erreur lors de la récupération des cours:", error);
 
       // Gestion d'erreur réseau
       if (error instanceof TypeError && error.message.includes("fetch")) {
-        console.warn(
+        logger.warn(
           "🌐 Erreur réseau détectée - Le backend est probablement arrêté",
         );
         throw new Error(
@@ -58,16 +59,16 @@ export class CoursesUseCases {
    */
   static async getCourseDetails(id: string): Promise<CourseDetails> {
     try {
-      console.log(`🔍 Récupération des détails du cours: ${id}`);
+      logger.log(`🔍 Récupération des détails du cours: ${id}`);
 
       const courseDetailsResponse = await CoursesApi.getCourseDetails(id);
 
       // ✅ DEBUG : Afficher la structure complète
-      console.log(
+      logger.log(
         "📦 Réponse API complète:",
         JSON.stringify(courseDetailsResponse, null, 2),
       );
-      console.log(
+      logger.log(
         "📚 Nombre de modules:",
         courseDetailsResponse.modules?.length || 0,
       );
@@ -77,7 +78,7 @@ export class CoursesUseCases {
         !courseDetailsResponse.modules ||
         courseDetailsResponse.modules.length === 0
       ) {
-        console.warn("⚠️ AUCUN MODULE TROUVÉ pour ce cours");
+        logger.warn("⚠️ AUCUN MODULE TROUVÉ pour ce cours");
       }
 
       // Map CourseDetailsResponse to CourseDetails
@@ -97,7 +98,7 @@ export class CoursesUseCases {
 
         // ✅ CORRECTION : Mapper correctement les lessons
         lessons: (courseDetailsResponse.modules || []).flatMap((module) => {
-          console.log(
+          logger.log(
             `📖 Module: ${module.title}, Leçons: ${module.lessons?.length || 0}`,
           );
           return (module.lessons || []).map((lesson) => ({
@@ -113,12 +114,12 @@ export class CoursesUseCases {
         quizzes: [], // Not in response
       };
 
-      console.log(`✅ Détails du cours récupérés: ${courseDetails.title}`);
-      console.log(`📊 Nombre total de leçons: ${courseDetails.lessons.length}`);
+      logger.log(`✅ Détails du cours récupérés: ${courseDetails.title}`);
+      logger.log(`📊 Nombre total de leçons: ${courseDetails.lessons.length}`);
 
       return courseDetails;
     } catch (error) {
-      console.error(
+      logger.error(
         "❌ Erreur lors de la récupération des détails du cours:",
         error,
       );
@@ -140,14 +141,14 @@ export class CoursesUseCases {
    */
   static async getCourseContents(id: string): Promise<any> {
     try {
-      console.log(`🔄 Récupération du contenu du cours: ${id}`);
+      logger.log(`🔄 Récupération du contenu du cours: ${id}`);
 
       const contents = await CoursesApi.getCourseContents(id);
 
-      console.log(`✅ Contenu du cours récupéré`);
+      logger.log(`✅ Contenu du cours récupéré`);
       return contents;
     } catch (error) {
-      console.warn("⚠️ Contenu du cours non disponible:", error);
+      logger.warn("⚠️ Contenu du cours non disponible:", error);
       // Ne pas lancer d'erreur pour le contenu, juste retourner un tableau vide
       return [];
     }
@@ -160,14 +161,14 @@ export class CoursesUseCases {
    */
   static async getLessons(topicId: string): Promise<any[]> {
     try {
-      console.log(`🔄 Récupération des leçons du cours: ${topicId}`);
+      logger.log(`🔄 Récupération des leçons du cours: ${topicId}`);
 
       const lessons = await CoursesApi.getLessons(topicId);
 
-      console.log(`✅ ${lessons.length} leçons récupérées`);
+      logger.log(`✅ ${lessons.length} leçons récupérées`);
       return lessons;
     } catch (error) {
-      console.warn("Leçons non disponibles:", error);
+      logger.warn("Leçons non disponibles:", error);
       return [];
     }
   }
@@ -184,14 +185,14 @@ export class CoursesUseCases {
     status?: string;
   }> {
     try {
-      console.log(`🔄 Inscription au cours: ${courseId}`);
+      logger.log(`🔄 Inscription au cours: ${courseId}`);
 
       const result = await CoursesApi.followCourse(courseId);
 
-      console.log(`✅ Inscription réussie pour le cours: ${courseId}`);
+      logger.log(`✅ Inscription réussie pour le cours: ${courseId}`);
       return result;
     } catch (error) {
-      console.error("❌ Erreur lors de l'inscription au cours:", error);
+      logger.error("❌ Erreur lors de l'inscription au cours:", error);
 
       throw new Error(
         `Impossible de s'inscrire au cours: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
@@ -207,18 +208,18 @@ export class CoursesUseCases {
     Array<{ id: string; name: string; description?: string }>
   > {
     try {
-      console.log("🔄 Récupération des catégories depuis l'API...");
+      logger.log("🔄 Récupération des catégories depuis l'API...");
 
       const categories = await CoursesApi.getCategories();
 
-      console.log(`✅ ${categories.length} catégories récupérées avec succès`);
+      logger.log(`✅ ${categories.length} catégories récupérées avec succès`);
       return categories;
     } catch (error) {
-      console.error("❌ Erreur lors de la récupération des catégories:", error);
+      logger.error("❌ Erreur lors de la récupération des catégories:", error);
 
       // Gestion d'erreur réseau
       if (error instanceof TypeError && error.message.includes("fetch")) {
-        console.warn(
+        logger.warn(
           "🌐 Erreur réseau détectée - Le backend est probablement arrêté",
         );
         throw new Error(
@@ -243,7 +244,7 @@ export class CoursesUseCases {
     priceRanges: Array<{ id: string; name: string; count: number }>;
   }> {
     try {
-      console.log("🔄 Récupération des données de filtrage...");
+      logger.log("🔄 Récupération des données de filtrage...");
 
       // Récupérer toutes les catégories
       const categories = await this.getCategories();
@@ -266,7 +267,7 @@ export class CoursesUseCases {
       // TODO: Implémenter le comptage réel en récupérant les cours et en comptant
       // Pour l'instant, on retourne les structures avec count = 0
 
-      console.log(`✅ Données de filtrage récupérées`);
+      logger.log(`✅ Données de filtrage récupérées`);
       return {
         categories: categories.map((cat) => ({
           id: cat.id,
@@ -277,7 +278,7 @@ export class CoursesUseCases {
         priceRanges,
       };
     } catch (error) {
-      console.error("❌ Erreur lors de la récupération des filtres:", error);
+      logger.error("❌ Erreur lors de la récupération des filtres:", error);
 
       throw new Error(
         `Erreur lors du chargement des filtres: ${error instanceof Error ? error.message : "Erreur inconnue"}`,

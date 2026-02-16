@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { useCallback } from "react";
 import Swal from "sweetalert2";
 
@@ -49,7 +50,7 @@ const ERROR_TITLES: Record<string, string> = {
  */
 export function useApiError() {
   const showError = useCallback((error: unknown, customMessage?: string) => {
-    console.error("[useApiError]", error);
+    logger.error("[useApiError]", error);
 
     let code = "SERVER_ERROR";
     let status = 500;

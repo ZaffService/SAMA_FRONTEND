@@ -17,6 +17,7 @@ import { ProfileCompletionBanner } from "@/components/profile-completion-banner"
 
 import { useStudentDashboard } from "@/application/use-cases/useStudentDashboard";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import logger from "@/shared/helpers/logger";
 
 const StudentDashboard = () => {
   const { user } = useLocalAuth();
@@ -35,8 +36,8 @@ const StudentDashboard = () => {
   // Activité récente basée sur les vraies données de cours
   const recentActivities =
     courses?.enrolled_courses?.slice(0, 5).map((course, index) => {
-      console.log("🎨 [Dashboard UI] Cours à afficher:", course);
-      console.log(
+      logger.log("🎨 [Dashboard UI] Cours à afficher:", course);
+      logger.log(
         "🎨 [Dashboard UI] Progression:",
         course.progressPercentage,
         course.progress,

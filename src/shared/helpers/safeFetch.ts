@@ -2,6 +2,8 @@
  * Utilitaires pour les requêtes sécurisées
  */
 
+import logger from "./logger";
+
 export function isValidResourceId(id: string | number): boolean {
   if (typeof id === "number") {
     return id > 0 && Number.isInteger(id);
@@ -46,7 +48,7 @@ export async function safeFetch(url: string, options?: RequestInit) {
 
     return await response.json();
   } catch (error) {
-    console.error("Safe fetch error:", error);
+    logger.error("Safe fetch error:", error);
     throw error;
   }
 }

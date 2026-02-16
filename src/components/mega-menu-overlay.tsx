@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight, X } from "lucide-react";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 interface MegaMenuOverlayProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export function MegaMenuOverlay({ isOpen, onClose }: MegaMenuOverlayProps) {
         const response = await CoursesApi.getCourses(1, 10, { categoryId: selectedCategory });
         setCourses(response.courses || []);
       } catch (error) {
-        console.error("Erreur lors de la récupération des cours:", error);
+        logger.error("Erreur lors de la récupération des cours:", error);
         setCourses([]);
       } finally {
         setCoursesLoading(false);

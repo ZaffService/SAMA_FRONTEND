@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Lesson, Module } from "@/domain/entities/module";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 // ============================================================================
 // LessonManager Component
@@ -544,8 +545,8 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
     setError(null);
 
     try {
-      console.log(`🔄 [ModuleManager] Début modification module: ${editingModule.moduleId}`);
-      console.log(`📦 [ModuleManager] Données envoyées:`, {
+      logger.log(`🔄 [ModuleManager] Début modification module: ${editingModule.moduleId}`);
+      logger.log(`📦 [ModuleManager] Données envoyées:`, {
         title: editingModule.title,
         description: editingModule.description
       });
@@ -563,7 +564,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
         description: editingModule.description || undefined,
       });
 
-      console.log(`✅ [ModuleManager] Réponse API:`, response);
+      logger.log(`✅ [ModuleManager] Réponse API:`, response);
       setSuccess(true);
 
       // Mettre à jour le module avec les données du serveur (si disponibles)
@@ -578,7 +579,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
         return module;
       });
       
-      console.log(`📦 [ModuleManager] Modules mis à jour: ${modules.length} → ${updatedModules.length}`);
+      logger.log(`📦 [ModuleManager] Modules mis à jour: ${modules.length} → ${updatedModules.length}`);
       onModulesChange(updatedModules);
 
       // Fermer le dialogue après un court délai
@@ -586,7 +587,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
         closeEditDialog();
       }, 1500);
     } catch (err: any) {
-      console.error("❌ [ModuleManager] Erreur modification module:", err);
+      logger.error("❌ [ModuleManager] Erreur modification module:", err);
       setError(err.message || "Erreur lors de la modification");
     } finally {
       setIsSubmitting(false);

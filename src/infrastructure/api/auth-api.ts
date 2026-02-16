@@ -1,10 +1,11 @@
 import type { User, LoginData, AuthResponse } from "@/domain/entities/user";
 import type { RegisterData } from "@/types/auth";
 import { buildApiUrl, API_ENDPOINTS, API_BASE_URL } from "./baseConfig";
+import logger from "@/shared/helpers/logger";
 
 export class AuthApi {
   static async login(credentials: LoginData): Promise<AuthResponse> {
-    console.log("🔐 [AuthApi] Login pour:", credentials.email);
+    logger.log("🔐 [AuthApi] Login pour:", credentials.email);
     const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.LOGIN), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,20 +69,20 @@ export class AuthApi {
 
       return await res.json();
     } catch (error) {
-      console.error("Erreur lors de la récupération du profil:", error);
+      logger.error("Erreur lors de la récupération du profil:", error);
       return null;
     }
   }
 
   static async validateSession(): Promise<User | null> {
-    console.log("🔍 [AuthApi] Début validateSession()");
-    console.log(
+    logger.log("🔍 [AuthApi] Début validateSession()");
+    logger.log(
       "🔍 [AuthApi] URL appelée:",
       buildApiUrl(API_ENDPOINTS.USER.PROFILE),
     );
 
     try {
-      console.log(
+      logger.log(
         '🔍 [AuthApi] Envoi requête GET /user/profile avec credentials: "include"',
       );
       let res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
@@ -89,15 +90,15 @@ export class AuthApi {
         credentials: "include",
       });
 
-      console.log("🔍 [AuthApi] Réponse reçue:", res.status, res.statusText);
+      logger.log("🔍 [AuthApi] Réponse reçue:", res.status, res.statusText);
 
       if (res.status === 401) {
-        console.log(
+        logger.log(
           "🔄 [AuthApi] Session invalide (401), tentative de refresh token...",
         );
         const refreshed = await this.refreshToken();
         if (!refreshed) {
-          console.log("❌ [AuthApi] Refresh impossible, session expirée");
+          logger.log("❌ [AuthApi] Refresh impossible, session expirée");
           return null;
         }
 
@@ -105,7 +106,7 @@ export class AuthApi {
           method: "GET",
           credentials: "include",
         });
-        console.log(
+        logger.log(
           "🔍 [AuthApi] Réponse après refresh:",
           res.status,
           res.statusText,
@@ -113,15 +114,15 @@ export class AuthApi {
       }
 
       if (!res.ok) {
-        console.log("❌ [AuthApi] Réponse non-ok:", res.status, res.statusText);
+        logger.log("❌ [AuthApi] Réponse non-ok:", res.status, res.statusText);
         return null;
       }
 
       const userData = await res.json();
-      console.log("✅ [AuthApi] User profile récupéré:", userData);
+      logger.log("✅ [AuthApi] User profile récupéré:", userData);
       return userData;
     } catch (error) {
-      console.error("❌ [AuthApi] Erreur validateSession:", error);
+      logger.error("❌ [AuthApi] Erreur validateSession:", error);
       return null;
     }
   }
@@ -174,26 +175,26 @@ export class AuthApi {
   }
 
   static async logout(): Promise<void> {
-    console.log("🚪 [AuthApi] Début logout - Envoi requête POST /logout");
+    logger.log("🚪 [AuthApi] Début logout - Envoi requête POST /logout");
     try {
       const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.LOGOUT), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      console.log(
+      logger.log(
         "🚪 [AuthApi] Réponse logout:",
         response.status,
         response.statusText,
       );
       if (!response.ok) {
-        console.error(
+        logger.error(
           "🚪 [AuthApi] Erreur logout - Status non-ok:",
           response.status,
         );
       }
     } catch (error) {
-      console.error("🚪 [AuthApi] Erreur réseau lors du logout:", error);
+      logger.error("🚪 [AuthApi] Erreur réseau lors du logout:", error);
     }
   }
 
@@ -232,7 +233,7 @@ export class AuthApi {
       });
 
       if (!response.ok) {
-        console.warn(
+        logger.warn(
           "❌ [AuthApi] Refresh token échoué:",
           response.status,
           response.statusText,
@@ -240,10 +241,10 @@ export class AuthApi {
         return false;
       }
 
-      console.log("✅ [AuthApi] Token refreshé avec succès");
+      logger.log("✅ [AuthApi] Token refreshé avec succès");
       return true;
     } catch (error) {
-      console.error("❌ [AuthApi] Erreur lors du refresh token:", error);
+      logger.error("❌ [AuthApi] Erreur lors du refresh token:", error);
       return false;
     }
   }
@@ -346,7 +347,7 @@ export class AuthApi {
       );
     }
 
-    console.log("🔐 [AuthApi] Login Google via:", API_ENDPOINTS.AUTH.GOOGLE);
+    logger.log("🔐 [AuthApi] Login Google via:", API_ENDPOINTS.AUTH.GOOGLE);
     const res = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.GOOGLE), {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -28,6 +28,7 @@ import {
 } from "@/shared/helpers/sweet-alert";
 import { Module, Lesson } from "@/domain/entities/module";
 import { CourseCookieStorage } from "@/utils/courseCookieStorage";
+import logger from "@/shared/helpers/logger";
 
 interface Category {
   id: string;
@@ -81,12 +82,12 @@ export function CourseCreationForm({
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        console.log("🔍 Form: Début du chargement des catégories...");
+        logger.log("🔍 Form: Début du chargement des catégories...");
         const cats = await CoursesApi.getCategories();
-        console.log(`✅ Form: ${cats.length} catégories reçues`, cats);
+        logger.log(`✅ Form: ${cats.length} catégories reçues`, cats);
         setCategories(cats);
       } catch (err) {
-        console.error(
+        logger.error(
           "❌ Form: Erreur lors du chargement des catégories:",
           err,
         );
@@ -219,7 +220,7 @@ export function CourseCreationForm({
       return;
     }
 
-    console.log("✅ [VALIDATION] Catégorie valide:", categoryExists);
+    logger.log("✅ [VALIDATION] Catégorie valide:", categoryExists);
 
     setIsSubmitting(true);
     showLoadingToast("Création de votre cours en cours...");
@@ -351,7 +352,7 @@ export function CourseCreationForm({
                       <Select
                         value={formData.categoryId}
                         onValueChange={(value) => {
-                          console.log("📝 Catégorie sélectionnée:", value);
+                          logger.log("📝 Catégorie sélectionnée:", value);
                           updateFormData({ categoryId: value });
                         }}
                       >
@@ -360,7 +361,7 @@ export function CourseCreationForm({
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => {
-                            console.log(
+                            logger.log(
                               "🔹 Rendu catégorie:",
                               category.id,
                               category.name,

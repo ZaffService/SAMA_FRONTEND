@@ -1,3 +1,5 @@
+import logger from "@/shared/helpers/logger";
+
 export enum UploadStatus {
   PENDING = "PENDING",
   UPLOADING = "UPLOADING",
@@ -74,7 +76,7 @@ export class FileUploadService {
 
         // Attendre avant de retry (backoff exponentiel)
         const delay = retryDelay * Math.pow(2, attempt);
-        console.warn(
+        logger.warn(
           `Upload attempt ${attempt + 1} failed, retrying in ${delay}ms:`,
           error,
         );

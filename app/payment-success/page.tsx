@@ -15,6 +15,7 @@ import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { PaymentApi } from "@/infrastructure/api/payment-api";
 import { transformCourseDetails } from "@/lib/transformers/course-transformer";
 import type { VerificationState } from "@/types/enrollment";
+import logger from "@/shared/helpers/logger";
 
 const POLLING_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 20;
@@ -186,7 +187,7 @@ export default function PaymentSuccessPage() {
         setPreviewLessons(lessons);
       }
     } catch (error) {
-      console.error("❌ [PaymentSuccess] Erreur chargement aperçu cours:", error);
+      logger.error("❌ [PaymentSuccess] Erreur chargement aperçu cours:", error);
     }
   }, []);
 
@@ -295,7 +296,7 @@ export default function PaymentSuccessPage() {
         }));
       }
     } catch (error) {
-      console.error("❌ [PaymentSuccess] Erreur pendant la vérification:", error);
+      logger.error("❌ [PaymentSuccess] Erreur pendant la vérification:", error);
       if (state.attemptCount >= MAX_ATTEMPTS - 1) {
         setState((prev) => ({
           ...prev,

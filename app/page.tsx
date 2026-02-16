@@ -42,6 +42,7 @@ import { CategoryFilter } from "@/components/category-filter";
 import type { Course, CourseFilter } from "@/domain/entities/course";
 import { EmptyContent } from "@/components/ui/empty";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 const Index = () => {
   const router = useRouter();
@@ -235,10 +236,10 @@ const Index = () => {
 
   // Fonction helper pour vérifier si un cours est acheté
   const isCourseEnrolled = (courseId: string) => {
-    console.log(
+    logger.log(
       `🔍 [isCourseEnrolled] Vérification pour cours ID: ${courseId}`,
     );
-    console.log(
+    logger.log(
       `📚 [isCourseEnrolled] Cours inscrits disponibles:`,
       enrolledCourses,
     );
@@ -248,13 +249,13 @@ const Index = () => {
       const enrolledId =
         enrollment.id || (enrollment as any)._id || enrollment.course_id;
       const match = enrolledId === courseId;
-      console.log(
+      logger.log(
         `🔍 [isCourseEnrolled] Comparaison: ${enrolledId} === ${courseId} ? ${match}`,
       );
       return match;
     });
 
-    console.log(
+    logger.log(
       `✅ [isCourseEnrolled] Résultat pour ${courseId}: ${isEnrolled}`,
     );
     return isEnrolled;
@@ -275,7 +276,7 @@ const Index = () => {
       (enrollment as any)?.percentage ||
       0;
 
-    console.log(
+    logger.log(
       `📊 [getCourseProgress] Progression pour ${courseId}: ${progress}% (enrollment:`,
       enrollment,
       `)`,
@@ -374,11 +375,11 @@ const Index = () => {
 
                     // 🔥 DEBUG spécifique pour le cours Leadership
                     if (course.title?.includes("Leadership")) {
-                      console.log("🎯 [CourseCard] Rendu du cours Leadership:");
-                      console.log("   - Titre:", course.title);
-                      console.log("   - ID:", course.id);
-                      console.log("   - Est inscrit?", isEnrolled);
-                      console.log("   - Progression:", progress);
+                      logger.log("🎯 [CourseCard] Rendu du cours Leadership:");
+                      logger.log("   - Titre:", course.title);
+                      logger.log("   - ID:", course.id);
+                      logger.log("   - Est inscrit?", isEnrolled);
+                      logger.log("   - Progression:", progress);
                     }
 
                     return (

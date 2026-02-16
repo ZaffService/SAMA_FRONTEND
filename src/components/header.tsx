@@ -23,6 +23,7 @@ import { MegaMenuOverlay } from "@/components/mega-menu-overlay";
 import { CoursesApi, BackendCourse } from "@/infrastructure/api/courses-api";
 import { CategoriesApi } from "@/infrastructure/api/categories-api";
 import type { Category } from "@/domain/entities/course";
+import logger from "@/shared/helpers/logger";
 
 export function Header() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export function Header() {
         const coursesResult = await CoursesApi.getCourses(1, 100);
         setAllCourses(coursesResult.courses);
       } catch (error) {
-        console.error("Erreur lors du chargement des cours:", error);
+        logger.error("Erreur lors du chargement des cours:", error);
       } finally {
         setCoursesLoading(false);
       }
@@ -63,7 +64,7 @@ export function Header() {
         const categoriesResult = await CategoriesApi.getCategories();
         setAllCategories(categoriesResult);
       } catch (error) {
-        console.error("Erreur lors du chargement des catégories:", error);
+        logger.error("Erreur lors du chargement des catégories:", error);
       } finally {
         setCategoriesLoading(false);
       }

@@ -24,6 +24,7 @@ import {
 import { AlertCircle, CheckCircle, UserPlus } from "lucide-react";
 import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
 import { toast } from "sonner";
+import logger from "@/shared/helpers/logger";
 
 const userCreationSchema = z.object({
   firstName: z.string().min(1, "Le prénom est requis"),
@@ -84,7 +85,7 @@ export function UserCreationForm() {
 
       setTimeout(() => setIsSuccess(false), 3000);
     } catch (error) {
-      console.error(error);
+      logger.error(error);
       toast.error(
         error instanceof Error
           ? error.message

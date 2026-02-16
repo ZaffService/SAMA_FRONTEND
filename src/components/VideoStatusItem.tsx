@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import logger from "@/shared/helpers/logger";
 
 interface Lesson {
   id: string;
@@ -91,7 +92,7 @@ export function VideoStatusItem({
       toast.success("Vidéo changée avec succès !");
       onUploadSuccess();
     } catch (error) {
-      console.error("Erreur lors du changement de vidéo:", error);
+      logger.error("Erreur lors du changement de vidéo:", error);
       toast.error(
         `Erreur lors du changement de vidéo: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
       );
@@ -141,7 +142,7 @@ export function VideoStatusItem({
       }
       onUploadSuccess();
     } catch (error) {
-      console.error("Erreur upload:", error);
+      logger.error("Erreur upload:", error);
       toast.error(
         `Erreur lors de l'upload: ${error instanceof Error ? error.message : "Erreur inconnue"}`,
       );

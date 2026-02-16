@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import logger from "@/shared/helpers/logger";
 
 interface AddLessonDialogProps {
   moduleId: string | null;
@@ -65,7 +66,7 @@ export function AddLessonDialog({
       onOpenChange(false);
       setFormData({ title: "", content: "", duration: 0 });
     } catch (error) {
-      console.error("Erreur lors de l'ajout de la leçon:", error);
+      logger.error("Erreur lors de l'ajout de la leçon:", error);
       toast.error("Erreur lors de l'ajout de la leçon");
     } finally {
       setIsLoading(false);

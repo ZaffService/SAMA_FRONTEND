@@ -1,5 +1,6 @@
 import type { Category } from "@/domain/entities/course";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
+import logger from "@/shared/helpers/logger";
 
 export class CategoriesApi {
   /**
@@ -23,7 +24,7 @@ export class CategoriesApi {
     const data = await response.json();
 
     // DEBUG
-    console.log("🔍 API getCategories - Données brutes:", data);
+    logger.log("🔍 API getCategories - Données brutes:", data);
 
     // Gérer différents formats de réponse
     const categories = Array.isArray(data)
@@ -61,7 +62,7 @@ export class CategoriesApi {
 
     if (!response.ok) {
       const errorMessage = `Failed to create category: ${response.status}`;
-      console.error(
+      logger.error(
         "❌ Erreur lors de la création de la catégorie:",
         errorMessage,
       );
@@ -71,7 +72,7 @@ export class CategoriesApi {
     const data = await response.json();
 
     // DEBUG
-    console.log("✅ Catégorie créée avec succès:", data);
+    logger.log("✅ Catégorie créée avec succès:", data);
 
     // Mapper la réponse pour assurer une structure cohérente
     return {
@@ -105,7 +106,7 @@ export class CategoriesApi {
 
     if (!response.ok) {
       const errorMessage = `Failed to update category: ${response.status}`;
-      console.error(
+      logger.error(
         "❌ Erreur lors de la mise à jour de la catégorie:",
         errorMessage,
       );
@@ -115,7 +116,7 @@ export class CategoriesApi {
     const data = await response.json();
 
     // DEBUG
-    console.log("✅ Catégorie mise à jour avec succès:", data);
+    logger.log("✅ Catégorie mise à jour avec succès:", data);
 
     return {
       id: data.id || data._id,
@@ -143,7 +144,7 @@ export class CategoriesApi {
 
     if (!response.ok) {
       const errorMessage = `Failed to delete category: ${response.status}`;
-      console.error(
+      logger.error(
         "❌ Erreur lors de la suppression de la catégorie:",
         errorMessage,
       );
@@ -160,7 +161,7 @@ export class CategoriesApi {
     const data = await response.json();
 
     // DEBUG
-    console.log("✅ Catégorie supprimée avec succès:", data);
+    logger.log("✅ Catégorie supprimée avec succès:", data);
 
     return {
       message: data.message || "Catégorie supprimée avec succès",

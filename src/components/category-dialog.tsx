@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { CategoriesApi } from "@/infrastructure/api/categories-api";
+import logger from "@/shared/helpers/logger";
 
 interface CategoryDialogProps {
   open: boolean;
@@ -54,7 +55,7 @@ export function CategoryDialog({
       onCategoryCreated();
       onOpenChange(false);
     } catch (err) {
-      console.error("❌ Erreur lors de la création de la catégorie:", err);
+      logger.error("❌ Erreur lors de la création de la catégorie:", err);
       setError(
         err instanceof Error ? err.message : "Erreur lors de la création",
       );

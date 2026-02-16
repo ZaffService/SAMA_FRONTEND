@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { LessonManager } from "@/components/LessonManager";
 import { Lesson } from "@/domain/entities/module";
+import logger from "@/shared/helpers/logger";
 
 interface ModuleLessonManagerProps {
   courseId: string;
@@ -44,7 +45,7 @@ export function ModuleLessonManager({
         setLessons(module.lessons || []);
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des leçons:", error);
+      logger.error("Erreur lors du chargement des leçons:", error);
       toast.error("Erreur lors du chargement des leçons");
     } finally {
       setIsLoading(false);
@@ -59,7 +60,7 @@ export function ModuleLessonManager({
       toast.success("Leçons mises à jour avec succès");
       onLessonsUpdated?.();
     } catch (error) {
-      console.error("Erreur lors de la mise à jour des leçons:", error);
+      logger.error("Erreur lors de la mise à jour des leçons:", error);
       toast.error("Erreur lors de la mise à jour des leçons");
     }
   };

@@ -1,5 +1,6 @@
 "use client";
 
+import logger from "@/shared/helpers/logger";
 import { useEffect } from "react";
 
 export function ServiceWorker() {
@@ -9,7 +10,7 @@ export function ServiceWorker() {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log(
+          logger.log(
             "Service Worker enregistré avec succès:",
             registration.scope,
           );
@@ -24,7 +25,7 @@ export function ServiceWorker() {
                   navigator.serviceWorker.controller
                 ) {
                   // Nouvelle version disponible - activation automatique pour rapidité
-                  console.log(
+                  logger.log(
                     "Nouvelle version détectée, activation automatique...",
                   );
                   newWorker.postMessage({ type: "SKIP_WAITING" });
@@ -54,7 +55,7 @@ export function ServiceWorker() {
           }
         })
         .catch((error) => {
-          console.error(
+          logger.error(
             "Erreur lors de l'enregistrement du Service Worker:",
             error,
           );

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { isValidResourceId } from "@/shared/helpers/safeFetch";
+import logger from "@/shared/helpers/logger";
 
 // Cache mémoire pour les détails de cours
 const courseMemoryCache = new Map<string, { data: any; timestamp: number }>();
@@ -11,7 +12,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 function getCachedCourse(courseId: string): any | null {
   const memoryCache = courseMemoryCache.get(courseId);
   if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION) {
-    console.log("test Cache mémoire utilisé:", courseId);
+    logger.log("test Cache mémoire utilisé:", courseId);
     return memoryCache.data;
   }
   return null;
@@ -36,14 +37,14 @@ export function useCourseDetails(courseId: string) {
 
   const fetchCourseDetails = useCallback(async () => {
     if (!isValidResourceId(courseId)) {
-      console.warn(`[useCourseDetails] Invalid courseId: "${courseId}"`);
+      logger.warn(`[useCourseDetails] Invalid courseId: "${courseId}"`);
       setLoading(false);
       setError(`ID de cours invalide: ${courseId}`);
       return;
     }
 
     if (fetchingRef.current) {
-      console.log("test Fetch already in progress, skipping...");
+      logger.log("test Fetch already in progress, skipping...");
       return;
     }
 
@@ -63,13 +64,13 @@ export function useCourseDetails(courseId: string) {
       setLoading(true);
       setError(null);
 
-      console.log("test Chargement du cours ID:", courseId);
+      logger.log("test Chargement du cours ID:", courseId);
       const start = performance.now();
 
       // 1. Charger les infos du cours
       const coursePromise = CoursesApi.getCourseDetails(courseId).catch(
         (e: any) => {
-          console.warn("test Erreur details:", e);
+          logger.warn("test Erreur details:", e);
           return null;
         },
       );
@@ -77,7 +78,7 @@ export function useCourseDetails(courseId: string) {
       // 2. Charger les topics du cours
       const topicsPromise = CoursesApi.getCourseContents(courseId).catch(
         (e: any) => {
-          console.warn("test Erreur topics:", e);
+          logger.warn("test Erreur topics:", e);
           return { data: [] };
         },
       );
@@ -96,7 +97,7 @@ export function useCourseDetails(courseId: string) {
 
       if (courseResult && (courseResult as any).course?.modules) {
         // New structure with modules
-        console.log(
+        logger.log(
           "test Avant tri:",
           JSON.stringify(
             (courseResult as any).course.modules[0]?.lessons.map((l: any) => ({
@@ -116,7 +117,7 @@ export function useCourseDetails(courseId: string) {
               },
             );
 
-            console.log(
+            logger.log(
               "test Après tri module:",
               module.title,
               sortedLessons.map((l: any) => ({
@@ -177,7 +178,7 @@ export function useCourseDetails(courseId: string) {
           return 0;
         });
 
-        console.log(
+        logger.log(
           `test ${allLessonsResult.length} leçons trouvées (nouvelle structure)`,
         );
       } else {
@@ -210,7 +211,7 @@ export function useCourseDetails(courseId: string) {
                 lessons: Array.isArray(res) ? res : [],
               });
             } catch (e) {
-              console.warn(`test Erreur lessons pour topic ${topic.ID}:`, e);
+              logger.warn(`test Erreur lessons pour topic ${topic.ID}:`, e);
               topicLessons.push({
                 topicId: topic.ID,
                 topicTitle: topic.post_title,
@@ -265,25 +266,25 @@ export function useCourseDetails(courseId: string) {
             return 0;
           });
 
-          console.log(
+          logger.log(
             `test ${allLessonsResult.length} leçons trouvées (ancienne structure)`,
           );
         }
       }
 
       if (courseResult) {
-        console.log(
+        logger.log(
           "test Cours chargé:",
           courseResult?.course?.title || "Titre non disponible",
         );
       }
 
       if (topicsResult?.length > 0) {
-        console.log(`test ${topicsResult.length} topics/modules chargés`);
+        logger.log(`test ${topicsResult.length} topics/modules chargés`);
       }
 
       const end = performance.now();
-      console.log(`test Chargement complété en ${(end - start).toFixed(0)}ms`);
+      logger.log(`test Chargement complété en ${(end - start).toFixed(0)}ms`);
 
       // Mettre en cache
       const cacheData = {
@@ -307,7 +308,7 @@ export function useCourseDetails(courseId: string) {
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Erreur inconnue";
-      console.error("test Erreur:", errorMessage);
+      logger.error("test Erreur:", errorMessage);
       if (isMountedRef.current) {
         setError(errorMessage);
       }

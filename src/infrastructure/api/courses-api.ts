@@ -110,6 +110,7 @@ interface FollowCourseResult {
 }
 
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
+import logger from "@/shared/helpers/logger";
 
 export class CoursesApi {
   /**
@@ -157,7 +158,7 @@ export class CoursesApi {
 
     const data = (await response.json()) as BackendResponse;
 
-    console.log(
+    logger.log(
       "🔍 API getAdminCourses - Données brutes:",
       JSON.stringify(data, null, 2),
     );
@@ -226,7 +227,7 @@ export class CoursesApi {
     const data = await response.json();
 
     // DEBUG: Afficher les données brutes pour diagnostiquer
-    console.log(
+    logger.log(
       "🔍 API getCourses - Données brutes:",
       JSON.stringify(data, null, 2),
     );
@@ -249,7 +250,7 @@ export class CoursesApi {
   static async getCourseDetails(
     courseId: string,
   ): Promise<CourseDetailsResponse> {
-    console.log(`🔍 API: Récupération des détails du cours: ${courseId}`);
+    logger.log(`🔍 API: Récupération des détails du cours: ${courseId}`);
 
     const response = await fetch(
       buildApiUrl(`${API_ENDPOINTS.COURSES.DETAILS}/${courseId}`),
@@ -269,15 +270,15 @@ export class CoursesApi {
     const data = await response.json();
     
     // DEBUG: Afficher la structure complète de la réponse
-    console.log("📦 API: Réponse backend complète:", JSON.stringify(data, null, 2));
+    logger.log("📦 API: Réponse backend complète:", JSON.stringify(data, null, 2));
     
     // Vérifier tous les champs possibles pour l'attachment
-    console.log("📎 API: data.course:", data.course);
-    console.log("📎 API: data.course.attachment:", data.course?.attachment);
-    console.log("📎 API: data.course.attachments:", data.course?.attachments);
-    console.log("📎 API: Toutes les clés de data.course:", Object.keys(data.course || {}));
+    logger.log("📎 API: data.course:", data.course);
+    logger.log("📎 API: data.course.attachment:", data.course?.attachment);
+    logger.log("📎 API: data.course.attachments:", data.course?.attachments);
+    logger.log("📎 API: Toutes les clés de data.course:", Object.keys(data.course || {}));
     
-    console.log("📚 API: Nombre de modules:", data.modules?.length || 0);
+    logger.log("📚 API: Nombre de modules:", data.modules?.length || 0);
 
     return data;
   }
@@ -304,7 +305,7 @@ export class CoursesApi {
    * Récupère le contenu d'un cours avec la progression de l'utilisateur (pour utilisateurs inscrits)
    */
   static async getCourseWithProgress(courseId: string): Promise<any> {
-    console.log(`🔍 API: Récupération du cours avec progression: ${courseId}`);
+    logger.log(`🔍 API: Récupération du cours avec progression: ${courseId}`);
 
     const response = await fetch(
       buildApiUrl(`${API_ENDPOINTS.COURSES.FOLLOW}/${courseId}`),
@@ -324,7 +325,7 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log(
+    logger.log(
       "📦 API: Réponse backend complète avec progression:",
       JSON.stringify(data, null, 2),
     );
@@ -341,7 +342,7 @@ export class CoursesApi {
       forceComplete?: boolean;
     },
   ): Promise<{ success: boolean }> {
-    console.log(`✅ API: Marquage de la leçon ${lessonId} comme terminée`);
+    logger.log(`✅ API: Marquage de la leçon ${lessonId} comme terminée`);
     const payload: Record<string, unknown> = {};
 
     if (options?.forceComplete === true) {
@@ -374,8 +375,8 @@ export class CoursesApi {
    * Récupère les catégories disponibles
    */
   static async getCategories(): Promise<Array<{ id: string; name: string }>> {
-    console.log("🔍 [API] Récupération des catégories...");
-    console.log("🔍 [API] URL:", buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES));
+    logger.log("🔍 [API] Récupération des catégories...");
+    logger.log("🔍 [API] URL:", buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES));
 
     const response = await fetch(
       buildApiUrl(API_ENDPOINTS.COURSES.CATEGORIES),
@@ -388,25 +389,25 @@ export class CoursesApi {
       },
     );
 
-    console.log(
+    logger.log(
       "📡 [API] Statut de la réponse:",
       response.status,
       response.statusText,
     );
 
     if (!response.ok) {
-      console.error("❌ [API] Erreur HTTP:", response.status);
+      logger.error("❌ [API] Erreur HTTP:", response.status);
       throw new Error(`Failed to fetch categories: ${response.status}`);
     }
 
     const data = await response.json();
 
     // DEBUG: Afficher la structure complète
-    console.log(
+    logger.log(
       "📦 [API] Données brutes reçues:",
       JSON.stringify(data, null, 2),
     );
-    console.log(
+    logger.log(
       "📦 [API] Type de données:",
       Array.isArray(data) ? "Array" : typeof data,
     );
@@ -417,22 +418,22 @@ export class CoursesApi {
     if (Array.isArray(data)) {
       // Format 1: Tableau direct
       categories = data;
-      console.log("✅ [API] Format: Tableau direct");
+      logger.log("✅ [API] Format: Tableau direct");
     } else if (data.categories && Array.isArray(data.categories)) {
       // Format 2: { categories: [...] }
       categories = data.categories;
-      console.log("✅ [API] Format: Objet avec clé 'categories'");
+      logger.log("✅ [API] Format: Objet avec clé 'categories'");
     } else if (data.data && Array.isArray(data.data)) {
       // Format 3: { data: [...] }
       categories = data.data;
-      console.log("✅ [API] Format: Objet avec clé 'data'");
+      logger.log("✅ [API] Format: Objet avec clé 'data'");
     } else {
-      console.error("❌ [API] Format de réponse non reconnu:", data);
+      logger.error("❌ [API] Format de réponse non reconnu:", data);
       throw new Error("Format de réponse invalide");
     }
 
-    console.log(`✅ [API] ${categories.length} catégories chargées`);
-    console.log(
+    logger.log(`✅ [API] ${categories.length} catégories chargées`);
+    logger.log(
       "📋 [API] Liste des catégories:",
       categories.map((c) => c.name).join(", "),
     );
@@ -444,13 +445,13 @@ export class CoursesApi {
    * Sauvegarde un brouillon de cours
    */
   static async saveDraft(courseData: any): Promise<any> {
-    console.log("🚀 [CoursesApi] Début sauvegarde brouillon...");
+    logger.log("🚀 [CoursesApi] Début sauvegarde brouillon...");
 
     // ✅ RÉCUPÉRER L'ID DE L'UTILISATEUR DEPUIS LE JWT
     const accessToken = Cookies.get("access_token");
 
     if (!accessToken) {
-      console.error("❌ [CoursesApi] Token absent");
+      logger.error("❌ [CoursesApi] Token absent");
       throw new Error("Session expirée. Veuillez vous reconnecter.");
     }
 
@@ -460,7 +461,7 @@ export class CoursesApi {
       const payload = JSON.parse(base64UrlDecode(accessToken.split(".")[1]));
       userId = payload.userId || payload.sub || payload.id;
 
-      console.log("👤 [CoursesApi] User ID extrait:", userId);
+      logger.log("👤 [CoursesApi] User ID extrait:", userId);
 
       if (!userId) {
         throw new Error("userId non trouvé dans le token");
@@ -469,15 +470,15 @@ export class CoursesApi {
       // Vérifier l'expiration
       const now = Date.now() / 1000;
       if (now > payload.exp) {
-        console.error("❌ [CoursesApi] Token expiré");
+        logger.error("❌ [CoursesApi] Token expiré");
         window.location.href = "/login";
         throw new Error("Token expiré");
       }
 
       const timeLeft = Math.floor((payload.exp - now) / 60);
-      console.log(`⏰ [CoursesApi] Token valide encore ${timeLeft} minutes`);
+      logger.log(`⏰ [CoursesApi] Token valide encore ${timeLeft} minutes`);
     } catch (err) {
-      console.error("❌ [CoursesApi] Erreur extraction userId:", err);
+      logger.error("❌ [CoursesApi] Erreur extraction userId:", err);
       throw err;
     }
 
@@ -539,16 +540,16 @@ export class CoursesApi {
 
     // ✅ Le champ "data" contient le JSON stringifié
     formData.append("data", JSON.stringify(courseJsonData));
-    console.log(
+    logger.log(
       "📦 [CoursesApi] Données JSON:",
       JSON.stringify(courseJsonData, null, 2),
     );
-    console.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
+    logger.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
 
     // ✅ Ajouter le fichier thumbnail si c'est un File
     if (courseData.thumbnail && typeof courseData.thumbnail !== "string") {
       formData.append("thumbnail", courseData.thumbnail);
-      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
+      logger.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
     }
 
     // Ajouter les vidéos
@@ -559,18 +560,18 @@ export class CoursesApi {
           const videoKey = `lessonVideos[${lesson.tempId}]`;
           formData.append(videoKey, lesson.videoFile);
           videoCount++;
-          console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
+          logger.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
         }
       });
     });
-    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+    logger.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
     // ⚠️ CRITIQUE : Envoyer la requête avec credentials
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Envoi vers:",
       buildApiUrl(API_ENDPOINTS.COURSES.CREATE),
     );
-    console.log("🔐 [CoursesApi] Credentials: include");
+    logger.log("🔐 [CoursesApi] Credentials: include");
 
     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CREATE), {
       method: "POST",
@@ -579,7 +580,7 @@ export class CoursesApi {
       // ⚠️ NE PAS METTRE Content-Type avec FormData (fetch le fait automatiquement)
     });
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Statut réponse:",
       response.status,
       response.statusText,
@@ -590,11 +591,11 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        logger.error("❌ [CoursesApi] Erreur backend:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       // Si 401, proposer de se reconnecter
@@ -606,7 +607,7 @@ export class CoursesApi {
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Brouillon sauvegardé:", responseData);
+    logger.log("✅ [CoursesApi] Brouillon sauvegardé:", responseData);
 
     return responseData;
   }
@@ -615,7 +616,7 @@ export class CoursesApi {
    * Vérifie si l'utilisateur est inscrit à un cours
    */
   static async checkEnrollmentStatus(courseId: string): Promise<boolean> {
-    console.log(
+    logger.log(
       `🔍 API: Vérification du statut d'inscription pour le cours ${courseId}`,
     );
 
@@ -630,11 +631,11 @@ export class CoursesApi {
           const userRole = payload.role;
 
           if (userRole === "ADMIN") {
-            console.log("👑 Admin détecté - Accès automatique au cours");
+            logger.log("👑 Admin détecté - Accès automatique au cours");
             return true;
           }
         } catch (err) {
-          console.error("❌ Erreur extraction rôle depuis token:", err);
+          logger.error("❌ Erreur extraction rôle depuis token:", err);
           // Continue avec la vérification normale
         }
       }
@@ -651,20 +652,20 @@ export class CoursesApi {
       );
 
       if (response.ok) {
-        console.log("✅ Utilisateur inscrit au cours");
+        logger.log("✅ Utilisateur inscrit au cours");
         return true;
       } else if (response.status === 403 || response.status === 404) {
-        console.log("ℹ️ Utilisateur non inscrit ou accès refusé");
+        logger.log("ℹ️ Utilisateur non inscrit ou accès refusé");
         return false;
       } else {
-        console.error(
+        logger.error(
           "❌ Erreur inattendue lors de la vérification:",
           response.status,
         );
         return false;
       }
     } catch (error) {
-      console.error(
+      logger.error(
         "💥 Erreur lors de la vérification du statut d'inscription:",
         error,
       );
@@ -681,12 +682,12 @@ export class CoursesApi {
     progress?: number;
     status?: string;
   }> {
-    console.log(`🔄 API: Tentative de suivi du cours ${courseId}`);
+    logger.log(`🔄 API: Tentative de suivi du cours ${courseId}`);
 
     // ✅ SÉCURITÉ: Vérifier d'abord si déjà inscrit pour éviter les duplicatas
     const alreadyEnrolled = await this.checkEnrollmentStatus(courseId);
     if (alreadyEnrolled) {
-      console.log("✅ Utilisateur déjà inscrit, retour immédiat");
+      logger.log("✅ Utilisateur déjà inscrit, retour immédiat");
       return {
         status: "ACTIVE",
         progress: 0,
@@ -702,7 +703,7 @@ export class CoursesApi {
         const userRole = payload.role;
 
         if (userRole === "ADMIN") {
-          console.log("👑 Admin détecté - Inscription automatique au cours");
+          logger.log("👑 Admin détecté - Inscription automatique au cours");
           return {
             status: "ACTIVE",
             progress: 0,
@@ -710,7 +711,7 @@ export class CoursesApi {
           };
         }
       } catch (err) {
-        console.error("❌ Erreur extraction rôle depuis token:", err);
+        logger.error("❌ Erreur extraction rôle depuis token:", err);
         // Continue avec la procédure normale
       }
     }
@@ -729,12 +730,12 @@ export class CoursesApi {
     // ✅ GESTION DES ERREURS DE DUPLICATION
     if (response.status === 409 || response.status === 400) {
       // L'utilisateur est peut-être déjà inscrit (race condition)
-      console.log("⚠️ Erreur 409/400, vérification de l'état actuel...");
+      logger.log("⚠️ Erreur 409/400, vérification de l'état actuel...");
 
       // Vérifier si l'utilisateur est maintenant inscrit
       const checkResult = await this.checkEnrollmentStatus(courseId);
       if (checkResult) {
-        console.log("✅ Inscription confirmée malgré l'erreur 409");
+        logger.log("✅ Inscription confirmée malgré l'erreur 409");
         return {
           status: "ACTIVE",
           progress: 0,
@@ -748,7 +749,7 @@ export class CoursesApi {
 
       // ✅ GESTION SPÉCIFIQUE DES ERREURS
       if (response.status === 409) {
-        console.log("⚠️ Inscription duplicate détectée");
+        logger.log("⚠️ Inscription duplicate détectée");
         return {
           status: "DUPLICATE",
           course: { id: courseId },
@@ -761,7 +762,7 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log(
+    logger.log(
       "📦 API: Réponse du suivi de cours:",
       JSON.stringify(data, null, 2),
     );
@@ -779,7 +780,7 @@ export class CoursesApi {
    * Inscrit un utilisateur à un cours (après paiement)
    */
   static async enrollUser(courseId: string): Promise<any> {
-    console.log(`🔄 API: Inscription de l'utilisateur au cours ${courseId}`);
+    logger.log(`🔄 API: Inscription de l'utilisateur au cours ${courseId}`);
 
     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLL), {
       method: "POST",
@@ -798,7 +799,7 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log(
+    logger.log(
       "📦 API: Réponse de l'inscription:",
       JSON.stringify(data, null, 2),
     );
@@ -810,7 +811,7 @@ export class CoursesApi {
    * Crée un nouveau cours
    */
   static async createCourse(courseData: any): Promise<any> {
-    console.log("🚀 [CoursesApi] Début création cours...");
+    logger.log("🚀 [CoursesApi] Début création cours...");
 
     const formData = new FormData();
 
@@ -865,16 +866,16 @@ export class CoursesApi {
 
     // ✅ Le champ "data" contient le JSON stringifié
     formData.append("data", JSON.stringify(courseJsonData));
-    console.log(
+    logger.log(
       "📦 [CoursesApi] Données JSON:",
       JSON.stringify(courseJsonData, null, 2),
     );
-    console.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
+    logger.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
 
     // ✅ Ajouter le fichier thumbnail si c'est un File
     if (courseData.thumbnail && typeof courseData.thumbnail !== "string") {
       formData.append("thumbnail", courseData.thumbnail);
-      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
+      logger.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
     }
 
     // Ajouter les vidéos
@@ -885,33 +886,33 @@ export class CoursesApi {
           const videoKey = `lessonVideos[${lesson.tempId}]`;
           formData.append(videoKey, lesson.videoFile);
           videoCount++;
-          console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
+          logger.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
         }
       });
     });
-    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+    logger.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
     // ✅ Ajouter l'attachment PDF si présent
     // AttachmentManager stocke les fichiers dans un tableau d'objets { file: File, id, preview }
-    console.log("📎 [CoursesApi] Attachments reçus:", courseData.attachments);
-    console.log("📎 [CoursesApi] Type d'attachments:", typeof courseData.attachments, Array.isArray(courseData.attachments));
+    logger.log("📎 [CoursesApi] Attachments reçus:", courseData.attachments);
+    logger.log("📎 [CoursesApi] Type d'attachments:", typeof courseData.attachments, Array.isArray(courseData.attachments));
     
     if (courseData.attachments && Array.isArray(courseData.attachments) && courseData.attachments.length > 0) {
       courseData.attachments.forEach((attachment: any, index: number) => {
-        console.log(`📎 [CoursesApi] Attachment ${index}:`, attachment);
+        logger.log(`📎 [CoursesApi] Attachment ${index}:`, attachment);
         if (attachment.file) {
           formData.append("attachments", attachment.file);
-          console.log("📎 [CoursesApi] Attachment PDF ajouté:", attachment.file.name);
+          logger.log("📎 [CoursesApi] Attachment PDF ajouté:", attachment.file.name);
         }
       });
     } else {
-      console.log("📎 [CoursesApi] Aucun attachment à uploader");
+      logger.log("📎 [CoursesApi] Aucun attachment à uploader");
     }
 
-    console.log("📡 [CoursesApi] Envoi vers:",
+    logger.log("📡 [CoursesApi] Envoi vers:",
       buildApiUrl(API_ENDPOINTS.COURSES.CREATE),
     );
-    console.log("🔐 [CoursesApi] Credentials: include");
+    logger.log("🔐 [CoursesApi] Credentials: include");
 
     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.CREATE), {
       method: "POST",
@@ -919,7 +920,7 @@ export class CoursesApi {
       body: formData,
     });
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Statut réponse:",
       response.status,
       response.statusText,
@@ -930,18 +931,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        logger.error("❌ [CoursesApi] Erreur backend:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Succès:", responseData);
+    logger.log("✅ [CoursesApi] Succès:", responseData);
 
     return responseData;
   }
@@ -950,7 +951,7 @@ export class CoursesApi {
    * Met à jour un cours existant
    */
   static async updateCourse(courseId: string, courseData: any): Promise<any> {
-    console.log(` [CoursesApi] Début mise à jour du cours ${courseId}...`);
+    logger.log(` [CoursesApi] Début mise à jour du cours ${courseId}...`);
 
     const formData = new FormData();
 
@@ -1013,16 +1014,16 @@ export class CoursesApi {
 
     // ✅ Le champ "data" contient le JSON stringifié
     formData.append("data", JSON.stringify(courseJsonData));
-    console.log(
+    logger.log(
       "📦 [CoursesApi] Données JSON:",
       JSON.stringify(courseJsonData, null, 2),
     );
-    console.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
+    logger.log("🖼️ [CoursesApi] Thumbnail:", thumbnailUrl);
 
     // ✅ Ajouter le fichier thumbnail si c'est un File
     if (courseData.thumbnail && typeof courseData.thumbnail !== "string") {
       formData.append("thumbnail", courseData.thumbnail);
-      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
+      logger.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
     }
 
     // Ajouter les vidéos
@@ -1033,11 +1034,11 @@ export class CoursesApi {
           const videoKey = `lessonVideos[${lesson.tempId}]`;
           formData.append(videoKey, lesson.videoFile);
           videoCount++;
-          console.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
+          logger.log(`🎥 [CoursesApi] Vidéo ajoutée: ${videoKey}`);
         }
       });
     });
-    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+    logger.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
     // ✅ Ajouter l'attachment PDF si présent
     // AttachmentManager stocke les fichiers dans un tableau d'objets { file: File, id, preview }
@@ -1045,16 +1046,16 @@ export class CoursesApi {
       courseData.attachments.forEach((attachment: any) => {
         if (attachment.file) {
           formData.append("attachments", attachment.file);
-          console.log("📎 [CoursesApi] Attachment PDF ajouté:", attachment.file.name);
+          logger.log("📎 [CoursesApi] Attachment PDF ajouté:", attachment.file.name);
         }
       });
     }
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Envoi vers:",
       buildApiUrl(API_ENDPOINTS.COURSES.UPDATE(courseId)),
     );
-    console.log("🔐 [CoursesApi] Credentials: include");
+    logger.log("🔐 [CoursesApi] Credentials: include");
 
     const response = await fetch(
       buildApiUrl(API_ENDPOINTS.COURSES.UPDATE(courseId)),
@@ -1065,7 +1066,7 @@ export class CoursesApi {
       },
     );
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Statut réponse:",
       response.status,
       response.statusText,
@@ -1076,18 +1077,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        logger.error("❌ [CoursesApi] Erreur backend:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Cours mis à jour:", responseData);
+    logger.log("✅ [CoursesApi] Cours mis à jour:", responseData);
 
     return responseData;
   }
@@ -1110,8 +1111,8 @@ export class CoursesApi {
     },
     thumbnailFile?: File | null,
   ): Promise<{ message: string }> {
-    console.log(`🔄 [CoursesApi] Mise à jour simple du cours: ${courseId}`);
-    console.log("📦 [CoursesApi] Données à mettre à jour:", courseData);
+    logger.log(`🔄 [CoursesApi] Mise à jour simple du cours: ${courseId}`);
+    logger.log("📦 [CoursesApi] Données à mettre à jour:", courseData);
 
     const formData = new FormData();
 
@@ -1143,16 +1144,16 @@ export class CoursesApi {
 
     // Append le JSON stringifié dans le champ "data"
     formData.append("data", JSON.stringify(courseJsonData));
-    console.log("📦 [CoursesApi] JSON data:", JSON.stringify(courseJsonData, null, 2));
+    logger.log("📦 [CoursesApi] JSON data:", JSON.stringify(courseJsonData, null, 2));
 
     // Append le fichier thumbnail si présent
     if (thumbnailFile) {
       formData.append("thumbnail", thumbnailFile);
-      console.log("🖼️ [CoursesApi] Fichier thumbnail ajouté:", thumbnailFile.name);
+      logger.log("🖼️ [CoursesApi] Fichier thumbnail ajouté:", thumbnailFile.name);
     }
 
     const url = buildApiUrl(API_ENDPOINTS.COURSES.UPDATE_SIMPLE(courseId));
-    console.log("📡 [CoursesApi] URL:", url);
+    logger.log("📡 [CoursesApi] URL:", url);
 
     const response = await fetch(url, {
       method: "PUT",
@@ -1161,7 +1162,7 @@ export class CoursesApi {
       // Note: Ne pas set Content-Type avec FormData - le navigateur le fait automatiquement
     });
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Statut réponse:",
       response.status,
       response.statusText,
@@ -1172,18 +1173,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        logger.error("❌ [CoursesApi] Erreur backend:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Réponse:", responseData);
+    logger.log("✅ [CoursesApi] Réponse:", responseData);
 
     return responseData;
   }
@@ -1192,7 +1193,7 @@ export class CoursesApi {
    * Récupère les cours auxquels l'utilisateur est inscrit
    */
   static async getEnrolledCourses(): Promise<any[]> {
-    console.log("🔍 API: Récupération des cours inscrits");
+    logger.log("🔍 API: Récupération des cours inscrits");
 
     const response = await fetch(buildApiUrl(API_ENDPOINTS.COURSES.ENROLLED), {
       method: "GET",
@@ -1203,7 +1204,7 @@ export class CoursesApi {
     });
 
     if (!response.ok) {
-      console.error(
+      logger.error(
         "❌ Erreur lors de la récupération des cours inscrits:",
         response.status,
       );
@@ -1211,7 +1212,7 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log("📦 API: Cours inscrits:", data);
+    logger.log("📦 API: Cours inscrits:", data);
 
     // Le format peut varier selon le backend
     if (Array.isArray(data)) {
@@ -1236,7 +1237,7 @@ export class CoursesApi {
     paymentRequired: boolean;
     paymentUrl?: string;
   }> {
-    console.log(`🔍 API: Vérification d'inscription pour le cours ${courseId}`);
+    logger.log(`🔍 API: Vérification d'inscription pour le cours ${courseId}`);
 
     try {
       // ✅ Vérifier si l'utilisateur est un admin (accès automatique)
@@ -1249,7 +1250,7 @@ export class CoursesApi {
           const userRole = payload.role;
 
           if (userRole === "ADMIN") {
-            console.log("👑 Admin détecté - Accès automatique au cours");
+            logger.log("👑 Admin détecté - Accès automatique au cours");
             return {
               enrolled: true,
               isFree: true,
@@ -1257,7 +1258,7 @@ export class CoursesApi {
             };
           }
         } catch (err) {
-          console.error("❌ Erreur extraction rôle depuis token:", err);
+          logger.error("❌ Erreur extraction rôle depuis token:", err);
           // Continue avec la vérification normale
         }
       }
@@ -1275,7 +1276,7 @@ export class CoursesApi {
       );
 
       if (enrolledResponse.ok) {
-        console.log("✅ Utilisateur déjà inscrit au cours");
+        logger.log("✅ Utilisateur déjà inscrit au cours");
         return {
           enrolled: true,
           isFree: false, // Peu importe, il est déjà inscrit
@@ -1290,7 +1291,7 @@ export class CoursesApi {
         courseDetails.course.price === undefined;
 
       if (isFree) {
-        console.log("💰 Cours gratuit détecté, inscription automatique");
+        logger.log("💰 Cours gratuit détecté, inscription automatique");
 
         // Tenter l'inscription automatique
         const enrollResponse = await fetch(
@@ -1305,14 +1306,14 @@ export class CoursesApi {
         );
 
         if (enrollResponse.ok) {
-          console.log("✅ Inscription automatique réussie");
+          logger.log("✅ Inscription automatique réussie");
           return {
             enrolled: true,
             isFree: true,
             paymentRequired: false,
           };
         } else {
-          console.error("❌ Échec de l'inscription automatique");
+          logger.error("❌ Échec de l'inscription automatique");
           return {
             enrolled: false,
             isFree: true,
@@ -1320,7 +1321,7 @@ export class CoursesApi {
           };
         }
       } else {
-        console.log("💳 Cours payant détecté, redirection paiement");
+        logger.log("💳 Cours payant détecté, redirection paiement");
 
         // Pour les cours payants, obtenir l'URL de paiement
         const followResponse = await fetch(
@@ -1343,7 +1344,7 @@ export class CoursesApi {
             paymentUrl: followData.payment_url,
           };
         } else {
-          console.error("❌ Impossible d'obtenir l'URL de paiement");
+          logger.error("❌ Impossible d'obtenir l'URL de paiement");
           return {
             enrolled: false,
             isFree: false,
@@ -1352,7 +1353,7 @@ export class CoursesApi {
         }
       }
     } catch (error) {
-      console.error("❌ Erreur lors de la vérification d'inscription:", error);
+      logger.error("❌ Erreur lors de la vérification d'inscription:", error);
       return {
         enrolled: false,
         isFree: false,
@@ -1368,7 +1369,7 @@ export class CoursesApi {
     courseId: string,
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED",
   ): Promise<any> {
-    console.log(
+    logger.log(
       `🔄 API: Mise à jour du statut du cours ${courseId} vers ${status}`,
     );
 
@@ -1393,7 +1394,7 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log("✅ Statut mis à jour:", data);
+    logger.log("✅ Statut mis à jour:", data);
     return data;
   }
 
@@ -1401,7 +1402,7 @@ export class CoursesApi {
    * Supprime un cours
    */
   static async deleteCourse(courseId: string): Promise<any> {
-    console.log(`🗑️ API: Suppression du cours ${courseId}`);
+    logger.log(`🗑️ API: Suppression du cours ${courseId}`);
 
     const response = await fetch(
       buildApiUrl(`${API_ENDPOINTS.COURSES.DELETE(courseId)}`),
@@ -1429,7 +1430,7 @@ export class CoursesApi {
     }
 
     const data = await response.json();
-    console.log("✅ Cours supprimé:", data);
+    logger.log("✅ Cours supprimé:", data);
     return data;
   }
 
@@ -1440,7 +1441,7 @@ export class CoursesApi {
     lessonId: string,
     videoFile: File,
   ): Promise<any> {
-    console.log(`🎥 API: Upload de vidéo pour la leçon ${lessonId}`);
+    logger.log(`🎥 API: Upload de vidéo pour la leçon ${lessonId}`);
 
     const formData = new FormData();
     formData.append("video", videoFile);
@@ -1459,18 +1460,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur upload vidéo:", errorData);
+        logger.error("❌ [CoursesApi] Erreur upload vidéo:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Vidéo uploadée:", responseData);
+    logger.log("✅ [CoursesApi] Vidéo uploadée:", responseData);
 
     return responseData;
   }
@@ -1507,7 +1508,7 @@ export class CoursesApi {
       }>;
     },
   ): Promise<any> {
-    console.log(`🔄 API: Ajout d'un module au cours ${courseId}`);
+    logger.log(`🔄 API: Ajout d'un module au cours ${courseId}`);
 
     const formData = new FormData();
     
@@ -1524,7 +1525,7 @@ export class CoursesApi {
     
     // Le backend attend {"data": "{"modules": [...]}"}
     formData.append("data", JSON.stringify(moduleJsonData));
-    console.log("📦 [CoursesApi] Données module:", JSON.stringify(moduleJsonData, null, 2));
+    logger.log("📦 [CoursesApi] Données module:", JSON.stringify(moduleJsonData, null, 2));
     
     const response = await fetch(
       buildApiUrl(`/course/course/${courseId}/modules`),
@@ -1540,18 +1541,18 @@ export class CoursesApi {
       
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur ajout module:", errorData);
+        logger.error("❌ [CoursesApi] Erreur ajout module:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
       
       throw new Error(errorMessage);
     }
     
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Module ajouté:", responseData);
+    logger.log("✅ [CoursesApi] Module ajouté:", responseData);
     
     return responseData;
   }
@@ -1580,7 +1581,7 @@ export class CoursesApi {
       status: string;
     }>;
   }> {
-    console.log(`🎓 API: Ajout de ${lessons.length} leçon(s) au module ${moduleId}`);
+    logger.log(`🎓 API: Ajout de ${lessons.length} leçon(s) au module ${moduleId}`);
 
     const formData = new FormData();
 
@@ -1595,7 +1596,7 @@ export class CoursesApi {
 
     // Ajouter le JSON des leçons
     formData.append("data", JSON.stringify({ lessons: lessonsData }));
-    console.log("📦 [CoursesApi] Données leçons:", JSON.stringify(lessonsData, null, 2));
+    logger.log("📦 [CoursesApi] Données leçons:", JSON.stringify(lessonsData, null, 2));
 
     // Ajouter les vidéos avec leur tempId
     let videoCount = 0;
@@ -1603,13 +1604,13 @@ export class CoursesApi {
       if (lesson.videoFile) {
         formData.append(`lessonVideos[${lesson.tempId}]`, lesson.videoFile);
         videoCount++;
-        console.log(`🎥 [CoursesApi] Vidéo ajoutée pour ${lesson.tempId}: ${lesson.videoFile.name}`);
+        logger.log(`🎥 [CoursesApi] Vidéo ajoutée pour ${lesson.tempId}: ${lesson.videoFile.name}`);
       }
     });
-    console.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
+    logger.log(`📹 [CoursesApi] Total vidéos: ${videoCount}`);
 
     const url = buildApiUrl(API_ENDPOINTS.MODULES.ADD_LESSONS(moduleId));
-    console.log("📡 [CoursesApi] URL:", url);
+    logger.log("📡 [CoursesApi] URL:", url);
 
     const response = await fetch(url, {
       method: "POST",
@@ -1618,7 +1619,7 @@ export class CoursesApi {
       // ⚠️ NE PAS définir Content-Type - laisse le navigateur le faire pour multipart/form-data
     });
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Statut réponse:",
       response.status,
       response.statusText,
@@ -1629,17 +1630,17 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur backend:", errorData);
+        logger.error("❌ [CoursesApi] Erreur backend:", errorData);
         errorMessage = errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Leçons ajoutées:", responseData);
+    logger.log("✅ [CoursesApi] Leçons ajoutées:", responseData);
 
     return responseData;
   }
@@ -1651,7 +1652,7 @@ export class CoursesApi {
     moduleId: string,
     lessons: Lesson[],
   ): Promise<any> {
-    console.log(`🔄 API: Mise à jour des leçons du module ${moduleId}`);
+    logger.log(`🔄 API: Mise à jour des leçons du module ${moduleId}`);
     
     const formData = new FormData();
     
@@ -1677,10 +1678,10 @@ export class CoursesApi {
         const videoKey = `lessonVideos[${lesson.tempId || lesson.id}]`;
         formData.append(videoKey, lesson.videoFile);
         videoCount++;
-        console.log(`🎥 API: Vidéo ajoutée: ${videoKey}`);
+        logger.log(`🎥 API: Vidéo ajoutée: ${videoKey}`);
       }
     });
-    console.log(`📹 API: Total vidéos: ${videoCount}`);
+    logger.log(`📹 API: Total vidéos: ${videoCount}`);
     
     const response = await fetch(
       buildApiUrl(API_ENDPOINTS.MODULES.UPDATE(moduleId)),
@@ -1696,18 +1697,18 @@ export class CoursesApi {
       
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur mise à jour leçons:", errorData);
+        logger.error("❌ [CoursesApi] Erreur mise à jour leçons:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
       
       throw new Error(errorMessage);
     }
     
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Leçons mises à jour:", responseData);
+    logger.log("✅ [CoursesApi] Leçons mises à jour:", responseData);
     
     return responseData;
   }
@@ -1725,8 +1726,8 @@ export class CoursesApi {
       duration: number;
     },
   ): Promise<{ message: string }> {
-    console.log(`🔄 [CoursesApi] Mise à jour de la leçon ${lessonId}`);
-    console.log("📦 [CoursesApi] Données:", lessonData);
+    logger.log(`🔄 [CoursesApi] Mise à jour de la leçon ${lessonId}`);
+    logger.log("📦 [CoursesApi] Données:", lessonData);
 
     const response = await fetch(
       buildApiUrl(`/course/lesson/${lessonId}`),
@@ -1740,7 +1741,7 @@ export class CoursesApi {
       },
     );
 
-    console.log(
+    logger.log(
       "📡 [CoursesApi] Statut réponse:",
       response.status,
       response.statusText,
@@ -1751,18 +1752,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur mise à jour leçon:", errorData);
+        logger.error("❌ [CoursesApi] Erreur mise à jour leçon:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Leçon mise à jour:", responseData);
+    logger.log("✅ [CoursesApi] Leçon mise à jour:", responseData);
 
     return responseData;
   }
@@ -1787,14 +1788,14 @@ export class CoursesApi {
       orderIndex: number;
     };
   }> {
-    console.log(`🔄 [CoursesApi] === DÉBUT MISE À JOUR MODULE ===`);
-    console.log(`🔄 [CoursesApi] Module ID: ${moduleId}`);
-    console.log(`🔄 [CoursesApi] Données reçues:`, moduleData);
+    logger.log(`🔄 [CoursesApi] === DÉBUT MISE À JOUR MODULE ===`);
+    logger.log(`🔄 [CoursesApi] Module ID: ${moduleId}`);
+    logger.log(`🔄 [CoursesApi] Données reçues:`, moduleData);
 
     const url = `/course/module/${moduleId}`;
-    console.log(`🔄 [CoursesApi] URL complète:`, buildApiUrl(url));
-    console.log(`🔄 [CoursesApi] Méthode: PUT`);
-    console.log(`🔄 [CoursesApi] JSON envoyé:`, JSON.stringify(moduleData));
+    logger.log(`🔄 [CoursesApi] URL complète:`, buildApiUrl(url));
+    logger.log(`🔄 [CoursesApi] Méthode: PUT`);
+    logger.log(`🔄 [CoursesApi] JSON envoyé:`, JSON.stringify(moduleData));
 
     const response = await fetch(
       buildApiUrl(url),
@@ -1808,7 +1809,7 @@ export class CoursesApi {
       },
     );
 
-    console.log(
+    logger.log(
       `🔄 [CoursesApi] Statut réponse:`,
       response.status,
       response.statusText,
@@ -1819,20 +1820,20 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error(`❌ [CoursesApi] Erreur backend:`, errorData);
+        logger.error(`❌ [CoursesApi] Erreur backend:`, errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error(`❌ [CoursesApi] Impossible de parser l'erreur`);
+        logger.error(`❌ [CoursesApi] Impossible de parser l'erreur`);
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log(`✅ [CoursesApi] === SUCCÈS MISE À JOUR MODULE ===`);
-    console.log(`✅ [CoursesApi] Réponse complète:`, responseData);
-    console.log(`✅ [CoursesApi] Module mis à jour:`, responseData.module);
+    logger.log(`✅ [CoursesApi] === SUCCÈS MISE À JOUR MODULE ===`);
+    logger.log(`✅ [CoursesApi] Réponse complète:`, responseData);
+    logger.log(`✅ [CoursesApi] Module mis à jour:`, responseData.module);
 
     return responseData;
   }
@@ -1842,7 +1843,7 @@ export class CoursesApi {
    * Endpoint: DELETE /course/lesson/{lessonId}
    */
   static async deleteLesson(lessonId: string): Promise<{ message: string }> {
-    console.log(`🗑️ [CoursesApi] Suppression de la leçon ${lessonId}`);
+    logger.log(`🗑️ [CoursesApi] Suppression de la leçon ${lessonId}`);
 
     const response = await fetch(
       buildApiUrl(`/course/lesson/${lessonId}`),
@@ -1860,18 +1861,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur suppression leçon:", errorData);
+        logger.error("❌ [CoursesApi] Erreur suppression leçon:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Leçon supprimée:", responseData);
+    logger.log("✅ [CoursesApi] Leçon supprimée:", responseData);
 
     return responseData;
   }
@@ -1881,7 +1882,7 @@ export class CoursesApi {
    * Endpoint: DELETE /course/module/{moduleId}
    */
   static async deleteModule(moduleId: string): Promise<{ message: string }> {
-    console.log(`🗑️ [CoursesApi] Suppression du module ${moduleId}`);
+    logger.log(`🗑️ [CoursesApi] Suppression du module ${moduleId}`);
 
     const response = await fetch(
       buildApiUrl(`/course/module/${moduleId}`),
@@ -1899,18 +1900,18 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur suppression module:", errorData);
+        logger.error("❌ [CoursesApi] Erreur suppression module:", errorData);
         errorMessage =
           errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Module supprimé:", responseData);
+    logger.log("✅ [CoursesApi] Module supprimé:", responseData);
 
     return responseData;
   }
@@ -1923,8 +1924,8 @@ export class CoursesApi {
     courseId: string,
     file: File,
   ): Promise<{ attachmentUrl: string }> {
-    console.log(`📎 [CoursesApi] Upload attachment PDF pour le cours ${courseId}`);
-    console.log(`📄 [CoursesApi] Fichier: ${file.name} (${file.size} bytes)`);
+    logger.log(`📎 [CoursesApi] Upload attachment PDF pour le cours ${courseId}`);
+    logger.log(`📄 [CoursesApi] Fichier: ${file.name} (${file.size} bytes)`);
 
     const formData = new FormData();
     formData.append("attachment", file);
@@ -1943,17 +1944,17 @@ export class CoursesApi {
 
       try {
         const errorData = await response.json();
-        console.error("❌ [CoursesApi] Erreur upload attachment:", errorData);
+        logger.error("❌ [CoursesApi] Erreur upload attachment:", errorData);
         errorMessage = errorData.error?.message || errorData.message || errorMessage;
       } catch (err) {
-        console.error("❌ [CoursesApi] Impossible de parser l'erreur");
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
       }
 
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("✅ [CoursesApi] Attachment uploadé:", responseData);
+    logger.log("✅ [CoursesApi] Attachment uploadé:", responseData);
 
     return {
       attachmentUrl: responseData.attachmentUrl || responseData.url || responseData,

@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 export interface User {
@@ -146,24 +147,24 @@ const extractTelephone = (data: any): string => {
   
   for (const field of possibleFields) {
     if (data[field]) {
-      console.log(`📡 API: Téléphone trouvé dans le champ "${field}":`, data[field]);
+      logger.log(`📡 API: Téléphone trouvé dans le champ "${field}":`, data[field]);
       return data[field];
     }
   }
   
   // Also check nested user object
   if (data.user?.telephone) {
-    console.log(`📡 API: Téléphone trouvé dans data.user.telephone:`, data.user.telephone);
+    logger.log(`📡 API: Téléphone trouvé dans data.user.telephone:`, data.user.telephone);
     return data.user.telephone;
   }
   
   // Check if telephone is inside userProfile (shouldn't be but just in case)
   if (data.userProfile?.telephone) {
-    console.log(`📡 API: Téléphone trouvé dans data.userProfile.telephone:`, data.userProfile.telephone);
+    logger.log(`📡 API: Téléphone trouvé dans data.userProfile.telephone:`, data.userProfile.telephone);
     return data.userProfile.telephone;
   }
   
-  console.log(`📡 API: Aucun téléphone trouvé dans les données`, data);
+  logger.log(`📡 API: Aucun téléphone trouvé dans les données`, data);
   return "";
 };
 
@@ -320,7 +321,7 @@ export class UserApi {
         ...data,
         name: `${data.firstName} ${data.lastName}`,
       };
-      console.log(`📡 API: Création d'utilisateur admin:`, payload);
+      logger.log(`📡 API: Création d'utilisateur admin:`, payload);
 
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.USER.ADMIN_CREATE),
@@ -332,21 +333,21 @@ export class UserApi {
         },
       );
 
-      console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
+      logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ API: Erreur ${response.status}: ${errorText}`);
+        logger.error(`❌ API: Erreur ${response.status}: ${errorText}`);
         throw new Error(
           `Erreur ${response.status}: Impossible de créer l'utilisateur`,
         );
       }
 
       const user = await response.json();
-      console.log(`✅ API: Utilisateur créé:`, user);
+      logger.log(`✅ API: Utilisateur créé:`, user);
       return user;
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ API: Erreur lors de la création de l'utilisateur:`,
         error,
       );
@@ -359,7 +360,7 @@ export class UserApi {
    */
   static async getUserProfile(): Promise<UserProfileData | null> {
     try {
-      console.log("📡 API: Récupération du profil utilisateur");
+      logger.log("📡 API: Récupération du profil utilisateur");
 
       const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
         method: "GET",
@@ -367,32 +368,32 @@ export class UserApi {
         headers: { "Content-Type": "application/json" },
       });
 
-      console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
+      logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ API: Erreur ${response.status}: ${errorText}`);
+        logger.error(`❌ API: Erreur ${response.status}: ${errorText}`);
         return null;
       }
 
       const data = await response.json();
-      console.log("📡 API: Réponse brute du profil:", JSON.stringify(data, null, 2));
-      console.log("📡 API: Champs disponibles dans la réponse:", Object.keys(data));
+      logger.log("📡 API: Réponse brute du profil:", JSON.stringify(data, null, 2));
+      logger.log("📡 API: Champs disponibles dans la réponse:", Object.keys(data));
       
       // Log telephone if present in different possible formats
       const possiblePhoneFields = ['telephone', 'phone', 'phoneNumber', 'tel', 'phone_number', 'mobile', 'contactNumber'];
       for (const field of possiblePhoneFields) {
         if (data[field]) {
-          console.log(`📡 API: Champ "${field}" =`, data[field]);
+          logger.log(`📡 API: Champ "${field}" =`, data[field]);
         }
       }
       if (data.user?.telephone) {
-        console.log("📡 API: user.telephone =", data.user.telephone);
+        logger.log("📡 API: user.telephone =", data.user.telephone);
       }
       
       return data;
     } catch (error) {
-      console.error(`❌ API: Erreur lors de la récupération du profil:`, error);
+      logger.error(`❌ API: Erreur lors de la récupération du profil:`, error);
       return null;
     }
   }
@@ -404,7 +405,7 @@ export class UserApi {
     data: CompleteProfileData,
   ): Promise<UserProfileData> {
     try {
-      console.log(`📡 API: Mise à jour du profil:`, data);
+      logger.log(`📡 API: Mise à jour du profil:`, data);
 
       // Filtrer les champs undefined/null pour n'envoyer que les champs modifiés
       const payload: Record<string, unknown> = {};
@@ -425,7 +426,7 @@ export class UserApi {
       if (data.consentGiven !== undefined)
         payload.consentGiven = data.consentGiven;
 
-      console.log(`📡 API: Payload envoyé:`, payload);
+      logger.log(`📡 API: Payload envoyé:`, payload);
 
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE),
@@ -437,13 +438,13 @@ export class UserApi {
         },
       );
 
-      console.log(`📡 API: Réponse reçue - Status: ${response.status}`);
+      logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
         const errorData = await response
           .json()
           .catch(() => ({ message: "Erreur inconnue" }));
-        console.error(`❌ API: Erreur ${response.status}:`, errorData);
+        logger.error(`❌ API: Erreur ${response.status}:`, errorData);
         
         // Propager l'erreur avec code pour permettre le mapping
         if (errorData?.error) {
@@ -461,10 +462,10 @@ export class UserApi {
       }
 
       const result = await response.json();
-      console.log(`✅ API: Profil mis à jour:`, result);
+      logger.log(`✅ API: Profil mis à jour:`, result);
       return result;
     } catch (error) {
-      console.error(`❌ API: Erreur lors de la mise à jour du profil:`, error);
+      logger.error(`❌ API: Erreur lors de la mise à jour du profil:`, error);
       throw error;
     }
   }

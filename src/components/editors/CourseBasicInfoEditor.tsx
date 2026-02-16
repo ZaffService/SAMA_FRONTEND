@@ -15,6 +15,7 @@ import { Loader2, Save } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { ThumbnailUploader } from "@/components/ThumbnailUploader";
 import { showSuccessToast, showErrorToast } from "@/shared/helpers/sweet-alert";
+import logger from "@/shared/helpers/logger";
 
 interface Category {
   id: string;
@@ -180,9 +181,9 @@ export function CourseBasicInfoEditor({
       try {
         const cats = await CoursesApi.getCategories();
         setCategories(cats);
-        console.log("✅ Catégories chargées:", cats.length);
+        logger.log("✅ Catégories chargées:", cats.length);
       } catch (err) {
-        console.error("Erreur lors du chargement des catégories:", err);
+        logger.error("Erreur lors du chargement des catégories:", err);
         showErrorToast("Erreur", "Impossible de charger les catégories");
       }
     };
@@ -192,10 +193,10 @@ export function CourseBasicInfoEditor({
   // Load course data when modal opens
   useEffect(() => {
     if (open && courseId) {
-      console.log("🔍 Ouverture du modal, chargement des données pour courseId:", courseId);
+      logger.log("🔍 Ouverture du modal, chargement des données pour courseId:", courseId);
       loadCourseData();
     } else if (open && !courseId) {
-      console.error("❌ courseId est null ou undefined");
+      logger.error("❌ courseId est null ou undefined");
       showErrorToast("Erreur", "ID du cours manquant");
       onOpenChange(false);
     }
@@ -205,11 +206,11 @@ export function CourseBasicInfoEditor({
     if (!courseId) return;
 
     setIsLoading(true);
-    console.log("🔄 Début chargement données cours:", courseId);
+    logger.log("🔄 Début chargement données cours:", courseId);
     
     try {
       const details = await CoursesApi.getCourseDetails(courseId);
-      console.log("📦 Données reçues de l'API:", JSON.stringify(details, null, 2));
+      logger.log("📦 Données reçues de l'API:", JSON.stringify(details, null, 2));
 
       // Mapper les données du cours depuis l'API
       // Note: Le status n'est pas toujours retourné par getCourseDetails
@@ -226,13 +227,13 @@ export function CourseBasicInfoEditor({
       // Stocker l'URL du thumbnail séparément
       setThumbnailUrl(details.course?.thumbnailUrl || null);
 
-      console.log("✅ Données mappées:", courseData);
-      console.log("🖼️ Thumbnail URL:", details.course?.thumbnailUrl);
+      logger.log("✅ Données mappées:", courseData);
+      logger.log("🖼️ Thumbnail URL:", details.course?.thumbnailUrl);
 
       setOriginalData(courseData);
       setFormData(courseData);
     } catch (error) {
-      console.error("❌ Erreur lors du chargement des données du cours:", error);
+      logger.error("❌ Erreur lors du chargement des données du cours:", error);
       showErrorToast("Erreur", "Impossible de charger les données du cours");
       onOpenChange(false);
     } finally {
@@ -279,12 +280,12 @@ export function CourseBasicInfoEditor({
 
   const handleSave = async () => {
     if (!hasChanges || !courseId) {
-      console.log("⏭️ Aucune modification ou courseId manquant");
+      logger.log("⏭️ Aucune modification ou courseId manquant");
       return;
     }
 
     setIsSaving(true);
-    console.log("💾 Début sauvegarde des modifications...");
+    logger.log("💾 Début sauvegarde des modifications...");
 
     try {
       // Préparer les données pour la mise à jour avec l'API update-simple
@@ -297,17 +298,17 @@ export function CourseBasicInfoEditor({
         price: formData.price,
       };
 
-      console.log("📤 Données envoyées pour mise à jour:", JSON.stringify(updateData, null, 2));
+      logger.log("📤 Données envoyées pour mise à jour:", JSON.stringify(updateData, null, 2));
 
       // Utiliser updateCourseSimple avec le format multipart/form-data
       await CoursesApi.updateCourseSimple(courseId, updateData, thumbnailFile);
       
-      console.log("✅ Sauvegarde réussie");
+      logger.log("✅ Sauvegarde réussie");
       showSuccessToast("Succès", "Cours modifié avec succès !");
       onCourseUpdated?.();
       onOpenChange(false);
     } catch (error) {
-      console.error("❌ Erreur lors de la mise à jour:", error);
+      logger.error("❌ Erreur lors de la mise à jour:", error);
       showErrorToast("Erreur", "Impossible de modifier le cours");
     } finally {
       setIsSaving(false);
@@ -317,7 +318,7 @@ export function CourseBasicInfoEditor({
   const handleClose = () => {
     if (hasChanges) {
       // Ici on pourrait ajouter une confirmation de perte de données
-      console.log("⚠️ Fermeture avec modifications non sauvegardées");
+      logger.log("⚠️ Fermeture avec modifications non sauvegardées");
     }
     onOpenChange(false);
   };

@@ -1,3 +1,4 @@
+import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
 
 /**
@@ -34,7 +35,7 @@ export async function uploadVideo(
   formData.append("video", file);
   formData.append("lessonTempId", lessonTempId);
 
-  console.log(
+  logger.log(
     `🎥 [VideoApi] Début upload vidéo: ${file.name} (${formatFileSize(file.size)})`,
   );
 
@@ -50,7 +51,7 @@ export async function uploadVideo(
           total: event.total,
           percentage,
         });
-        console.log(`📊 [VideoApi] Progression: ${percentage}%`);
+        logger.log(`📊 [VideoApi] Progression: ${percentage}%`);
       }
     });
 
@@ -59,7 +60,7 @@ export async function uploadVideo(
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const response = JSON.parse(xhr.responseText);
-          console.log(`✅ [VideoApi] Upload réussi:`, response);
+          logger.log(`✅ [VideoApi] Upload réussi:`, response);
           resolve({
             success: true,
             videoUrl: response.videoUrl || response.url,
@@ -67,7 +68,7 @@ export async function uploadVideo(
           });
         } catch (error) {
           // Even if we can't parse the response, if status is 200, consider it successful
-          console.log(`✅ [VideoApi] Upload réussi (status ${xhr.status})`);
+          logger.log(`✅ [VideoApi] Upload réussi (status ${xhr.status})`);
           resolve({
             success: true,
             videoUrl: undefined,
@@ -76,13 +77,13 @@ export async function uploadVideo(
       } else {
         try {
           const errorData = JSON.parse(xhr.responseText);
-          console.error(`❌ [VideoApi] Erreur upload:`, errorData);
+          logger.error(`❌ [VideoApi] Erreur upload:`, errorData);
           resolve({
             success: false,
             error: errorData.message || `Erreur ${xhr.status}`,
           });
         } catch {
-          console.error(`❌ [VideoApi] Erreur upload: Status ${xhr.status}`);
+          logger.error(`❌ [VideoApi] Erreur upload: Status ${xhr.status}`);
           resolve({
             success: false,
             error: `Erreur ${xhr.status}`,
@@ -93,7 +94,7 @@ export async function uploadVideo(
 
     // Handle network errors
     xhr.addEventListener("error", () => {
-      console.error(`❌ [VideoApi] Erreur réseau`);
+      logger.error(`❌ [VideoApi] Erreur réseau`);
       resolve({
         success: false,
         error: "Connexion perdue - vérifiez votre connexion internet",
@@ -102,7 +103,7 @@ export async function uploadVideo(
 
     // Handle upload abort
     xhr.addEventListener("abort", () => {
-      console.warn(`⚠️ [VideoApi] Upload annulé`);
+      logger.warn(`⚠️ [VideoApi] Upload annulé`);
       resolve({
         success: false,
         error: "Upload annulé",
@@ -112,7 +113,7 @@ export async function uploadVideo(
     // Timeout handling
     xhr.timeout = 30 * 60 * 1000; // 30 minutes for large videos
     xhr.ontimeout = () => {
-      console.error(`❌ [VideoApi] Timeout`);
+      logger.error(`❌ [VideoApi] Timeout`);
       resolve({
         success: false,
         error:
@@ -122,7 +123,7 @@ export async function uploadVideo(
 
     // Open and send the request
     const uploadUrl = buildApiUrl("/upload/video");
-    console.log(`📡 [VideoApi] Envoi vers: ${uploadUrl}`);
+    logger.log(`📡 [VideoApi] Envoi vers: ${uploadUrl}`);
     xhr.open("POST", uploadUrl, true);
     xhr.withCredentials = true;
     xhr.send(formData);
@@ -141,7 +142,7 @@ export async function uploadVideoWithFetch(
   formData.append("video", file);
   formData.append("lessonTempId", lessonTempId);
 
-  console.log(`🎥 [VideoApi] Début upload vidéo (fetch): ${file.name}`);
+  logger.log(`🎥 [VideoApi] Début upload vidéo (fetch): ${file.name}`);
 
   try {
     const response = await fetch(buildApiUrl("/upload/video"), {
@@ -152,7 +153,7 @@ export async function uploadVideoWithFetch(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error(`❌ [VideoApi] Erreur upload:`, errorData);
+      logger.error(`❌ [VideoApi] Erreur upload:`, errorData);
       return {
         success: false,
         error: errorData.message || `Erreur ${response.status}`,
@@ -160,7 +161,7 @@ export async function uploadVideoWithFetch(
     }
 
     const responseData = await response.json();
-    console.log(`✅ [VideoApi] Upload réussi (fetch):`, responseData);
+    logger.log(`✅ [VideoApi] Upload réussi (fetch):`, responseData);
 
     return {
       success: true,
@@ -168,7 +169,7 @@ export async function uploadVideoWithFetch(
       videoId: responseData.videoId || responseData.id,
     };
   } catch (error) {
-    console.error(`❌ [VideoApi] Erreur réseau (fetch):`, error);
+    logger.error(`❌ [VideoApi] Erreur réseau (fetch):`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Erreur de connexion",
@@ -229,12 +230,12 @@ export class VideoApi {
     // Vérifier le cache
     const cached = this.urlCache.get(lessonId);
     if (cached && cached.expiresAt > new Date()) {
-      console.log(`✅ URL signée en cache pour leçon ${lessonId}`);
+      logger.log(`✅ URL signée en cache pour leçon ${lessonId}`);
       return cached.url;
     }
 
     try {
-      console.log(`🔍 Récupération URL signée pour leçon ${lessonId}...`);
+      logger.log(`🔍 Récupération URL signée pour leçon ${lessonId}...`);
 
       const response = await fetch(
         buildApiUrl(`/course/lesson/${lessonId}/video/signed`),
@@ -270,10 +271,10 @@ export class VideoApi {
         expiresAt: new Date(data.expiresAt),
       });
 
-      console.log(`✅ URL signée obtenue, expire à ${data.expiresAt}`);
+      logger.log(`✅ URL signée obtenue, expire à ${data.expiresAt}`);
       return data.url;
     } catch (error) {
-      console.error(`❌ Erreur récupération URL vidéo:`, error);
+      logger.error(`❌ Erreur récupération URL vidéo:`, error);
       throw error;
     }
   }
@@ -284,7 +285,7 @@ export class VideoApi {
    */
   static invalidateCache(lessonId: string): void {
     this.urlCache.delete(lessonId);
-    console.log(`🗑️ Cache invalidé pour leçon ${lessonId}`);
+    logger.log(`🗑️ Cache invalidé pour leçon ${lessonId}`);
   }
 
   /**
@@ -302,7 +303,7 @@ export class VideoApi {
     }
 
     if (cleaned > 0) {
-      console.log(`🧹 ${cleaned} URL(s) expirée(s) supprimée(s) du cache`);
+      logger.log(`🧹 ${cleaned} URL(s) expirée(s) supprimée(s) du cache`);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import logger from "./logger";
 
 /**
  * Hook pour prévenir la capture d'écran et l'enregistrement
@@ -6,7 +7,7 @@ import { useEffect } from "react";
  */
 export function useAntiCapture() {
   useEffect(() => {
-    console.log("🛡️ Protection anti-capture activée (mode démo)");
+    logger.log("🛡️ Protection anti-capture activée (mode démo)");
 
     // Empêcher le clic droit
     const handleContextMenu = (e: MouseEvent) => {
@@ -23,7 +24,7 @@ export function useAntiCapture() {
         e.key === "PrintScreen"
       ) {
         e.preventDefault();
-        console.log("🛡️ Action de capture bloquée");
+        logger.log("🛡️ Action de capture bloquée");
       }
     };
 
