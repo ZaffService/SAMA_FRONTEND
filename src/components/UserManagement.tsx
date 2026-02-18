@@ -1,14 +1,105 @@
 import React, { useState, useEffect, useMemo } from "react";
+import {
+  ArrowLeft,
+  Briefcase,
+  Calendar,
+  Cake,
+  CheckCircle2,
+  Eye,
+  FileText,
+  Mail,
+  Megaphone,
+  MapPin,
+  Home,
+  Phone,
+  User as UserIcon,
+  Users,
+  ShieldCheck,
+  Accessibility,
+  XCircle,
+} from "lucide-react";
 import { userService } from "@/services/userService";
 import type { User, UsersResponse } from "@/types/user";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import logger from "@/shared/helpers/logger";
+import {
+  UserApi,
+  AGE_RANGE_LABELS,
+  CURRENT_STATUS_LABELS,
+  DISABILITY_TYPE_LABELS,
+  REFERRAL_SOURCE_LABELS,
+  REGION_LABELS,
+  RESIDENCE_LABELS,
+  SEXE_LABELS,
+  type ProfileMetadataItem,
+  type ProfileMetadataResponse,
+} from "@/infrastructure/api/user-api";
+
+const getLabel = (
+  map: Record<string, string>,
+  value?: string | null,
+  fallback: string = "Non renseigné",
+) => {
+  if (!value) return fallback;
+  return map[value] || value;
+};
+
+const normalizeMetadataValue = (value: unknown): string | undefined => {
+  if (!value) return undefined;
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    const candidate = value as { id?: string; code?: string; label?: string };
+    return candidate.id || candidate.code || candidate.label;
+  }
+  return undefined;
+};
+
+const getMetadataLabel = (
+  value: unknown,
+  items?: ProfileMetadataItem[],
+  fallbackMap?: Record<string, string>,
+  fallback: string = "Non renseigné",
+) => {
+  const normalized = normalizeMetadataValue(value);
+  if (!normalized) return fallback;
+
+  const match = items?.find(
+    (item) =>
+      item.id === normalized ||
+      item.code === normalized ||
+      item.label === normalized,
+  );
+  if (match) return match.label;
+
+  return fallbackMap?.[normalized] ?? normalized;
+};
+
+const SEXE_LABELS_EXTENDED: Record<string, string> = {
+  ...SEXE_LABELS,
+  MASCULIN: "Masculin",
+  FEMININ: "Féminin",
+};
+
+const RESIDENCE_LABELS_EXTENDED: Record<string, string> = {
+  ...RESIDENCE_LABELS,
+  URBAIN: "Urbain",
+};
+
+const DISABILITY_TYPE_LABELS_EXTENDED: Record<string, string> = {
+  ...DISABILITY_TYPE_LABELS,
+  VISUEL: "Visuel",
+  AUDITIF: "Auditif",
+  MOTEUR: "Moteur",
+  MENTAL: "Mental",
+  AUTRE: "Autre",
+};
 
 type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
 
 const UserManagement: React.FC = () => {
   const { user: currentUser } = useLocalAuth();
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | "ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,6 +112,29 @@ const UserManagement: React.FC = () => {
     instructors: 0,
     admins: 0,
   });
+  const [profileMetadata, setProfileMetadata] =
+    useState<ProfileMetadataResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMetadata = async () => {
+      try {
+        const metadata = await UserApi.getProfileMetadata();
+        if (!cancelled) {
+          setProfileMetadata(metadata);
+        }
+      } catch (error) {
+        logger.warn("Erreur chargement métadonnées profil:", error);
+      }
+    };
+
+    loadMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Charger les statistiques au montage (après que currentUser soit disponible)
   useEffect(() => {
@@ -202,6 +316,290 @@ const UserManagement: React.FC = () => {
     return items;
   };
 
+  if (selectedUser) {
+    const profile = selectedUser.userProfile;
+    const hasProfileData =
+      Boolean(profile?.ageRange) ||
+      Boolean(profile?.currentStatus) ||
+      Boolean(profile?.referralSource) ||
+      Boolean(profile?.sexe) ||
+      Boolean(profile?.region) ||
+      Boolean(profile?.residenceType) ||
+      profile?.consentGiven === true ||
+      Boolean(selectedUser.telephone) ||
+      Boolean(profile?.phone);
+    const telephoneValue =
+      selectedUser.telephone || selectedUser.userProfile?.phone;
+
+    const completionChecks = [
+      Boolean(telephoneValue),
+      Boolean(profile?.ageRange),
+      Boolean(profile?.currentStatus),
+      Boolean(profile?.referralSource),
+      Boolean(profile?.sexe),
+      Boolean(profile?.region),
+      Boolean(profile?.residenceType),
+      profile?.consentGiven === true,
+    ];
+
+    const totalCompletionFields = completionChecks.length;
+    const computedCompletedFields = completionChecks.filter(Boolean).length;
+    const completedFields =
+      !hasProfileData && selectedUser.isProfileComplete === true
+        ? totalCompletionFields
+        : computedCompletedFields;
+    const completionPercent = Math.round(
+      (completedFields / totalCompletionFields) * 100,
+    );
+    const isProfileComplete =
+      selectedUser.isProfileComplete ?? completedFields === totalCompletionFields;
+
+    const detailItems = [
+      {
+        label: "Tranche d'âge",
+        icon: Cake,
+        value: getMetadataLabel(
+          profile?.ageRange,
+          profileMetadata?.ageRanges,
+          AGE_RANGE_LABELS as Record<string, string>,
+        ),
+      },
+      {
+        label: "Statut actuel",
+        icon: Briefcase,
+        value: getMetadataLabel(
+          profile?.currentStatus,
+          profileMetadata?.currentStatuses,
+          CURRENT_STATUS_LABELS as Record<string, string>,
+        ),
+      },
+      {
+        label: "Source",
+        icon: Megaphone,
+        value: getMetadataLabel(
+          profile?.referralSource,
+          profileMetadata?.referralSources,
+          REFERRAL_SOURCE_LABELS as Record<string, string>,
+        ),
+      },
+      {
+        label: "Genre",
+        icon: Users,
+        value: getLabel(SEXE_LABELS_EXTENDED, profile?.sexe),
+      },
+      {
+        label: "Région",
+        icon: MapPin,
+        value: getLabel(
+          REGION_LABELS as Record<string, string>,
+          profile?.region,
+        ),
+      },
+      {
+        label: "Type de résidence",
+        icon: Home,
+        value: getLabel(RESIDENCE_LABELS_EXTENDED, profile?.residenceType),
+      },
+      {
+        label: "Handicapé",
+        icon: Accessibility,
+        value:
+          profile?.disability === undefined
+            ? "Non renseigné"
+            : profile.disability
+              ? "Oui"
+              : "Non",
+      },
+      {
+        label: "Type de handicap",
+        icon: Accessibility,
+        value: getLabel(
+          DISABILITY_TYPE_LABELS_EXTENDED,
+          profile?.disabilityType,
+        ),
+      },
+      {
+        label: "Détails handicap",
+        icon: FileText,
+        value: profile?.disabilityDetails || "Non renseigné",
+      },
+      {
+        label: "Consentement",
+        icon: ShieldCheck,
+        value:
+          profile?.consentGiven === undefined
+            ? "Non renseigné"
+            : profile.consentGiven
+              ? "Oui"
+              : "Non",
+      },
+    ];
+
+    return (
+      <div className="p-6 space-y-6">
+        <button
+          type="button"
+          onClick={() => setSelectedUser(null)}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#002c75] hover:text-[#001f54]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour à la liste
+        </button>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full bg-[#EEF4FF] flex items-center justify-center text-[#002c75] text-xl font-bold">
+                {selectedUser.firstName?.[0]}
+                {selectedUser.lastName?.[0]}
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </h2>
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-400" />
+                  {selectedUser.email}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                  isProfileComplete
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {isProfileComplete ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5" />
+                )}
+                {isProfileComplete ? "Profil complet" : "Profil incomplet"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-3 py-1 text-xs font-semibold">
+                <UserIcon className="h-3.5 w-3.5" />
+                {selectedUser.role === "STUDENT"
+                  ? "Étudiant"
+                  : selectedUser.role === "INSTRUCTOR"
+                    ? "Instructeur"
+                    : "Admin"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-700 px-3 py-1 text-xs font-semibold">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(selectedUser.createdAt).toLocaleDateString("fr-FR")}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`rounded-2xl border px-6 py-5 ${
+            isProfileComplete
+              ? "border-green-200 bg-green-50"
+              : "border-red-200 bg-red-50"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+            {isProfileComplete ? (
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+            ) : (
+              <XCircle className="h-4 w-4 text-red-600" />
+            )}
+            {isProfileComplete ? "Profil complété" : "Profil incomplet"}
+          </div>
+          <div className="mt-3 h-2 w-full rounded-full bg-white/80">
+            <div
+              className={`h-2 rounded-full ${
+                isProfileComplete ? "bg-green-600" : "bg-red-500"
+              }`}
+              style={{ width: `${completionPercent}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-gray-600">
+            {completedFields}/{totalCompletionFields} champs remplis (
+            {completionPercent}%)
+          </p>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="border-b px-6 py-4">
+              <h3 className="text-sm font-semibold text-gray-800">
+                Informations de base
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-4 text-sm text-gray-700">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-gray-400" />
+                <span>{selectedUser.email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-gray-400" />
+                <span>{telephoneValue || "Non renseigné"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4 text-gray-400" />
+                <span>
+                  {selectedUser.role === "STUDENT"
+                    ? "Étudiant"
+                    : selectedUser.role === "INSTRUCTOR"
+                      ? "Instructeur"
+                      : "Admin"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span>
+                  Inscrit le{" "}
+                  {new Date(selectedUser.createdAt).toLocaleDateString("fr-FR")}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+            <div className="border-b px-6 py-4">
+              <h3 className="text-sm font-semibold text-gray-800">
+                Informations du profil
+              </h3>
+            </div>
+            <div className="divide-y">
+              {detailItems.map((item) => {
+                const isFilled = item.value !== "Non renseigné";
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between px-6 py-4 text-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-500">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-gray-500">{item.label}</p>
+                        <p className="text-gray-900 font-medium">
+                          {item.value}
+                        </p>
+                      </div>
+                    </div>
+                    {isFilled ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-gray-300" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -297,6 +695,9 @@ const UserManagement: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date d'inscription
                   </th>
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Détails
+                  </th> */}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -371,6 +772,16 @@ const UserManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString("fr-FR")}
                       </td>
+                      {/* <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUser(user)}
+                          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-[#002c75] hover:bg-[#EEF4FF]"
+                          aria-label={`Voir les détails de ${user.firstName} ${user.lastName}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </td> */}
                     </tr>
                   ))
                 )}

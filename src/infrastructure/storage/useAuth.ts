@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useState, useEffect, useCallback } from "react";
+import Cookies from "js-cookie";
 import { AuthContext } from "./AuthContext";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import { setupAuthFetchInterceptor } from "@/infrastructure/api/fetch-auth-interceptor";
@@ -89,6 +90,7 @@ export function useProvideAuth(): AuthContextType {
       firstName: rawUser?.firstName || rawUser?.first_name || "",
       lastName: rawUser?.lastName || rawUser?.last_name || "",
       telephone: rawUser?.telephone || "",
+      isProfileComplete: rawUser?.isProfileComplete,
       role: rawUser?.role,
       createdAt: rawUser?.createdAt || rawUser?.created_at || "",
       first_name: rawUser?.first_name,
@@ -96,6 +98,116 @@ export function useProvideAuth(): AuthContextType {
       created_at: rawUser?.created_at,
     };
   };
+
+  const persistAuthTokens = useCallback((response: any) => {
+    if (typeof window === "undefined") {
+      return { accessToken: undefined as string | undefined };
+    }
+
+    const accessToken =
+      response?.accessToken || response?.access_token || response?.token;
+    const refreshToken = response?.refreshToken || response?.refresh_token;
+
+    if (accessToken) {
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("token", accessToken);
+      Cookies.set("access_token", accessToken, {
+        expires: 1,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+
+    if (refreshToken) {
+      localStorage.setItem("refresh_token", refreshToken);
+      Cookies.set("refresh_token", refreshToken, {
+        expires: 7,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+
+    return { accessToken, refreshToken };
+  }, []);
+
+  const buildLastActivityRedirect = useCallback((activity: any) => {
+    if (!activity) return undefined;
+
+    const courseId = activity?.courseId || activity?.course_id;
+    const lessonId = activity?.lessonId || activity?.lesson_id;
+    const redirectTo = activity?.redirectTo || activity?.redirect_to;
+
+    const buildCourseDetailsUrl = () => {
+      if (!courseId) return undefined;
+      if (lessonId) {
+        return `/course-details/${encodeURIComponent(courseId)}?lessonId=${encodeURIComponent(lessonId)}`;
+      }
+      return `/course-details/${encodeURIComponent(courseId)}`;
+    };
+
+    if (typeof redirectTo === "string" && redirectTo.length > 0) {
+      if (redirectTo.startsWith("/course-details/")) {
+        return redirectTo;
+      }
+
+      const match = redirectTo.match(
+        /^\/courses\/([^/]+)\/lessons\/([^/]+)/,
+      );
+      if (match) {
+        const [, matchedCourseId, matchedLessonId] = match;
+        return `/course-details/${encodeURIComponent(matchedCourseId)}?lessonId=${encodeURIComponent(matchedLessonId)}`;
+      }
+    }
+
+    return buildCourseDetailsUrl() || redirectTo;
+  }, []);
+
+  const normalizeLastActivity = useCallback(
+    (activity: any) => {
+      if (!activity) return undefined;
+
+      const courseId = activity?.courseId || activity?.course_id;
+      const lessonId = activity?.lessonId || activity?.lesson_id;
+      const status =
+        typeof activity?.status === "string"
+          ? activity.status.toUpperCase()
+          : activity?.status;
+
+      const redirectTo = buildLastActivityRedirect({
+        ...activity,
+        courseId,
+        lessonId,
+        redirectTo: activity?.redirectTo || activity?.redirect_to,
+      });
+
+      return {
+        ...activity,
+        courseId,
+        lessonId,
+        status,
+        redirectTo,
+      };
+    },
+    [buildLastActivityRedirect],
+  );
+
+  const extractLastActivity = (response: any) => {
+    const raw = response?.lastActivity || response?.last_activity;
+    return normalizeLastActivity(raw);
+  };
+
+  const persistLastActivity = useCallback((activity: any) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (activity) {
+      localStorage.setItem("last_activity", JSON.stringify(activity));
+    } else {
+      localStorage.removeItem("last_activity");
+    }
+  }, []);
 
   const clearClientCaches = useCallback(() => {
     if (typeof window === "undefined") {
@@ -112,6 +224,7 @@ export function useProvideAuth(): AuthContextType {
     setIsProfileComplete(null);
     setIsLoading(false);
     localStorage.removeItem("user_profile_cache");
+    localStorage.removeItem("last_activity");
     clearTokens();
     clearAuthCookies();
     clearClientCaches();
@@ -256,8 +369,14 @@ export function useProvideAuth(): AuthContextType {
       logger.log("🔐 [useAuth] Login response:", response);
       logger.log("🔐 [useAuth] Login response.user:", response.user);
 
+      persistAuthTokens(response);
+      const lastActivity = extractLastActivity(response);
+      persistLastActivity(lastActivity);
+
       // Check if isProfileComplete exists in the response
-      const isComplete = (response.user as any).isProfileComplete;
+      const isComplete =
+        (response.user as any).isProfileComplete ??
+        (response as any).isProfileComplete;
       logger.log("🔐 [useAuth] isProfileComplete from response:", isComplete);
 
       const mappedUser = mapBackendUserToLocalUser(response.user);
@@ -280,8 +399,12 @@ export function useProvideAuth(): AuthContextType {
           break;
         case "STUDENT":
         default:
-          redirectUrl = undefined;
+          redirectUrl = "/student-dashboard";
           break;
+      }
+
+      if (mappedUser.role === "STUDENT" && lastActivity?.redirectTo) {
+        redirectUrl = lastActivity.redirectTo;
       }
 
       if (redirectAfterLogin) {
@@ -289,7 +412,7 @@ export function useProvideAuth(): AuthContextType {
         setRedirectAfterLogin(null);
       }
 
-      return { success: true, redirectUrl };
+      return { success: true, redirectUrl, lastActivity };
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
@@ -320,7 +443,13 @@ export function useProvideAuth(): AuthContextType {
       const response = await AuthApi.loginWithGoogle(idToken);
       logger.log("🔐 [useAuth] Google Login response:", response);
 
-      const isComplete = (response.user as any).isProfileComplete;
+      persistAuthTokens(response);
+      const lastActivity = extractLastActivity(response);
+      persistLastActivity(lastActivity);
+
+      const isComplete =
+        (response.user as any).isProfileComplete ??
+        (response as any).isProfileComplete;
 
       const mappedUser = mapBackendUserToLocalUser(response.user);
 
@@ -339,8 +468,12 @@ export function useProvideAuth(): AuthContextType {
           break;
         case "STUDENT":
         default:
-          redirectUrl = undefined;
+          redirectUrl = "/student-dashboard";
           break;
+      }
+
+      if (mappedUser.role === "STUDENT" && lastActivity?.redirectTo) {
+        redirectUrl = lastActivity.redirectTo;
       }
 
       if (redirectAfterLogin) {
@@ -348,7 +481,7 @@ export function useProvideAuth(): AuthContextType {
         setRedirectAfterLogin(null);
       }
 
-      return { success: true, redirectUrl };
+      return { success: true, redirectUrl, lastActivity };
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
@@ -369,6 +502,7 @@ export function useProvideAuth(): AuthContextType {
     setIsProfileComplete(null);
     // Clear profile cache
     localStorage.removeItem("user_profile_cache");
+    localStorage.removeItem("last_activity");
     clearTokens(); // Vider les tokens locaux immédiatement
     clearClientCaches();
     setIsLoading(true);

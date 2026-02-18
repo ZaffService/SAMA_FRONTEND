@@ -17,6 +17,55 @@ function buildBunnyVideoUrl(videoAssetId: string): string {
 /**
  * Transforme les données d'une leçon en incluant l'URL vidéo
  */
+const parseDurationToMinutes = (value: unknown): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return 0;
+  }
+
+  const raw = value.trim();
+  if (!raw) return 0;
+
+  if (raw.includes(":")) {
+    const parts = raw.split(":").map((part) => Number(part));
+    if (parts.some((part) => !Number.isFinite(part))) {
+      return 0;
+    }
+
+    if (parts.length === 3) {
+      const [hours, minutes, seconds] = parts;
+      return hours * 60 + minutes + seconds / 60;
+    }
+
+    if (parts.length === 2) {
+      const [minutes, seconds] = parts;
+      return minutes + seconds / 60;
+    }
+  }
+
+  const numericMatch = raw.match(/(\d+(\.\d+)?)/);
+  if (numericMatch) {
+    const parsed = Number(numericMatch[1]);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const toPositiveNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
 function transformLesson(lesson: any) {
   const lessonId = lesson?.id ?? lesson?._id ?? "";
   const lessonTitle = lesson?.title ?? lesson?._title ?? "Leçon sans titre";
@@ -27,12 +76,9 @@ function transformLesson(lesson: any) {
       : typeof lesson?._orderIndex === "number"
         ? lesson._orderIndex
         : 0;
-  const duration =
-    typeof lesson?.duration === "number"
-      ? lesson.duration
-      : typeof lesson?._duration === "number"
-        ? lesson._duration
-        : 0;
+  const duration = parseDurationToMinutes(
+    lesson?.duration ?? lesson?._duration ?? lesson?.videoDuration,
+  );
   const status = lesson?.status ?? lesson?._status ?? "";
   const videoAssetId = lesson?.videoAssetId ?? lesson?._videoAssetId;
   const videoProvider = lesson?.videoProvider ?? lesson?._videoProvider;
@@ -108,6 +154,48 @@ export function transformCourseDetails(data: any): CourseDetailsData {
   }
   
   logger.log("📎 Transformer: Attachment final:", attachmentUrl);
+
+  const hasOwn = (key: string) =>
+    rawCourse && Object.prototype.hasOwnProperty.call(rawCourse, key);
+
+  const numericEnrollmentCount = toPositiveNumber(
+    rawCourse?.studentsCount ??
+      rawCourse?._studentsCount ??
+      rawCourse?.enrollmentCount ??
+      rawCourse?.enrolledCount,
+  );
+
+  const arrayEnrollmentCount = Array.isArray(rawCourse?.enrollments)
+    ? rawCourse.enrollments.length
+    : Array.isArray(rawCourse?._enrollments)
+      ? rawCourse._enrollments.length
+      : Array.isArray(rawCourse?.students)
+        ? rawCourse.students.length
+        : Array.isArray(rawCourse?.enrolledStudents)
+          ? rawCourse.enrolledStudents.length
+          : undefined;
+
+  const hasEnrollmentCountField =
+    hasOwn("studentsCount") ||
+    hasOwn("_studentsCount") ||
+    hasOwn("enrollmentCount") ||
+    hasOwn("enrolledCount") ||
+    Array.isArray(rawCourse?.enrollments) ||
+    Array.isArray(rawCourse?._enrollments) ||
+    Array.isArray(rawCourse?.students) ||
+    Array.isArray(rawCourse?.enrolledStudents);
+
+  const studentsCount = hasEnrollmentCountField
+    ? numericEnrollmentCount ?? arrayEnrollmentCount ?? 0
+    : undefined;
+
+  const duration =
+    parseDurationToMinutes(
+      rawCourse?.duration ??
+        rawCourse?._duration ??
+        rawCourse?.totalDuration ??
+        rawCourse?.total_duration,
+    ) || 0;
   
   return {
     course: {
@@ -128,6 +216,9 @@ export function transformCourseDetails(data: any): CourseDetailsData {
             ? rawCourse._price
             : 0,
       thumbnailUrl: rawCourse?.thumbnailUrl ?? rawCourse?._thumbnailUrl,
+      studentsCount,
+      enrollmentCount: studentsCount,
+      duration,
       attachment: attachmentUrl,  // ← URL Cloudinary du PDF
       isEnrolled:
         rawCourse?.isEnrolled ??

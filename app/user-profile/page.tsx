@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -41,7 +41,6 @@ import {
 
 import {
   UserApi,
-  UserProfileData,
   ProfileFormData,
   toProfileFormData,
   getChangedFields,
@@ -49,6 +48,8 @@ import {
   REGION_LABELS,
   RESIDENCE_LABELS,
   DISABILITY_TYPE_LABELS,
+  sortProfileMetadataItems,
+  type ProfileMetadataResponse,
   SexeType,
   RegionType,
   ResidenceType,
@@ -120,6 +121,9 @@ const getEmptyFormData = (): ProfileFormData => ({
   email: "",
   telephone: "",
   indicatif: "+221",
+  ageRange: "",
+  currentStatus: "",
+  referralSource: "",
   sexe: "",
   region: "",
   residenceType: "",
@@ -136,24 +140,51 @@ export default function UserProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>(getEmptyFormData());
   const [initialData, setInitialData] = useState<ProfileFormData | null>(null);
+  const [profileMetadata, setProfileMetadata] =
+    useState<ProfileMetadataResponse | null>(null);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+
+  const ageRangeOptions = useMemo(
+    () => sortProfileMetadataItems(profileMetadata?.ageRanges ?? []),
+    [profileMetadata],
+  );
+  const currentStatusOptions = useMemo(
+    () => sortProfileMetadataItems(profileMetadata?.currentStatuses ?? []),
+    [profileMetadata],
+  );
+  const referralSourceOptions = useMemo(
+    () => sortProfileMetadataItems(profileMetadata?.referralSources ?? []),
+    [profileMetadata],
+  );
+  const metadataReady = Boolean(profileMetadata);
 
   // Check if form has unsaved changes
   const hasChanges = initialData
     ? Object.keys(getChangedFields(initialData, formData)).length > 0
     : false;
 
-  // Fetch user profile on mount
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   // Function to fetch/refresh profile data
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setIsLoading(true);
+    setMetadataError(null);
+
+    let metadata = profileMetadata;
+    if (!metadata) {
+      try {
+        metadata = await UserApi.getProfileMetadata();
+        setProfileMetadata(metadata);
+      } catch (error) {
+        logger.error("Erreur lors du chargement des métadonnées:", error);
+        setMetadataError(
+          "Impossible de charger les options de profil. Veuillez réessayer.",
+        );
+      }
+    }
+
     try {
       const profileData = await UserApi.getUserProfile();
       if (profileData) {
-        const form = toProfileFormData(profileData);
+        const form = toProfileFormData(profileData, metadata);
         setFormData(form);
         setInitialData(form);
       }
@@ -165,7 +196,14 @@ export default function UserProfile() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [profileMetadata]);
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    if (!profileMetadata) {
+      fetchProfile();
+    }
+  }, [fetchProfile, profileMetadata]);
 
   // Handle input changes
   const handleChange = useCallback(
@@ -328,6 +366,12 @@ export default function UserProfile() {
             </div>
           </Card>
 
+          {metadataError && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              {metadataError}
+            </div>
+          )}
+
           {/* Form Card - Full width layout */}
           <Card className="border-0 shadow-lg w-full">
             <CardHeader className="border-b bg-gray-50/50 px-6 py-5 lg:px-10 lg:py-7">
@@ -424,6 +468,108 @@ export default function UserProfile() {
                   </h3>
 
                   <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-10">
+                    <div className="space-y-2 lg:space-y-3">
+                      <Label
+                        htmlFor="ageRange"
+                        className="text-sm lg:text-base font-medium text-gray-700"
+                      >
+                        Tranche d&apos;âge
+                      </Label>
+                      <Select
+                        value={formData.ageRange}
+                        onValueChange={(value) =>
+                          handleChange("ageRange", value)
+                        }
+                        disabled={isSaving || !metadataReady}
+                      >
+                        <SelectTrigger
+                          id="ageRange"
+                          className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200"
+                        >
+                          <SelectValue placeholder="Sélectionnez..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ageRangeOptions.map((option) => (
+                            <SelectItem
+                              key={option.id}
+                              value={option.id}
+                              className="text-base lg:text-lg py-3"
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2 lg:space-y-3">
+                      <Label
+                        htmlFor="currentStatus"
+                        className="text-sm lg:text-base font-medium text-gray-700"
+                      >
+                        Statut actuel
+                      </Label>
+                      <Select
+                        value={formData.currentStatus}
+                        onValueChange={(value) =>
+                          handleChange("currentStatus", value)
+                        }
+                        disabled={isSaving || !metadataReady}
+                      >
+                        <SelectTrigger
+                          id="currentStatus"
+                          className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200"
+                        >
+                          <SelectValue placeholder="Sélectionnez..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currentStatusOptions.map((option) => (
+                            <SelectItem
+                              key={option.id}
+                              value={option.id}
+                              className="text-base lg:text-lg py-3"
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2 lg:space-y-3 md:col-span-2">
+                      <Label
+                        htmlFor="referralSource"
+                        className="text-sm lg:text-base font-medium text-gray-700"
+                      >
+                        Comment nous avez-vous connus ?
+                      </Label>
+                      <Select
+                        value={formData.referralSource}
+                        onValueChange={(value) =>
+                          handleChange("referralSource", value)
+                        }
+                        disabled={isSaving || !metadataReady}
+                      >
+                        <SelectTrigger
+                          id="referralSource"
+                          className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200"
+                        >
+                          <SelectValue placeholder="Sélectionnez..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {referralSourceOptions.map((option) => (
+                            <SelectItem
+                              key={option.id}
+                              value={option.id}
+                              className="text-base lg:text-lg py-3"
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="sexe"
@@ -656,16 +802,16 @@ export default function UserProfile() {
                   <Button
                     variant="outline"
                     onClick={handleReset}
-                    disabled={isSaving || !hasChanges}
+                    disabled={isSaving || !hasChanges || !metadataReady}
                     className="flex-1 sm:flex-none h-12 lg:h-16 px-6 lg:px-10 text-base lg:text-lg"
                   >
                     Annuler
                   </Button>
                   <Button
                     onClick={handleSave}
-                    disabled={isSaving || !hasChanges}
+                    disabled={isSaving || !hasChanges || !metadataReady}
                     className={`flex-1 sm:flex-none h-12 lg:h-16 px-8 lg:px-12 text-base lg:text-lg ${
-                      hasChanges
+                      hasChanges && metadataReady
                         ? "bg-blue-600 hover:bg-blue-700"
                         : "bg-gray-300 hover:bg-gray-400 cursor-not-allowed"
                     }`}

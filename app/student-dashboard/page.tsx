@@ -1,37 +1,26 @@
 "use client";
 
-import {
-  BookOpen,
-  CheckCircle,
-  Play,
-  Award,
-  ArrowUpRight,
-  Trophy,
-  XCircle,
-} from "lucide-react";
+import { BookOpen, CheckCircle, Play, Award } from "lucide-react";
+import Link from "next/link";
 
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
+import { CourseCard } from "@/components/course-card";
 
 import { useStudentDashboard } from "@/application/use-cases/useStudentDashboard";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import logger from "@/shared/helpers/logger";
+import type { BackendCourse } from "@/infrastructure/api/courses-api";
 
 const StudentDashboard = () => {
   const { user } = useLocalAuth();
-  const { dashboard, courses, loading, error } = useStudentDashboard({
+  const { courses, loading, error } = useStudentDashboard({
     userId: user?.id?.toString() || null,
   });
 
-  // Statistiques réelles des cours
-  const completedCourses = dashboard?.completed_courses || 0;
-  const totalCourses = dashboard?.enrolled_course_count || 0;
-
-  // ✅ STATISTIQUES RÉELLES DES QUIZ
-  const passedQuizzes = dashboard?.passed_quizzes || 0;
-  const failedQuizzes = dashboard?.failed_quizzes || 0;
+  type EnrolledCourseCard = BackendCourse & { progress?: number };
 
   // Activité récente basée sur les vraies données de cours
   const recentActivities =
@@ -44,7 +33,9 @@ const StudentDashboard = () => {
       );
 
       return {
-        id: course.id || index,
+        id: course.id || course.course_id || index,
+        courseId: course.id || course.course_id,
+        lessonId: course.lastAccessed || course.last_accessed || null,
         type: course.status === "COMPLETED" ? "completed" : "in_progress",
         title: course.title || "Cours sans titre",
         progress: Math.round(course.progressPercentage || course.progress || 0),
@@ -52,6 +43,64 @@ const StudentDashboard = () => {
         time: "Récemment",
       };
     }) || [];
+
+  const enrolledCourses: EnrolledCourseCard[] = (
+    courses?.enrolled_courses ?? []
+  )
+    .map<EnrolledCourseCard | null>((course: any) => {
+      const id = course.id || course.course_id;
+      if (!id) return null;
+
+      const description =
+        typeof course.description === "string" ? course.description : undefined;
+
+      return {
+        id,
+        title: course.title || "Cours sans titre",
+        description,
+        thumbnailUrl:
+          course.thumbnailUrl ||
+          course.thumbnail_url ||
+          course.thumbnail ||
+          course._thumbnail ||
+          course.thumbnail?.url ||
+          course.image ||
+          course.coverImage ||
+          course.cover_image,
+        price:
+          typeof course.price === "number" && Number.isFinite(course.price)
+            ? course.price
+            : 0,
+        level: course.level || "BEGINNER",
+        status: course.status || "ACTIVE",
+        instructorName:
+          course.instructorName ||
+          course.instructor_name ||
+          course.instructor,
+        previewAvailable:
+          course.previewAvailable ?? course.preview_available ?? false,
+        enrollmentCount: course.enrollmentCount || course.enrollment_count || 0,
+        progress:
+          typeof course.progressPercentage === "number"
+            ? course.progressPercentage
+            : course.progress,
+      };
+    })
+    .filter((course): course is EnrolledCourseCard => course !== null);
+
+  const buildCourseHref = (
+    courseId?: string | number | null,
+    lessonId?: string | number | null,
+  ) => {
+    if (!courseId) return null;
+    const encodedCourseId = encodeURIComponent(courseId.toString());
+    if (lessonId) {
+      return `/course-details/${encodedCourseId}?lessonId=${encodeURIComponent(
+        lessonId.toString(),
+      )}`;
+    }
+    return `/course-details/${encodedCourseId}`;
+  };
 
   if (loading) {
     return (
@@ -105,105 +154,6 @@ const StudentDashboard = () => {
           </p>
         </div>
 
-        {/* Cartes de Statistiques - AVEC QUIZ RÉUSSIS ET ÉCHOUÉS - Responsive optimisé */}
-        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-          {/* Cours Inscrits */}
-          <Card className="group relative overflow-hidden bg-white hover:shadow-xl transition-all duration-300 border-slate-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-slate-600">
-                Cours Inscrits
-              </CardTitle>
-              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl sm:text-3xl font-bold text-slate-900">
-                  {totalCourses}
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-xs text-slate-500 mt-1 sm:mt-2">
-                Total des cours
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Cours Terminés */}
-          <Card className="group relative overflow-hidden bg-white hover:shadow-xl transition-all duration-300 border-slate-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-slate-600">
-                Cours Terminés
-              </CardTitle>
-              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl sm:text-3xl font-bold text-slate-900">
-                  {completedCourses}
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-xs text-slate-500 mt-1 sm:mt-2">
-                Sur {totalCourses} inscrits
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* ✅ QUIZ RÉUSSIS - DONNÉES RÉELLES */}
-          <Card className="group relative overflow-hidden bg-white hover:shadow-xl transition-all duration-300 border-slate-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-slate-600">
-                Quiz Réussis
-              </CardTitle>
-              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl sm:text-3xl font-bold text-slate-900">
-                  {passedQuizzes}
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-xs text-slate-500 mt-1 sm:mt-2">
-                Score ≥ 70% (seuil de réussite)
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* ❌ QUIZ ÉCHOUÉS - DONNÉES RÉELLES */}
-          <Card className="group relative overflow-hidden bg-white hover:shadow-xl transition-all duration-300 border-slate-200">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-slate-600">
-                Quiz Échoués
-              </CardTitle>
-              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-xl bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors">
-                <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="flex items-baseline gap-2">
-                <div className="text-2xl sm:text-3xl font-bold text-slate-900">
-                  {failedQuizzes}
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-xs text-slate-500 mt-1 sm:mt-2">
-                Score {"<"} 70% (à recommencer)
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Section Activité Récente - Responsive optimisé */}
         <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6">
@@ -221,57 +171,88 @@ const StudentDashboard = () => {
           <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
             <div className="space-y-2 sm:space-y-3">
               {recentActivities.length > 0 ? (
-                recentActivities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 bg-white"
-                  >
-                    <div className="flex-shrink-0">
-                      <div
-                        className={`h-9 w-9 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center shadow-sm ${
-                          activity.completed
-                            ? "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/25"
-                            : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25"
-                        }`}
-                      >
-                        {activity.completed ? (
-                          <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                        ) : (
-                          <Play className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                recentActivities.map((activity) => {
+                  const href = buildCourseHref(
+                    activity.courseId,
+                    activity.lessonId,
+                  );
+
+                  // Contenu inline flex — tout sur la même ligne
+                  const activityContent = (
+                    <div className="flex flex-row items-center gap-3 sm:gap-4 w-full">
+                      {/* Icône */}
+                      <div className="flex-shrink-0">
+                        <div
+                          className={`h-9 w-9 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center shadow-sm ${
+                            activity.completed
+                              ? "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/25"
+                              : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25"
+                          }`}
+                        >
+                          {activity.completed ? (
+                            <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                          ) : (
+                            <Play className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Titre + temps */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm sm:text-base text-slate-900 truncate group-hover:text-primary transition-colors">
+                          {activity.title}
+                        </p>
+                        <p className="text-xs sm:text-sm text-slate-500">
+                          {activity.time}
+                        </p>
+                      </div>
+
+                      {/* Progression */}
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <div className="text-right">
+                          <div
+                            className={`text-base sm:text-lg font-bold ${
+                              activity.completed
+                                ? "text-emerald-600"
+                                : "text-blue-600"
+                            }`}
+                          >
+                            {activity.progress}%
+                          </div>
+                          <div className="text-xs text-slate-500 hidden sm:block">
+                            progression
+                          </div>
+                        </div>
+                        {activity.completed && (
+                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600" />
+                          </div>
                         )}
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm sm:text-base text-slate-900 truncate group-hover:text-primary transition-colors">
-                        {activity.title}
-                      </p>
-                      <p className="text-xs sm:text-sm text-slate-500">
-                        {activity.time}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="text-right">
-                        <div
-                          className={`text-base sm:text-lg font-bold ${
-                            activity.completed
-                              ? "text-emerald-600"
-                              : "text-blue-600"
-                          }`}
-                        >
-                          {activity.progress}%
-                        </div>
-                        <div className="text-xs text-slate-500 hidden sm:block">
-                          progression
-                        </div>
+                  );
+
+                  if (!href) {
+                    return (
+                      <div
+                        key={activity.id}
+                        className="group flex w-full items-center p-3 sm:p-4 rounded-xl border border-slate-200 bg-white"
+                      >
+                        {activityContent}
                       </div>
-                      {activity.completed && (
-                        <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={activity.id}
+                      href={href}
+                      className="group w-full flex items-center p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                    >
+                      {activityContent}
+                    </Link>
+                  );
+                })
               ) : (
                 <div className="text-center py-12 sm:py-16">
                   <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 mx-auto mb-4 flex items-center justify-center">
@@ -286,6 +267,49 @@ const StudentDashboard = () => {
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Section Cours Inscrits - Style Udemy */}
+        <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
+          <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <CardTitle className="text-base sm:text-xl font-semibold text-slate-900">
+                  Mes cours inscrits
+                </CardTitle>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {enrolledCourses.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {enrolledCourses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    isEnrolled={true}
+                    progress={course.progress}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 sm:py-16">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 mx-auto mb-4 flex items-center justify-center">
+                  <BookOpen className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
+                </div>
+                <p className="text-slate-600 text-base sm:text-lg font-medium mb-2">
+                  Aucun cours inscrit
+                </p>
+                <p className="text-xs sm:text-sm text-slate-500 px-4">
+                  Inscrivez-vous à un cours pour le retrouver ici avec son
+                  aperçu complet.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

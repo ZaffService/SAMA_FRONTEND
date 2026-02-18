@@ -1,4 +1,10 @@
-import type { User } from "@/domain/entities/user";
+import type { User, LastActivity } from "@/domain/entities/user";
+
+export interface AuthLoginResult {
+  success: boolean;
+  redirectUrl?: string;
+  lastActivity?: LastActivity;
+}
 
 export interface LoginData {
   email: string;
@@ -23,9 +29,9 @@ export interface AuthContextType {
   login: (
     email: string,
     password: string,
-  ) => Promise<{ success: boolean; redirectUrl?: string }>;
+  ) => Promise<AuthLoginResult>;
   register: (data: RegisterData) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<{ success: boolean; redirectUrl?: string }>;
+  loginWithGoogle: (idToken: string) => Promise<AuthLoginResult>;
   logout: () => Promise<void>;
   canAccessCourse: (courseId: number, isPaid: boolean) => boolean;
   redirectAfterLogin: string | null;

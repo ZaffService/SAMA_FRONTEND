@@ -7,6 +7,7 @@ export interface User {
   createdAt: string;
   telephone?: string;
   indicatif?: string;
+  isProfileComplete?: boolean;
   first_name?: string;
   last_name?: string;
   created_at?: string;
@@ -17,6 +18,15 @@ export interface User {
   avatar?: string;
   avatar_url?: string;
   isEmailVerified?: boolean;
+}
+
+export interface LastActivity {
+  courseId: string;
+  lessonId: string;
+  status: "IN_PROGRESS" | "COMPLETED" | "in_progress" | "completed";
+  redirectTo: string;
+  courseTitle?: string;
+  lessonTitle?: string;
 }
 
 export interface LoginData {
@@ -36,9 +46,12 @@ export interface RegisterData {
 export interface AuthResponse {
   success?: boolean;
   user: User;
+  accessToken?: string;
+  refreshToken?: string;
   access_token?: string;
   refresh_token?: string;
   expires_in?: number;
+  lastActivity?: LastActivity;
   code?: string;
   message?: string;
 }

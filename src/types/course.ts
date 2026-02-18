@@ -126,6 +126,9 @@ export interface CourseDetailsData {
     level: string;
     price: number;
     thumbnailUrl?: string;
+    studentsCount?: number;
+    enrollmentCount?: number;
+    duration?: number;
     attachment?: string | null;  // ← URL du fichier PDF attaché (Cloudinary)
     isFree?: boolean;
     isEnrolled?: boolean;  // ← Statut d'inscription de l'utilisateur

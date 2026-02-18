@@ -128,10 +128,17 @@ export class AuthApi {
   }
 
   static async completeProfile(data: {
+    userId?: string | number;
     firstName?: string;
     lastName?: string;
     telephone?: string;
     indicatif?: string;
+    ageRangeId?: string;
+    currentStatusId?: string;
+    referralSourceId?: string;
+    ageRange?: string;
+    currentStatus?: string;
+    referralSource?: string;
     sexe?: "M" | "F" | "O" | "NOT_SPECIFIED";
     region?: string;
     residenceType?: "URBAN" | "RURAL";
@@ -140,11 +147,40 @@ export class AuthApi {
     disabilityDetails?: string;
     consentGiven?: boolean;
   }): Promise<User> {
+    const payload: Record<string, unknown> = {};
+
+    if (data.userId !== undefined) payload.userId = data.userId;
+    if (data.firstName !== undefined) payload.firstName = data.firstName;
+    if (data.lastName !== undefined) payload.lastName = data.lastName;
+    if (data.telephone !== undefined) payload.telephone = data.telephone;
+    if (data.indicatif !== undefined) payload.indicatif = data.indicatif;
+
+    const ageRangeId = data.ageRangeId ?? data.ageRange;
+    if (ageRangeId) payload.ageRangeId = ageRangeId;
+
+    const currentStatusId = data.currentStatusId ?? data.currentStatus;
+    if (currentStatusId) payload.currentStatusId = currentStatusId;
+
+    const referralSourceId = data.referralSourceId ?? data.referralSource;
+    if (referralSourceId) payload.referralSourceId = referralSourceId;
+
+    if (data.sexe !== undefined) payload.sexe = data.sexe;
+    if (data.region !== undefined) payload.region = data.region;
+    if (data.residenceType !== undefined)
+      payload.residenceType = data.residenceType;
+    if (data.disability !== undefined) payload.disability = data.disability;
+    if (data.disabilityType !== undefined)
+      payload.disabilityType = data.disabilityType;
+    if (data.disabilityDetails !== undefined)
+      payload.disabilityDetails = data.disabilityDetails;
+    if (data.consentGiven !== undefined)
+      payload.consentGiven = data.consentGiven;
+
     const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
     const errorData = await res.json().catch(() => ({}));

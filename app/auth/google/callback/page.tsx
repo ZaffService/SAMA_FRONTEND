@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { AuthApi } from "@/infrastructure/api/auth-api";
+import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { useToast } from "@/infrastructure/storage/ToastContext";
 import logger from "@/shared/helpers/logger";
 
 export default function GoogleCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const { loginWithGoogle } = useLocalAuth();
+  const { info } = useToast();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -62,10 +65,16 @@ export default function GoogleCallbackPage() {
       }
 
       try {
-        await AuthApi.loginWithGoogle(idToken);
+        const result = await loginWithGoogle(idToken);
 
-        // Redirection vers la page d'accueil après succès
-        router.push("/");
+        if (result.lastActivity?.lessonTitle) {
+          info(
+            "Reprendre là où vous vous êtes arrêté",
+            result.lastActivity.lessonTitle,
+          );
+        }
+
+        router.push(result.redirectUrl || "/student-dashboard");
       } catch (err: any) {
         logger.error("Erreur lors de l'authentification Google:", err);
         setError(err.message || "Erreur lors de l'authentification");
@@ -73,7 +82,7 @@ export default function GoogleCallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, loginWithGoogle, info]);
 
   if (error) {
     return (

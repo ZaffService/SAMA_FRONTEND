@@ -89,18 +89,116 @@ export function useStudentDashboard(options: {
         );
         const coursesWithProgress = await Promise.all(
           coursesResult.map(async (course) => {
-            try {
-              const courseId = course.id || course.course_id;
-              if (!courseId) {
-                logger.log("⚠️ [useStudentDashboard] Cours sans ID:", course);
-                return course;
-              }
+            const courseId = course.id || course.course_id;
+            if (!courseId) {
+              logger.log("⚠️ [useStudentDashboard] Cours sans ID:", course);
+              return course;
+            }
 
-              logger.log(
-                `📚 [useStudentDashboard] Récupération progression pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
+            logger.log(
+              `📚 [useStudentDashboard] Récupération progression + détails pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
+            );
+
+            const [progressResult, detailsResult] = await Promise.allSettled([
+              StudentApi.getCourseProgress(courseId),
+              StudentApi.getCourseDetails(courseId),
+            ]);
+
+            const progressData =
+              progressResult.status === "fulfilled"
+                ? progressResult.value
+                : null;
+
+            if (progressResult.status === "rejected") {
+              logger.error(
+                `❌ [useStudentDashboard] Erreur récupération progression pour cours ${courseId}:`,
+                progressResult.reason,
               );
-              const progressData = await StudentApi.getCourseProgress(courseId);
+            }
 
+            const detailsData =
+              detailsResult.status === "fulfilled"
+                ? detailsResult.value
+                : null;
+
+            if (detailsResult.status === "rejected") {
+              logger.warn(
+                `⚠️ [useStudentDashboard] Détails cours indisponibles pour ${courseId}:`,
+                detailsResult.reason,
+              );
+            }
+
+            const rawDetails =
+              detailsData?.course ||
+              detailsData?.data?.course ||
+              detailsData?.courseData?.course ||
+              detailsData;
+
+            const rawPrice =
+              rawDetails?.price ??
+              rawDetails?._price ??
+              course.price ??
+              course._price;
+            const resolvedPrice = Number.isFinite(Number(rawPrice))
+              ? Number(rawPrice)
+              : 0;
+
+            const enrichedCourse = {
+              ...course,
+              title:
+                rawDetails?.title ??
+                rawDetails?._title ??
+                course.title ??
+                "Cours sans titre",
+              description:
+                rawDetails?.description ??
+                rawDetails?._description ??
+                course.description,
+              thumbnailUrl:
+                rawDetails?.thumbnailUrl ??
+                rawDetails?._thumbnailUrl ??
+                rawDetails?.thumbnail_url ??
+                rawDetails?.thumbnail ??
+                rawDetails?._thumbnail ??
+                rawDetails?.thumbnail?.url ??
+                rawDetails?.image ??
+                rawDetails?.coverImage ??
+                rawDetails?.cover_image ??
+                course.thumbnailUrl ??
+                course.thumbnail_url ??
+                course.thumbnail ??
+                course._thumbnail ??
+                course.image ??
+                course.coverImage ??
+                course.cover_image,
+              price: resolvedPrice,
+              level:
+                rawDetails?.level ??
+                rawDetails?._level ??
+                course.level ??
+                "BEGINNER",
+              instructorName:
+                rawDetails?.instructorName ??
+                rawDetails?.instructor_name ??
+                rawDetails?.instructor ??
+                course.instructorName ??
+                course.instructor_name ??
+                course.instructor,
+              previewAvailable:
+                rawDetails?.previewAvailable ??
+                rawDetails?.preview_available ??
+                course.previewAvailable ??
+                course.preview_available ??
+                false,
+              enrollmentCount:
+                rawDetails?.enrollmentCount ??
+                rawDetails?.enrollment_count ??
+                course.enrollmentCount ??
+                course.enrollment_count ??
+                0,
+            };
+
+            if (progressData) {
               logger.log(
                 `✅ [useStudentDashboard] Progression reçue pour cours ${courseId}:`,
                 {
@@ -113,25 +211,20 @@ export function useStudentDashboard(options: {
               );
 
               return {
-                ...course,
+                ...enrichedCourse,
                 progressPercentage: progressData.progress,
                 completedLessons: progressData.completed_lessons,
                 totalLessons: progressData.total_lessons,
                 lastAccessed: progressData.last_accessed,
               };
-            } catch (error) {
-              logger.error(
-                `❌ [useStudentDashboard] Erreur récupération progression pour cours ${course.id}:`,
-                error,
-              );
-              // Return course with default progress if API fails
-              return {
-                ...course,
-                progressPercentage: course.progressPercentage || 0,
-                completedLessons: course.completedLessons || 0,
-                totalLessons: course.totalLessons || 0,
-              };
             }
+
+            return {
+              ...enrichedCourse,
+              progressPercentage: course.progressPercentage || 0,
+              completedLessons: course.completedLessons || 0,
+              totalLessons: course.totalLessons || 0,
+            };
           }),
         );
 
@@ -216,21 +309,119 @@ export function useStudentDashboard(options: {
       );
       const coursesWithProgress = await Promise.all(
         coursesResult.map(async (course) => {
-          try {
-            const courseId = course.id || course.course_id;
-            if (!courseId) {
-              logger.log(
-                "⚠️ [useStudentDashboard] Cours sans ID lors du refresh:",
-                course,
-              );
-              return course;
-            }
-
+          const courseId = course.id || course.course_id;
+          if (!courseId) {
             logger.log(
-              `📚 [useStudentDashboard] Refresh progression pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
+              "⚠️ [useStudentDashboard] Cours sans ID lors du refresh:",
+              course,
             );
-            const progressData = await StudentApi.getCourseProgress(courseId);
+            return course;
+          }
 
+          logger.log(
+            `📚 [useStudentDashboard] Refresh progression + détails pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
+          );
+
+          const [progressResult, detailsResult] = await Promise.allSettled([
+            StudentApi.getCourseProgress(courseId),
+            StudentApi.getCourseDetails(courseId),
+          ]);
+
+          const progressData =
+            progressResult.status === "fulfilled"
+              ? progressResult.value
+              : null;
+
+          if (progressResult.status === "rejected") {
+            logger.error(
+              ` [useStudentDashboard] Erreur refresh progression pour cours ${courseId}:`,
+              progressResult.reason,
+            );
+          }
+
+          const detailsData =
+            detailsResult.status === "fulfilled"
+              ? detailsResult.value
+              : null;
+
+          if (detailsResult.status === "rejected") {
+            logger.warn(
+              `⚠️ [useStudentDashboard] Détails cours indisponibles (refresh) pour ${courseId}:`,
+              detailsResult.reason,
+            );
+          }
+
+          const rawDetails =
+            detailsData?.course ||
+            detailsData?.data?.course ||
+            detailsData?.courseData?.course ||
+            detailsData;
+
+          const rawPrice =
+            rawDetails?.price ??
+            rawDetails?._price ??
+            course.price ??
+            course._price;
+          const resolvedPrice = Number.isFinite(Number(rawPrice))
+            ? Number(rawPrice)
+            : 0;
+
+          const enrichedCourse = {
+            ...course,
+            title:
+              rawDetails?.title ??
+              rawDetails?._title ??
+              course.title ??
+              "Cours sans titre",
+            description:
+              rawDetails?.description ??
+              rawDetails?._description ??
+              course.description,
+            thumbnailUrl:
+              rawDetails?.thumbnailUrl ??
+              rawDetails?._thumbnailUrl ??
+              rawDetails?.thumbnail_url ??
+              rawDetails?.thumbnail ??
+              rawDetails?._thumbnail ??
+              rawDetails?.thumbnail?.url ??
+              rawDetails?.image ??
+              rawDetails?.coverImage ??
+              rawDetails?.cover_image ??
+              course.thumbnailUrl ??
+              course.thumbnail_url ??
+              course.thumbnail ??
+              course._thumbnail ??
+              course.image ??
+              course.coverImage ??
+              course.cover_image,
+            price: resolvedPrice,
+            level:
+              rawDetails?.level ??
+              rawDetails?._level ??
+              course.level ??
+              "BEGINNER",
+            instructorName:
+              rawDetails?.instructorName ??
+              rawDetails?.instructor_name ??
+              rawDetails?.instructor ??
+              course.instructorName ??
+              course.instructor_name ??
+              course.instructor,
+            previewAvailable:
+              rawDetails?.previewAvailable ??
+              rawDetails?.preview_available ??
+              course.previewAvailable ??
+              course.preview_available ??
+              false,
+            enrollmentCount:
+              rawDetails?.enrollmentCount ??
+              rawDetails?.enrollment_count ??
+              course.enrollmentCount ??
+              course.enrollment_count ??
+              0,
+          };
+
+          if (progressData) {
             logger.log(
               `✅ [useStudentDashboard] Progression rafraîchie pour cours ${courseId}:`,
               {
@@ -243,25 +434,20 @@ export function useStudentDashboard(options: {
             );
 
             return {
-              ...course,
+              ...enrichedCourse,
               progressPercentage: progressData.progress,
               completedLessons: progressData.completed_lessons,
               totalLessons: progressData.total_lessons,
               lastAccessed: progressData.last_accessed,
             };
-          } catch (error) {
-            logger.error(
-              ` [useStudentDashboard] Erreur refresh progression pour cours ${course.id}:`,
-              error,
-            );
-            // Return course with default progress if API fails
-            return {
-              ...course,
-              progressPercentage: course.progressPercentage || 0,
-              completedLessons: course.completedLessons || 0,
-              totalLessons: course.totalLessons || 0,
-            };
           }
+
+          return {
+            ...enrichedCourse,
+            progressPercentage: course.progressPercentage || 0,
+            completedLessons: course.completedLessons || 0,
+            totalLessons: course.totalLessons || 0,
+          };
         }),
       );
 

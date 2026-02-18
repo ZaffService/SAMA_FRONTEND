@@ -22,7 +22,7 @@ import logger from "@/shared/helpers/logger";
 export default function ClientLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loginError } = useToast();
+  const { loginError, info } = useToast();
   const {
     login,
     loginWithGoogle,
@@ -41,7 +41,8 @@ export default function ClientLogin() {
 
   useEffect(() => {
     // Gérer le paramètre de redirection depuis l'URL
-    const redirectParam = searchParams.get("redirect");
+    const redirectParam =
+      searchParams.get("redirect") || searchParams.get("returnTo");
     if (redirectParam) {
       setRedirectAfterLogin(redirectParam);
     }
@@ -102,13 +103,14 @@ export default function ClientLogin() {
       const result = await login(email, password);
 
       if (result.success) {
-        if (result.redirectUrl) {
-          // Redirection spécifique (admin/instructor)
-          router.push(result.redirectUrl);
-        } else {
-          // Pour les étudiants : redirection vers la page d'accueil
-          router.push("/");
+        if (result.lastActivity?.lessonTitle) {
+          info(
+            "Reprendre là où vous vous êtes arrêté",
+            result.lastActivity.lessonTitle,
+          );
         }
+
+        router.push(result.redirectUrl || "/student-dashboard");
       }
     } catch (err: any) {
       logger.error("Erreur login:", err);
@@ -154,11 +156,14 @@ export default function ClientLogin() {
     try {
       const result = await loginWithGoogle(idToken);
       if (result.success) {
-        if (result.redirectUrl) {
-          router.push(result.redirectUrl);
-        } else {
-          router.push("/");
+        if (result.lastActivity?.lessonTitle) {
+          info(
+            "Reprendre là où vous vous êtes arrêté",
+            result.lastActivity.lessonTitle,
+          );
         }
+
+        router.push(result.redirectUrl || "/student-dashboard");
       }
     } catch (err: any) {
       logger.error("Erreur Google login:", err);

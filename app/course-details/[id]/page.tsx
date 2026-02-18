@@ -292,6 +292,7 @@ function CourseDetailsPageComponent() {
   const isAdmin = user?.role === "ADMIN";
 
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
+  const [enrollmentCount, setEnrollmentCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -348,6 +349,7 @@ function CourseDetailsPageComponent() {
   const completionInFlightRef = useRef<Set<string>>(new Set());
   const syncedCompletedLessonsRef = useRef<Set<string>>(new Set());
   const handledPaymentReturnRef = useRef<Set<string>>(new Set());
+  const initialLessonSelectionRef = useRef(false);
 
   // Helper function to validate UUID format (defined before useEffects)
   const isValidUUID = (id: string): boolean => {
@@ -418,6 +420,15 @@ function CourseDetailsPageComponent() {
         logger.log("✅ Composant: Données transformées:", data);
 
         setCourseData(data);
+        const initialEnrollmentCount =
+          typeof data.course.enrollmentCount === "number" &&
+          Number.isFinite(data.course.enrollmentCount)
+            ? data.course.enrollmentCount
+            : typeof data.course.studentsCount === "number" &&
+                Number.isFinite(data.course.studentsCount)
+              ? data.course.studentsCount
+              : null;
+        setEnrollmentCount(initialEnrollmentCount);
 
         const courseIsFree =
           data.course.price === 0 || data.course.isFree === true;
@@ -438,32 +449,6 @@ function CourseDetailsPageComponent() {
             ? new Set<string>()
             : new Set([data.modules[0].id]);
           setExpandedModules(initialExpanded);
-
-          // ✅ CORRECTION: Récupérer TOUTES les leçons de TOUS les modules
-          const allLessons = data.modules.flatMap((module) =>
-            module.lessons.map((lesson) => ({
-              ...lesson,
-              moduleId: module.id,
-              moduleOrderIndex: module.orderIndex,
-            })),
-          );
-
-          // ✅ Filtrer les leçons avec vidéo et trier correctement
-          const lessonsWithVideo = allLessons
-            .filter((lesson) => lesson.hasVideo)
-            .sort((a, b) => {
-              // Trier d'abord par module, puis par leçon
-              if (a.moduleOrderIndex !== b.moduleOrderIndex) {
-                return a.moduleOrderIndex - b.moduleOrderIndex;
-              }
-              return a.orderIndex - b.orderIndex;
-            });
-
-          // ✅ Sélectionner la première leçon avec vidéo
-          if (lessonsWithVideo.length > 0) {
-            setSelectedLessonId(lessonsWithVideo[0].id);
-            setCurrentLessonIndex(0);
-          }
         }
       } catch (err) {
         logger.error("❌ Composant: Erreur lors du chargement:", err);
@@ -475,6 +460,60 @@ function CourseDetailsPageComponent() {
 
     fetchCourseDetails();
   }, [courseId, isMobile]);
+
+  useEffect(() => {
+    const courseInfo = courseData?.course;
+    if (!courseInfo?.id || !courseInfo?.title) return;
+
+    let isMounted = true;
+
+    const fetchEnrollmentCount = async () => {
+      try {
+        const result = await CoursesApi.getCourses(1, 100, {
+          query: courseInfo.title,
+          userRole: user?.role,
+        });
+
+        let match = result.courses.find(
+          (course) => course.id === courseInfo.id,
+        );
+
+        if (!match && courseInfo.title) {
+          const fallbackResult = await CoursesApi.getCourses(1, 200, {
+            userRole: user?.role,
+          });
+          match = fallbackResult.courses.find(
+            (course) => course.id === courseInfo.id,
+          );
+        }
+
+        const count =
+          typeof match?.enrollmentCount === "number" &&
+          Number.isFinite(match.enrollmentCount)
+            ? match.enrollmentCount
+            : null;
+
+        if (isMounted) {
+          setEnrollmentCount(count);
+        }
+      } catch (error) {
+        logger.warn(
+          "⚠️ [CourseDetails] Impossible de récupérer enrollmentCount via search:",
+          error,
+        );
+      }
+    };
+
+    void fetchEnrollmentCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    courseData?.course?.id,
+    courseData?.course?.title,
+    user?.role,
+  ]);
 
   // Vérifier le statut d'inscription au chargement et quand l'utilisateur change
   useEffect(() => {
@@ -1152,6 +1191,48 @@ function CourseDetailsPageComponent() {
     return lessonsWithVideos[currentLessonIndex] || null;
   }, [lessonsWithVideos, currentLessonIndex]);
 
+  const lessonIdParam = searchParams.get("lessonId") || searchParams.get("lesson");
+
+  useEffect(() => {
+    if (initialLessonSelectionRef.current) return;
+    if (!lessonsWithVideos.length) return;
+
+    let targetLessonId = lessonIdParam;
+
+    if (!targetLessonId && typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("last_activity");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.courseId === courseId && parsed?.lessonId) {
+            targetLessonId = parsed.lessonId;
+          }
+        }
+      } catch (error) {
+        logger.warn("⚠️ Impossible de lire last_activity:", error);
+      }
+    }
+
+    if (targetLessonId) {
+      const targetIndex = lessonsWithVideos.findIndex(
+        (lesson) => lesson.id === targetLessonId,
+      );
+      if (targetIndex >= 0) {
+        setCurrentLessonIndex(targetIndex);
+        initialLessonSelectionRef.current = true;
+        return;
+      }
+
+      logger.warn("⚠️ lessonId non trouvé dans le cours:", {
+        lessonId: targetLessonId,
+        courseId,
+      });
+    }
+
+    setCurrentLessonIndex(0);
+    initialLessonSelectionRef.current = true;
+  }, [courseId, lessonIdParam, lessonsWithVideos]);
+
   // Update selectedLessonId when currentLessonIndex changes
   useEffect(() => {
     if (lessonsWithVideos[currentLessonIndex]) {
@@ -1296,10 +1377,14 @@ function CourseDetailsPageComponent() {
   };
 
   const totalLessons = lessonsWithVideos.length;
-  const totalCourseDuration = lessonsWithVideos.reduce(
+  const totalCourseDurationFromLessons = lessonsWithVideos.reduce(
     (sum, lesson) => sum + (lesson.duration || 0),
     0,
   );
+  const totalCourseDuration =
+    totalCourseDurationFromLessons > 0
+      ? totalCourseDurationFromLessons
+      : course?.duration || 0;
 
   const getLevelLabel = (level: string) => {
     const levels: Record<string, string> = {
@@ -1940,6 +2025,16 @@ function CourseDetailsPageComponent() {
     course.attachment && course.attachment !== "undefined",
   );
   const levelLabel = getLevelLabel(course.level);
+  const studentsCount =
+    typeof enrollmentCount === "number" && Number.isFinite(enrollmentCount)
+      ? enrollmentCount
+      : typeof course.studentsCount === "number" &&
+          Number.isFinite(course.studentsCount)
+        ? course.studentsCount
+        : typeof course.enrollmentCount === "number" &&
+            Number.isFinite(course.enrollmentCount)
+          ? course.enrollmentCount
+          : 0;
 
   const normalizedLearningPoints = modules
     .flatMap((module) => {
@@ -2289,7 +2384,7 @@ function CourseDetailsPageComponent() {
                         <div>
                           <p className="text-sm text-[#6A6F73]">Étudiants</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">
-                            {completedLessonsCount + totalLessons}
+                            {studentsCount}
                           </p>
                         </div>
                         <div>

@@ -1,5 +1,6 @@
 import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
+import Cookies from "js-cookie";
 
 export interface User {
   id: number;
@@ -20,6 +21,30 @@ export interface CreateUserData {
   role: string;
   // Add other fields as needed
 }
+
+const getStoredAccessToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return (
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token") ||
+    Cookies.get("access_token") ||
+    null
+  );
+};
+
+const buildAuthHeaders = (): Record<string, string> => {
+  const token = getStoredAccessToken();
+  if (!token) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
 
 // Types for complete profile
 export type SexeType = "M" | "F" | "O" | "NOT_SPECIFIED";
@@ -82,6 +107,178 @@ export const DISABILITY_TYPE_LABELS: Record<DisabilityType, string> = {
   MOTOR: "Moteur",
   COGNITIVE: "Cognitif",
   OTHER: "Autre",
+};
+
+export type AgeRangeType =
+  | "AGE_15_19"
+  | "AGE_20_24"
+  | "AGE_25_29"
+  | "AGE_30_34"
+  | "AGE_35_39"
+  | "AGE_40_44"
+  | "AGE_45_49"
+  | "AGE_50_54"
+  | "AGE_55_59"
+  | "AGE_60_PLUS";
+
+export const AGE_RANGE_LABELS: Record<AgeRangeType, string> = {
+  AGE_15_19: "15-19 ans",
+  AGE_20_24: "20-24 ans",
+  AGE_25_29: "25-29 ans",
+  AGE_30_34: "30-34 ans",
+  AGE_35_39: "35-39 ans",
+  AGE_40_44: "40-44 ans",
+  AGE_45_49: "45-49 ans",
+  AGE_50_54: "50-54 ans",
+  AGE_55_59: "55-59 ans",
+  AGE_60_PLUS: "60 ans et +",
+};
+
+export type CurrentStatusType =
+  | "ELEVE"
+  | "ETUDIANT"
+  | "STAGIAIRE"
+  | "SALARIE"
+  | "INDEPENDANT"
+  | "CHOMEUR"
+  | "RETRAITE"
+  | "AUTRE";
+
+export const CURRENT_STATUS_LABELS: Record<CurrentStatusType, string> = {
+  ELEVE: "Élève",
+  ETUDIANT: "Étudiant",
+  STAGIAIRE: "Stagiaire",
+  SALARIE: "Salarié",
+  INDEPENDANT: "Indépendant",
+  CHOMEUR: "Chômeur",
+  RETRAITE: "Retraité",
+  AUTRE: "Autre",
+};
+
+export type ReferralSourceType =
+  | "RESEAUX_SOCIAUX"
+  | "AMI"
+  | "EVENEMENT"
+  | "PANNEAU_PUBLICITAIRE"
+  | "AUTRE";
+
+export const REFERRAL_SOURCE_LABELS: Record<ReferralSourceType, string> = {
+  RESEAUX_SOCIAUX: "Réseaux sociaux",
+  AMI: "Ami / Famille",
+  EVENEMENT: "Événement",
+  PANNEAU_PUBLICITAIRE: "Panneau publicitaire",
+  AUTRE: "Autre",
+};
+
+export interface ProfileMetadataItem {
+  id: string;
+  code: string;
+  label: string;
+  orderIndex?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProfileMetadataResponse {
+  ageRanges: ProfileMetadataItem[];
+  currentStatuses: ProfileMetadataItem[];
+  referralSources: ProfileMetadataItem[];
+}
+
+export type ProfileMetadataValue =
+  | string
+  | {
+      id?: string;
+      code?: string;
+      label?: string;
+    };
+
+const isUuid = (value: string): boolean =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+
+const resolveMetadataId = (
+  value: ProfileMetadataValue | undefined,
+  items?: ProfileMetadataItem[],
+): string => {
+  if (!value) return "";
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (isUuid(trimmed)) return trimmed;
+
+    const byId = items?.find((item) => item.id === trimmed);
+    if (byId) return byId.id;
+
+    const byCode = items?.find((item) => item.code === trimmed);
+    if (byCode) return byCode.id;
+
+    const byLabel = items?.find((item) => item.label === trimmed);
+    if (byLabel) return byLabel.id;
+
+    return trimmed;
+  }
+
+  if (typeof value === "object") {
+    if (value.id) return value.id;
+    if (value.code) return resolveMetadataId(value.code, items);
+    if (value.label) {
+      const byLabel = items?.find((item) => item.label === value.label);
+      if (byLabel) return byLabel.id;
+    }
+  }
+
+  return "";
+};
+
+export const sortProfileMetadataItems = (
+  items: ProfileMetadataItem[] = [],
+): ProfileMetadataItem[] =>
+  items
+    .filter((item) => item.isActive !== false)
+    .sort(
+      (a, b) =>
+        (a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
+        (b.orderIndex ?? Number.MAX_SAFE_INTEGER),
+    );
+
+const REFERRAL_SOURCE_ALIASES: Record<string, ReferralSourceType> = {
+  RESEAUX_SOCIAUX: "RESEAUX_SOCIAUX",
+  AMI: "AMI",
+  AMIS: "AMI",
+  AMI_FAMILLE: "AMI",
+  AMIS_FAMILLE: "AMI",
+  EVENEMENT: "EVENEMENT",
+  EVENEMENTS: "EVENEMENT",
+  PANNEAU_PUBLICITAIRE: "PANNEAU_PUBLICITAIRE",
+  PANNEAU_PUBLICITE: "PANNEAU_PUBLICITAIRE",
+  PUBLICITE: "PANNEAU_PUBLICITAIRE",
+  MOTEUR_RECHERCHE: "AUTRE",
+  MOTEUR_DE_RECHERCHE: "AUTRE",
+  BLOG: "AUTRE",
+  PRESSE: "AUTRE",
+  AUTRE: "AUTRE",
+};
+
+const normalizeReferralSource = (
+  value?: string | null,
+): ReferralSourceType | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+
+  const normalized = trimmed
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+
+  return REFERRAL_SOURCE_ALIASES[normalized];
 };
 
 // Helper to extract local number from full phone number
@@ -176,9 +373,26 @@ export interface UserProfileData {
   email: string;
   telephone?: string;
   indicatif?: string;
+  ageRangeId?: string;
+  currentStatusId?: string;
+  referralSourceId?: string;
+  user?: {
+    id?: number | string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    telephone?: string;
+    indicatif?: string;
+  };
   userProfile?: {
     id?: number;
     userId: number;
+    ageRangeId?: string;
+    currentStatusId?: string;
+    referralSourceId?: string;
+    ageRange?: ProfileMetadataValue;
+    currentStatus?: ProfileMetadataValue;
+    referralSource?: ProfileMetadataValue;
     sexe?: SexeType;
     region?: RegionType;
     residenceType?: ResidenceType;
@@ -192,11 +406,18 @@ export interface UserProfileData {
 
 // Form data for complete profile
 export interface CompleteProfileData {
+  userId?: string | number;
   firstName?: string;
   lastName?: string;
   email?: string;
   telephone?: string;
   indicatif?: string;
+  ageRangeId?: string;
+  currentStatusId?: string;
+  referralSourceId?: string;
+  ageRange?: string;
+  currentStatus?: string;
+  referralSource?: string;
   sexe?: SexeType;
   region?: RegionType;
   residenceType?: ResidenceType;
@@ -213,6 +434,9 @@ export interface ProfileFormData {
   email: string;
   telephone: string;
   indicatif: string;
+  ageRange: string;
+  currentStatus: string;
+  referralSource: string;
   sexe: SexeType | "";
   region: RegionType | "";
   residenceType: ResidenceType | "";
@@ -223,16 +447,27 @@ export interface ProfileFormData {
 }
 
 // Convert backend data to form data
-export function toProfileFormData(data: UserProfileData): ProfileFormData {
+export function toProfileFormData(
+  data: UserProfileData,
+  metadata?: ProfileMetadataResponse | null,
+): ProfileFormData {
   // Extract telephone from various possible fields
   const telephone = extractTelephone(data);
-  
+
+  const firstName = data.firstName || data.user?.firstName || "";
+  const lastName = data.lastName || data.user?.lastName || "";
+  const email = data.email || data.user?.email || "";
+  const profile = data.userProfile;
+
   const formData: ProfileFormData = {
-    firstName: data.firstName || "",
-    lastName: data.lastName || "",
-    email: data.email || "",
+    firstName,
+    lastName,
+    email,
     telephone: extractLocalNumber(telephone, "+221"),
     indicatif: extractIndicatif(telephone, "+221"),
+    ageRange: "",
+    currentStatus: "",
+    referralSource: "",
     sexe: "",
     region: "",
     residenceType: "",
@@ -242,26 +477,53 @@ export function toProfileFormData(data: UserProfileData): ProfileFormData {
     consentGiven: false,
   };
 
-  if (data.userProfile?.sexe) {
-    formData.sexe = data.userProfile.sexe as SexeType;
+  if (profile?.sexe) {
+    formData.sexe = profile.sexe as SexeType;
   }
-  if (data.userProfile?.region) {
-    formData.region = data.userProfile.region as RegionType;
+  const ageRangeValue =
+    profile?.ageRangeId ?? data.ageRangeId ?? profile?.ageRange;
+  formData.ageRange = resolveMetadataId(
+    ageRangeValue,
+    metadata?.ageRanges,
+  );
+
+  const currentStatusValue =
+    profile?.currentStatusId ?? data.currentStatusId ?? profile?.currentStatus;
+  formData.currentStatus = resolveMetadataId(
+    currentStatusValue,
+    metadata?.currentStatuses,
+  );
+
+  const referralSourceValue =
+    profile?.referralSourceId ??
+    data.referralSourceId ??
+    profile?.referralSource;
+  const normalizedReferral =
+    typeof referralSourceValue === "string"
+      ? normalizeReferralSource(referralSourceValue) ?? referralSourceValue
+      : referralSourceValue;
+  formData.referralSource = resolveMetadataId(
+    normalizedReferral,
+    metadata?.referralSources,
+  );
+
+  if (profile?.region) {
+    formData.region = profile.region as RegionType;
   }
-  if (data.userProfile?.residenceType) {
-    formData.residenceType = data.userProfile.residenceType as ResidenceType;
+  if (profile?.residenceType) {
+    formData.residenceType = profile.residenceType as ResidenceType;
   }
-  if (data.userProfile?.disability !== undefined) {
-    formData.disability = data.userProfile.disability;
+  if (profile?.disability !== undefined) {
+    formData.disability = profile.disability;
   }
-  if (data.userProfile?.disabilityType) {
-    formData.disabilityType = data.userProfile.disabilityType as DisabilityType;
+  if (profile?.disabilityType) {
+    formData.disabilityType = profile.disabilityType as DisabilityType;
   }
-  if (data.userProfile?.disabilityDetails) {
-    formData.disabilityDetails = data.userProfile.disabilityDetails;
+  if (profile?.disabilityDetails) {
+    formData.disabilityDetails = profile.disabilityDetails;
   }
-  if (data.userProfile?.consentGiven !== undefined) {
-    formData.consentGiven = data.userProfile.consentGiven;
+  if (profile?.consentGiven !== undefined) {
+    formData.consentGiven = profile.consentGiven;
   }
 
   return formData;
@@ -279,6 +541,21 @@ export function getChangedFields(
   }
   if (current.lastName !== initial.lastName && current.lastName.trim()) {
     changed.lastName = current.lastName;
+  }
+  if (current.ageRange !== initial.ageRange && current.ageRange !== "") {
+    changed.ageRangeId = current.ageRange;
+  }
+  if (
+    current.currentStatus !== initial.currentStatus &&
+    current.currentStatus !== ""
+  ) {
+    changed.currentStatusId = current.currentStatus;
+  }
+  if (
+    current.referralSource !== initial.referralSource &&
+    current.referralSource !== ""
+  ) {
+    changed.referralSourceId = current.referralSource;
   }
   if (current.sexe !== initial.sexe && current.sexe !== "") {
     changed.sexe = current.sexe;
@@ -327,7 +604,7 @@ export class UserApi {
         buildApiUrl(API_ENDPOINTS.USER.ADMIN_CREATE),
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
           credentials: "include",
           body: JSON.stringify(payload),
         },
@@ -356,6 +633,44 @@ export class UserApi {
   }
 
   /**
+   * Récupérer les métadonnées pour la complétion de profil
+   */
+  static async getProfileMetadata(): Promise<ProfileMetadataResponse> {
+    try {
+      logger.log("📡 API: Récupération des métadonnées de profil");
+
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.USER.PROFILE_METADATA),
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
+        },
+      );
+
+      logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(`❌ API: Erreur ${response.status}: ${errorText}`);
+        throw new Error(
+          `Erreur ${response.status}: Impossible de récupérer les métadonnées`,
+        );
+      }
+
+      const data = await response.json();
+      logger.log("📡 API: Métadonnées reçues:", data);
+      return data;
+    } catch (error) {
+      logger.error(
+        "❌ API: Erreur lors de la récupération des métadonnées:",
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Récupérer le profil complet de l'utilisateur
    */
   static async getUserProfile(): Promise<UserProfileData | null> {
@@ -365,7 +680,7 @@ export class UserApi {
       const response = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
         method: "GET",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
       });
 
       logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
@@ -414,6 +729,15 @@ export class UserApi {
       if (data.lastName !== undefined) payload.lastName = data.lastName;
       if (data.telephone !== undefined) payload.telephone = data.telephone;
       if (data.indicatif !== undefined) payload.indicatif = data.indicatif;
+      if (data.userId !== undefined) payload.userId = data.userId;
+      const ageRangeId = data.ageRangeId ?? data.ageRange;
+      if (ageRangeId) payload.ageRangeId = ageRangeId;
+
+      const currentStatusId = data.currentStatusId ?? data.currentStatus;
+      if (currentStatusId) payload.currentStatusId = currentStatusId;
+
+      const referralSourceId = data.referralSourceId ?? data.referralSource;
+      if (referralSourceId) payload.referralSourceId = referralSourceId;
       if (data.sexe !== undefined) payload.sexe = data.sexe;
       if (data.region !== undefined) payload.region = data.region;
       if (data.residenceType !== undefined)
@@ -432,7 +756,7 @@ export class UserApi {
         buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE),
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
           credentials: "include",
           body: JSON.stringify(payload),
         },

@@ -32,6 +32,24 @@ export interface Enrollment {
   completedLessons?: number;
   totalLessons?: number;
   lastAccessed?: string;
+  price?: number;
+  _price?: number;
+  thumbnailUrl?: string;
+  thumbnail_url?: string;
+  thumbnail?: string;
+  _thumbnail?: string;
+  image?: string;
+  coverImage?: string;
+  cover_image?: string;
+  level?: string;
+  instructor_name?: string;
+  instructor?: string;
+  previewAvailable?: boolean;
+  preview_available?: boolean;
+  enrollmentCount?: number;
+  enrollment_count?: number;
+  studentsCount?: number;
+  duration?: number | string;
 }
 
 export interface StudentDashboard {

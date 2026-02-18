@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Header } from "@/components/header";
@@ -48,6 +48,8 @@ import {
   REGION_LABELS,
   RESIDENCE_LABELS,
   DISABILITY_TYPE_LABELS,
+  sortProfileMetadataItems,
+  type ProfileMetadataResponse,
   SexeType,
   RegionType,
   ResidenceType,
@@ -87,6 +89,9 @@ const getInitialFormData = (user: any): ProfileFormData => ({
   email: user?.email || "",
   telephone: extractLocalNumber(user?.telephone || "", "+221"),
   indicatif: extractIndicatif(user?.telephone || "", "+221"),
+  ageRange: "",
+  currentStatus: "",
+  referralSource: "",
   sexe: "",
   region: "",
   residenceType: "",
@@ -117,6 +122,23 @@ export default function CompleteProfile() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [phoneConflictError, setPhoneConflictError] = useState<string | null>(null);
   const [originalPhone, setOriginalPhone] = useState<string>("");
+  const [profileMetadata, setProfileMetadata] =
+    useState<ProfileMetadataResponse | null>(null);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+
+  const ageRangeOptions = useMemo(
+    () => sortProfileMetadataItems(profileMetadata?.ageRanges ?? []),
+    [profileMetadata],
+  );
+  const currentStatusOptions = useMemo(
+    () => sortProfileMetadataItems(profileMetadata?.currentStatuses ?? []),
+    [profileMetadata],
+  );
+  const referralSourceOptions = useMemo(
+    () => sortProfileMetadataItems(profileMetadata?.referralSources ?? []),
+    [profileMetadata],
+  );
+  const metadataReady = Boolean(profileMetadata);
 
   // Helper to validate phone number
   const validatePhone = (phone: string, dialCode: string): string | null => {
@@ -149,30 +171,55 @@ export default function CompleteProfile() {
     }
   }, [protectLoading, isComplete, user, router]);
 
-  // Fetch user profile on mount
+  // Fetch profile metadata and user profile on mount
   useEffect(() => {
-    const fetchProfile = async () => {
+    if (!canAccess) return;
+
+    let cancelled = false;
+
+    const fetchData = async () => {
       setIsLoading(true);
+      setMetadataError(null);
+
+      let metadata: ProfileMetadataResponse | null = null;
+
+      try {
+        metadata = await UserApi.getProfileMetadata();
+        if (!cancelled) {
+          setProfileMetadata(metadata);
+        }
+      } catch (error) {
+        logger.error("Erreur lors du chargement des métadonnées:", error);
+        if (!cancelled) {
+          setMetadataError(
+            "Impossible de charger les options de profil. Veuillez réessayer.",
+          );
+        }
+      }
+
       try {
         const profileData = await UserApi.getUserProfile();
-        if (profileData) {
-          const form = toProfileFormData(profileData);
+        if (!cancelled && profileData) {
+          const form = toProfileFormData(profileData, metadata);
           setFormData(form);
-          // Stocker le téléphone original s'il existe déjà
-          if (profileData.telephone) {
-            setOriginalPhone(profileData.telephone);
+          if (form.telephone) {
+            setOriginalPhone(form.telephone);
           }
         }
       } catch (error) {
         logger.error("Erreur lors de la récupération du profil:", error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
-    if (canAccess) {
-      fetchProfile();
-    }
+    fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [canAccess]);
 
   // Handle input changes
@@ -189,6 +236,15 @@ export default function CompleteProfile() {
 
     if (!formData.sexe) {
       errors.sexe = "Le genre est obligatoire";
+    }
+    if (!formData.ageRange) {
+      errors.ageRange = "La tranche d'âge est obligatoire";
+    }
+    if (!formData.currentStatus) {
+      errors.currentStatus = "Le statut actuel est obligatoire";
+    }
+    if (!formData.referralSource) {
+      errors.referralSource = "La source de découverte est obligatoire";
     }
     if (!formData.region) {
       errors.region = "La région est obligatoire";
@@ -220,8 +276,12 @@ export default function CompleteProfile() {
     try {
       // Construire le payload - ne pas envoyer le téléphone s'il existe déjà
       const profilePayload: any = {
+        userId: user?.id,
         telephone: formData.telephone,
         indicatif: formData.indicatif,
+        ageRangeId: formData.ageRange,
+        currentStatusId: formData.currentStatus,
+        referralSourceId: formData.referralSource,
         sexe: formData.sexe as SexeType,
         region: formData.region as RegionType,
         residenceType: formData.residenceType as ResidenceType,
@@ -389,6 +449,12 @@ export default function CompleteProfile() {
             </CardContent>
           </Card>
 
+          {metadataError && (
+            <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              {metadataError}
+            </div>
+          )}
+
           {/* Form Card */}
           <Card className="border-0 shadow-lg">
             <CardHeader className="border-b bg-gray-50/50 px-6 py-5">
@@ -455,6 +521,132 @@ export default function CompleteProfile() {
                     <Heart className="h-5 w-5 text-blue-600" />
                     Préférences personnelles
                   </h3>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="ageRange"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Tranche d&apos;âge <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={formData.ageRange}
+                        onValueChange={(value) => {
+                          handleChange("ageRange", value);
+                          if (fieldErrors.ageRange) {
+                            setFieldErrors((prev) => ({
+                              ...prev,
+                              ageRange: "",
+                            }));
+                          }
+                        }}
+                        disabled={isSaving || !metadataReady}
+                      >
+                        <SelectTrigger
+                          id="ageRange"
+                          className={`h-12 px-4 ${fieldErrors.ageRange ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                        >
+                          <SelectValue placeholder="Sélectionnez..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ageRangeOptions.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldErrors.ageRange && (
+                        <p className="text-sm text-red-600">
+                          {fieldErrors.ageRange}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="currentStatus"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Statut actuel <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={formData.currentStatus}
+                        onValueChange={(value) => {
+                          handleChange("currentStatus", value);
+                          if (fieldErrors.currentStatus) {
+                            setFieldErrors((prev) => ({
+                              ...prev,
+                              currentStatus: "",
+                            }));
+                          }
+                        }}
+                        disabled={isSaving || !metadataReady}
+                      >
+                        <SelectTrigger
+                          id="currentStatus"
+                          className={`h-12 px-4 ${fieldErrors.currentStatus ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                        >
+                          <SelectValue placeholder="Sélectionnez..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currentStatusOptions.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldErrors.currentStatus && (
+                        <p className="text-sm text-red-600">
+                          {fieldErrors.currentStatus}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label
+                        htmlFor="referralSource"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Comment nous avez-vous connus ?{" "}
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={formData.referralSource}
+                        onValueChange={(value) => {
+                          handleChange("referralSource", value);
+                          if (fieldErrors.referralSource) {
+                            setFieldErrors((prev) => ({
+                              ...prev,
+                              referralSource: "",
+                            }));
+                          }
+                        }}
+                        disabled={isSaving || !metadataReady}
+                      >
+                        <SelectTrigger
+                          id="referralSource"
+                          className={`h-12 px-4 ${fieldErrors.referralSource ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                        >
+                          <SelectValue placeholder="Sélectionnez..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {referralSourceOptions.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldErrors.referralSource && (
+                        <p className="text-sm text-red-600">
+                          {fieldErrors.referralSource}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -838,7 +1030,7 @@ export default function CompleteProfile() {
                   </Button>
                   <Button
                     onClick={handleSave}
-                    disabled={isSaving}
+                    disabled={isSaving || !metadataReady}
                     className="flex-1 sm:flex-none h-12 px-8 bg-blue-600 hover:bg-blue-700"
                   >
                     {isSaving ? (
