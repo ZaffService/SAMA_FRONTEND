@@ -34,6 +34,7 @@ import {
   type ProfileMetadataItem,
   type ProfileMetadataResponse,
 } from "@/infrastructure/api/user-api";
+import { BulkUserImportDialog } from "@/components/BulkUserImportDialog";
 
 const getLabel = (
   map: Record<string, string>,
@@ -112,6 +113,8 @@ const UserManagement: React.FC = () => {
     instructors: 0,
     admins: 0,
   });
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [usersReloadToken, setUsersReloadToken] = useState(0);
   const [profileMetadata, setProfileMetadata] =
     useState<ProfileMetadataResponse | null>(null);
 
@@ -211,7 +214,7 @@ const UserManagement: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedRole]);
+  }, [selectedRole, usersReloadToken]);
 
   const loadStats = async () => {
     try {
@@ -606,16 +609,23 @@ const UserManagement: React.FC = () => {
         <h1 className="text-2xl font-bold">Gestion des Utilisateurs</h1>
         <button
           type="button"
-          onClick={() =>
-            window.alert(
-              "Cette fonctionnalité est en cours de développement.",
-            )
-          }
+          onClick={() => setIsImportDialogOpen(true)}
           className="inline-flex items-center justify-center rounded-lg bg-[#002c75] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#001f54]"
         >
           Ajout en masse
         </button>
       </div>
+
+      <BulkUserImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        onImportSuccess={(result) => {
+          if (result.imported > 0) {
+            setUsersReloadToken((prev) => prev + 1);
+            loadStats();
+          }
+        }}
+      />
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

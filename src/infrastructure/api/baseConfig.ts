@@ -59,6 +59,8 @@ export const API_ENDPOINTS = {
     REQUEST_PASSWORD_RESET: "/user/request-password-reset",
     RESET_PASSWORD: "/user/reset-password",
     ADMIN_CREATE: "/user/admin/create-user",
+    IMPORT_USERS: "/import/users",
+    IMPORT_USERS_LEGACY: "/import-users",
   },
   QUIZ: {
     QUESTIONS: (quizId: string) => `/quiz/${quizId}/questions`,

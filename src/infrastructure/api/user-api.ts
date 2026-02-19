@@ -22,6 +22,29 @@ export interface CreateUserData {
   // Add other fields as needed
 }
 
+export interface ImportUsersErrorItem {
+  line: number;
+  message: string;
+}
+
+export interface ImportUsersExistingUser {
+  prenom: string;
+  nom: string;
+  email: string;
+  emailVerified: boolean;
+}
+
+export interface ImportUsersResponse {
+  success: boolean;
+  message: string;
+  totalProcessed: number;
+  imported: number;
+  alreadyExists: number;
+  failed: number;
+  errors: ImportUsersErrorItem[];
+  existingUsers: ImportUsersExistingUser[];
+}
+
 const getStoredAccessToken = (): string | null => {
   if (typeof window === "undefined") {
     return null;
@@ -630,6 +653,61 @@ export class UserApi {
       );
       throw error;
     }
+  }
+
+  /**
+   * Importer des utilisateurs via un fichier Excel/CSV
+   */
+  static async importUsers(file: File): Promise<ImportUsersResponse> {
+    const endpoints = [
+      API_ENDPOINTS.USER.IMPORT_USERS,
+      API_ENDPOINTS.USER.IMPORT_USERS_LEGACY,
+    ];
+
+    let lastEndpointError: Error | null = null;
+
+    for (const endpoint of endpoints) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(buildApiUrl(endpoint), {
+          method: "POST",
+          headers: { ...buildAuthHeaders() },
+          credentials: "include",
+          body: formData,
+        });
+
+        const payload = await response.json().catch(() => null);
+
+        if (response.ok) {
+          return payload as ImportUsersResponse;
+        }
+
+        const message =
+          (payload as any)?.message ||
+          (payload as any)?.error ||
+          `Erreur ${response.status}`;
+
+        if (response.status === 404 || response.status === 405) {
+          lastEndpointError = new Error(message);
+          continue;
+        }
+
+        const error = new Error(message);
+        (error as any).status = response.status;
+        (error as any).payload = payload;
+        throw error;
+      } catch (error) {
+        logger.error("❌ API: Erreur import utilisateurs:", error);
+        throw error;
+      }
+    }
+
+    throw (
+      lastEndpointError ??
+      new Error("Endpoint d'importation introuvable sur le serveur.")
+    );
   }
 
   /**
