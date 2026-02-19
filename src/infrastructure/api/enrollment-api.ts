@@ -1,6 +1,7 @@
 // src/infrastructure/api/enrollment-api.ts
 import logger from "@/shared/helpers/logger";
 import { buildApiUrl, API_ENDPOINTS } from "./baseConfig";
+import Cookies from "js-cookie";
 
 export interface EnrolledCourse {
   id: string;
@@ -29,6 +30,27 @@ export interface EnrollmentRequest {
   userId: string;
 }
 
+export interface EnrollStudentsRequest {
+  courseId: string;
+  userIds: string[];
+  isAdmin?: boolean;
+}
+
+export interface BulkEnrollment {
+  id: string;
+  userId: string;
+  courseId: string;
+  enrollmentDate: string;
+  progressPercentage: number;
+  status: "ACTIVE" | "INACTIVE" | "COMPLETED";
+}
+
+export interface EnrollStudentsResponse {
+  enrollments: BulkEnrollment[];
+  skippedUserIds: string[];
+  notifiedUserIds: string[];
+}
+
 export interface EnrollmentResponse {
   success: boolean;
   message: string;
@@ -40,6 +62,30 @@ export interface PaymentInfo {
   method: string;
   courseId: string;
 }
+
+const getStoredAccessToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return (
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token") ||
+    Cookies.get("access_token") ||
+    null
+  );
+};
+
+const buildAuthHeaders = (): Record<string, string> => {
+  const token = getStoredAccessToken();
+  if (!token) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
 
 export class EnrollmentApi {
   /**
@@ -164,6 +210,46 @@ export class EnrollmentApi {
       return data;
     } catch (error) {
       logger.error("❌ [ENROLLMENT-API] Exception:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Inscrire plusieurs etudiants a un cours (admin)
+   */
+  static async enrollStudentsInCourse(
+    request: EnrollStudentsRequest,
+  ): Promise<EnrollStudentsResponse> {
+    try {
+      const response = await fetch(
+        buildApiUrl(API_ENDPOINTS.COURSES.ENROLLMENT),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...buildAuthHeaders(),
+          },
+          credentials: "include",
+          body: JSON.stringify(request),
+        },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          (data as any)?.message ||
+          (data as any)?.error ||
+          `Erreur ${response.status}`;
+        const error = new Error(message);
+        (error as any).status = response.status;
+        (error as any).payload = data;
+        throw error;
+      }
+
+      return data as EnrollStudentsResponse;
+    } catch (error) {
+      logger.error("❌ [ENROLLMENT-API] Erreur inscription multiple:", error);
       throw error;
     }
   }

@@ -55,10 +55,12 @@ import {
   Edit3,
   Video,
   Eye,
+  UserPlus,
 } from "lucide-react";
 import { CourseEditor } from "./CourseEditor";
 import { CourseBasicInfoEditor } from "./editors/CourseBasicInfoEditor";
 import logger from "@/shared/helpers/logger";
+import { EnrollStudentsDialog } from "@/components/EnrollStudentsDialog";
 
 interface CourseManagementProps {
   onCourseUpdated?: () => void;
@@ -71,7 +73,7 @@ export function CourseManagement({
   onEditCourse,
   onViewVideoStatus,
 }: CourseManagementProps) {
-const { user } = useLocalAuth();
+  const { user } = useLocalAuth();
   const router = useRouter();
   const [courses, setCourses] = useState<BackendCourse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,7 +82,11 @@ const { user } = useLocalAuth();
   const [courseToArchive, setCourseToArchive] = useState<BackendCourse | null>(
     null,
   );
-  const [courseToEditBasic, setCourseToEditBasic] = useState<BackendCourse | null>(null);
+  const [courseToEditBasic, setCourseToEditBasic] =
+    useState<BackendCourse | null>(null);
+  const [courseToEnroll, setCourseToEnroll] = useState<BackendCourse | null>(
+    null,
+  );
 
   const handleConfirmDelete = async (course: BackendCourse) => {
     const result = await Swal.fire({
@@ -342,91 +348,104 @@ const { user } = useLocalAuth();
                       <TableCell>{getStatusBadge(course.status)}</TableCell>
                       <TableCell>{course.enrollmentCount || 0}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
+                        <div className="flex items-center justify-end gap-2">
+                          {user?.role === "ADMIN" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCourseToEnroll(course)}
+                              className="flex items-center gap-2"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Enrôler
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {course.status !== "PUBLISHED" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleStatusChange(course.id, "PUBLISHED")
-                                }
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                                Publier
-                              </DropdownMenuItem>
-                            )}
-                            {course.status !== "DRAFT" && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleStatusChange(course.id, "DRAFT")
-                                }
-                              >
-                                <XCircle className="h-4 w-4 mr-2 text-orange-600" />
-                                Mettre en brouillon
-                              </DropdownMenuItem>
-                            )}
-                            {(user?.role === "ADMIN" ||
-                              user?.role === "INSTRUCTOR") &&
-                              (course.status === "PUBLISHED" ||
-                                course.status === "DRAFT") && (
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {course.status !== "PUBLISHED" && (
                                 <DropdownMenuItem
-                                  onClick={() => setCourseToArchive(course)}
+                                  onClick={() =>
+                                    handleStatusChange(course.id, "PUBLISHED")
+                                  }
                                 >
-                                  <Archive className="h-4 w-4 mr-2 text-gray-600" />
-                                  Archiver
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                  Publier
+                                </DropdownMenuItem>
+                              )}
+                              {course.status !== "DRAFT" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleStatusChange(course.id, "DRAFT")
+                                  }
+                                >
+                                  <XCircle className="h-4 w-4 mr-2 text-orange-600" />
+                                  Mettre en brouillon
+                                </DropdownMenuItem>
+                              )}
+                              {(user?.role === "ADMIN" ||
+                                user?.role === "INSTRUCTOR") &&
+                                (course.status === "PUBLISHED" ||
+                                  course.status === "DRAFT") && (
+                                  <DropdownMenuItem
+                                    onClick={() => setCourseToArchive(course)}
+                                  >
+                                    <Archive className="h-4 w-4 mr-2 text-gray-600" />
+                                    Archiver
+                                  </DropdownMenuItem>
+                                )}
+
+                              {/* Option Modifier le cours - Visible pour ADMIN et INSTRUCTOR */}
+                              {(user?.role === "ADMIN" ||
+                                user?.role === "INSTRUCTOR") && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleEditCourse(course)}
+                                  >
+                                    <Edit3 className="h-4 w-4 mr-2 text-blue-600" />
+                                    Modifier le cours
+                                  </DropdownMenuItem>
+                                )}
+
+                              {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
+                              {(user?.role === "ADMIN" ||
+                                user?.role === "INSTRUCTOR") &&
+                                onViewVideoStatus && (
+                                  <DropdownMenuItem
+                                    onClick={() => onViewVideoStatus(course.id)}
+                                  >
+                                    <Video className="h-4 w-4 mr-2 text-purple-600" />
+                                    Voir statut vidéos
+                                  </DropdownMenuItem>
+                                )}
+
+                              {/* Option Aperçu - Visible pour ADMIN et INSTRUCTOR */}
+                              {(user?.role === "ADMIN" ||
+                                user?.role === "INSTRUCTOR") && (
+                                <DropdownMenuItem
+                                  onClick={() => router.push(`/course-details/${course.id}`)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2 text-indigo-600" />
+                                  Aperçu
                                 </DropdownMenuItem>
                               )}
 
-                            {/* Option Modifier le cours - Visible pour ADMIN et INSTRUCTOR */}
-                            {(user?.role === "ADMIN" ||
-                              user?.role === "INSTRUCTOR") && (
+                              {/* Option Supprimer - Visible pour ADMIN */}
+                              {user?.role === "ADMIN" && (
                                 <DropdownMenuItem
-                                  onClick={() => handleEditCourse(course)}
+                                  onClick={() => handleConfirmDelete(course)}
+                                  className="text-red-600 focus:text-red-600"
                                 >
-                                  <Edit3 className="h-4 w-4 mr-2 text-blue-600" />
-                                  Modifier le cours
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
                                 </DropdownMenuItem>
                               )}
-
-                            {/* Option Voir statut vidéos - Visible pour ADMIN et INSTRUCTOR */}
-                            {(user?.role === "ADMIN" ||
-                              user?.role === "INSTRUCTOR") &&
-                              onViewVideoStatus && (
-                                <DropdownMenuItem
-                                  onClick={() => onViewVideoStatus(course.id)}
-                                >
-                                  <Video className="h-4 w-4 mr-2 text-purple-600" />
-                                  Voir statut vidéos
-                                </DropdownMenuItem>
-                              )}
-
-                            {/* Option Aperçu - Visible pour ADMIN et INSTRUCTOR */}
-                            {(user?.role === "ADMIN" ||
-                              user?.role === "INSTRUCTOR") && (
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/course-details/${course.id}`)}
-                              >
-                                <Eye className="h-4 w-4 mr-2 text-indigo-600" />
-                                Aperçu
-                              </DropdownMenuItem>
-                            )}
-
-                            {/* Option Supprimer - Visible pour ADMIN */}
-                            {user?.role === "ADMIN" && (
-                              <DropdownMenuItem
-                                onClick={() => handleConfirmDelete(course)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -462,9 +481,17 @@ const { user } = useLocalAuth();
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      
-
+      <EnrollStudentsDialog
+        open={!!courseToEnroll}
+        course={courseToEnroll}
+        onOpenChange={(open) => {
+          if (!open) setCourseToEnroll(null);
+        }}
+        onEnrollmentComplete={() => {
+          fetchCourses();
+          onCourseUpdated?.();
+        }}
+      />
 
     </div>
   );

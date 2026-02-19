@@ -1,0 +1,401 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Users, Loader2 } from "lucide-react";
+import { userService } from "@/services/userService";
+import type { User } from "@/types/user";
+import type { BackendCourse } from "@/infrastructure/api/courses-api";
+import {
+  EnrollmentApi,
+  type EnrollStudentsResponse,
+} from "@/infrastructure/api/enrollment-api";
+import { toast } from "sonner";
+import Swal from "sweetalert2";
+import logger from "@/shared/helpers/logger";
+
+interface EnrollStudentsDialogProps {
+  open: boolean;
+  course: BackendCourse | null;
+  onOpenChange: (open: boolean) => void;
+  onEnrollmentComplete?: () => void;
+}
+
+const getInitials = (user: User) => {
+  const first = user.firstName?.trim()?.[0] ?? "";
+  const last = user.lastName?.trim()?.[0] ?? "";
+  const fallback = user.email?.trim()?.[0] ?? "?";
+  const initials = `${first}${last}`.trim();
+  return (initials || fallback).toUpperCase();
+};
+
+export function EnrollStudentsDialog({
+  open,
+  course,
+  onOpenChange,
+  onEnrollmentComplete,
+}: EnrollStudentsDialogProps) {
+  const [students, setStudents] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
+  const [lastResult, setLastResult] = useState<EnrollStudentsResponse | null>(
+    null,
+  );
+
+  const resetState = () => {
+    setSearchQuery("");
+    setSelectedIds(new Set());
+    setEnrolledIds(new Set());
+    setLastResult(null);
+  };
+
+  useEffect(() => {
+    if (!open) {
+      resetState();
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadStudents = async () => {
+      setLoading(true);
+      try {
+        const batchLimit = 100;
+        const firstResponse = await userService.getUsersByRole({
+          role: "STUDENT",
+          page: 1,
+          limit: batchLimit,
+        });
+
+        const effectiveLimit = Math.min(
+          firstResponse.limit && firstResponse.limit > 0
+            ? firstResponse.limit
+            : batchLimit,
+          batchLimit,
+        );
+        const total =
+          typeof firstResponse.total === "number"
+            ? firstResponse.total
+            : firstResponse.users.length;
+        const totalPages = Math.max(1, Math.ceil(total / effectiveLimit));
+
+        let allStudents = [...firstResponse.users];
+
+        for (let page = 2; page <= totalPages; page += 1) {
+          const response = await userService.getUsersByRole({
+            role: "STUDENT",
+            page,
+            limit: effectiveLimit,
+          });
+          allStudents = allStudents.concat(response.users);
+        }
+
+        if (!cancelled) {
+          setStudents(allStudents);
+        }
+      } catch (error) {
+        logger.error("Erreur chargement étudiants:", error);
+        if (!cancelled) {
+          toast.error("Impossible de charger la liste des étudiants");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadStudents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students;
+    const query = searchQuery.toLowerCase();
+    return students.filter((student) => {
+      const searchable = [
+        student.firstName,
+        student.lastName,
+        `${student.firstName} ${student.lastName}`,
+        student.email,
+        student.telephone,
+        student.userProfile?.phone,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [students, searchQuery]);
+
+  const selectedCount = selectedIds.size;
+  const availableCount = students.length;
+  const enrolledCount = enrolledIds.size;
+
+  const allFilteredSelected =
+    filteredStudents.length > 0 &&
+    filteredStudents.every((student) =>
+      selectedIds.has(String(student.id)),
+    );
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredStudents.forEach((student) =>
+          next.delete(String(student.id)),
+        );
+      } else {
+        filteredStudents.forEach((student) => next.add(String(student.id)));
+      }
+      return next;
+    });
+  };
+
+  const toggleStudent = (userId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
+  const handleEnroll = async () => {
+    if (!course?.id) {
+      toast.error("Cours introuvable");
+      return;
+    }
+
+    if (selectedIds.size === 0) {
+      toast.error("Sélectionnez au moins un étudiant");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await EnrollmentApi.enrollStudentsInCourse({
+        courseId: course.id,
+        userIds: Array.from(selectedIds),
+        isAdmin: true,
+      });
+
+      setLastResult(response);
+      setSelectedIds(new Set());
+      setEnrolledIds((prev) => {
+        const next = new Set(prev);
+        response.enrollments?.forEach((enrollment) => {
+          next.add(String(enrollment.userId));
+        });
+        return next;
+      });
+
+      const swalTarget = document.getElementById("enroll-students-dialog");
+      await Swal.fire({
+        icon: "success",
+        title: "Enrôlement réussi",
+        html: `<div style=\"font-size:14px;line-height:1.5;color:#374151;\">${response.enrollments.length} étudiant(s) inscrit(s) avec succès</div>`,
+        confirmButtonText: "OK",
+        confirmButtonColor: "#002c75",
+        showCloseButton: true,
+        heightAuto: false,
+        target: swalTarget ?? undefined,
+      });
+      onEnrollmentComplete?.();
+    } catch (error) {
+      logger.error("Erreur inscription multiple:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de l'inscription des étudiants";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        id="enroll-students-dialog"
+        className="sm:max-w-[900px] p-0 overflow-hidden"
+      >
+        <div className="border-b px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Enrôler des étudiants
+              </h2>
+              <p className="text-sm text-gray-500">
+                Cours : <span className="font-semibold">{course?.title ?? "-"}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4">
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+            <span>
+              <strong className="text-gray-900">{availableCount}</strong> étudiants disponibles
+            </span>
+            {enrolledCount > 0 && (
+              <span>
+                <strong className="text-green-600">{enrolledCount}</strong> enrôlés
+              </span>
+            )}
+            <span>
+              <strong className="text-blue-600">{selectedCount}</strong> sélectionnés
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Rechercher un étudiant..."
+                className="pl-9"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={toggleSelectAll}
+              disabled={filteredStudents.length === 0}
+              className="flex items-center gap-2"
+            >
+              <Users className="h-4 w-4" />
+              {allFilteredSelected ? "Désélectionner" : "Tout sélectionner"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="px-6">
+          <div className="max-h-[420px] overflow-y-auto pr-1 pb-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-10 text-gray-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="ml-2">Chargement des étudiants...</span>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="py-10 text-center text-sm text-gray-500">
+                Aucun étudiant trouvé.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredStudents.map((student) => {
+                  const userId = String(student.id);
+                  const isSelected = selectedIds.has(userId);
+                  const isEnrolled = enrolledIds.has(userId);
+                  const phone =
+                    student.telephone || student.userProfile?.phone || "-";
+
+                  return (
+                    <div
+                      key={userId}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
+                      onClick={() => toggleStudent(userId)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          toggleStudent(userId);
+                        }
+                      }}
+                      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${
+                        isSelected
+                          ? "border-blue-200 bg-blue-50"
+                          : "border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/40"
+                      }`}
+                    >
+                      <div
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleStudent(userId);
+                        }}
+                        className="flex items-center"
+                      >
+                        <Checkbox checked={isSelected} />
+                      </div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF4FF] text-xs font-semibold text-[#002c75]">
+                        {getInitials(student)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900">
+                            {student.firstName} {student.lastName}
+                          </p>
+                          {isEnrolled && (
+                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                              Enrôlé
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">{student.email}</p>
+                      </div>
+                      <div className="text-xs text-gray-500">{phone}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {lastResult && (
+          <div className="mx-6 mb-4 rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <div>
+              {lastResult.enrollments.length} étudiant(s) inscrit(s) • {" "}
+              {lastResult.skippedUserIds.length} ignoré(s) • {" "}
+              {lastResult.notifiedUserIds.length} notification(s) envoyée(s)
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between border-t px-6 py-4">
+          <p className="text-sm text-gray-600">
+            {selectedCount > 0
+              ? `${selectedCount} étudiant(s) seront enrôlé(s)`
+              : "Sélectionnez des étudiants à enrôler"}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={handleEnroll}
+              disabled={submitting || selectedCount === 0}
+              className="bg-[#002c75] hover:bg-[#001f54]"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enrôlement...
+                </>
+              ) : (
+                `Enrôler (${selectedCount})`
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
