@@ -118,6 +118,7 @@ export function SecureVideoPlayer({
   const lastTrackedTimeRef = useRef(0);
   const lastKnownDurationRef = useRef(0);
   const completionNotifiedRef = useRef(false);
+  const completionThresholdNotifiedRef = useRef(false);
   const onProgressWindowRef = useRef(onProgressWindow);
 
   useEffect(() => {
@@ -222,14 +223,14 @@ export function SecureVideoPlayer({
 
   const maybeNotifyCompleted = useCallback(
     (currentTime: number, duration: number, source: string) => {
-      if (completionNotifiedRef.current) return;
+      if (completionThresholdNotifiedRef.current) return;
       if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) {
         return;
       }
 
       const ratio = currentTime / duration;
       if (ratio >= COMPLETION_THRESHOLD) {
-        completionNotifiedRef.current = true;
+        completionThresholdNotifiedRef.current = true;
         logger.log("[TRACKING][player] seuil 95% atteint", {
           lessonId,
           source,
@@ -237,10 +238,9 @@ export function SecureVideoPlayer({
           duration,
           ratio: Number((ratio * 100).toFixed(2)),
         });
-        onEnded?.();
       }
     },
-    [lessonId, onEnded],
+    [lessonId],
   );
 
   const maybeNotifyEnded = useCallback(
@@ -287,6 +287,7 @@ export function SecureVideoPlayer({
         ? durationHintSeconds
         : 0;
     completionNotifiedRef.current = false;
+    completionThresholdNotifiedRef.current = false;
     logger.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
   }, [durationHintSeconds, lessonId, videoUrl]);
 

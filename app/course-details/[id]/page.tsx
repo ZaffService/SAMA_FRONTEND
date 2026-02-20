@@ -1781,6 +1781,13 @@ function CourseDetailsPageComponent() {
 
   const handleNextLesson = useCallback(() => {
     if (currentLessonIndex < lessonsWithVideos.length - 1) {
+      const lessonToComplete = lessonsWithVideos[currentLessonIndex]?.id;
+      if (lessonToComplete && hasCourseAccess) {
+        void markLessonCompletedAutomatically(lessonToComplete, {
+          forceComplete: true,
+          source: "next_button",
+        });
+      }
       setCurrentLessonIndex(currentLessonIndex + 1);
       setContentMode("video");
       setActiveQuizModuleId(null);
@@ -1796,8 +1803,10 @@ function CourseDetailsPageComponent() {
     }
   }, [
     currentLessonIndex,
+    hasCourseAccess,
     isMobile,
     lessonsWithVideos,
+    markLessonCompletedAutomatically,
   ]);
 
   useEffect(() => {
