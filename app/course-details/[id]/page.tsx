@@ -321,6 +321,7 @@ function CourseDetailsPageComponent() {
     type: "warning" | "info";
     message: string;
   } | null>(null);
+  const hasCourseAccess = isEnrolled === true || isAdmin;
 
   // ✅ NOUVEAU: Flag pour éviter les requêtes d'enrollment multiples
   const [enrollmentCheckComplete, setEnrollmentCheckComplete] = useState(false);
@@ -1517,6 +1518,37 @@ function CourseDetailsPageComponent() {
           });
         }
 
+        // Endpoint alternatif /course/lesson/complete/:lessonId
+        if (!marked) {
+          try {
+            const alternateResponse = await fetch(
+              buildApiUrl(`${API_ENDPOINTS.COURSES.LESSON_COMPLETE}/${lessonId}`),
+              {
+                method: "POST",
+                credentials: "include",
+              },
+            );
+
+            if (alternateResponse.ok || alternateResponse.status === 409) {
+              marked = true;
+              logger.log("✅ [TRACKING] complétion via endpoint alternatif", {
+                lessonId,
+                source: options?.source || "unknown",
+                forceComplete: options?.forceComplete === true,
+                status: alternateResponse.status,
+              });
+            }
+          } catch (error) {
+            lastError = error;
+            logger.warn("⚠️ [TRACKING] endpoint alternatif a échoué", {
+              lessonId,
+              source: options?.source || "unknown",
+              forceComplete: options?.forceComplete === true,
+              error,
+            });
+          }
+        }
+
         // Fallback sur l'autre route utilisée par certains environnements.
         if (!marked) {
           const fallbackPayload: Record<string, unknown> = {};
@@ -1619,6 +1651,18 @@ function CourseDetailsPageComponent() {
       }
     },
     [persistTrackingToStorage],
+  );
+
+  const handleManualLessonComplete = useCallback(
+    (lessonId: string) => {
+      if (!lessonId) return;
+      if (!hasCourseAccess) return;
+      void markLessonCompletedAutomatically(lessonId, {
+        forceComplete: true,
+        source: "manual_sidebar",
+      });
+    },
+    [hasCourseAccess, markLessonCompletedAutomatically],
   );
 
   const handleVideoTrackingProgress = useCallback(
@@ -1908,6 +1952,7 @@ function CourseDetailsPageComponent() {
                 <div className="bg-white">
                   {moduleLessons.map((lesson, lessonIndex) => {
                     const completed = isLessonCompleted(lesson.id);
+                    const canManuallyComplete = hasCourseAccess && !completed;
 
                     return (
                       <div
@@ -1918,21 +1963,7 @@ function CourseDetailsPageComponent() {
                             : "bg-white hover:bg-[#F7F9FA]"
                         }`}
                       >
-                        <div className="flex items-start gap-3 px-4 py-3">
-                          <span
-                            className={`mt-1 flex h-5 w-5 items-center justify-center rounded-sm border ${
-                              completed
-                                ? "border-[#3ECF8E] bg-[#3ECF8E]"
-                                : "border-[#6A6F73] bg-white"
-                            }`}
-                          >
-                            {completed ? (
-                              <Check className="h-3 w-3 text-white" />
-                            ) : (
-                              <span className="h-2.5 w-2.5 rounded-[2px] border border-[#D1D7DC]" />
-                            )}
-                          </span>
-
+                        <div className="flex flex-col gap-2 px-4 py-3">
                           <button
                             onClick={() => {
                               const lessonIndex = lessonsWithVideos.findIndex(
@@ -1951,7 +1982,7 @@ function CourseDetailsPageComponent() {
                                 });
                               }
                             }}
-                            className="flex flex-1 items-start gap-3 text-left"
+                            className="flex items-start gap-3 text-left"
                           >
                             <div className="min-w-0 flex-1">
                               <p className="line-clamp-2 text-sm leading-5 text-[#1C1D1F]">
@@ -1970,6 +2001,48 @@ function CourseDetailsPageComponent() {
                                 </span>
                               </div>
                             </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleManualLessonComplete(lesson.id)}
+                            disabled={!hasCourseAccess || completed}
+                            aria-label={
+                              completed
+                                ? "Leçon terminée"
+                                : "Marquer la leçon comme terminée"
+                            }
+                            title={
+                              completed
+                                ? "Leçon terminée"
+                                : "Marquer comme terminée"
+                            }
+                            className={`inline-flex items-center gap-2 text-xs font-medium transition-colors ${
+                              completed
+                                ? "text-[#6A6F73]"
+                                : "text-[#002c75] hover:text-[#001f52]"
+                            } ${canManuallyComplete ? "cursor-pointer" : "cursor-not-allowed"}`}
+                          >
+                            <span
+                              className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
+                                completed
+                                  ? "border-[#3ECF8E] bg-[#3ECF8E]"
+                                  : canManuallyComplete
+                                    ? "border-[#6A6F73] bg-white hover:border-[#002c75] hover:bg-[#EAF2FF]"
+                                    : "border-[#D1D7DC] bg-[#F7F9FA]"
+                              }`}
+                            >
+                              {completed ? (
+                                <Check className="h-3 w-3 text-white" />
+                              ) : (
+                                <span className="h-2 w-2 rounded-full border border-[#D1D7DC]" />
+                              )}
+                            </span>
+                            <span>
+                              {completed
+                                ? "Marqué comme terminé"
+                                : "Marquer comme terminé"}
+                            </span>
                           </button>
                         </div>
                       </div>
@@ -2009,7 +2082,6 @@ function CourseDetailsPageComponent() {
     </div>
   );
 
-  const hasCourseAccess = isEnrolled === true || isAdmin;
   const completedLessonsCount = lessonsWithVideos.filter((lesson) =>
     isLessonCompleted(lesson.id),
   ).length;
