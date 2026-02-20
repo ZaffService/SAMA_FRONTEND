@@ -1278,14 +1278,6 @@ function CourseDetailsPageComponent() {
 
   // ✅ Handler quiz complété
   const handleQuizCompleted = useCallback((passed: boolean, score: number) => {
-    Swal.fire({
-      title: passed ? "Bravo ! 🎉" : "Dommage 😟",
-      text: `Vous avez obtenu ${score}%`,
-      icon: passed ? "success" : "warning",
-      confirmButtonText: "Continuer",
-      confirmButtonColor: "#6366f1",
-    });
-
     logger.log(`Quiz terminé: ${passed ? "Réussi" : "Échoué"} avec ${score}%`);
   }, []);
 

@@ -2,7 +2,15 @@
 
 import React from "react";
 import { useState, useEffect } from "react";
-import { X, CheckCircle, XCircle, Clock, Award, ArrowLeft } from "lucide-react";
+import {
+  X,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Award,
+  ArrowLeft,
+  Check,
+} from "lucide-react";
 import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
 import logger from "@/shared/helpers/logger";
@@ -125,7 +133,31 @@ export function QuizModal({
 
     setIsSubmitting(true);
     try {
-      const result = await QuizApi.submitQuiz(quizData.quiz.id, answers);
+      const formattedAnswers: Record<string, string> = {};
+      quizData.questions.forEach((question) => {
+        const selectedIndex = answers[question.id];
+        if (selectedIndex === undefined) return;
+
+        let options = question.options;
+        if ((!options || options.length === 0) && question.type === "TRUE_FALSE") {
+          options = ["Vrai", "Faux"];
+        }
+
+        if (options && typeof selectedIndex === "number") {
+          const selectedText = options[selectedIndex];
+          if (typeof selectedText === "string") {
+            formattedAnswers[question.id] = selectedText;
+            return;
+          }
+        }
+
+        formattedAnswers[question.id] = String(selectedIndex);
+      });
+
+      const result = await QuizApi.submitQuiz(
+        quizData.quiz.id,
+        formattedAnswers,
+      );
       setQuizResult({ score: result.score, passed: result.passed });
 
       if (result.passed) {
@@ -490,26 +522,30 @@ function QuestionCard({
                 htmlFor={`option-${question.id}-${index}`}
                 className={`flex items-center gap-3 cursor-pointer transition-all group ${
                   isPage
-                    ? "p-1"
+                    ? `rounded-xl border-2 px-3 py-3 sm:px-4 sm:py-4 ${
+                        isSelected
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
+                      }`
                     : `p-3 sm:p-4 border-2 rounded-xl ${
                         isSelected
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
                       }`
                 }`}
               >
                 <div
-                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border text-xs font-medium transition-colors ${
-                    isPage
-                      ? isSelected
-                        ? "border-[#0056D2] bg-[#E8F1FF] text-[#0056D2]"
-                        : "border-[#9CA3AF] bg-white text-[#6B7280]"
-                      : isSelected
-                        ? "border-transparent bg-blue-200 text-blue-700"
-                        : "border-transparent bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
+                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border-2 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : "border-gray-300 bg-white text-gray-500 group-hover:border-emerald-400"
                   }`}
                 >
-                  {isPage ? "" : String.fromCharCode(65 + index)}
+                  {isPage ? (
+                    isSelected ? <Check className="h-3.5 w-3.5" /> : null
+                  ) : (
+                    String.fromCharCode(65 + index)
+                  )}
                 </div>
                 <input
                   type="radio"
@@ -521,14 +557,14 @@ function QuestionCard({
                   className="sr-only"
                 />
                 <span
-                  className={`flex-1 text-gray-800 leading-relaxed ${
-                    isPage ? "text-[15px]" : "text-sm sm:text-base"
-                  }`}
+                  className={`flex-1 leading-relaxed ${
+                    isSelected ? "text-emerald-900 font-semibold" : "text-gray-800"
+                  } ${isPage ? "text-[15px]" : "text-sm sm:text-base"}`}
                 >
                   {option}
                 </span>
                 {!isPage && isSelected && (
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 flex-shrink-0" />
                 )}
               </label>
             );
@@ -546,26 +582,30 @@ function QuestionCard({
                 htmlFor={`option-${question.id}-${index}`}
                 className={`flex items-center gap-3 cursor-pointer transition-all group ${
                   isPage
-                    ? "p-1"
+                    ? `rounded-xl border-2 px-3 py-3 sm:px-4 sm:py-4 ${
+                        isSelected
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
+                      }`
                     : `p-3 sm:p-4 border-2 rounded-xl ${
                         isSelected
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
                       }`
                 }`}
               >
                 <div
-                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border text-xs font-medium transition-colors ${
-                    isPage
-                      ? isSelected
-                        ? "border-[#0056D2] bg-[#E8F1FF] text-[#0056D2]"
-                        : "border-[#9CA3AF] bg-white text-[#6B7280]"
-                      : isSelected
-                        ? "border-transparent bg-blue-200 text-blue-700"
-                        : "border-transparent bg-gray-200 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
+                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border-2 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : "border-gray-300 bg-white text-gray-500 group-hover:border-emerald-400"
                   }`}
                 >
-                  {isPage ? "" : String.fromCharCode(65 + index)}
+                  {isPage ? (
+                    isSelected ? <Check className="h-3.5 w-3.5" /> : null
+                  ) : (
+                    String.fromCharCode(65 + index)
+                  )}
                 </div>
                 <input
                   type="radio"
@@ -577,14 +617,14 @@ function QuestionCard({
                   className="sr-only"
                 />
                 <span
-                  className={`flex-1 text-gray-800 ${
-                    isPage ? "text-[15px]" : "text-sm sm:text-base"
-                  }`}
+                  className={`flex-1 ${
+                    isSelected ? "text-emerald-900 font-semibold" : "text-gray-800"
+                  } ${isPage ? "text-[15px]" : "text-sm sm:text-base"}`}
                 >
                   {option}
                 </span>
                 {!isPage && isSelected && (
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 flex-shrink-0" />
                 )}
               </label>
             );

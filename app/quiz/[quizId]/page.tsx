@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { EnrollmentApi } from "@/infrastructure/api/enrollment-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
-import { ArrowLeft, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Clock, Check } from "lucide-react";
 import Link from "next/link";
 import { showQuizFailureModal } from "@/shared/helpers/sweet-alert";
 import logger from "@/shared/helpers/logger";
@@ -82,10 +82,10 @@ export default function QuizPage() {
   const progress =
     ((currentQuestionIndex + 1) / (quiz?.questions.length || 1)) * 100;
 
-  const handleAnswerSelect = (questionId: string, answer: string) => {
+  const handleAnswerSelect = (questionId: string, answerText: string) => {
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: answer,
+      [questionId]: answerText,
     }));
   };
 
@@ -106,14 +106,6 @@ export default function QuizPage() {
 
     setSubmitting(true);
     try {
-      // Formater les réponses selon l'API
-      const formattedAnswers = Object.entries(answers).map(
-        ([questionId, selectedAnswer]) => ({
-          questionId,
-          selectedAnswer,
-        }),
-      );
-
       const response = await fetch(
         buildApiUrl(API_ENDPOINTS.QUIZ.SUBMIT(quizId)),
         {
@@ -122,7 +114,7 @@ export default function QuizPage() {
             "Content-Type": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({ answers: formattedAnswers }),
+          body: JSON.stringify({ answers }),
         },
       );
 
@@ -368,24 +360,48 @@ export default function QuizPage() {
 
             {/* Options */}
             <div className="space-y-3 mb-8">
-              {currentQuestion.options.map((option, index) => (
-                <label
-                  key={index}
-                  className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-colors"
-                >
-                  <input
-                    type="radio"
-                    name={`question-${currentQuestion.id}`}
-                    value={option}
-                    checked={answers[currentQuestion.id] === option}
-                    onChange={() =>
+              {currentQuestion.options.map((option, index) => {
+                const isSelected = answers[currentQuestion.id] === option;
+                return (
+                  <label
+                    key={index}
+                    className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      isSelected
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full border-2 text-white ${
+                        isSelected
+                          ? "border-emerald-500 bg-emerald-500"
+                          : "border-gray-300 bg-white text-transparent"
+                      }`}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    <input
+                      type="radio"
+                      name={`question-${currentQuestion.id}`}
+                      value={option}
+                      checked={isSelected}
+                      onChange={() =>
                       handleAnswerSelect(currentQuestion.id, option)
                     }
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <span className="text-gray-900">{option}</span>
-                </label>
-              ))}
+                      className="sr-only"
+                    />
+                    <span
+                      className={`flex-1 ${
+                        isSelected
+                          ? "text-emerald-900 font-semibold"
+                          : "text-gray-900"
+                      }`}
+                    >
+                      {option}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
 
             {/* Navigation */}
@@ -405,7 +421,7 @@ export default function QuizPage() {
 
               <button
                 onClick={handleNext}
-                disabled={!answers[currentQuestion.id]}
+                disabled={answers[currentQuestion.id] === undefined}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
               >
                 {isLastQuestion
