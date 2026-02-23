@@ -2662,11 +2662,7 @@ function CourseDetailsPageComponent() {
                                   {module.description || "Module orienté pratique"}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-3 text-xs font-medium text-[#475467]">
-                                <span>{moduleLessons.length} leçons</span>
-                                <span>•</span>
-                                <span>{formatDuration(moduleDuration)}</span>
-                              </div>
+                              
                             </div>
                           );
                         })}
