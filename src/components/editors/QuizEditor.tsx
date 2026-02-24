@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { QuizService } from "@/infrastructure/api/quizService";
 import logger from "@/shared/helpers/logger";
 // import { AddQuizDialog } from "./AddQuizDialog";
 
@@ -79,7 +80,7 @@ export function QuizEditor({ courseId, onBack }: QuizEditorProps) {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce quiz ?")) return;
     
     try {
-      await CoursesApi.deleteQuiz(quizId);
+      await QuizService.deleteQuiz(quizId);
       toast.success("Quiz supprimé avec succès");
       if (selectedModuleId) {
         loadQuizzes(selectedModuleId);
@@ -227,12 +228,6 @@ export function QuizEditor({ courseId, onBack }: QuizEditorProps) {
           </Card>
         )}
 
-        <AddQuizDialog
-          moduleId={selectedModuleId}
-          open={showAddQuizDialog}
-          onOpenChange={setShowAddQuizDialog}
-          onQuizAdded={() => selectedModuleId && loadQuizzes(selectedModuleId)}
-        />
       </div>
     </div>
   );

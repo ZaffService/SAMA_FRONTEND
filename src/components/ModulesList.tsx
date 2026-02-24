@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Plus, 
   Edit3, 
   Settings, 
+  ListChecks,
+  Loader2,
   Trash2, 
   BookOpen,
   X,
@@ -15,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   Dialog,
   DialogContent,
@@ -24,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { Module } from "@/domain/entities/module";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { QuizService } from "@/infrastructure/api/quizService";
 import Swal from "sweetalert2";
 import logger from "@/shared/helpers/logger";
 
@@ -36,11 +41,14 @@ interface ModulesListProps {
 }
 
 export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveModule, courseId }: ModulesListProps) {
+  const router = useRouter();
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [deleteConfirmModule, setDeleteConfirmModule] = useState<Module | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [editingValues, setEditingValues] = useState<Record<number, { title: string; description: string }>>({});
+  const [quizMetaByModuleId, setQuizMetaByModuleId] = useState<Record<string, { quizId: string; questionsCount: number } | null>>({});
+  const [quizLoadingByModuleId, setQuizLoadingByModuleId] = useState<Record<string, boolean>>({});
 
   // Log pour déboguer les changements de props modules
   useEffect(() => {
@@ -49,6 +57,43 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       logger.log(`  Module ${i + 1}: ${m.title} (id: ${m.id || 'temp'})`);
     });
   }, [modules]);
+
+  useEffect(() => {
+    const moduleIds = modules
+      .map((module) => module.id)
+      .filter((id): id is string => Boolean(id));
+
+    if (moduleIds.length === 0) return;
+
+    const idsToFetch = moduleIds.filter(
+      (id) => quizMetaByModuleId[id] === undefined && !quizLoadingByModuleId[id],
+    );
+
+    if (idsToFetch.length === 0) return;
+
+    idsToFetch.forEach(async (moduleId) => {
+      setQuizLoadingByModuleId((prev) => ({ ...prev, [moduleId]: true }));
+
+      try {
+        const quiz = await QuizService.getQuizByModule(moduleId);
+        if (quiz) {
+          const questionsCount =
+            quiz.questions?.length ?? quiz.questionsCount ?? 0;
+          setQuizMetaByModuleId((prev) => ({
+            ...prev,
+            [moduleId]: { quizId: quiz.id, questionsCount },
+          }));
+        } else {
+          setQuizMetaByModuleId((prev) => ({ ...prev, [moduleId]: null }));
+        }
+      } catch (error) {
+        logger.error("❌ [ModulesList] Erreur chargement quiz module:", error);
+        setQuizMetaByModuleId((prev) => ({ ...prev, [moduleId]: null }));
+      } finally {
+        setQuizLoadingByModuleId((prev) => ({ ...prev, [moduleId]: false }));
+      }
+    });
+  }, [modules, quizMetaByModuleId, quizLoadingByModuleId]);
 
   const addModule = () => {
     const newModule: Module = {
@@ -343,6 +388,11 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     setDragOverIndex(null);
   };
 
+  const handleManageQuiz = (moduleId: string) => {
+    if (!courseId) return;
+    router.push(`/admin/edit-course/${courseId}/quiz/${moduleId}`);
+  };
+
   const lessonsCount = (module: Module) => {
     return module.lessons?.length || 0;
   };
@@ -385,8 +435,21 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
         </Card>
       ) : (
         <div className="space-y-4">
-          {modules.map((module, index) => (
-            <Card 
+          {modules.map((module, index) => {
+            const moduleId = module.id;
+            const quizMeta = moduleId ? quizMetaByModuleId[moduleId] : undefined;
+            const isQuizKnown = quizMeta !== undefined;
+            const isQuizLoading = moduleId ? quizLoadingByModuleId[moduleId] : false;
+            const hasQuiz = Boolean(quizMeta);
+            const questionsCount = quizMeta?.questionsCount ?? 0;
+            const quizLabel = isQuizKnown
+              ? hasQuiz
+                ? "Gérer Quiz"
+                : "Créer Quiz"
+              : "Quiz...";
+
+            return (
+              <Card 
               key={module.id || module.tempId} 
               className={`overflow-hidden transition-all ${
                 dragOverIndex === index && draggedIndex !== index
@@ -396,7 +459,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
               onDragOver={(e) => handleDragOver(e, index)}
               onDrop={(e) => handleDrop(e, index)}
               onDragLeave={(e) => handleDragLeave(e)}
-            >
+              >
               <CardContent className="p-0">
                 <div className="flex items-center p-4">
                   <div
@@ -462,6 +525,39 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                     >
                       <Settings className="h-4 w-4" />
                       Gérer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => moduleId && handleManageQuiz(moduleId)}
+                      disabled={!moduleId || isQuizLoading}
+                      className={`flex items-center gap-1 border-indigo-200 hover:bg-indigo-50 ${
+                        !moduleId
+                          ? "opacity-50 cursor-not-allowed text-gray-400"
+                          : "text-indigo-600"
+                      }`}
+                      title={
+                        !moduleId
+                          ? "Enregistrez le module pour gérer le quiz"
+                          : hasQuiz
+                          ? "Gérer le quiz du module"
+                          : "Créer un quiz pour ce module"
+                      }
+                    >
+                      {isQuizLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ListChecks className="h-4 w-4" />
+                      )}
+                      {quizLabel}
+                      {hasQuiz && !isQuizLoading && (
+                        <Badge
+                          variant="secondary"
+                          className="ml-1 border border-indigo-200 bg-indigo-100 text-indigo-700"
+                        >
+                          {questionsCount}
+                        </Badge>
+                      )}
                     </Button>
                     <Button
                       variant="outline"
@@ -551,8 +647,9 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                   </div>
                 )}
               </CardContent>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 

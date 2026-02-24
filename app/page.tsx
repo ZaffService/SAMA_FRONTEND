@@ -30,6 +30,7 @@ import HeroBanner from "@/components/hero-banner";
 import WhyChooseBibocom from "@/components/why-choose-bibocom";
 import HowItWorks from "@/components/how-it-works";
 import { Testimonials } from "@/components/testimonials";
+import TrustCarousel from "@/components/TrustCarousel";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
@@ -446,6 +447,7 @@ const Index = () => {
 
       {/* Section Témoignages -仅 pour les utilisateurs non connectés */}
       <Testimonials />
+      <TrustCarousel />
 
       <a
         href="https://wa.me/221788784040"

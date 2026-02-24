@@ -1165,7 +1165,10 @@ function CourseDetailsPageComponent() {
 
   // ✅ Vérifier si un quiz existe pour un module
   const hasQuizForModule = (moduleId: string): boolean => {
-    return !!getModuleQuiz(moduleId);
+    if (moduleQuizzes[moduleId] !== undefined) {
+      return moduleQuizzes[moduleId];
+    }
+    return Boolean(getModuleQuiz(moduleId));
   };
 
   const lessonsWithVideos = useMemo(() => {
@@ -1337,11 +1340,16 @@ function CourseDetailsPageComponent() {
   };
 
   // ✅ Handler pour démarrer un quiz
-  const handleStartQuiz = (moduleId: string) => {
+  const handleStartQuiz = async (moduleId: string) => {
     logger.log("🎯 Démarrage du quiz pour le module:", moduleId);
 
-    const quiz = getModuleQuiz(moduleId);
-    if (!quiz) {
+    let quizAvailable = hasQuizForModule(moduleId);
+
+    if (!quizAvailable && moduleQuizzes[moduleId] === undefined) {
+      quizAvailable = await checkQuizExists(moduleId);
+    }
+
+    if (!quizAvailable) {
       Swal.fire({
         title: "Aucun quiz disponible",
         text: "Ce module n'a pas de quiz pour le moment.",
@@ -1900,7 +1908,7 @@ function CourseDetailsPageComponent() {
           .map((module, moduleIndex) => {
           const isExpanded = expandedModules.has(module.id);
           const isModuleCompleted = completedModules.has(module.id);
-          const moduleQuiz = getModuleQuiz(module.id);
+          const moduleHasQuiz = hasQuizForModule(module.id);
           const moduleLessons = [...module.lessons]
             .filter((l) => l.hasVideo)
             .sort((a, b) => a.orderIndex - b.orderIndex);
@@ -2043,7 +2051,7 @@ function CourseDetailsPageComponent() {
                 </div>
               )}
 
-              {moduleQuiz && isModuleCompleted && (
+              {moduleHasQuiz && isModuleCompleted && (
                 <div className="border-t border-[#D1D7DC] bg-[#F7F9FA] px-4 py-3">
                   <button
                     onClick={() => handleStartQuiz(module.id)}
@@ -2663,7 +2671,7 @@ function CourseDetailsPageComponent() {
                                 </p>
                               </div>
                               
-                            </div>
+                            </div> 
                           );
                         })}
                     </div>
