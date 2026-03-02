@@ -311,7 +311,7 @@ export function CourseManagement({
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Prix</TableHead>
                     <TableHead>Statut</TableHead>
-                    <TableHead>Étudiants</TableHead>
+                    {/* <TableHead>Étudiants</TableHead> */}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -346,7 +346,7 @@ export function CourseManagement({
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(course.status)}</TableCell>
-                      <TableCell>{course.enrollmentCount || 0}</TableCell>
+                      {/* <TableCell>{course.enrollmentCount || 0}</TableCell> */}
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {user?.role === "ADMIN" && (
