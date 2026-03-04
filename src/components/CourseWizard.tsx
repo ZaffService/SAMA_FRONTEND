@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import {
   Loader2,
   Save,
   Eye,
   AlertCircle,
+  BadgeCheck,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -60,6 +62,7 @@ interface CourseFormData {
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   price: number;
   status: CourseStatus;
+  isCertifying: boolean;
   modules: Module[];
   attachments: Array<{ file: File; id: string; preview?: string }>;
   uploadedVideos: Record<string, string>; // tempId -> videoUrl
@@ -90,6 +93,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     level: "BEGINNER",
     price: 0,
     status: CourseStatus.DRAFT,
+    isCertifying: false,
     modules: [],
     attachments: [],
     uploadedVideos: {},
@@ -400,6 +404,10 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
             thumbnailUrl={thumbnailUrl}
             onThumbnailUploaded={handleThumbnailUploaded}
             onThumbnailRemoved={handleThumbnailRemoved}
+            canEditCertification={user?.role === "ADMIN"}
+            showCertificationLockMessage={Boolean(
+              user && user.role !== "ADMIN",
+            )}
           />
         );
       case 2:
@@ -535,6 +543,8 @@ function Step1BasicInfo({
   thumbnailUrl,
   onThumbnailUploaded,
   onThumbnailRemoved,
+  canEditCertification,
+  showCertificationLockMessage,
 }: {
   formData: CourseFormData;
   updateFormData: (updates: Partial<CourseFormData>) => void;
@@ -542,6 +552,8 @@ function Step1BasicInfo({
   thumbnailUrl: string | null;
   onThumbnailUploaded: (fileOrUrl: File | string) => void;
   onThumbnailRemoved: () => void;
+  canEditCertification: boolean;
+  showCertificationLockMessage: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -633,22 +645,77 @@ function Step1BasicInfo({
           </label>
           <Select
             value={formData.status}
-            onValueChange={(value: CourseStatus) =>
-              updateFormData({ status: value })
-            }
+            onValueChange={(value: CourseStatus) => {
+              if (formData.isCertifying && value === CourseStatus.PUBLISHED) {
+                updateFormData({ status: CourseStatus.DRAFT });
+                return;
+              }
+              updateFormData({ status: value });
+            }}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={CourseStatus.DRAFT}>Brouillon</SelectItem>
-              <SelectItem value={CourseStatus.PUBLISHED}>Publié</SelectItem>
+              <SelectItem
+                value={CourseStatus.PUBLISHED}
+                disabled={formData.isCertifying}
+              >
+                {formData.isCertifying
+                  ? "Publié (désactivé si certification)"
+                  : "Publié"}
+              </SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-gray-500 mt-1">
             Le cours sera créé en tant que brouillon par défaut
           </p>
+          {formData.isCertifying && (
+            <p className="text-xs text-blue-600 mt-1">
+              Certification active : le statut est forcé à Brouillon.
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start space-x-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+              <BadgeCheck className="h-4 w-4" />
+            </div>
+            <div>
+              <label
+                htmlFor="course-certification"
+                className="block text-sm font-medium text-gray-900"
+              >
+                Activer la certification
+              </label>
+              <p className="text-xs text-gray-600 mt-1">
+               Activez cette option pour rendre le cours certifiant. 
+                Les étudiants recevront un certificat uniquement après 
+                validation du quiz de certification défini dans le cours.
+                            </p>
+            </div>
+          </div>
+          <Switch
+            id="course-certification"
+            checked={formData.isCertifying}
+            onCheckedChange={(checked) =>
+              updateFormData({
+                isCertifying: checked,
+                status: checked ? CourseStatus.DRAFT : formData.status,
+              })
+            }
+            disabled={!canEditCertification}
+          />
+        </div>
+        {showCertificationLockMessage && (
+          <p className="mt-2 text-xs text-gray-500">
+            Vous n&apos;avez pas les droits pour activer la certification.
+          </p>
+        )}
       </div>
 
       <div>

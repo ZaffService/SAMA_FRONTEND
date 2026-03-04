@@ -503,6 +503,7 @@ export class CoursesApi {
       categoryId: courseData.categoryId,
       level: courseData.level,
       price: Number(courseData.price) || 0,
+      isCertifying: Boolean(courseData.isCertifying),
       status: courseData.status || "DRAFT", // Inclure le statut (DRAFT ou PUBLISHED)
       modules: courseData.modules.map((module: any) => ({
         title: module.title,

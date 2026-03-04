@@ -349,6 +349,14 @@ function CourseDetailsPageComponent() {
   const handledPaymentReturnRef = useRef<Set<string>>(new Set());
   const initialLessonSelectionRef = useRef(false);
 
+  useEffect(() => {
+    completionInFlightRef.current.clear();
+    syncedCompletedLessonsRef.current.clear();
+    lessonMaxProgressRef.current = {};
+    lessonLastReportedProgressRef.current = {};
+    lessonDurationsRef.current = {};
+  }, [courseId, user?.id]);
+
   // Helper function to validate UUID format (defined before useEffects)
   const isValidUUID = (id: string): boolean => {
     const uuidRegex =
@@ -1394,9 +1402,19 @@ function CourseDetailsPageComponent() {
     return `${mins}min`;
   };
 
-  const getTrackingStorageKey = useCallback(
+  const getLegacyTrackingStorageKey = useCallback(
     (lessonId: string) => `course-progress-tracking:${courseId}:${lessonId}`,
     [courseId],
+  );
+
+  const getTrackingStorageKey = useCallback(
+    (lessonId: string) => {
+      if (!user?.id) {
+        return getLegacyTrackingStorageKey(lessonId);
+      }
+      return `course-progress-tracking:${user.id}:${courseId}:${lessonId}`;
+    },
+    [courseId, getLegacyTrackingStorageKey, user?.id],
   );
 
   const readTrackingFromStorage = useCallback(
@@ -1404,7 +1422,14 @@ function CourseDetailsPageComponent() {
       if (typeof window === "undefined") return null;
 
       try {
-        const raw = localStorage.getItem(getTrackingStorageKey(lessonId));
+        const primaryKey = getTrackingStorageKey(lessonId);
+        const legacyKey = getLegacyTrackingStorageKey(lessonId);
+        let raw = localStorage.getItem(primaryKey);
+
+        if (!raw && !user?.id) {
+          raw = localStorage.getItem(legacyKey);
+        }
+
         if (!raw) return null;
         const parsed = JSON.parse(raw) as {
           maxProgress?: number;
@@ -1437,7 +1462,7 @@ function CourseDetailsPageComponent() {
         return null;
       }
     },
-    [getTrackingStorageKey],
+    [getLegacyTrackingStorageKey, getTrackingStorageKey, user?.id],
   );
 
   const persistTrackingToStorage = useCallback(
@@ -1453,8 +1478,9 @@ function CourseDetailsPageComponent() {
       if (typeof window === "undefined") return;
 
       try {
+        const primaryKey = getTrackingStorageKey(lessonId);
         localStorage.setItem(
-          getTrackingStorageKey(lessonId),
+          primaryKey,
           JSON.stringify({
             duration: payload.duration,
             maxProgress: payload.maxProgress,
@@ -1463,11 +1489,18 @@ function CourseDetailsPageComponent() {
             updatedAt: Date.now(),
           }),
         );
+
+        if (user?.id) {
+          const legacyKey = getLegacyTrackingStorageKey(lessonId);
+          if (legacyKey !== primaryKey) {
+            localStorage.removeItem(legacyKey);
+          }
+        }
       } catch (error) {
         logger.error("Erreur sauvegarde tracking localStorage:", error);
       }
     },
-    [getTrackingStorageKey],
+    [getLegacyTrackingStorageKey, getTrackingStorageKey, user?.id],
   );
 
   const markLessonCompletedAutomatically = useCallback(
@@ -1480,7 +1513,12 @@ function CourseDetailsPageComponent() {
     ) => {
       if (!lessonId) return;
       if (completionInFlightRef.current.has(lessonId)) return;
-      if (syncedCompletedLessonsRef.current.has(lessonId)) return;
+      if (
+        syncedCompletedLessonsRef.current.has(lessonId) &&
+        lessonProgressRef.current[lessonId]
+      ) {
+        return;
+      }
 
       completionInFlightRef.current.add(lessonId);
       try {
