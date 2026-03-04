@@ -330,9 +330,6 @@ function CourseDetailsPageComponent() {
   const [lessonProgress, setLessonProgress] = useState<Record<string, boolean>>(
     {},
   );
-  const [completedModules, setCompletedModules] = useState<Set<string>>(
-    new Set(),
-  );
 
   // Quiz states
   const [moduleQuizzes, setModuleQuizzes] = useState<Record<string, boolean>>(
@@ -689,8 +686,6 @@ function CourseDetailsPageComponent() {
       }
     });
 
-    setCompletedModules(newCompletedModules);
-
     // Auto-collapse des modules terminés (sauf si l'utilisateur les a manuellement ouverts)
     setExpandedModules((prev) => {
       const newExpanded = new Set(prev);
@@ -704,22 +699,17 @@ function CourseDetailsPageComponent() {
     });
   }, [lessonProgress, courseData?.modules]);
 
-  // Vérifier l'existence des quiz pour les modules terminés
+  // Vérifier l'existence des quiz pour les modules ouverts (affichés)
   useEffect(() => {
     if (!courseData?.modules?.length || !isEnrolled) return;
 
-    const checkQuizzesForCompletedModules = async () => {
+    const checkQuizzesForExpandedModules = async () => {
       const modulesToCheck = courseData.modules.filter((module) => {
-        const moduleLessons = module.lessons.filter((l) => l.hasVideo);
-        const allLessonsCompleted = moduleLessons.every(
-          (lesson) => lessonProgress[lesson.id],
-        );
-        return (
-          allLessonsCompleted &&
-          moduleLessons.length > 0 &&
-          moduleQuizzes[module.id] === undefined &&
-          !checkingQuizzes.has(module.id)
-        );
+        if (!expandedModules.has(module.id)) return false;
+        if (module.quiz?.length) return false;
+        if (moduleQuizzes[module.id] !== undefined) return false;
+        if (checkingQuizzes.has(module.id)) return false;
+        return true;
       });
 
       for (const module of modulesToCheck) {
@@ -727,8 +717,8 @@ function CourseDetailsPageComponent() {
       }
     };
 
-    checkQuizzesForCompletedModules();
-  }, [courseData?.modules, lessonProgress, isEnrolled, moduleQuizzes]);
+    checkQuizzesForExpandedModules();
+  }, [courseData?.modules, expandedModules, isEnrolled, moduleQuizzes, checkingQuizzes]);
 
   // ✅ NOUVEAU: Détection retour paiement Paydunya
   useEffect(() => {
@@ -1907,7 +1897,7 @@ function CourseDetailsPageComponent() {
           .sort((a, b) => a.orderIndex - b.orderIndex)
           .map((module, moduleIndex) => {
           const isExpanded = expandedModules.has(module.id);
-          const isModuleCompleted = completedModules.has(module.id);
+          const moduleQuiz = getModuleQuiz(module.id);
           const moduleHasQuiz = hasQuizForModule(module.id);
           const moduleLessons = [...module.lessons]
             .filter((l) => l.hasVideo)
@@ -2051,22 +2041,23 @@ function CourseDetailsPageComponent() {
                 </div>
               )}
 
-              {moduleHasQuiz && isModuleCompleted && (
-                <div className="border-t border-[#D1D7DC] bg-[#F7F9FA] px-4 py-3">
+              {moduleHasQuiz && (
+                <div
+                  className={`border-t border-[#D1D7DC] transition-colors ${
+                    contentMode === "quiz" && activeQuizModuleId === module.id
+                      ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
+                      : "bg-white hover:bg-[#F7F9FA]"
+                  }`}
+                >
                   <button
                     onClick={() => handleStartQuiz(module.id)}
-                    className={`flex w-full items-start gap-3 rounded-md border px-3.5 py-3 text-left transition-all duration-200 ${
-                      contentMode === "quiz" && activeQuizModuleId === module.id
-                        ? "border-[#002c75] bg-[#EAF2FF] text-[#002c75] shadow-sm"
-                        : "border-[#BCD3F4] bg-[#F5F9FF] text-[#002c75] hover:border-[#002c75] hover:bg-[#ECF4FF]"
-                    }`}
+                    className="flex w-full items-start gap-3 px-4 py-3 text-left"
                   >
-                    <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/90 text-[#002c75]">
-                      <Target className="h-4 w-4" />
-                    </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold leading-5">
-                        D&eacute;fi du module : passez le quiz
+                      <p className="truncate text-sm font-semibold text-[#1C1D1F]">
+                        {moduleQuiz?.title
+                          ? `Quiz noté : ${moduleQuiz.title}`
+                          : "Défi du module : passez le quiz"}
                       </p>
                       <p className="text-xs text-[#6A6F73]">
                         Obligatoire pour valider et continuer
