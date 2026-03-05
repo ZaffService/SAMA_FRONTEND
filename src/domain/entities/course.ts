@@ -57,6 +57,9 @@ export interface BaseCourse {
   createdAt?: string;
   updatedAt?: string;
   isComplete?: boolean;
+  isCertifying?: boolean;
+  certificationStatus?: string;
+  certificationQuizId?: string | null;
   _id?: string;
   _title?: string;
   _thumbnailUrl?: string;

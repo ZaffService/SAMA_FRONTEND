@@ -64,7 +64,11 @@ export default function AdminDashboard() {
             onViewVideoStatus={handleViewVideoStatus}
           />
         )}
-        renderCreateCourse={() => <CourseWizard />}
+        renderCreateCourse={() => (
+          <CourseWizard
+            onCourseCreated={() => setCurrentView("manage-courses")}
+          />
+        )}
         renderManageUsers={() => <UserManagement />}
         renderVideoStatus={() =>
           selectedCourseId && (

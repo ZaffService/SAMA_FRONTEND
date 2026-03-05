@@ -43,6 +43,33 @@ function base64UrlDecode(str: string): string {
   return atob(base64);
 }
 
+const getStoredAccessToken = (): string | null => {
+  if (typeof window === "undefined") {
+    return Cookies.get("access_token") || null;
+  }
+
+  return (
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("token") ||
+    Cookies.get("access_token") ||
+    null
+  );
+};
+
+const buildAuthHeaders = (): Record<string, string> => {
+  const token = getStoredAccessToken();
+  if (!token) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
+
+const resolveBoolean = (value: unknown): boolean =>
+  value === true || value === "true" || value === 1;
+
 export interface BackendCourse {
   id: string;
   title: string;
@@ -81,6 +108,11 @@ interface CourseDetailsResponse {
     isFree?: boolean;
     isComplete?: boolean;
     isEnrolled?: boolean;  // ← Statut d'inscription de l'utilisateur
+    isCertifying?: boolean;
+    certificationStatus?: string;
+    certificationQuizId?: string | null;
+    quizStatus?: string;
+    quizId?: string | null;
   };
   modules: Array<{
     id: string;
@@ -281,6 +313,60 @@ export class CoursesApi {
     logger.log("📚 API: Nombre de modules:", data.modules?.length || 0);
 
     return data;
+  }
+
+  /**
+   * Récupère un cours par ID (endpoint standard /course/:id)
+   * Utile pour les champs administratifs comme isCertifying.
+   */
+  static async getCourseById(courseId: string): Promise<any> {
+    logger.log(`🔍 API: Récupération du cours (standard): ${courseId}`);
+
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.COURSES.UPDATE(courseId)),
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildAuthHeaders(),
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch course: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Récupère un cours pour l'édition (essaie /course/details puis fallback /course/:id)
+   */
+  static async getCourseForEdit(
+    courseId: string,
+  ): Promise<{ course: any; modules?: any[]; moduleCount?: number }> {
+    try {
+      const details = await this.getCourseDetails(courseId);
+      return {
+        course: details.course,
+        modules: details.modules,
+        moduleCount: details.moduleCount,
+      };
+    } catch (error) {
+      logger.warn(
+        "⚠️ [CoursesApi] getCourseDetails a échoué, fallback /course/:id",
+        error,
+      );
+      const data = await this.getCourseById(courseId);
+      const course = data?.course ?? data?.data ?? data;
+      return {
+        course,
+        modules: data?.modules ?? course?.modules ?? [],
+        moduleCount: data?.moduleCount ?? course?.moduleCount,
+      };
+    }
   }
 
   /**
@@ -503,7 +589,7 @@ export class CoursesApi {
       categoryId: courseData.categoryId,
       level: courseData.level,
       price: Number(courseData.price) || 0,
-      isCertifying: Boolean(courseData.isCertifying),
+      isCertifying: resolveBoolean(courseData.isCertifying),
       status: courseData.status || "DRAFT", // Inclure le statut (DRAFT ou PUBLISHED)
       modules: courseData.modules.map((module: any) => ({
         title: module.title,
@@ -540,6 +626,7 @@ export class CoursesApi {
     }
 
     // ✅ Le champ "data" contient le JSON stringifié
+    console.log("[CoursesApi] Payload isCertifying:", courseJsonData.isCertifying);
     formData.append("data", JSON.stringify(courseJsonData));
     logger.log(
       "📦 [CoursesApi] Données JSON:",
@@ -813,6 +900,10 @@ export class CoursesApi {
    */
   static async createCourse(courseData: any): Promise<any> {
     logger.log("🚀 [CoursesApi] Début création cours...");
+    console.log("[CoursesApi] createCourse input isCertifying:", {
+      value: courseData?.isCertifying,
+      type: typeof courseData?.isCertifying,
+    });
 
     const formData = new FormData();
 
@@ -835,6 +926,7 @@ export class CoursesApi {
       categoryId: courseData.categoryId,
       level: courseData.level,
       price: Number(courseData.price) || 0,
+      isCertifying: resolveBoolean(courseData.isCertifying),
       status: courseData.status || "DRAFT", // Inclure le statut (DRAFT ou PUBLISHED)
       modules: courseData.modules.map((module: any) => ({
         title: module.title,
@@ -866,7 +958,9 @@ export class CoursesApi {
     };
 
     // ✅ Le champ "data" contient le JSON stringifié
+    console.log("[CoursesApi] Payload isCertifying:", courseJsonData.isCertifying);
     formData.append("data", JSON.stringify(courseJsonData));
+    console.log("[CoursesApi] FormData data:", formData.get("data"));
     logger.log(
       "📦 [CoursesApi] Données JSON:",
       JSON.stringify(courseJsonData, null, 2),
@@ -946,6 +1040,60 @@ export class CoursesApi {
     logger.log("✅ [CoursesApi] Succès:", responseData);
 
     return responseData;
+  }
+
+  /**
+   * Crée un quiz de certification pour un cours
+   */
+  static async createCertificationQuiz(
+    courseId: string,
+    payload: {
+      title: string;
+      description?: string;
+      passingScore?: number;
+      questions: Array<{
+        question: string;
+        questionType: "TRUE_FALSE" | "MULTIPLE_CHOICE" | "SINGLE_CHOICE";
+        options?: string[];
+        correctAnswer: string;
+        points?: number;
+      }>;
+    },
+  ): Promise<{ message: string; quizId: string; moduleId: string }> {
+    logger.log("🧪 [CoursesApi] Création quiz certification:", courseId);
+
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.COURSES.CERTIFICATION_QUIZ(courseId)),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...buildAuthHeaders(),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          ...payload,
+          passingScore: payload.passingScore ?? 70,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      let errorMessage = `Erreur ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        logger.error("❌ [CoursesApi] Erreur backend:", errorData);
+        errorMessage =
+          errorData.error?.message || errorData.message || errorMessage;
+      } catch (err) {
+        logger.error("❌ [CoursesApi] Impossible de parser l'erreur");
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
   }
 
   /**

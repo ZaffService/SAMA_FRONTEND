@@ -193,7 +193,7 @@ export function showCourseCreationError(message: string) {
   });
 }
 
-export function showDraftSavedSuccess(title: string) {
+export function showDraftSavedSuccess(title: string, callback?: () => void) {
   Swal.fire({
     icon: "success",
     title: "Brouillon sauvegardé",
@@ -203,6 +203,8 @@ export function showDraftSavedSuccess(title: string) {
     showConfirmButton: false,
     timer: 3000,
     timerProgressBar: true,
+  }).then(() => {
+    if (callback) callback();
   });
 }
 

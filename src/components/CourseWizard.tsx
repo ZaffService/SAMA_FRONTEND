@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   const [error, setError] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const isCertifyingRef = useRef(false);
 
   const [formData, setFormData] = useState<CourseFormData>({
     title: "",
@@ -98,6 +99,19 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     attachments: [],
     uploadedVideos: {},
   });
+
+  useEffect(() => {
+    isCertifyingRef.current = formData.isCertifying;
+  }, [formData.isCertifying]);
+
+  useEffect(() => {
+    console.log(
+      "[CourseWizard] State isCertifying:",
+      formData.isCertifying,
+      "currentStep:",
+      currentStep,
+    );
+  }, [formData.isCertifying, currentStep]);
 
   // Load categories on mount
   useEffect(() => {
@@ -118,6 +132,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   }, []);
 
   const updateFormData = (updates: Partial<CourseFormData>) => {
+    if (Object.prototype.hasOwnProperty.call(updates, "isCertifying")) {
+      console.log(
+        "[CourseWizard] updateFormData -> isCertifying:",
+        updates.isCertifying,
+      );
+    }
     setFormData((prev) => ({ ...prev, ...updates }));
   };
 
@@ -230,6 +250,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     }
     setError(null);
     if (currentStep < TOTAL_STEPS) {
+      console.log(
+        "[CourseWizard] Step next:",
+        currentStep + 1,
+        "isCertifying:",
+        formData.isCertifying,
+      );
       setCurrentStep(currentStep + 1);
     }
   };
@@ -237,6 +263,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   const handlePrevStep = () => {
     setError(null);
     if (currentStep > 1) {
+      console.log(
+        "[CourseWizard] Step back:",
+        currentStep - 1,
+        "isCertifying:",
+        formData.isCertifying,
+      );
       setCurrentStep(currentStep - 1);
     }
   };
@@ -257,15 +289,41 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   const prepareCourseData = (statusOverride?: CourseStatus) => {
     // Debug: Afficher les attachments avant envoi
     logger.log("📎 [Wizard] prepareCourseData - attachments:", formData.attachments);
+    const resolvedIsCertifying =
+      typeof formData.isCertifying === "boolean"
+        ? formData.isCertifying
+        : isCertifyingRef.current;
+    console.log("[CourseWizard] prepareCourseData:", {
+      isCertifying: resolvedIsCertifying,
+      status: statusOverride || formData.status,
+    });
     
     // instructorId sera null et récupéré par le backend depuis les cookies JWT
     return {
       ...formData,
+      isCertifying: resolvedIsCertifying,
       status: statusOverride || formData.status,
       instructorId: null, // Le backend extrait l'instructorId réel des cookies
       thumbnail: thumbnailFile || undefined,
       attachments: formData.attachments || [],
     };
+  };
+
+  const handlePostCreateRedirect = (
+    createdIsCertifying: boolean,
+    createdCourseId?: string | null,
+  ) => {
+    if (createdIsCertifying && createdCourseId) {
+      router.push(`/admin/edit-course/${createdCourseId}?editor=certification`);
+      return;
+    }
+
+    if (onCourseCreated) {
+      onCourseCreated();
+      return;
+    }
+
+    router.push("/admin-dashboard?courseCreated=true");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -288,6 +346,10 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
 
       // ✅ IMPORTANT: Récupérer les détails du cours pour obtenir l'URL de la miniature mise à jour
       let updatedThumbnailUrl = result.course?.thumbnailUrl;
+      const createdCourseId = result.courseId ?? result.course?.id;
+      const createdIsCertifying = Boolean(
+        formData.isCertifying ?? result.course?.isCertifying,
+      );
 
       if (!updatedThumbnailUrl && result.courseId) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -309,16 +371,14 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       if (isComplete) {
         // Cours entièrement prêt
         showCourseCreatedSuccess(formData.title, () => {
-          onCourseCreated?.();
-          router.push("/admin-dashboard?courseCreated=true");  // Rediriger vers la liste des cours
+          handlePostCreateRedirect(createdIsCertifying, createdCourseId);
         });
       } else {
         // Cours créé mais vidéos en cours d'upload
         showCourseCreatedSuccess(
           `${formData.title} - Vidéos en cours d'upload`,
           () => {
-            onCourseCreated?.();
-            router.push("/admin-dashboard?courseCreated=true");  // Rediriger vers la liste des cours
+            handlePostCreateRedirect(createdIsCertifying, createdCourseId);
           },
           "Le cours a été créé avec succès ! Les vidéos sont en cours d'upload en arrière-plan. Vous pourrez publier le cours une fois toutes les vidéos uploadées.",
         );
@@ -352,7 +412,13 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         prepareCourseData(CourseStatus.DRAFT),
       );
       closeLoading();
-      showDraftSavedSuccess(formData.title);
+      const createdCourseId = result.courseId ?? result.course?.id;
+      const createdIsCertifying = Boolean(
+        formData.isCertifying ?? result.course?.isCertifying,
+      );
+      showDraftSavedSuccess(formData.title, () => {
+        handlePostCreateRedirect(createdIsCertifying, createdCourseId);
+      });
       logger.log("✅ Brouillon sauvegardé:", result);
     } catch (err) {
       closeLoading();
@@ -702,12 +768,16 @@ function Step1BasicInfo({
           <Switch
             id="course-certification"
             checked={formData.isCertifying}
-            onCheckedChange={(checked) =>
+            onCheckedChange={(checked) => {
+              console.log(
+                "[CourseWizard] Toggle certification:",
+                checked ? "ON" : "OFF",
+              );
               updateFormData({
                 isCertifying: checked,
                 status: checked ? CourseStatus.DRAFT : formData.status,
-              })
-            }
+              });
+            }}
             disabled={!canEditCertification}
           />
         </div>
