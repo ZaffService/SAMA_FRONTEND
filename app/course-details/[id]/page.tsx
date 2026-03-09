@@ -2482,12 +2482,12 @@ function CourseDetailsPageComponent() {
                           <p className="text-sm text-[#6A6F73]">Niveau</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">{levelLabel}</p>
                         </div>
-                        <div>
+                        {/* <div>
                           <p className="text-sm text-[#6A6F73]">Étudiants</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">
                             {studentsCount}
                           </p>
-                        </div>
+                        </div> */}
                         <div>
                           <p className="text-sm text-[#6A6F73]">Durée totale</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">
