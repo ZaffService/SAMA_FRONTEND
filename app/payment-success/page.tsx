@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import {
   AlertCircle,
   CheckCircle,
+  Download,
   Loader2,
   Lock,
   Play,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { PaymentApi } from "@/infrastructure/api/payment-api";
+import { QuizApi } from "@/infrastructure/api/quiz-api";
 import { transformCourseDetails } from "@/lib/transformers/course-transformer";
 import type { VerificationState } from "@/types/enrollment";
 import logger from "@/shared/helpers/logger";
@@ -46,6 +48,8 @@ type PreviewLesson = {
   durationLabel: string;
 };
 
+type PaymentType = "course" | "certification";
+
 const FALLBACK_LESSONS: PreviewLesson[] = [
   { id: "lesson-1", title: "Introduction au cours", durationLabel: "12:30" },
   { id: "lesson-2", title: "Les bases fondamentales", durationLabel: "24:15" },
@@ -55,6 +59,24 @@ const FALLBACK_LESSONS: PreviewLesson[] = [
 
 const normalizeStatus = (value: unknown): string =>
   String(value || "").trim().toUpperCase();
+
+const normalizePaymentType = (value: unknown): PaymentType => {
+  if (typeof value !== "string") return "course";
+  return value.trim().toLowerCase() === "certification"
+    ? "certification"
+    : "course";
+};
+
+const withPaymentType = (url: string, paymentType: PaymentType): string => {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("paymentType", paymentType);
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}paymentType=${paymentType}`;
+  }
+};
 
 const minutesToClock = (durationInMinutes?: number): string => {
   if (!durationInMinutes || durationInMinutes <= 0) return "--:--";
@@ -100,7 +122,72 @@ function getPendingCourseIdFromStorage(): string | null {
   return cookieCourseId || null;
 }
 
-export default function PaymentSuccessPage() {
+const pendingCertificationClaimKey = (courseId: string) =>
+  `pendingCertificationClaim:${courseId}`;
+
+const clearPendingCertificationClaim = (courseId: string) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(pendingCertificationClaimKey(courseId));
+};
+
+const PENDING_CERTIFICATION_CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
+
+type PendingCertificationClaimData = {
+  timestamp: number;
+  paymentUrl: string | null;
+};
+
+const parsePendingCertificationClaimData = (
+  stored: string,
+): PendingCertificationClaimData | null => {
+  const numeric = Number(stored);
+  if (Number.isFinite(numeric)) {
+    return { timestamp: numeric, paymentUrl: null };
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as unknown;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) {
+      return { timestamp: parsed, paymentUrl: null };
+    }
+
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const record = parsed as Record<string, unknown>;
+    const timestamp = Number(record.timestamp);
+    if (!Number.isFinite(timestamp)) return null;
+
+    const paymentUrl =
+      typeof record.paymentUrl === "string" && record.paymentUrl.trim().length > 0
+        ? record.paymentUrl.trim()
+        : null;
+
+    return { timestamp, paymentUrl };
+  } catch {
+    return null;
+  }
+};
+
+const getPendingCertificationPaymentUrl = (courseId: string): string | null => {
+  if (typeof window === "undefined") return null;
+  const key = pendingCertificationClaimKey(courseId);
+  const stored = window.localStorage.getItem(key);
+  if (!stored) return null;
+
+  const data = parsePendingCertificationClaimData(stored);
+  if (!data) {
+    window.localStorage.removeItem(key);
+    return null;
+  }
+
+  if (Date.now() - data.timestamp > PENDING_CERTIFICATION_CLAIM_TTL_MS) {
+    window.localStorage.removeItem(key);
+    return null;
+  }
+
+  return data.paymentUrl;
+};
+
+function CoursePaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -309,9 +396,12 @@ export default function PaymentSuccessPage() {
     cancelledFromQuery,
     clearPendingEnrollment,
     markCompleted,
+    paymentStatusParam,
     resolveCourseId,
     state.attemptCount,
     state.courseId,
+    statusParam,
+    successParam,
     token,
   ]);
 
@@ -512,5 +602,448 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CertificationPaymentSuccessPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const token = searchParams.get("token");
+  const statusParam = (searchParams.get("status") || "").toLowerCase();
+  const paymentStatusParam = (
+    searchParams.get("payment_status") || ""
+  ).toLowerCase();
+  const successParam = (searchParams.get("success") || "").toLowerCase();
+  const cancelledParam = (searchParams.get("cancelled") || "").toLowerCase();
+  const courseIdParam =
+    searchParams.get("courseId") || searchParams.get("course_id");
+
+  const cancelledFromQuery = useMemo(
+    () =>
+      cancelledParam === "true" ||
+      successParam === "false" ||
+      statusParam === "cancelled" ||
+      statusParam === "canceled" ||
+      paymentStatusParam === "cancelled" ||
+      paymentStatusParam === "canceled" ||
+      statusParam === "failed" ||
+      paymentStatusParam === "failed",
+    [cancelledParam, paymentStatusParam, statusParam, successParam],
+  );
+
+  const [state, setState] = useState<VerificationState>({
+    status: cancelledFromQuery ? "CANCELLED" : "VERIFYING",
+    attemptCount: 0,
+    maxAttempts: MAX_ATTEMPTS,
+    courseId: courseIdParam || undefined,
+    error: cancelledFromQuery
+      ? "Paiement annulé. Aucun débit n'a été effectué."
+      : undefined,
+  });
+  const [courseTitle, setCourseTitle] = useState("Votre cours");
+  const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [resumePaymentUrl, setResumePaymentUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!state.courseId) return;
+    if (resumePaymentUrl) return;
+    const storedPaymentUrl = getPendingCertificationPaymentUrl(state.courseId);
+    if (storedPaymentUrl) {
+      setResumePaymentUrl(storedPaymentUrl);
+    }
+  }, [resumePaymentUrl, state.courseId]);
+
+  const clearPendingEnrollment = useCallback(() => {
+    Cookies.remove("pendingEnrollment");
+    Cookies.remove("pendingCourseId");
+    Cookies.remove("pendingEnrollmentTime");
+    sessionStorage.removeItem("pendingCourseId");
+    sessionStorage.removeItem("pendingEnrollment");
+    localStorage.removeItem("pendingEnrollment");
+  }, []);
+
+  const goToCourse = useCallback(() => {
+    if (state.courseId) {
+      router.push(`/course-details/${state.courseId}`);
+      return;
+    }
+    router.push("/mes-apprentissages");
+  }, [router, state.courseId]);
+
+  const resolveCourseId = useCallback((): string | undefined => {
+    return state.courseId || courseIdParam || undefined;
+  }, [courseIdParam, state.courseId]);
+
+  const loadCourseTitle = useCallback(async (courseId: string) => {
+    try {
+      const rawData = await CoursesApi.getCourseDetails(courseId);
+      const data = transformCourseDetails(rawData);
+      setCourseTitle(data.course.title || "Votre cours");
+    } catch (error) {
+      logger.error(
+        "❌ [PaymentSuccess:Certification] Erreur chargement cours:",
+        error,
+      );
+    }
+  }, []);
+
+  const markCompleted = useCallback(
+    (payload: { courseId: string; certificateUrl: string }) => {
+      clearPendingEnrollment();
+      clearPendingCertificationClaim(payload.courseId);
+      setCertificateUrl(payload.certificateUrl);
+      setState((prev) => ({
+        ...prev,
+        status: "COMPLETED",
+        courseId: payload.courseId,
+        error: undefined,
+      }));
+      try {
+        if (typeof window !== "undefined") {
+          window.history.replaceState(
+            {},
+            "",
+            `/payment-success?courseId=${encodeURIComponent(payload.courseId)}&paymentType=certification`,
+          );
+        }
+      } catch {
+        // Ignore history errors
+      }
+    },
+    [clearPendingEnrollment],
+  );
+
+  const runVerificationStep = useCallback(async () => {
+    setState((prev) => {
+      if (prev.status !== "VERIFYING") return prev;
+      return { ...prev, attemptCount: prev.attemptCount + 1 };
+    });
+
+    const targetCourseId = resolveCourseId();
+    if (!targetCourseId) {
+      setState((prev) => ({
+        ...prev,
+        status: "ERROR",
+        error:
+          "Impossible de déterminer le cours lié au paiement. Veuillez retourner au cours et réessayer.",
+      }));
+      return;
+    }
+
+    if (targetCourseId && targetCourseId !== state.courseId) {
+      setState((prev) => ({ ...prev, courseId: targetCourseId }));
+    }
+
+    try {
+      let paymentConfirmed =
+        successParam === "true" ||
+        statusParam === "completed" ||
+        statusParam === "success" ||
+        paymentStatusParam === "completed" ||
+        paymentStatusParam === "success";
+
+      if (token) {
+        const verification = await PaymentApi.verifyPayment(token);
+        const paymentStatus = normalizeStatus(
+          verification?.status ||
+            verification?.paymentStatus ||
+            verification?.payment_status ||
+            verification?.data?.status ||
+            verification?.result?.status,
+        );
+
+        if (CANCELLED_STATUSES.has(paymentStatus)) {
+          clearPendingEnrollment();
+          setState((prev) => ({
+            ...prev,
+            status: "CANCELLED",
+            error: "Paiement annulé. Vous pouvez relancer la transaction.",
+          }));
+          return;
+        }
+
+        if (FAILURE_STATUSES.has(paymentStatus)) {
+          const rawMessage =
+            typeof verification?.message === "string" ? verification.message.trim() : "";
+          const errorMessage = rawMessage.length > 0
+            ? rawMessage.replace(/du cours/gi, "de la certification")
+            : "Le paiement de certification a été refusé. Veuillez réessayer.";
+          setState((prev) => ({
+            ...prev,
+            status: "ERROR",
+            error: errorMessage,
+          }));
+          return;
+        }
+
+        if (SUCCESS_STATUSES.has(paymentStatus)) {
+          paymentConfirmed = true;
+        }
+      } else if (cancelledFromQuery) {
+        clearPendingEnrollment();
+        setState((prev) => ({
+          ...prev,
+          status: "CANCELLED",
+          error: "Paiement annulé. Vous pouvez relancer la transaction.",
+        }));
+        return;
+      }
+
+      if (!paymentConfirmed) {
+        return;
+      }
+
+      const claim = await QuizApi.claimCertificationCertificate(targetCourseId);
+      const issued = Boolean(claim.isIssued && claim.certificateUrl);
+
+      if (issued && claim.certificateUrl) {
+        markCompleted({
+          courseId: targetCourseId,
+          certificateUrl: claim.certificateUrl,
+        });
+        return;
+      }
+
+      if (claim.paymentUrl) {
+        setResumePaymentUrl((prev) => prev || claim.paymentUrl);
+      }
+
+      const claimPaymentStatus = (claim.paymentStatus || "").toUpperCase();
+      if (CANCELLED_STATUSES.has(claimPaymentStatus)) {
+        clearPendingEnrollment();
+        setState((prev) => ({
+          ...prev,
+          status: "CANCELLED",
+          error: "Paiement annulé. Vous pouvez relancer la transaction.",
+        }));
+        return;
+      }
+
+      if (FAILURE_STATUSES.has(claimPaymentStatus)) {
+        setState((prev) => ({
+          ...prev,
+          status: "ERROR",
+          error:
+            "Le paiement de certification a échoué. Veuillez réessayer ou reprendre le paiement.",
+        }));
+      }
+    } catch (error) {
+      logger.error(
+        "❌ [PaymentSuccess:Certification] Erreur pendant la vérification:",
+        error,
+      );
+
+      const httpStatus = (error as any)?.status;
+      if (httpStatus === 401 || httpStatus === 403) {
+        setState((prev) => ({
+          ...prev,
+          status: "ERROR",
+          error:
+            "Votre session a expiré. Veuillez vous reconnecter puis réessayer.",
+        }));
+        return;
+      }
+
+      if (httpStatus === 404) {
+        setState((prev) => ({
+          ...prev,
+          status: "ERROR",
+          error:
+            "Cours introuvable. Veuillez vérifier l'identifiant du cours et réessayer.",
+        }));
+        return;
+      }
+
+      if (state.attemptCount >= MAX_ATTEMPTS - 1) {
+        setState((prev) => ({
+          ...prev,
+          status: "ERROR",
+          error:
+            "Impossible de confirmer la certification. Vérifiez votre connexion.",
+        }));
+      }
+    }
+  }, [
+    cancelledFromQuery,
+    clearPendingEnrollment,
+    markCompleted,
+    resolveCourseId,
+    state.attemptCount,
+    state.courseId,
+    token,
+  ]);
+
+  useEffect(() => {
+    const resolved = resolveCourseId();
+    if (resolved && resolved !== state.courseId) {
+      setState((prev) => ({ ...prev, courseId: resolved }));
+    }
+  }, [resolveCourseId, state.courseId]);
+
+  useEffect(() => {
+    if (state.courseId) {
+      void loadCourseTitle(state.courseId);
+    }
+  }, [loadCourseTitle, state.courseId]);
+
+  useEffect(() => {
+    if (!cancelledFromQuery) return;
+
+    clearPendingEnrollment();
+    setState((prev) => ({
+      ...prev,
+      status: "CANCELLED",
+      error: "Paiement annulé. Vous pouvez relancer la transaction.",
+    }));
+  }, [cancelledFromQuery, clearPendingEnrollment]);
+
+  useEffect(() => {
+    if (state.status !== "VERIFYING") return;
+    if (state.attemptCount >= MAX_ATTEMPTS) {
+      setState((prev) => ({ ...prev, status: "TIMEOUT" }));
+      return;
+    }
+
+    const timeoutId = window.setTimeout(
+      () => {
+        void runVerificationStep();
+      },
+      state.attemptCount === 0 ? 0 : POLLING_INTERVAL_MS,
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [runVerificationStep, state.attemptCount, state.status]);
+
+  const handleRetry = () => {
+    setResumePaymentUrl(null);
+    setState((prev) => ({
+      ...prev,
+      status: "VERIFYING",
+      attemptCount: 0,
+      error: undefined,
+    }));
+  };
+
+  const handleDownload = () => {
+    if (!certificateUrl) return;
+    window.open(certificateUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleResumePayment = () => {
+    if (!resumePaymentUrl) return;
+    window.location.href = withPaymentType(resumePaymentUrl, "certification");
+  };
+
+  return (
+    <div className="min-h-screen bg-[#EFEFF2] px-4 py-10 sm:py-16">
+      <div className="mx-auto w-full max-w-[560px]">
+        <div className="rounded-2xl border border-[#D5DBE3] bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-6 text-center">
+            {state.status === "COMPLETED" ? (
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#2FB56F]">
+                <CheckCircle className="h-10 w-10 text-white" />
+              </div>
+            ) : state.status === "VERIFYING" ? (
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#EEF0F4]">
+                <Loader2 className="h-10 w-10 animate-spin text-[#243B95]" />
+              </div>
+            ) : (
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-[#FFEDED]">
+                <AlertCircle className="h-10 w-10 text-[#E34D4D]" />
+              </div>
+            )}
+
+            <h1 className="text-3xl font-extrabold text-[#101828]">
+              {state.status === "COMPLETED"
+                ? "Votre certificat est prêt !"
+                : state.status === "VERIFYING"
+                  ? "Préparation du certificat..."
+                  : state.status === "CANCELLED"
+                    ? "Paiement annulé"
+                    : state.status === "TIMEOUT"
+                      ? "Génération en attente"
+                      : "Vérification échouée"}
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-md text-[17px] leading-7 text-[#667085]">
+              {state.status === "COMPLETED"
+                ? `Certification confirmée pour "${courseTitle}". Vous pouvez télécharger votre certificat.`
+                : state.status === "VERIFYING"
+                  ? "Veuillez patienter pendant que nous confirmons votre paiement et générons votre certificat..."
+                  : state.status === "CANCELLED"
+                    ? "Vous avez interrompu le paiement. Aucun montant n'a été débité."
+                    : state.status === "TIMEOUT"
+                      ? "La génération prend plus de temps que prévu. Vous pouvez relancer la vérification."
+                      : state.error ||
+                        "Une erreur est survenue pendant la vérification de votre certification."}
+            </p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {state.status === "COMPLETED" ? (
+              <>
+                <button
+                  onClick={handleDownload}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#22358B] px-4 py-3 text-xl font-semibold text-white transition-colors hover:bg-[#1D2E77] sm:text-2xl"
+                >
+                  <Download className="h-5 w-5" />
+                  Télécharger ma certification
+                </button>
+                <button
+                  onClick={goToCourse}
+                  className="w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-base font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+                >
+                  Voir le cours
+                </button>
+              </>
+            ) : state.status === "VERIFYING" ? (
+              <button
+                disabled
+                className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#8492C7] px-4 py-3 text-xl font-semibold text-white sm:text-2xl"
+              >
+                <Loader2 className="h-5 w-5 animate-spin" />
+                En attente du certificat...
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleRetry}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#22358B] px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-[#1D2E77]"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Relancer la vérification
+                </button>
+                {resumePaymentUrl ? (
+                  <button
+                    onClick={handleResumePayment}
+                    className="w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-base font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+                  >
+                    Reprendre le paiement
+                  </button>
+                ) : null}
+                <button
+                  onClick={goToCourse}
+                  className="w-full rounded-xl border border-[#D0D5DD] bg-white px-4 py-3 text-base font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+                >
+                  Retourner au cours
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  const searchParams = useSearchParams();
+  const paymentType = normalizePaymentType(searchParams.get("paymentType"));
+
+  return paymentType === "certification" ? (
+    <CertificationPaymentSuccessPage />
+  ) : (
+    <CoursePaymentSuccessPage />
   );
 }

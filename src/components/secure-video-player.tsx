@@ -112,6 +112,7 @@ export function SecureVideoPlayer({
   const [loading, setLoading] = useState(false);
   const [isPlayerLoading, setIsPlayerLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const trackingIntervalRef = useRef<number | null>(null);
@@ -119,6 +120,7 @@ export function SecureVideoPlayer({
   const lastKnownDurationRef = useRef(0);
   const completionNotifiedRef = useRef(false);
   const completionThresholdNotifiedRef = useRef(false);
+  const playbackStartedRef = useRef(false);
   const onProgressWindowRef = useRef(onProgressWindow);
 
   useEffect(() => {
@@ -215,11 +217,12 @@ export function SecureVideoPlayer({
       if (!parsed.searchParams.has("playerjs")) {
         parsed.searchParams.set("playerjs", "1");
       }
+      parsed.searchParams.set("cb", String(reloadToken));
       return parsed.toString();
     } catch {
       return videoUrl;
     }
-  }, [videoUrl]);
+  }, [reloadToken, videoUrl]);
 
   const maybeNotifyCompleted = useCallback(
     (currentTime: number, duration: number, source: string) => {
@@ -288,6 +291,7 @@ export function SecureVideoPlayer({
         : 0;
     completionNotifiedRef.current = false;
     completionThresholdNotifiedRef.current = false;
+    playbackStartedRef.current = false;
     logger.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
   }, [durationHintSeconds, lessonId, videoUrl]);
 
@@ -333,6 +337,10 @@ export function SecureVideoPlayer({
       const duration = resolveDuration(toFiniteNumber(durationCandidate));
       const previousTime = lastTrackedTimeRef.current;
       const progressHandler = onProgressWindowRef.current;
+
+      if (nextTime > 0.5) {
+        playbackStartedRef.current = true;
+      }
 
       if (nextTime + 0.5 < previousTime) {
         lastTrackedTimeRef.current = nextTime;
@@ -579,8 +587,35 @@ export function SecureVideoPlayer({
   // Gestionnaire d'erreur vidéo - retente de récupérer une nouvelle URL signée
   const handleVideoError = useCallback(() => {
     // En cas d'erreur de lecture (possiblement expiration), retenter
+    VideoApi.invalidateCache(lessonId);
     fetchSignedUrl();
-  }, [fetchSignedUrl]);
+  }, [fetchSignedUrl, lessonId]);
+
+  useEffect(() => {
+    if (!resolvedIframeUrl || !resolvedIframeUrl.includes("mediadelivery.net/")) {
+      return;
+    }
+
+    let attempt = 0;
+    const intervalId = window.setInterval(() => {
+      if (playbackStartedRef.current) {
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      attempt += 1;
+      if (attempt > 20) {
+        window.clearInterval(intervalId);
+        return;
+      }
+
+      setError(null);
+      setIsPlayerLoading(true);
+      setReloadToken((prev) => prev + 1);
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [resolvedIframeUrl]);
 
   const flushTracking = useCallback(() => {
     const progressHandler = onProgressWindowRef.current;
@@ -676,6 +711,7 @@ export function SecureVideoPlayer({
       {videoUrl ? (
         isIframeEmbedUrl(videoUrl) ? (
           <iframe
+            key={`${lessonId}-iframe-${reloadToken}`}
             ref={iframeRef}
             src={resolvedIframeUrl}
             title={title}
@@ -695,6 +731,7 @@ export function SecureVideoPlayer({
           />
         ) : (
           <video
+            key={`${lessonId}-video-${reloadToken}`}
             ref={videoRef}
             src={videoUrl}
             controls

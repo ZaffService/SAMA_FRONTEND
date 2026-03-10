@@ -554,14 +554,18 @@ export function CertificationEditor({
                     Score de passage (%) *
                   </label>
                   <Input
-                    type="number"
-                    min={0}
-                    max={100}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={quizForm.passingScore}
                     onChange={(e) =>
                       setQuizForm((prev) => ({
                         ...prev,
-                        passingScore: Number(e.target.value) || 0,
+                        passingScore: (() => {
+                          const digits = e.target.value.replace(/[^\d]/g, "");
+                          const next = digits ? parseInt(digits, 10) : 0;
+                          return Math.max(0, Math.min(100, next));
+                        })(),
                       }))
                     }
                   />
@@ -689,13 +693,18 @@ export function CertificationEditor({
                               Points
                             </label>
                             <Input
-                              type="number"
-                              min={0}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               value={question.points}
                               onChange={(e) =>
                                 updateQuestion(question.id, (current) => ({
                                   ...current,
-                                  points: Number(e.target.value) || 0,
+                                  points:
+                                    parseInt(
+                                      e.target.value.replace(/[^\d]/g, ""),
+                                      10,
+                                    ) || 0,
                                 }))
                               }
                             />

@@ -122,10 +122,15 @@ function Step1BasicInfo({
             Prix (XOF) *
           </label>
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={formData.price ?? 0}
             onChange={(e) =>
-              updateFormData({ price: parseFloat(e.target.value) || 0 })
+              updateFormData({
+                price:
+                  parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0,
+              })
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0"

@@ -693,14 +693,15 @@ function Step1BasicInfo({
             Prix (XOF) *
           </label>
           <Input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={formData.price}
-            onChange={(e) =>
-              updateFormData({ price: parseFloat(e.target.value) || 0 })
-            }
+            onChange={(e) => {
+              const digits = e.target.value.replace(/[^\d]/g, "");
+              updateFormData({ price: digits ? parseInt(digits, 10) : 0 });
+            }}
             placeholder="0"
-            min="0"
-            step="100"
             required
           />
         </div>

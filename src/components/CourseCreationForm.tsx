@@ -422,11 +422,15 @@ export function CourseCreationForm({
                       Prix (XOF) *
                     </label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={formData.price}
                       onChange={(e) =>
                         updateFormData({
-                          price: parseFloat(e.target.value) || 0,
+                          price:
+                            parseInt(e.target.value.replace(/[^\d]/g, ""), 10) ||
+                            0,
                         })
                       }
                       placeholder="0"

@@ -8,12 +8,13 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { buildApiUrl, API_ENDPOINTS } from "@/infrastructure/api/baseConfig";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { usePayment } from "@/application/use-cases/usePayment";
+import { QuizApi } from "@/infrastructure/api/quiz-api";
 import { SecureVideoPlayer } from "@/components/secure-video-player";
 import { transformCourseDetails } from "@/lib/transformers/course-transformer";
 import { VideoApi } from "@/infrastructure/api/video-api";
@@ -45,6 +46,65 @@ import logger from "@/shared/helpers/logger";
 const TRACKING_INTERVAL_MS = 2000;
 const TRACKING_COMPLETION_THRESHOLD = 0.95;
 const TRACKING_PROGRESS_STEP = 0.05;
+
+type PaymentType = "course" | "certification";
+
+const withPaymentType = (url: string, paymentType: PaymentType): string => {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("paymentType", paymentType);
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}paymentType=${paymentType}`;
+  }
+};
+
+const PENDING_CERTIFICATION_CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
+const pendingCertificationClaimKey = (courseId: string) =>
+  `pendingCertificationClaim:${courseId}`;
+
+const hasPendingCertificationClaim = (courseId: string): boolean => {
+  if (typeof window === "undefined") return false;
+  const stored = localStorage.getItem(pendingCertificationClaimKey(courseId));
+  if (!stored) return false;
+
+  const timestamp = (() => {
+    const numeric = Number(stored);
+    if (Number.isFinite(numeric)) return numeric;
+
+    try {
+      const parsed = JSON.parse(stored) as unknown;
+      if (typeof parsed === "number" && Number.isFinite(parsed)) {
+        return parsed;
+      }
+
+      if (typeof parsed !== "object" || parsed === null) return null;
+      const record = parsed as Record<string, unknown>;
+      const timestamp = Number(record.timestamp);
+      return Number.isFinite(timestamp) ? timestamp : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  if (timestamp === null) {
+    localStorage.removeItem(pendingCertificationClaimKey(courseId));
+    return false;
+  }
+
+  if (Date.now() - timestamp > PENDING_CERTIFICATION_CLAIM_TTL_MS) {
+    localStorage.removeItem(pendingCertificationClaimKey(courseId));
+    return false;
+  }
+
+  return true;
+};
+
+const clearPendingCertificationClaim = (courseId: string) => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(pendingCertificationClaimKey(courseId));
+};
 
 // ✅ Utilitaires pour persistance état enrollment (Cookies + LocalStorage pour mobile)
 
@@ -282,6 +342,7 @@ function VideoWithLoading({
 
 function CourseDetailsPageComponent() {
   const params = useParams();
+  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useLocalAuth();
@@ -307,10 +368,28 @@ function CourseDetailsPageComponent() {
   const [isMobile, setIsMobile] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [contentMode, setContentMode] = useState<"video" | "quiz">("video");
-  const [activeQuizModuleId, setActiveQuizModuleId] = useState<string | null>(
-    null,
+  const initialViewParam = (searchParams.get("view") || "").toLowerCase();
+  const initialQuizModuleIdParam = searchParams.get("moduleId");
+  const initialQuizModeParam = (searchParams.get("quizMode") || "").toLowerCase();
+  const initialQuizMode: "module" | "certification" =
+    initialQuizModeParam === "certification" ? "certification" : "module";
+  const initialActiveQuizModuleId =
+    initialViewParam === "quiz" && initialQuizModuleIdParam
+      ? initialQuizModuleIdParam
+      : null;
+  const initialContentMode: "video" | "quiz" = initialActiveQuizModuleId
+    ? "quiz"
+    : "video";
+
+  const [contentMode, setContentMode] = useState<"video" | "quiz">(
+    initialContentMode,
   );
+  const [activeQuizModuleId, setActiveQuizModuleId] = useState<string | null>(
+    initialActiveQuizModuleId,
+  );
+  const [activeQuizMode, setActiveQuizMode] = useState<
+    "module" | "certification"
+  >(initialActiveQuizModuleId ? initialQuizMode : "module");
 
   // Course access states
   const [isEnrolled, setIsEnrolled] = useState<boolean | undefined>(undefined);
@@ -318,8 +397,12 @@ function CourseDetailsPageComponent() {
   const [isFree, setIsFree] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [paymentNotice, setPaymentNotice] = useState<{
-    type: "warning" | "info";
+    type: "warning" | "info" | "success";
+    paymentType: PaymentType;
+    title: string;
     message: string;
+    actionLabel?: string;
+    actionUrl?: string;
   } | null>(null);
   const hasCourseAccess = isEnrolled === true || isAdmin;
 
@@ -338,6 +421,10 @@ function CourseDetailsPageComponent() {
   const [checkingQuizzes, setCheckingQuizzes] = useState<Set<string>>(
     new Set(),
   );
+  const [certificationQuiz, setCertificationQuiz] = useState<Quiz | null>(null);
+  const [hasCertificationQuiz, setHasCertificationQuiz] = useState(false);
+  const [certificationQuizLoading, setCertificationQuizLoading] =
+    useState(false);
 
   // Tracking automatique de progression vidéo
   const lessonProgressRef = useRef<Record<string, boolean>>({});
@@ -731,6 +818,9 @@ function CourseDetailsPageComponent() {
   // ✅ NOUVEAU: Détection retour paiement Paydunya
   useEffect(() => {
     const detectPaymentReturn = async () => {
+      const paymentTypeParam = (
+        searchParams.get("paymentType") || searchParams.get("payment_type") || ""
+      ).toLowerCase();
       const paymentToken = searchParams.get("token");
       const paymentStatus = (searchParams.get("payment_status") || "").toLowerCase();
       const statusParam = (searchParams.get("status") || "").toLowerCase();
@@ -738,6 +828,40 @@ function CourseDetailsPageComponent() {
       const cancelledParam = (searchParams.get("cancelled") || "").toLowerCase();
       const txRef = searchParams.get("tx_ref");
       const transactionId = searchParams.get("transaction_id");
+      const pending = restorePendingEnrollment();
+      const pendingMatchesCourse = pending?.courseId === courseId;
+      const hasPendingCertificationContext = courseId
+        ? hasPendingCertificationClaim(courseId)
+        : false;
+      const paymentType: PaymentType =
+        paymentTypeParam === "certification"
+          ? "certification"
+          : paymentTypeParam === "course"
+            ? "course"
+            : pendingMatchesCourse
+              ? "course"
+              : hasPendingCertificationContext
+                ? "certification"
+                : "course";
+
+      const normalizePaymentStatus = (payload: any): string => {
+        return String(
+          payload?.status ||
+            payload?.paymentStatus ||
+            payload?.payment_status ||
+            payload?.data?.status ||
+            payload?.result?.status ||
+            "",
+        ).toUpperCase();
+      };
+
+      const isPaymentConfirmedStatus = (status: string): boolean =>
+        ["SUCCESS", "SUCCEEDED", "COMPLETED", "ACTIVE", "PAID", "APPROVED"].includes(
+          status,
+        );
+
+      const isPaymentFailedStatus = (status: string): boolean =>
+        ["FAILED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"].includes(status);
 
       const isCancelledReturn =
         cancelledParam === "true" ||
@@ -750,17 +874,27 @@ function CourseDetailsPageComponent() {
         paymentStatus === "failed";
 
       if (courseId && isCancelledReturn) {
-        const cancelKey = `${courseId}:cancelled:${paymentToken || txRef || transactionId || "return"}`;
+        const cancelKey = `${courseId}:${paymentType}:cancelled:${paymentToken || txRef || transactionId || "return"}`;
         if (handledPaymentReturnRef.current.has(cancelKey)) {
           return;
         }
         handledPaymentReturnRef.current.add(cancelKey);
 
         clearPendingEnrollment();
+        if (paymentType === "certification") {
+          clearPendingCertificationClaim(courseId);
+        }
         setPaymentNotice({
           type: "warning",
+          paymentType,
+          title:
+            paymentType === "certification"
+              ? "Paiement certification annulé"
+              : "Paiement cours annulé",
           message:
-            "Paiement annulé. Votre inscription n'a pas été finalisée. Vous pouvez relancer le paiement quand vous voulez.",
+            paymentType === "certification"
+              ? "Le paiement de certification a été annulé. Vous pouvez relancer l'achat de la certification."
+              : "Paiement annulé. Votre inscription n'a pas été finalisée. Vous pouvez relancer le paiement quand vous voulez.",
         });
 
         if (typeof window !== "undefined") {
@@ -781,7 +915,7 @@ function CourseDetailsPageComponent() {
         Boolean(paymentToken);
 
       if (hasPaymentReturn && courseId) {
-        const returnKey = `${courseId}:${paymentToken || txRef || transactionId || "return"}`;
+        const returnKey = `${courseId}:${paymentType}:${paymentToken || txRef || transactionId || "return"}`;
         if (handledPaymentReturnRef.current.has(returnKey)) {
           logger.log("ℹ️ Retour paiement déjà traité, skip", { returnKey });
           return;
@@ -797,42 +931,10 @@ function CourseDetailsPageComponent() {
           transactionId,
         });
 
-        // Restaurer état pending
-        const pending = restorePendingEnrollment();
-        const pendingMatchesCourse = pending?.courseId === courseId;
-
-        if (!pendingMatchesCourse && !paymentToken) {
+        if (!pendingMatchesCourse && !paymentToken && paymentType !== "certification") {
           logger.log("ℹ️ Aucun contexte pending/token pour confirmer le paiement");
           return;
         }
-
-        logger.log("🔍 Vérification inscription après paiement...");
-
-        const normalizePaymentStatus = (payload: any): string => {
-          return String(
-            payload?.status ||
-              payload?.paymentStatus ||
-              payload?.payment_status ||
-              payload?.data?.status ||
-              payload?.result?.status ||
-              "",
-          ).toUpperCase();
-        };
-
-        const isPaymentConfirmedStatus = (status: string): boolean =>
-          [
-            "SUCCESS",
-            "SUCCEEDED",
-            "COMPLETED",
-            "ACTIVE",
-            "PAID",
-            "APPROVED",
-          ].includes(status);
-
-        const isPaymentFailedStatus = (status: string): boolean =>
-          ["FAILED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"].includes(
-            status,
-          );
 
         let paymentConfirmed =
           successParam === "true" ||
@@ -875,10 +977,80 @@ function CourseDetailsPageComponent() {
           logger.error("❌ verifyPayment a échoué:", error);
         }
 
+        if (paymentType === "certification") {
+          try {
+            if (!paymentConfirmed) {
+              setPaymentNotice({
+                type: "warning",
+                paymentType: "certification",
+                title: "Paiement certification non confirmé",
+                message:
+                  "Le paiement de certification n'a pas encore été confirmé. Veuillez réessayer dans quelques instants.",
+              });
+              return;
+            }
+
+            let certificateUrl: string | null = null;
+            for (let attempt = 1; attempt <= 12; attempt++) {
+              const claim = await QuizApi.claimCertificationCertificate(courseId);
+              const issued = Boolean(claim.isIssued && claim.certificateUrl);
+
+              if (issued && claim.certificateUrl) {
+                certificateUrl = claim.certificateUrl;
+                break;
+              }
+
+              const stillPendingPayment =
+                claim.paymentRequired &&
+                (claim.paymentStatus || "").toUpperCase() === "PENDING";
+              if (!stillPendingPayment) {
+                break;
+              }
+
+              await new Promise((resolve) => setTimeout(resolve, 1500));
+            }
+
+            if (certificateUrl) {
+              clearPendingEnrollment();
+              clearPendingCertificationClaim(courseId);
+              setPaymentNotice({
+                type: "success",
+                paymentType: "certification",
+                title: "Achat de certification réussi",
+                message:
+                  "Votre certificat est prêt. Vous pouvez le télécharger maintenant.",
+                actionLabel: "Télécharger ma certification",
+                actionUrl: certificateUrl,
+              });
+            } else {
+              setPaymentNotice({
+                type: "info",
+                paymentType: "certification",
+                title: "Achat de certification réussi",
+                message:
+                  "Paiement confirmé. Le certificat est en cours de génération, veuillez réessayer dans un instant.",
+              });
+            }
+          } catch (error) {
+            logger.error("❌ Erreur vérification claim certificat:", error);
+            setPaymentNotice({
+              type: "warning",
+              paymentType: "certification",
+              title: "Erreur de vérification certification",
+              message:
+                "Le paiement est revenu, mais le certificat n'a pas pu être confirmé immédiatement.",
+            });
+          } finally {
+            if (typeof window !== "undefined") {
+              window.history.replaceState({}, "", `/course-details/${courseId}`);
+            }
+          }
+          return;
+        }
+
+        logger.log("🔍 Vérification inscription après paiement...");
         if (paymentConfirmed) {
-          logger.log(
-            "✅ Déblocage immédiat côté UI après confirmation paiement",
-          );
+          logger.log("✅ Déblocage immédiat côté UI après confirmation paiement");
           setIsEnrolled(true);
           setIsPaid(true);
           setEnrollmentCheckComplete(true);
@@ -902,6 +1074,12 @@ function CourseDetailsPageComponent() {
             setIsPaid(true);
             setEnrollmentCheckComplete(true);
             clearPendingEnrollment();
+            setPaymentNotice({
+              type: "success",
+              paymentType: "course",
+              title: "Achat du cours réussi",
+              message: "Votre cours est maintenant accessible.",
+            });
 
             Swal.fire({
               title: "Paiement confirmé! 🎉",
@@ -918,12 +1096,19 @@ function CourseDetailsPageComponent() {
             }
           } else {
             logger.warn(
-              "⚠️ Paiement retourné mais inscription non active après retries",
-              { courseId, paymentToken, pending, paymentConfirmed },
-            );
+                "⚠️ Paiement retourné mais inscription non active après retries",
+                { courseId, paymentToken, pending, paymentConfirmed },
+              );
+              setPaymentNotice({
+                type: "info",
+                paymentType: "course",
+                title: "Achat du cours en cours de confirmation",
+                message:
+                  "Votre paiement est reçu. L'activation du cours peut prendre quelques instants.",
+              });
 
-            Swal.fire({
-              title: "Paiement en cours de confirmation",
+              Swal.fire({
+                title: "Paiement en cours de confirmation",
               text: "Votre paiement est reçu. L'activation du cours peut prendre quelques instants.",
               icon: "info",
               confirmButtonColor: "#6366f1",
@@ -943,6 +1128,89 @@ function CourseDetailsPageComponent() {
     detectPaymentReturn();
   }, [searchParams, courseId, isMobile, verifyPayment]);
 
+  const updateCourseDetailsUrl = useCallback(
+    (updater: (params: URLSearchParams) => void) => {
+      const params = new URLSearchParams(searchParams.toString());
+      updater(params);
+      const nextQuery = params.toString();
+      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      router.replace(nextUrl, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const setQuizViewInUrl = useCallback(
+    (moduleId: string, mode: "module" | "certification") => {
+      updateCourseDetailsUrl((params) => {
+        params.set("view", "quiz");
+        params.set("moduleId", moduleId);
+        params.set("quizMode", mode);
+      });
+    },
+    [updateCourseDetailsUrl],
+  );
+
+  const clearQuizViewInUrl = useCallback(() => {
+    updateCourseDetailsUrl((params) => {
+      params.delete("view");
+      params.delete("moduleId");
+      params.delete("quizMode");
+    });
+  }, [updateCourseDetailsUrl]);
+
+  const exitQuizView = useCallback(() => {
+    clearQuizViewInUrl();
+    setContentMode("video");
+    setActiveQuizModuleId(null);
+    setActiveQuizMode("module");
+    setActiveTab("videos");
+    if (isMobile) {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    }
+  }, [clearQuizViewInUrl, isMobile]);
+
+  useEffect(() => {
+    const viewParam = (searchParams.get("view") || "").toLowerCase();
+    const moduleIdParam = searchParams.get("moduleId");
+    const quizModeParam = (searchParams.get("quizMode") || "").toLowerCase();
+    const quizMode: "module" | "certification" =
+      quizModeParam === "certification" ? "certification" : "module";
+
+    if (viewParam === "quiz" && moduleIdParam) {
+      if (
+        contentMode !== "quiz" ||
+        activeQuizModuleId !== moduleIdParam ||
+        activeQuizMode !== quizMode
+      ) {
+        setContentMode("quiz");
+        setActiveQuizModuleId(moduleIdParam);
+        setActiveQuizMode(quizMode);
+        setActiveTab("videos");
+        if (isMobile) {
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }, 100);
+        }
+      }
+      return;
+    }
+
+    if (contentMode === "quiz") {
+      setContentMode("video");
+      setActiveQuizModuleId(null);
+      setActiveQuizMode("module");
+      setActiveTab("videos");
+    }
+  }, [
+    activeQuizMode,
+    activeQuizModuleId,
+    contentMode,
+    isMobile,
+    searchParams,
+  ]);
+
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
       const newSet = new Set(prev);
@@ -960,7 +1228,9 @@ function CourseDetailsPageComponent() {
   };
 
   const openCoursePlayer = useCallback(() => {
+    clearQuizViewInUrl();
     setActiveQuizModuleId(null);
+    setActiveQuizMode("module");
     setContentMode("video");
     setActiveTab("videos");
     if (isMobile) {
@@ -968,7 +1238,7 @@ function CourseDetailsPageComponent() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }, 100);
     }
-  }, [isMobile]);
+  }, [clearQuizViewInUrl, isMobile]);
 
   // Gestion du suivi du cours (inscription ou redirection paiement)
   const handleFollowCourse = async () => {
@@ -1013,10 +1283,11 @@ function CourseDetailsPageComponent() {
 
       if (result && "payment_url" in result && result.payment_url) {
         // 🔄 Redirection vers le paiement (cours payant)
-        logger.log("💳 Redirection vers Paydunya:", result.payment_url);
+        const paymentUrl = withPaymentType(result.payment_url, "course");
+        logger.log("💳 Redirection vers Paydunya:", paymentUrl);
         // 🔐 CRITIQUE: Sauvegarder état AVANT redirection
         savePendingEnrollment(courseId, user?.id);
-        window.location.href = result.payment_url;
+        window.location.href = paymentUrl;
       } else if (result && result.course && result.status === "ACTIVE") {
         // ✅ Inscription réussie (cours gratuit)
         logger.log("✅ Inscription réussie pour cours gratuit");
@@ -1154,6 +1425,48 @@ function CourseDetailsPageComponent() {
 
   const modules = courseData?.modules || [];
   const course = courseData?.course;
+  const isCertifying = Boolean(course?.isCertifying);
+  const certificationConfigured =
+    Boolean(course?.quizId) || course?.quizStatus === "CONFIGURED";
+  const sortedModules = useMemo(
+    () => [...modules].sort((a, b) => a.orderIndex - b.orderIndex),
+    [modules],
+  );
+  const lastModuleId = sortedModules[sortedModules.length - 1]?.id;
+
+  useEffect(() => {
+    if (!courseId || !isCertifying) {
+      setCertificationQuiz(null);
+      setHasCertificationQuiz(false);
+      return;
+    }
+
+    // Se baser d'abord sur les infos du cours
+    setHasCertificationQuiz(certificationConfigured);
+
+    if (!certificationConfigured) {
+      setCertificationQuiz(null);
+      return;
+    }
+
+    const fetchCertificationQuiz = async () => {
+      setCertificationQuizLoading(true);
+      try {
+        const data = await QuizApi.getCertificationQuiz(courseId);
+        setCertificationQuiz(data.quiz ?? null);
+      } catch (error) {
+        logger.warn(
+          " Quiz de certification indisponible pour ce cours:",
+          error,
+        );
+        setCertificationQuiz(null);
+      } finally {
+        setCertificationQuizLoading(false);
+      }
+    };
+
+    fetchCertificationQuiz();
+  }, [courseId, isCertifying, certificationConfigured]);
 
   // ✅ Helper: Obtenir le quiz d'un module
   const getModuleQuiz = (moduleId: string): Quiz | undefined => {
@@ -1178,7 +1491,7 @@ function CourseDetailsPageComponent() {
           ...lesson,
           moduleId: module.id,
           moduleOrderIndex: module.orderIndex,
-        })),
+        })), 
       )
       .filter((lesson) => lesson.hasVideo)
       .sort((a, b) => {
@@ -1237,12 +1550,11 @@ function CourseDetailsPageComponent() {
 
   // Update selectedLessonId when currentLessonIndex changes
   useEffect(() => {
-    if (lessonsWithVideos[currentLessonIndex]) {
-      setSelectedLessonId(lessonsWithVideos[currentLessonIndex].id);
-      setContentMode("video");
-    }
+    const lesson = lessonsWithVideos[currentLessonIndex];
+    if (!lesson) return;
+    setSelectedLessonId(lesson.id);
   }, [currentLessonIndex, lessonsWithVideos]);
-
+  
   const handleVideoEnd = useCallback(() => {
     if (
       currentLessonIndex >= 0 &&
@@ -1265,6 +1577,7 @@ function CourseDetailsPageComponent() {
       setCurrentLessonIndex(currentLessonIndex - 1);
       setContentMode("video");
       setActiveQuizModuleId(null);
+      setActiveQuizMode("module");
       setActiveTab("videos");
       if (isMobile) {
         setTimeout(() => {
@@ -1359,8 +1672,10 @@ function CourseDetailsPageComponent() {
     }
 
     setActiveQuizModuleId(moduleId);
+    setActiveQuizMode("module");
     setContentMode("quiz");
     setActiveTab("videos");
+    setQuizViewInUrl(moduleId, "module");
     if (isMobile) {
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1812,6 +2127,7 @@ function CourseDetailsPageComponent() {
       setCurrentLessonIndex(currentLessonIndex + 1);
       setContentMode("video");
       setActiveQuizModuleId(null);
+      setActiveQuizMode("module");
       setActiveTab("videos");
       if (isMobile) {
         setTimeout(() => {
@@ -1931,12 +2247,13 @@ function CourseDetailsPageComponent() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {[...modules]
-          .sort((a, b) => a.orderIndex - b.orderIndex)
-          .map((module, moduleIndex) => {
+        {sortedModules.map((module, moduleIndex) => {
           const isExpanded = expandedModules.has(module.id);
           const moduleQuiz = getModuleQuiz(module.id);
           const moduleHasQuiz = hasQuizForModule(module.id);
+          const isLastModule = module.id === lastModuleId;
+          const showCertificationQuiz =
+            isCertifying && isLastModule && hasCertificationQuiz;
           const moduleLessons = [...module.lessons]
             .filter((l) => l.hasVideo)
             .sort((a, b) => a.orderIndex - b.orderIndex);
@@ -2001,6 +2318,7 @@ function CourseDetailsPageComponent() {
                                 setCurrentLessonIndex(lessonIndex);
                                 setContentMode("video");
                                 setActiveQuizModuleId(null);
+                                setActiveQuizMode("module");
                                 setActiveTab("videos");
                               }
                               if (isMobile) {
@@ -2076,32 +2394,84 @@ function CourseDetailsPageComponent() {
                       </div>
                     );
                   })}
-                </div>
-              )}
 
-              {moduleHasQuiz && (
-                <div
-                  className={`border-t border-[#D1D7DC] transition-colors ${
-                    contentMode === "quiz" && activeQuizModuleId === module.id
-                      ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
-                      : "bg-white hover:bg-[#F7F9FA]"
-                  }`}
-                >
-                  <button
-                    onClick={() => handleStartQuiz(module.id)}
-                    className="flex w-full items-start gap-3 px-4 py-3 text-left"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#1C1D1F]">
-                        {moduleQuiz?.title
-                          ? `Quiz noté : ${moduleQuiz.title}`
-                          : "Défi du module : passez le quiz"}
-                      </p>
-                      <p className="text-xs text-[#6A6F73]">
-                        Obligatoire pour valider et continuer
-                      </p>
+                  {moduleHasQuiz && (
+                    <div
+                      className={`border-t border-[#D1D7DC] transition-colors ${
+                        contentMode === "quiz" &&
+                        activeQuizModuleId === module.id &&
+                        activeQuizMode === "module"
+                          ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
+                          : "bg-white hover:bg-[#F7F9FA]"
+                      }`}
+                    >
+                      <button
+                        onClick={() => handleStartQuiz(module.id)}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#1C1D1F]">
+                            {moduleQuiz?.title
+                              ? `Quiz noté : ${moduleQuiz.title}`
+                              : "Défi du module : passez le quiz"}
+                          </p>
+                          <p className="text-xs text-[#6A6F73]">
+                            Obligatoire pour valider et continuer
+                          </p>
+                        </div>
+                      </button>
                     </div>
-                  </button>
+                  )}
+
+                  {showCertificationQuiz && (
+                    <div
+                      className={`border-t border-[#D1D7DC] transition-colors ${
+                        contentMode === "quiz" &&
+                        activeQuizModuleId === module.id &&
+                        activeQuizMode === "certification"
+                          ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
+                          : "bg-white hover:bg-[#F7F9FA]"
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          if (certificationQuizLoading) return;
+                          if (!hasCertificationQuiz) {
+                            Swal.fire({
+                              title: "Quiz de certification indisponible",
+                              text: "Aucun quiz de certification n'est encore configuré pour ce cours.",
+                              icon: "info",
+                              confirmButtonText: "Compris",
+                              confirmButtonColor: "#6366f1",
+                            });
+                            return;
+                          }
+                          setActiveQuizModuleId(module.id);
+                          setActiveQuizMode("certification");
+                          setContentMode("quiz");
+                          setActiveTab("videos");
+                          setQuizViewInUrl(module.id, "certification");
+                          if (isMobile) {
+                            setTimeout(() => {
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }, 100);
+                          }
+                        }}
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#1C1D1F]">
+                            {certificationQuiz?.title
+                              ? `Quiz de certification : ${certificationQuiz.title}`
+                              : "Quiz de certification"}
+                          </p>
+                          <p className="text-xs text-[#6A6F73]">
+                            Obligatoire pour obtenir la certification
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2279,11 +2649,33 @@ function CourseDetailsPageComponent() {
             className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
               paymentNotice.type === "warning"
                 ? "border-[#F7CFA6] bg-[#FFF7ED] text-[#7C2D12]"
-                : "border-[#B9CCF6] bg-[#EEF4FF] text-[#1D4ED8]"
+                : paymentNotice.type === "success"
+                  ? paymentNotice.paymentType === "certification"
+                    ? "border-[#86EFAC] bg-[#ECFDF3] text-[#166534]"
+                    : "border-[#B9CCF6] bg-[#EEF4FF] text-[#1D4ED8]"
+                  : "border-[#C7D2FE] bg-[#EEF2FF] text-[#3730A3]"
             }`}
           >
             <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
-            <p className="flex-1 text-sm font-medium">{paymentNotice.message}</p>
+            <div className="flex-1">
+              <p className="text-sm font-semibold">{paymentNotice.title}</p>
+              <p className="mt-1 text-sm font-medium">{paymentNotice.message}</p>
+              {paymentNotice.actionLabel && paymentNotice.actionUrl && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      paymentNotice.actionUrl,
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }
+                  className="mt-2 rounded-md border border-current px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-80"
+                >
+                  {paymentNotice.actionLabel}
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setPaymentNotice(null)}
@@ -2303,9 +2695,7 @@ function CourseDetailsPageComponent() {
               <button
                 onClick={() => {
                   if (contentMode === "quiz" && activeQuizModuleId) {
-                    setContentMode("video");
-                    setActiveQuizModuleId(null);
-                    setActiveTab("videos");
+                    exitQuizView();
                     return;
                   }
                   router.push(isAdmin ? "/admin-dashboard?focus=courses" : "/");
@@ -2338,12 +2728,10 @@ function CourseDetailsPageComponent() {
                 <QuizModal
                   isOpen={true}
                   variant="page"
-                  onClose={() => {
-                    setContentMode("video");
-                    setActiveQuizModuleId(null);
-                    setActiveTab("videos");
-                  }}
+                  onClose={exitQuizView}
                   quizId={activeQuizModuleId}
+                  mode={activeQuizMode}
+                  courseId={courseId}
                   lessonId={selectedLessonId}
                   onQuizCompleted={handleQuizCompleted}
                 />
@@ -2482,12 +2870,12 @@ function CourseDetailsPageComponent() {
                           <p className="text-sm text-[#6A6F73]">Niveau</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">{levelLabel}</p>
                         </div>
-                        <div>
+                        {/* <div>
                           <p className="text-sm text-[#6A6F73]">Étudiants</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">
                             {studentsCount}
                           </p>
-                        </div>
+                        </div> */}
                         <div>
                           <p className="text-sm text-[#6A6F73]">Durée totale</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">
