@@ -1,15 +1,17 @@
 "use client";
 
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X,
   CheckCircle,
-  XCircle,
   Clock,
   Award,
   ArrowLeft,
   Check,
+  Download,
+  GraduationCap,
+  RefreshCcw,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
@@ -21,6 +23,11 @@ interface QuizData {
     title: string;
     description?: string;
     passingScore: number;
+    dueDate?: string;
+    deadline?: string;
+    endDate?: string;
+    expiresAt?: string;
+    availableUntil?: string;
   };
   questions: Array<{
     id: string;
@@ -38,7 +45,240 @@ interface QuizModalProps {
   lessonId: string;
   onQuizCompleted: (passed: boolean, score: number) => void;
   variant?: "modal" | "inline" | "page";
+  mode?: "module" | "certification";
+  courseId?: string;
 }
+
+const PENDING_CERTIFICATE_CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
+const QUIZ_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+const pendingCertificateClaimKey = (courseId: string) =>
+  `pendingCertificationClaim:${courseId}`;
+
+type PendingCertificateClaimData = {
+  timestamp: number;
+  paymentUrl: string | null;
+};
+
+const parsePendingCertificateClaimData = (
+  stored: string,
+): PendingCertificateClaimData | null => {
+  const numeric = Number(stored);
+  if (Number.isFinite(numeric)) {
+    return { timestamp: numeric, paymentUrl: null };
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as unknown;
+    if (typeof parsed === "number" && Number.isFinite(parsed)) {
+      return { timestamp: parsed, paymentUrl: null };
+    }
+
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const record = parsed as Record<string, unknown>;
+    const timestamp = Number(record.timestamp);
+    if (!Number.isFinite(timestamp)) return null;
+
+    const paymentUrl =
+      typeof record.paymentUrl === "string" && record.paymentUrl.trim().length > 0
+        ? record.paymentUrl.trim()
+        : null;
+
+    return { timestamp, paymentUrl };
+  } catch {
+    return null;
+  }
+};
+
+const withPaymentType = (url: string, paymentType: "course" | "certification"): string => {
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("paymentType", paymentType);
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}paymentType=${paymentType}`;
+  }
+};
+
+const markPendingCertificateClaim = (courseId: string, paymentUrl?: string | null) => {
+  if (typeof window === "undefined") return;
+  const normalizedPaymentUrl =
+    typeof paymentUrl === "string" && paymentUrl.trim().length > 0
+      ? paymentUrl.trim()
+      : null;
+  window.localStorage.setItem(
+    pendingCertificateClaimKey(courseId),
+    JSON.stringify({
+      timestamp: Date.now(),
+      paymentUrl: normalizedPaymentUrl,
+    } satisfies PendingCertificateClaimData),
+  );
+};
+
+const clearPendingCertificateClaim = (courseId: string) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(pendingCertificateClaimKey(courseId));
+};
+
+const hasPendingCertificateClaim = (courseId: string): boolean => {
+  if (typeof window === "undefined") return false;
+  const stored = window.localStorage.getItem(pendingCertificateClaimKey(courseId));
+  if (!stored) return false;
+
+  const data = parsePendingCertificateClaimData(stored);
+  if (!data) {
+    clearPendingCertificateClaim(courseId);
+    return false;
+  }
+
+  if (Date.now() - data.timestamp > PENDING_CERTIFICATE_CLAIM_TTL_MS) {
+    clearPendingCertificateClaim(courseId);
+    return false;
+  }
+
+  return true;
+};
+
+const readBooleanCandidate = (...values: unknown[]): boolean | null => {
+  for (const value of values) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (["true", "1", "yes", "oui"].includes(normalized)) return true;
+      if (["false", "0", "no", "non"].includes(normalized)) return false;
+    }
+  }
+  return null;
+};
+
+type StoredQuizSession = {
+  timestamp: number;
+  currentQuestionIndex: number;
+  answers: Record<string, number>;
+  showResults: boolean;
+  quizResult: {
+    score: number;
+    passed: boolean;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    eligibleForCertificate?: boolean;
+    isPaidEnrollment?: boolean;
+    isCourseFree?: boolean;
+  } | null;
+  startTime: number | null;
+  timeLeft: number | null;
+};
+
+const quizSessionStorageKey = ({
+  mode,
+  courseId,
+  quizId,
+}: {
+  mode: "module" | "certification";
+  courseId?: string;
+  quizId: string | null;
+}): string | null => {
+  if (mode === "certification") {
+    return courseId ? `quizSession:certification:${courseId}` : null;
+  }
+  if (!quizId) return null;
+  return `quizSession:module:${courseId ?? "unknown"}:${quizId}`;
+};
+
+const parseStoredQuizSession = (raw: string): StoredQuizSession | null => {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const record = parsed as Record<string, unknown>;
+
+    const timestamp = Number(record.timestamp);
+    if (!Number.isFinite(timestamp)) return null;
+
+    const currentQuestionIndex = Number(record.currentQuestionIndex);
+    if (!Number.isFinite(currentQuestionIndex)) return null;
+
+    const answersRecord =
+      typeof record.answers === "object" && record.answers !== null
+        ? (record.answers as Record<string, unknown>)
+        : {};
+    const answers: Record<string, number> = {};
+    Object.entries(answersRecord).forEach(([key, value]) => {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) {
+        answers[key] = numeric;
+      }
+    });
+
+    const showResults = Boolean(record.showResults);
+
+    const quizResult =
+      typeof record.quizResult === "object" && record.quizResult !== null
+        ? (record.quizResult as Record<string, unknown>)
+        : null;
+
+    const normalizedQuizResult =
+      quizResult &&
+      typeof quizResult.score === "number" &&
+      Number.isFinite(quizResult.score) &&
+      typeof quizResult.passed === "boolean"
+        ? ({
+            score: quizResult.score,
+            passed: quizResult.passed,
+            correctAnswers:
+              typeof quizResult.correctAnswers === "number" &&
+              Number.isFinite(quizResult.correctAnswers)
+                ? quizResult.correctAnswers
+                : undefined,
+            totalQuestions:
+              typeof quizResult.totalQuestions === "number" &&
+              Number.isFinite(quizResult.totalQuestions)
+                ? quizResult.totalQuestions
+                : undefined,
+            eligibleForCertificate:
+              typeof quizResult.eligibleForCertificate === "boolean"
+                ? quizResult.eligibleForCertificate
+                : undefined,
+            isPaidEnrollment:
+              typeof quizResult.isPaidEnrollment === "boolean"
+                ? quizResult.isPaidEnrollment
+                : undefined,
+            isCourseFree:
+              typeof quizResult.isCourseFree === "boolean"
+                ? quizResult.isCourseFree
+                : undefined,
+          } satisfies NonNullable<StoredQuizSession["quizResult"]>)
+        : null;
+
+    const startTime =
+      record.startTime === null || record.startTime === undefined
+        ? null
+        : Number(record.startTime);
+    const normalizedStartTime = Number.isFinite(startTime) ? startTime : null;
+
+    const timeLeft =
+      record.timeLeft === null || record.timeLeft === undefined
+        ? null
+        : Number(record.timeLeft);
+    const normalizedTimeLeft = Number.isFinite(timeLeft) ? timeLeft : null;
+
+    return {
+      timestamp,
+      currentQuestionIndex,
+      answers,
+      showResults,
+      quizResult: normalizedQuizResult,
+      startTime: normalizedStartTime,
+      timeLeft: normalizedTimeLeft,
+    };
+  } catch {
+    return null;
+  }
+};
 
 export function QuizModal({
   isOpen,
@@ -47,6 +287,8 @@ export function QuizModal({
   lessonId,
   onQuizCompleted,
   variant = "modal",
+  mode = "module",
+  courseId,
 }: QuizModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -57,28 +299,49 @@ export function QuizModal({
   const [quizData, setQuizData] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [storageHydrated, setStorageHydrated] = useState(false);
   const [quizResult, setQuizResult] = useState<{
     score: number;
     passed: boolean;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    eligibleForCertificate?: boolean;
+    isPaidEnrollment?: boolean;
+    isCourseFree?: boolean;
   } | null>(null);
+  const [resultVisible, setResultVisible] = useState(false);
+  const storageKey = quizSessionStorageKey({ mode, courseId, quizId });
 
   useEffect(() => {
-    if (isOpen && quizId) {
+    if (
+      isOpen &&
+      ((mode === "module" && quizId) || (mode === "certification" && courseId))
+    ) {
       fetchQuizData();
     } else if (!isOpen) {
       setQuizData(null);
       setError(null);
       setLoading(false);
+      setStorageHydrated(false);
     }
-  }, [isOpen, quizId]);
+  }, [isOpen, quizId, mode, courseId]);
 
   const fetchQuizData = async () => {
-    if (!quizId) return;
+    if (mode === "certification" && !courseId) {
+      setError("Cours introuvable pour le quiz de certification.");
+      return;
+    }
+
+    if (mode === "module" && !quizId) return;
 
     setLoading(true);
+    setStorageHydrated(false);
     setError(null);
     try {
-      const data = await QuizApi.getQuizQuestions(quizId);
+      const data =
+        mode === "certification"
+          ? await QuizApi.getCertificationQuiz(courseId as string)
+          : await QuizApi.getQuizQuestions(quizId as string);
       setQuizData(data);
       setCurrentQuestionIndex(0);
       setAnswers({});
@@ -86,13 +349,115 @@ export function QuizModal({
       setIsSubmitting(false);
       setStartTime(new Date());
       setTimeLeft(null);
+      setQuizResult(null);
     } catch (error) {
       logger.error("Erreur lors du chargement du quiz:", error);
-      setError("Aucun quiz disponible pour ce module.");
+      setError(
+        mode === "certification"
+          ? "Aucun quiz de certification disponible pour ce cours."
+          : "Aucun quiz disponible pour ce module.",
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  const clearStoredSession = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!storageKey) return;
+    window.sessionStorage.removeItem(storageKey);
+  }, [storageKey]);
+
+  const handleClose = useCallback(() => {
+    clearStoredSession();
+    setStorageHydrated(false);
+    onClose();
+  }, [clearStoredSession, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!quizData) return;
+    if (typeof window === "undefined") return;
+
+    if (!storageKey) {
+      setStorageHydrated(true);
+      return;
+    }
+
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) {
+      setStorageHydrated(true);
+      return;
+    }
+
+    const parsed = parseStoredQuizSession(raw);
+    if (!parsed) {
+      window.sessionStorage.removeItem(storageKey);
+      setStorageHydrated(true);
+      return;
+    }
+
+    if (Date.now() - parsed.timestamp > QUIZ_SESSION_TTL_MS) {
+      window.sessionStorage.removeItem(storageKey);
+      setStorageHydrated(true);
+      return;
+    }
+
+    const questionIds = new Set(quizData.questions.map((q) => q.id));
+    const restoredAnswers: Record<string, number> = {};
+    Object.entries(parsed.answers).forEach(([questionId, value]) => {
+      if (!questionIds.has(questionId)) return;
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return;
+      restoredAnswers[questionId] = numeric;
+    });
+
+    const maxIndex = Math.max(0, quizData.questions.length - 1);
+    const nextIndex = Math.min(maxIndex, Math.max(0, parsed.currentQuestionIndex));
+
+    setCurrentQuestionIndex(nextIndex);
+    setAnswers(restoredAnswers);
+    setShowResults(parsed.showResults);
+    setQuizResult(parsed.quizResult);
+    setStartTime(parsed.startTime ? new Date(parsed.startTime) : new Date());
+    setTimeLeft(parsed.timeLeft);
+    setStorageHydrated(true);
+  }, [isOpen, quizData, storageKey]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!quizData) return;
+    if (!storageHydrated) return;
+    if (typeof window === "undefined") return;
+    if (!storageKey) return;
+
+    const payload: StoredQuizSession = {
+      timestamp: Date.now(),
+      currentQuestionIndex,
+      answers,
+      showResults,
+      quizResult,
+      startTime: startTime ? startTime.getTime() : null,
+      timeLeft,
+    };
+
+    try {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(payload));
+    } catch (error) {
+      logger.warn("Impossible de persister la session du quiz:", error);
+    }
+  }, [
+    answers,
+    currentQuestionIndex,
+    isOpen,
+    quizData,
+    quizResult,
+    showResults,
+    startTime,
+    storageHydrated,
+    storageKey,
+    timeLeft,
+  ]);
 
   useEffect(() => {
     if (timeLeft !== null && timeLeft > 0) {
@@ -103,10 +468,65 @@ export function QuizModal({
     }
   }, [timeLeft]);
 
+  useEffect(() => {
+    if (!showResults) {
+      setResultVisible(false);
+      return;
+    }
+
+    setResultVisible(false);
+    let timeoutId: number | undefined;
+    const frameId = window.requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
+        setResultVisible(true);
+      }, 50);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [showResults, quizResult]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const parseDateCandidate = (value: unknown): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+    if (typeof value === "string" || typeof value === "number") {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
+    return null;
+  };
+
+  const getQuizDeadlineLabel = (quiz: QuizData["quiz"]): string | null => {
+    const quizRecord = quiz as QuizData["quiz"] & Record<string, unknown>;
+    const candidate =
+      parseDateCandidate(quiz.dueDate) ||
+      parseDateCandidate(quiz.deadline) ||
+      parseDateCandidate(quiz.endDate) ||
+      parseDateCandidate(quiz.expiresAt) ||
+      parseDateCandidate(quiz.availableUntil) ||
+      parseDateCandidate(quizRecord.deadlineAt) ||
+      parseDateCandidate(quizRecord.due_at) ||
+      parseDateCandidate(quizRecord.deadline_at);
+
+    if (!candidate) return null;
+
+    return candidate.toLocaleString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
   };
 
   const handleAnswerChange = (questionId: string, answer: number) => {
@@ -130,6 +550,7 @@ export function QuizModal({
 
   const handleSubmitQuiz = async () => {
     if (!quizData) return;
+    if (mode === "certification" && !courseId) return;
 
     setIsSubmitting(true);
     try {
@@ -154,16 +575,72 @@ export function QuizModal({
         formattedAnswers[question.id] = String(selectedIndex);
       });
 
-      const result = await QuizApi.submitQuiz(
-        quizData.quiz.id,
-        formattedAnswers,
-      );
-      setQuizResult({ score: result.score, passed: result.passed });
+      const result =
+        mode === "certification"
+          ? await QuizApi.submitCertificationAttempt(
+              courseId as string,
+              formattedAnswers,
+            )
+          : await QuizApi.submitQuiz(quizData.quiz.id, formattedAnswers);
 
-      if (result.passed) {
+      const rawResult = result as Record<string, unknown>;
+      const normalizedScore =
+        typeof result.score === "number" && Number.isFinite(result.score)
+          ? result.score
+          : typeof rawResult.percentage === "number" &&
+              Number.isFinite(rawResult.percentage)
+            ? (rawResult.percentage as number)
+            : result.passed
+              ? 100
+              : 0;
+      const normalizedTotalQuestions =
+        typeof rawResult.totalQuestions === "number" &&
+        Number.isFinite(rawResult.totalQuestions)
+          ? (rawResult.totalQuestions as number)
+          : typeof rawResult.total_questions === "number" &&
+              Number.isFinite(rawResult.total_questions)
+            ? (rawResult.total_questions as number)
+            : quizData.questions.length;
+      const fallbackCorrectAnswers = Math.round(
+        (normalizedScore / 100) * normalizedTotalQuestions,
+      );
+      const rawCorrectAnswers =
+        typeof rawResult.correctAnswers === "number" &&
+        Number.isFinite(rawResult.correctAnswers)
+          ? (rawResult.correctAnswers as number)
+          : typeof rawResult.correct_answers === "number" &&
+              Number.isFinite(rawResult.correct_answers)
+            ? (rawResult.correct_answers as number)
+            : fallbackCorrectAnswers;
+      const normalizedCorrectAnswers = Math.max(
+        0,
+        Math.min(normalizedTotalQuestions, Math.round(rawCorrectAnswers)),
+      );
+      const isPaidEnrollment = readBooleanCandidate(
+        rawResult.isPaidEnrollment,
+        rawResult.is_paid_enrollment,
+      );
+      const isCourseFree = readBooleanCandidate(
+        rawResult.isCourseFree,
+        rawResult.is_course_free,
+      );
+
+      setQuizResult({
+        score: normalizedScore,
+        passed: result.passed,
+        correctAnswers: normalizedCorrectAnswers,
+        totalQuestions: normalizedTotalQuestions,
+        eligibleForCertificate:
+          mode === "certification" ? result.passed : undefined,
+        isPaidEnrollment:
+          mode === "certification" ? (isPaidEnrollment ?? undefined) : undefined,
+        isCourseFree: mode === "certification" ? (isCourseFree ?? undefined) : undefined,
+      });
+
+      if (result.passed && mode !== "certification") {
         await Swal.fire({
           title: "🎉 Bravo !",
-          text: `Quiz réussi avec ${result.score}%`,
+          text: `Quiz réussi avec ${Math.round(normalizedScore)}%`,
           icon: "success",
           confirmButtonText: "Fermer",
           confirmButtonColor: "#6366f1",
@@ -171,12 +648,16 @@ export function QuizModal({
           allowOutsideClick: true,
           allowEscapeKey: true,
         });
-      } else {
+      }
+
+      if (!result.passed && mode !== "certification") {
+        const roundedScore = Math.round(normalizedScore);
+
         await Swal.fire({
           title: "❌ Quiz échoué",
-          text: `Score obtenu : ${result.score}%`,
+          text: `Score obtenu : ${roundedScore}%`,
           icon: "error",
-          confirmButtonText: "Fermer", // ✅ CORRECTION: Changé de "Réessayer" à "Fermer"
+          confirmButtonText: "Fermer",
           confirmButtonColor: "#6366f1",
           showConfirmButton: true,
           allowOutsideClick: true,
@@ -185,7 +666,7 @@ export function QuizModal({
       }
 
       setShowResults(true);
-      onQuizCompleted(result.passed, result.score);
+      onQuizCompleted(result.passed, normalizedScore);
     } catch (error) {
       logger.error("Error submitting quiz:", error);
       await Swal.fire({
@@ -201,6 +682,7 @@ export function QuizModal({
   };
 
   const handleRestart = () => {
+    clearStoredSession();
     setCurrentQuestionIndex(0);
     setAnswers({});
     setShowResults(false);
@@ -251,7 +733,7 @@ export function QuizModal({
           </h3>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Fermer
@@ -273,6 +755,11 @@ export function QuizModal({
 
   if (!quizData) return null;
 
+  const pageTitlePrefix = mode === "certification" ? "Certification" : "Quiz noté";
+  const pageSubtitle =
+    mode === "certification" ? "Certification • 30 min" : "Devoir noté • 30 min";
+  const deadlineLabel = getQuizDeadlineLabel(quizData.quiz);
+
   const quizContent = (
     <div
       className={`bg-white overflow-hidden flex flex-col ${
@@ -286,7 +773,7 @@ export function QuizModal({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D1D7DC] bg-[#F5F5F5] px-4 py-3">
           <div className="flex items-start gap-3">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="inline-flex items-center gap-2 rounded border border-[#D1D7DC] bg-white px-3 py-2 text-sm font-semibold text-[#0056D2] hover:bg-[#F7F9FA]"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -294,15 +781,17 @@ export function QuizModal({
             </button>
             <div>
               <h2 className="text-base font-semibold text-[#1F2937] sm:text-lg">
-                Quiz noté : {quizData.quiz.title}
+                {pageTitlePrefix} : {quizData.quiz.title}
               </h2>
-              <p className="text-xs text-[#6B7280]">Devoir noté • 30 min</p>
+              <p className="text-xs text-[#6B7280]">{pageSubtitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-[#374151]">
-            <Clock className="h-4 w-4" />
-            <span>Date 7 févr. 23:59 PST</span>
-          </div>
+          {deadlineLabel && (
+            <div className="flex items-center gap-2 text-sm text-[#374151]">
+              <Clock className="h-4 w-4" />
+              <span>Date {deadlineLabel}</span>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex items-start justify-between border-b border-gray-100 p-4 sm:p-6">
@@ -322,7 +811,7 @@ export function QuizModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="ml-2 flex-shrink-0 rounded-full p-1.5 transition-colors hover:bg-gray-100 sm:p-1"
           >
             <X className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
@@ -337,13 +826,23 @@ export function QuizModal({
         >
             {showResults ? (
               quizResult ? (
-                <QuizResults
-                  quizData={quizData}
-                  answers={answers}
-                  onClose={onClose}
-                  quizResult={quizResult}
-                  onRestart={handleRestart}
-                />
+                <div
+                  className={`transform-gpu transition-all duration-[10000ms] ease-out ${
+                    resultVisible
+                      ? "translate-y-0 scale-100 opacity-100"
+                      : "translate-y-3 scale-[0.985] opacity-0"
+                  }`}
+                >
+                  <QuizResults
+                    quizData={quizData}
+                    onClose={handleClose}
+                    quizResult={quizResult}
+                    onRestart={handleRestart}
+                    mode={mode}
+                    courseId={courseId}
+                    variant={isPage ? "page" : "modal"}
+                  />
+                </div>
               ) : (
                 <div className="text-center py-8 sm:py-12">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -647,19 +1146,349 @@ function QuestionCard({
 
 function QuizResults({
   quizData,
-  answers,
   onClose,
   quizResult,
   onRestart,
+  mode,
+  courseId,
+  variant = "modal",
 }: {
   quizData: QuizData;
-  answers: Record<string, number>;
   onClose: () => void;
-  quizResult: { score: number; passed: boolean } | null;
+  quizResult: {
+    score: number;
+    passed: boolean;
+    correctAnswers?: number;
+    totalQuestions?: number;
+    eligibleForCertificate?: boolean;
+    isPaidEnrollment?: boolean;
+    isCourseFree?: boolean;
+  } | null;
   onRestart: () => void;
+  mode?: "module" | "certification";
+  courseId?: string;
+  variant?: "modal" | "page";
 }) {
-  const percentage = quizResult?.score || 0;
+  const [isClaimingCertificate, setIsClaimingCertificate] = useState(false);
+  const [isPollingClaim, setIsPollingClaim] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimState, setClaimState] = useState<{
+    isIssued: boolean;
+    certificateUrl: string | null;
+    paymentRequired: boolean;
+    paymentStatus: string | null;
+    paymentUrl: string | null;
+    checked: boolean;
+  }>({
+    isIssued: false,
+    certificateUrl: null,
+    paymentRequired: false,
+    paymentStatus: null,
+    paymentUrl: null,
+    checked: false,
+  });
+  const autoClaimStartedRef = useRef(false);
+  const percentage = Math.round(quizResult?.score || 0);
   const passed = quizResult?.passed || false;
+  const isPage = variant === "page";
+  const isCertificationMode = mode === "certification";
+  const totalQuestionsCount = Math.max(
+    1,
+    quizResult?.totalQuestions ?? quizData.questions.length,
+  );
+  const fallbackCorrectAnswersCount = Math.round(
+    (percentage / 100) * totalQuestionsCount,
+  );
+  const correctAnswersCount = Math.max(
+    0,
+    Math.min(
+      totalQuestionsCount,
+      quizResult?.correctAnswers ?? fallbackCorrectAnswersCount,
+    ),
+  );
+  const correctAnswersLabel =
+    correctAnswersCount <= 1 ? "bonne réponse" : "bonnes réponses";
+  const totalQuestionsLabel =
+    totalQuestionsCount <= 1 ? "question" : "questions";
+  const showCertificationFailure = isCertificationMode && !passed;
+  const showCertificationClaimAction = isCertificationMode && passed;
+
+  const handleClaimCertificate = async (redirectOnPayment = true) => {
+    if (!courseId) {
+      await Swal.fire({
+        title: "Cours introuvable",
+        text: "Impossible de récupérer le certificat sans identifiant de cours.",
+        icon: "error",
+        confirmButtonText: "Fermer",
+        confirmButtonColor: "#6366f1",
+      });
+      return;
+    }
+
+    setIsClaimingCertificate(true);
+    setClaimError(null);
+    try {
+      const claim = await QuizApi.claimCertificationCertificate(courseId);
+      const issued = Boolean(claim.isIssued && claim.certificateUrl);
+      const paymentStatus = claim.paymentStatus
+        ? claim.paymentStatus.toUpperCase()
+        : null;
+
+      setClaimState({
+        isIssued: issued,
+        certificateUrl: claim.certificateUrl,
+        paymentRequired: claim.paymentRequired,
+        paymentStatus,
+        paymentUrl: claim.paymentUrl,
+        checked: true,
+      });
+
+      if (issued && claim.certificateUrl) {
+        clearPendingCertificateClaim(courseId);
+        return;
+      }
+
+      if (claim.paymentRequired) {
+        markPendingCertificateClaim(courseId, claim.paymentUrl);
+        if (redirectOnPayment && paymentStatus === "PENDING" && claim.paymentUrl) {
+          window.location.href = withPaymentType(
+            claim.paymentUrl,
+            "certification",
+          );
+        }
+        return;
+      }
+
+      clearPendingCertificateClaim(courseId);
+    } catch (error) {
+      logger.error("Erreur lors du claim du certificat:", error);
+      setClaimError("Impossible de récupérer le statut du certificat.");
+      await Swal.fire({
+        title: "Erreur",
+        text: "Une erreur est survenue lors de la récupération du certificat.",
+        icon: "error",
+        confirmButtonText: "Fermer",
+        confirmButtonColor: "#6366f1",
+      });
+    } finally {
+      setIsClaimingCertificate(false);
+    }
+  };
+
+  const handleDownloadCertificate = () => {
+    if (!claimState.certificateUrl) return;
+    window.open(claimState.certificateUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleResumePayment = () => {
+    if (!claimState.paymentUrl) return;
+    window.location.href = withPaymentType(
+      claimState.paymentUrl,
+      "certification",
+    );
+  };
+
+  useEffect(() => {
+    setClaimState({
+      isIssued: false,
+      certificateUrl: null,
+      paymentRequired: false,
+      paymentStatus: null,
+      paymentUrl: null,
+      checked: false,
+    });
+    setClaimError(null);
+    setIsClaimingCertificate(false);
+    setIsPollingClaim(false);
+    autoClaimStartedRef.current = false;
+  }, [courseId, quizResult?.passed]);
+
+  useEffect(() => {
+    if (!showCertificationClaimAction || !courseId) return;
+    if (claimState.isIssued) return;
+    if (!hasPendingCertificateClaim(courseId)) return;
+    if (autoClaimStartedRef.current) return;
+
+    autoClaimStartedRef.current = true;
+    let cancelled = false;
+
+    const pollClaimStatus = async () => {
+      setIsPollingClaim(true);
+      try {
+        for (let attempt = 1; attempt <= 10; attempt++) {
+          if (cancelled) return;
+          const claim = await QuizApi.claimCertificationCertificate(courseId);
+          const issued = Boolean(claim.isIssued && claim.certificateUrl);
+          const paymentStatus = claim.paymentStatus
+            ? claim.paymentStatus.toUpperCase()
+            : null;
+
+          if (cancelled) return;
+
+          setClaimState({
+            isIssued: issued,
+            certificateUrl: claim.certificateUrl,
+            paymentRequired: claim.paymentRequired,
+            paymentStatus,
+            paymentUrl: claim.paymentUrl,
+            checked: true,
+          });
+
+          if (issued && claim.certificateUrl) {
+            clearPendingCertificateClaim(courseId);
+            return;
+          }
+
+          if (!claim.paymentRequired) {
+            clearPendingCertificateClaim(courseId);
+            return;
+          }
+
+          await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        }
+
+        if (!cancelled) {
+          setClaimError(
+            "Paiement en cours de confirmation. Réessayez dans quelques instants.",
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          logger.error("Erreur lors du polling du certificat:", error);
+          setClaimError(
+            "Impossible de confirmer le certificat pour le moment. Réessayez.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsPollingClaim(false);
+        }
+      }
+    };
+
+    void pollClaimStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showCertificationClaimAction, courseId, claimState.isIssued]);
+
+  const certificationPanel = isCertificationMode ? (
+    showCertificationFailure ? (
+      <div className="mx-auto mb-8 w-full max-w-xl rounded-xl border border-red-200 bg-red-50 p-6 text-left sm:text-center">
+        <p className="text-lg font-semibold text-red-700">
+          Certification non réussie
+        </p>
+      </div>
+    ) : showCertificationClaimAction ? (
+      <div className="mx-auto mb-8 w-full max-w-xl rounded-xl border border-dashed border-[#E9C46A] bg-[#FFFBED] p-6 text-left sm:text-center">
+        <p className="flex items-center justify-start gap-2 text-xl font-semibold text-[#111827] sm:justify-center">
+          <GraduationCap className="h-5 w-5 text-[#111827]" />
+          {claimState.isIssued
+            ? "Votre certificat est prêt"
+            : "Certification réussie"}
+        </p>
+
+        {!claimState.isIssued && (
+          <p className="mt-2 text-sm text-[#667085]">
+            {isPollingClaim
+              ? "Vérification du paiement en cours..."
+              : claimState.paymentRequired
+                ? "Paiement requis pour finaliser l'émission du certificat."
+                : "Cliquez sur \"Récupérer mon certificat\"."}
+          </p>
+        )}
+
+        {claimState.isIssued && claimState.certificateUrl ? (
+          <button
+            type="button"
+            onClick={handleDownloadCertificate}
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D7A928] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#C09117]"
+          >
+            <Download className="h-4 w-4" />
+            Télécharger certificat
+          </button>
+        ) : (
+          <div className="mt-5 flex flex-wrap items-center gap-3 sm:justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                void handleClaimCertificate(true);
+              }}
+              disabled={isClaimingCertificate || isPollingClaim}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#D7A928] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#C09117] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isClaimingCertificate ? "Vérification..." : "Récupérer mon certificat"}
+            </button>
+
+            {claimState.paymentRequired &&
+              claimState.paymentStatus === "PENDING" &&
+              claimState.paymentUrl && (
+                <button
+                  type="button"
+                  onClick={handleResumePayment}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#D7A928] bg-white px-6 py-3 font-semibold text-[#8A6A0F] transition-colors hover:bg-[#FFF6DA]"
+                >
+                  Continuer le paiement
+                </button>
+              )}
+          </div>
+        )}
+
+        {claimError && <p className="mt-3 text-sm text-red-600">{claimError}</p>}
+      </div>
+    ) : null
+  ) : null;
+
+  if (isPage) {
+    return (
+      <div className="mx-auto w-full max-w-2xl py-6 text-center sm:py-10">
+        <div className="mx-auto mb-7 flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-[#22B573] bg-white sm:h-36 sm:w-36">
+          <span className="text-4xl font-bold text-[#111827] sm:text-5xl">
+            {percentage}%
+          </span>
+        </div>
+
+        <h3 className="mb-3 text-3xl font-semibold text-[#111827]">
+          {isCertificationMode
+            ? passed
+              ? "Certification réussie"
+              : "Certification non réussie"
+            : passed
+              ? "Excellent travail!"
+              : "Continuez vos efforts"}
+        </h3>
+        <p className="mb-8 text-lg text-[#667085]">
+          Vous avez obtenu{" "}
+          <span className="font-semibold text-[#111827]">{correctAnswersCount}</span>{" "}
+          {correctAnswersLabel} sur{" "}
+          <span className="font-semibold text-[#111827]">
+            {totalQuestionsCount}
+          </span>
+          {" "}
+          {totalQuestionsLabel}
+        </p>
+
+        {certificationPanel}
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={onRestart}
+            className="inline-flex items-center gap-2 rounded-lg border border-[#D0D5DD] bg-white px-6 py-3 font-semibold text-[#101828] transition-colors hover:bg-[#F9FAFB]"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Recommencer
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-[#101828] px-8 py-3 font-semibold text-white transition-colors hover:bg-[#1D2939]"
+          >
+            Terminer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="text-center space-y-6 sm:space-y-8 py-6 sm:py-8">
@@ -678,14 +1507,16 @@ function QuizResults({
               : "Continuez à apprendre!"}
         </h3>
         <p className="text-sm sm:text-base lg:text-lg text-gray-600">
-          Vous avez répondu correctement à{" "}
+          Vous avez obtenu{" "}
           <span className="font-semibold text-gray-900">
-            {Math.round((percentage / 100) * quizData.questions.length)}
+            {correctAnswersCount}
           </span>{" "}
-          questions sur{" "}
+          {correctAnswersLabel} sur{" "}
           <span className="font-semibold text-gray-900">
-            {quizData.questions.length}
+            {totalQuestionsCount}
           </span>
+          {" "}
+          {totalQuestionsLabel}
         </p>
       </div>
 

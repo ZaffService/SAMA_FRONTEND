@@ -132,6 +132,9 @@ export interface CourseDetailsData {
     attachment?: string | null;  // ← URL du fichier PDF attaché (Cloudinary)
     isFree?: boolean;
     isEnrolled?: boolean;  // ← Statut d'inscription de l'utilisateur
+    isCertifying?: boolean;
+    quizId?: string | null;
+    quizStatus?: string | null;
   };
   modules: Array<{
     id: string;

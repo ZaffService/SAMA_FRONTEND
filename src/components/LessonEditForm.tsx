@@ -82,10 +82,16 @@ export function LessonEditForm({ lesson, onSubmit, onCancel }: LessonEditFormPro
               Durée (minutes)
             </label>
             <Input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={formData.duration || ""}
               onChange={(e) =>
-                setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })
+                setFormData({
+                  ...formData,
+                  duration:
+                    parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0,
+                })
               }
               placeholder="0"
               min="0"

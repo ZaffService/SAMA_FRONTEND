@@ -223,6 +223,23 @@ export function transformCourseDetails(data: any): CourseDetailsData {
       isEnrolled:
         rawCourse?.isEnrolled ??
         rawCourse?._isEnrolled,  // ← Statut d'inscription
+      isCertifying:
+        rawCourse?.isCertifying ??
+        rawCourse?.is_certifying ??
+        rawCourse?._isCertifying ??
+        false,
+      quizId:
+        rawCourse?.quizId ??
+        rawCourse?.quiz_id ??
+        rawCourse?.certificationQuizId ??
+        rawCourse?.certification_quiz_id ??
+        null,
+      quizStatus:
+        rawCourse?.quizStatus ??
+        rawCourse?.quiz_status ??
+        rawCourse?.certificationStatus ??
+        rawCourse?.certification_status ??
+        null,
     },
     modules: rawModules.map(
       (module: any) => ({

@@ -403,8 +403,10 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                           </label>
                           <Input
                             name="duration"
-                            type="number"
-                            defaultValue={lesson.duration || 0}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            defaultValue={lesson.duration || ""}
                             placeholder="0"
                             min="0"
                           />
@@ -553,11 +555,17 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                           Durée (minutes)
                         </label>
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={lesson.duration || ""}
                           onChange={(e) =>
                             updateNewLesson(index, {
-                              duration: parseInt(e.target.value) || 0,
+                              duration:
+                                parseInt(
+                                  e.target.value.replace(/[^\d]/g, ""),
+                                  10,
+                                ) || 0,
                             })
                           }
                           placeholder="0"

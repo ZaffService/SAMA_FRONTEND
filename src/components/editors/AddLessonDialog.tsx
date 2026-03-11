@@ -123,9 +123,17 @@ export function AddLessonDialog({
               Durée (en minutes)
             </label>
             <Input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  duration:
+                    parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0,
+                })
+              }
               className="h-12 text-base w-32"
               disabled={isLoading}
               min="0"

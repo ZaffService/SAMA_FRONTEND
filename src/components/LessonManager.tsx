@@ -281,11 +281,13 @@ export function LessonManager({
                         Durée (minutes)
                       </label>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={lesson.duration || ""}
                         onChange={(e) =>
                           updateLesson(index, {
-                            duration: parseInt(e.target.value) || 0,
+                            duration: parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0,
                           })
                         }
                         placeholder="0"

@@ -850,14 +850,18 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                         Score de passage (%)
                       </label>
                       <Input
-                        type="number"
-                        min={0}
-                        max={100}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={quizForm.passingScore}
                         onChange={(event) =>
                           setQuizForm((prev) => ({
                             ...prev,
-                            passingScore: Number(event.target.value),
+                            passingScore: (() => {
+                              const digits = event.target.value.replace(/[^\d]/g, "");
+                              const next = digits ? parseInt(digits, 10) : 0;
+                              return Math.max(0, Math.min(100, next));
+                            })(),
                           }))
                         }
                       />
@@ -991,15 +995,20 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                           Points
                         </label>
                         <Input
-                          type="number"
-                          min={1}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={questionDraft.points}
                           onChange={(event) =>
                             setQuestionDraft((prev) =>
                               prev
                                 ? {
                                     ...prev,
-                                    points: Number(event.target.value),
+                                    points:
+                                      parseInt(
+                                        event.target.value.replace(/[^\d]/g, ""),
+                                        10,
+                                      ) || 1,
                                   }
                                 : prev,
                             )

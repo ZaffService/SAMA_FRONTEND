@@ -62,7 +62,133 @@ export interface QuizResult {
   }[];
 }
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
+
+const getCertificateUrlFromPayload = (payload: unknown): string | null => {
+  const source = asRecord(payload);
+  if (!source) return null;
+
+  const directCandidates = [
+    source.certificateUrl,
+    source.certificate_url,
+    source.pdfUrl,
+    source.url,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+
+  const nestedCandidates = [source.certificate, source.data, source.result];
+  for (const nested of nestedCandidates) {
+    const nestedUrl = getCertificateUrlFromPayload(nested);
+    if (nestedUrl) {
+      return nestedUrl;
+    }
+  }
+
+  return null;
+};
+
+const getValueFromPayload = (
+  payload: unknown,
+  keys: string[],
+): unknown | undefined => {
+  const source = asRecord(payload);
+  if (!source) return undefined;
+
+  for (const key of keys) {
+    const value = source[key];
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+  }
+
+  const nestedCandidates = [source.certificate, source.data, source.result];
+  for (const nested of nestedCandidates) {
+    const nestedValue = getValueFromPayload(nested, keys);
+    if (nestedValue !== undefined && nestedValue !== null) {
+      return nestedValue;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return undefined;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "oui"].includes(normalized)) return true;
+    if (["false", "0", "no", "non"].includes(normalized)) return false;
+  }
+  return undefined;
+};
+
 export class QuizApi {
+  /**
+   * Récupérer le quiz de certification d'un cours
+   */
+  static async getCertificationQuiz(courseId: string): Promise<{
+    quiz: {
+      id: string;
+      title: string;
+      description?: string;
+      passingScore: number;
+    };
+    questions: Array<{
+      id: string;
+      question: string;
+      type: string;
+      options?: any;
+      points: number;
+    }>;
+  }> {
+    try {
+      logger.log(
+        `📡 API: Récupération du quiz de certification pour le cours: ${courseId}`,
+      );
+
+      const endpoint = `course/${courseId}/certification/quiz`;
+      logger.log(`📡 API: Endpoint utilisé: ${endpoint}`);
+
+      const response = await fetch(buildApiUrl(endpoint), {
+        method: "GET",
+        credentials: "include",
+      });
+
+      logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(`❌ API: Erreur ${response.status}: ${errorText}`);
+        throw new Error(
+          `Erreur ${response.status}: Impossible de charger le quiz de certification`,
+        );
+      }
+
+      const data = await response.json();
+      logger.log("✅ API: Quiz de certification reçu:", data);
+      return data;
+    } catch (error) {
+      logger.error(
+        "❌ API: Erreur lors de la récupération du quiz de certification:",
+        error,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Récupérer les questions d'un quiz
    */
@@ -201,6 +327,143 @@ export class QuizApi {
       return data;
     } catch (error) {
       logger.error(`❌ API: Erreur lors de la soumission du quiz:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Soumettre une tentative de quiz de certification
+   */
+  static async submitCertificationAttempt(
+    courseId: string,
+    answers: Record<string, any>,
+  ): Promise<{
+    quizId?: string;
+    score: number;
+    passed: boolean;
+    answers?: Record<string, any>;
+  }> {
+    try {
+      logger.log(
+        `📤 API: Soumission du quiz de certification pour le cours ${courseId}`,
+        answers,
+      );
+
+      const endpoint = `course/${courseId}/certification/attempt`;
+      logger.log(`📤 API: Endpoint utilisé: ${endpoint}`);
+
+      const response = await fetch(buildApiUrl(endpoint), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ answers }),
+      });
+
+      logger.log(`📤 API: Réponse de soumission - Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(
+          `❌ API: Erreur ${response.status} lors de la soumission: ${errorText}`,
+        );
+        const error = new Error(
+          `Erreur ${response.status}: Impossible de soumettre le quiz de certification`,
+        ) as any;
+        error.status = response.status;
+        throw error;
+      }
+
+      const data = await response.json();
+      logger.log("✅ API: Résultat certification:", data);
+      return data;
+    } catch (error) {
+      logger.error(
+        "❌ API: Erreur lors de la soumission du quiz de certification:",
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Réclamer le certificat après réussite de la certification
+   */
+  static async claimCertificationCertificate(courseId: string): Promise<{
+    isIssued: boolean;
+    paymentRequired: boolean;
+    paymentStatus: string | null;
+    paymentUrl: string | null;
+    certificateUrl: string | null;
+    rawResponse: unknown;
+  }> {
+    try {
+      logger.log(`📄 API: Réclamation du certificat pour le cours ${courseId}`);
+
+      const endpoint = `course/${courseId}/certification/claim`;
+      logger.log(`📄 API: Endpoint utilisé: ${endpoint}`);
+
+      const response = await fetch(buildApiUrl(endpoint), {
+        method: "POST",
+        credentials: "include",
+      });
+
+      logger.log(`📄 API: Réponse claim certificat - Status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error(
+          `❌ API: Erreur ${response.status} lors du claim certificat: ${errorText}`,
+        );
+        const error = new Error(
+          `Erreur ${response.status}: Impossible de récupérer le certificat`,
+        ) as any;
+        error.status = response.status;
+        throw error;
+      }
+
+      const data = (await response.json()) as unknown;
+      const certificateUrl = getCertificateUrlFromPayload(data);
+      const isIssued =
+        normalizeBoolean(getValueFromPayload(data, ["isIssued", "is_issued"])) ??
+        Boolean(certificateUrl);
+      const paymentRequired =
+        normalizeBoolean(
+          getValueFromPayload(data, ["paymentRequired", "payment_required"]),
+        ) ?? false;
+      const paymentStatusValue = getValueFromPayload(data, [
+        "paymentStatus",
+        "payment_status",
+      ]);
+      const paymentStatus =
+        typeof paymentStatusValue === "string" && paymentStatusValue.trim().length > 0
+          ? paymentStatusValue.trim().toUpperCase()
+          : null;
+      const paymentUrlValue = getValueFromPayload(data, [
+        "paymentUrl",
+        "payment_url",
+      ]);
+      const paymentUrl =
+        typeof paymentUrlValue === "string" && paymentUrlValue.trim().length > 0
+          ? paymentUrlValue.trim()
+          : null;
+
+      logger.log("✅ API: Résultat claim certificat:", {
+        isIssued,
+        paymentRequired,
+        paymentStatus,
+        hasCertificateUrl: Boolean(certificateUrl),
+        hasPaymentUrl: Boolean(paymentUrl),
+      });
+      return {
+        isIssued,
+        paymentRequired,
+        paymentStatus,
+        paymentUrl,
+        certificateUrl,
+        rawResponse: data,
+      };
+    } catch (error) {
+      logger.error("❌ API: Erreur lors du claim du certificat:", error);
       throw error;
     }
   }

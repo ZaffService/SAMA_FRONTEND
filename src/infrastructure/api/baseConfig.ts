@@ -46,6 +46,8 @@ export const API_ENDPOINTS = {
     QUIZ: "/course/quiz",
     LESSON_COMPLETE: "/course/lesson/complete",
     LESSON_UNCOMPLETE: "/course/lesson/uncomplete",
+    CERTIFICATION_QUIZ: (courseId: string) =>
+      `/course/${courseId}/certification/quiz`,
   },
   USER: {
     LOGIN: "/user/login",

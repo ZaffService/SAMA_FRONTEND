@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit3, FolderPlus, BookOpen, HelpCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowLeft,
+  Edit3,
+  FolderPlus,
+  BookOpen,
+  HelpCircle,
+  BadgeCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -10,6 +17,8 @@ import { CourseBasicInfoEditor } from "@/components/editors/CourseBasicInfoEdito
 import { ModuleEditor } from "@/components/editors/ModuleEditor";
 import { LessonEditor } from "@/components/editors/LessonEditor";
 import { QuizEditor } from "@/components/editors/QuizEditor";
+import { CertificationEditor } from "@/components/editors/CertificationEditor";
+import { CoursesApi } from "@/infrastructure/api/courses-api";
 import logger from "@/shared/helpers/logger";
 
 interface CourseActionCardProps {
@@ -65,9 +74,13 @@ interface EditCoursePageProps {
 
 export default function EditCoursePage({ params }: EditCoursePageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedEditor = searchParams.get("editor");
   const [activeEditor, setActiveEditor] = useState<string | null>(null);
   const [courseId, setCourseId] = useState<string | null>(null);
   const [selectedModuleForLessons, setSelectedModuleForLessons] = useState<string | null>(null);
+  const [isCertifying, setIsCertifying] = useState(false);
+  const [courseLoading, setCourseLoading] = useState(false);
 
   // Extraire courseId des params 
   useEffect(() => {
@@ -78,6 +91,35 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
     };
     getParams();
   }, [params]);
+
+  useEffect(() => {
+    if (!courseId) return;
+
+    const loadCourse = async () => {
+      setCourseLoading(true);
+      try {
+        const data = await CoursesApi.getCourseForEdit(courseId);
+        const course = data.course as any;
+        const certifying =
+          course?.isCertifying ?? course?.is_certifying ?? false;
+        logger.log("🔎 [EditCourse] isCertifying:", certifying);
+        setIsCertifying(Boolean(certifying));
+      } catch (error) {
+        logger.error("Erreur lors du chargement du cours:", error);
+        toast.error("Impossible de charger les informations du cours");
+      } finally {
+        setCourseLoading(false);
+      }
+    };
+
+    loadCourse();
+  }, [courseId]);
+
+  useEffect(() => {
+    if (requestedEditor === "certification") {
+      setActiveEditor("certification");
+    }
+  }, [requestedEditor]);
 
   const handleBack = () => {
     router.push("/admin-dashboard");
@@ -134,6 +176,13 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
         );
       case "quizzes":
         return <QuizEditor courseId={courseId} onBack={() => setActiveEditor(null)} />;
+      case "certification":
+        return (
+          <CertificationEditor
+            courseId={courseId}
+            onBack={() => setActiveEditor(null)}
+          />
+        );
       default:
         return null;
     }
@@ -201,6 +250,16 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
             onClick={() => setActiveEditor("modules")}
             gradient="from-indigo-500 to-purple-600"
           />
+
+          {!courseLoading && isCertifying && (
+            <CourseActionCard
+              title="Certification"
+              description="Configurer le quiz de certification et suivre son état"
+              icon={<BadgeCheck className="h-8 w-8" />}
+              onClick={() => setActiveEditor("certification")}
+              gradient="from-emerald-500 to-teal-600"
+            />
+          )}
         </div>
 
         {/* Helper Section */}
