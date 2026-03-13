@@ -104,7 +104,7 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | "ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(16);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [stats, setStats] = useState({
@@ -659,7 +659,7 @@ const UserManagement: React.FC = () => {
             className="px-3 py-2 border rounded-md"
           >
             <option value={5}>5 par page</option>
-            <option value={10}>10 par page</option>
+            <option value={16}>16 par page</option>
             <option value={20}>20 par page</option>
             <option value={50}>50 par page</option>
           </select>

@@ -141,6 +141,27 @@ export function CourseManagement({
     router.push(`/admin/edit-course/${course.id}`);
   };
 
+  const resolveEnrollmentCount = (course: BackendCourse): number => {
+    const raw = course as BackendCourse & {
+      enrollment_count?: number;
+      studentsCount?: number;
+      students_count?: number;
+    };
+    if (typeof course.enrollmentCount === "number" && Number.isFinite(course.enrollmentCount)) {
+      return course.enrollmentCount;
+    }
+    if (typeof raw.enrollment_count === "number" && Number.isFinite(raw.enrollment_count)) {
+      return raw.enrollment_count;
+    }
+    if (typeof raw.studentsCount === "number" && Number.isFinite(raw.studentsCount)) {
+      return raw.studentsCount;
+    }
+    if (typeof raw.students_count === "number" && Number.isFinite(raw.students_count)) {
+      return raw.students_count;
+    }
+    return 0;
+  };
+
   const fetchCourses = async () => {
     setIsLoading(true);
     try {
@@ -148,18 +169,20 @@ export function CourseManagement({
         query: searchQuery || undefined,
       };
 
-      // Pour les admins, forcer le rôle dans les paramètres pour s'assurer que le backend applique la logique admin
       if (user?.role === "ADMIN") {
         searchOptions.userRole = "ADMIN";
-      } else {
-        // Pour les autres rôles, appliquer le filtrage de statut côté client si nécessaire
-        if (statusFilter !== "all") {
-          searchOptions.status = statusFilter;
-        }
+      }
+      if (statusFilter !== "all") {
+        searchOptions.status = statusFilter;
       }
 
       const result = await CoursesApi.getCourses(1, 100, searchOptions);
-      setCourses(result.courses);
+
+      const normalizedCourses = result.courses.map((course) => ({
+        ...course,
+        enrollmentCount: resolveEnrollmentCount(course),
+      }));
+      setCourses(normalizedCourses);
     } catch (error) {
       logger.error("Erreur lors de la récupération des cours:", error);
       toast.error("Erreur lors de la récupération des cours");
@@ -311,7 +334,7 @@ export function CourseManagement({
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Prix</TableHead>
                     <TableHead>Statut</TableHead>
-                    {/* <TableHead>Étudiants</TableHead> */}
+                    <TableHead>Étudiants</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -346,7 +369,7 @@ export function CourseManagement({
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(course.status)}</TableCell>
-                      {/* <TableCell>{course.enrollmentCount || 0}</TableCell> */}
+                      <TableCell>{course.enrollmentCount || 0}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {user?.role === "ADMIN" && (

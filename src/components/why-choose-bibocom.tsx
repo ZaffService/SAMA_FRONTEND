@@ -11,19 +11,19 @@ interface FeatureItem {
 const features: FeatureItem[] = [
   {
     icon: <GraduationCap className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Formations 100% Pratiques en Langue Locale",
+    label: "Formations 100% Pratiques en Langue Locale: Obtenez des certificats valorisés par les employeurs pour booster votre carrière.",
   },
   {
     icon: <Globe className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Accès en ligne et présentiel",
+    label: "Accès en ligne et présentiel: Apprenez à votre rythme, quand vous voulez, où vous voulez, sur tout appareil.",
   },
   {
     icon: <Users className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-orange)]" />,
-    label: "Formateurs Experts",
+    label: "Formateurs experts: Des cours créés par des experts du secteur avec des contenus actualisés et pratiques.",
   },
   {
     icon: <Briefcase className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Compétences pour l'emploi / entrepreneuriat",
+    label: "Compétences pour l'emploi / entrepreneuriat: Renforcement des compétences essentielles pour accéder à l’emploi, créer une activité et devenir autonome professionnellement.",
   },
 ];
 

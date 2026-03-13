@@ -39,6 +39,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Download,
 } from "lucide-react";
 import Cookies from "js-cookie";
 import logger from "@/shared/helpers/logger";
@@ -57,6 +58,19 @@ const withPaymentType = (url: string, paymentType: PaymentType): string => {
   } catch {
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}paymentType=${paymentType}`;
+  }
+};
+
+const getAttachmentFilename = (url?: string | null): string => {
+  if (!url) return "Ressource du cours";
+  const cleaned = url.split("?")[0].split("#")[0];
+  const parts = cleaned.split("/");
+  const lastPart = parts[parts.length - 1];
+  if (!lastPart) return "Ressource du cours";
+  try {
+    return decodeURIComponent(lastPart);
+  } catch {
+    return lastPart;
   }
 };
 
@@ -2495,6 +2509,8 @@ function CourseDetailsPageComponent() {
   const hasAttachment = Boolean(
     course.attachment && course.attachment !== "undefined",
   );
+  const attachmentUrl = hasAttachment ? course.attachment : null;
+  const attachmentFilename = getAttachmentFilename(attachmentUrl);
   const levelLabel = getLevelLabel(course.level);
   const studentsCount =
     typeof enrollmentCount === "number" && Number.isFinite(enrollmentCount)
@@ -2836,12 +2852,30 @@ function CourseDetailsPageComponent() {
                   <div className="mx-auto max-w-[1020px] overflow-x-auto px-4">
                     <div className="flex min-w-max items-center gap-8">
                       <Search className="h-4 w-4 text-[#6A6F73]" />
-                      <button
-                        onClick={() => setActiveTab("videos")}
-                        className="border-b-2 border-[#002c75] py-4 text-[15px] font-semibold text-[#002c75]"
-                      >
-                        Aperçu
-                      </button>
+                      <div className="flex items-center gap-6">
+                        <button
+                          onClick={() => setActiveTab("videos")}
+                          className={`border-b-2 py-4 text-[15px] font-semibold transition-colors ${
+                            activeTab === "videos"
+                              ? "border-[#002c75] text-[#002c75]"
+                              : "border-transparent text-[#6A6F73] hover:text-[#1C1D1F]"
+                          }`}
+                        >
+                          Aperçu
+                        </button>
+                        {hasAttachment && (
+                          <button
+                            onClick={() => setActiveTab("resources")}
+                            className={`border-b-2 py-4 text-[15px] font-semibold transition-colors ${
+                              activeTab === "resources"
+                                ? "border-[#002c75] text-[#002c75]"
+                                : "border-transparent text-[#6A6F73] hover:text-[#1C1D1F]"
+                            }`}
+                          >
+                            Ressources
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2912,6 +2946,52 @@ function CourseDetailsPageComponent() {
                             "Ce cours est conçu pour vous donner une compréhension solide et pratique du sujet, avec un parcours progressif et orienté vers l'application réelle."}
                         </p>
                       </div>
+                    </section>
+                  )}
+
+                  {activeTab === "resources" && (
+                    <section className="mx-auto max-w-[1020px] px-4 py-8 lg:px-8">
+                      <h2 className="text-3xl font-bold text-[#1C1D1F]">
+                        Ressources du cours
+                      </h2>
+
+                      {hasAttachment ? (
+                        <div className="mt-6 rounded-xl border border-[#D1D7DC] bg-white p-6">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#EEF4FF] text-[#002c75]">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-base font-semibold text-[#1C1D1F]">
+                                  {attachmentFilename}
+                                </p>
+                                <p className="text-sm text-[#6A6F73]">
+                                  Document PDF
+                                </p>
+                              </div>
+                            </div>
+                            {attachmentUrl && (
+                              <a
+                                href={attachmentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={attachmentFilename}
+                                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#002c75] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#001f54]"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Download className="h-4 w-4" />
+                                 <p>Télécharger</p>
+                                </div>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-6 rounded-xl border border-[#D1D7DC] bg-white p-6 text-sm text-[#6A6F73]">
+                          Aucune ressource disponible pour ce cours.
+                        </div>
+                      )}
                     </section>
                   )}
                 </div>
