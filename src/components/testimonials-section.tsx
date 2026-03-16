@@ -49,7 +49,7 @@ const testimonials: Testimonial[] = [
     content:
       "La formation en gestion de caisse m’a permis de mieux comprendre les opérations commerciales, la gestion des stocks et le suivi des ventes. Je suis beaucoup plus organisée maintenant.",
     rating: 4,
-    avatar: "https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?w=100&h=100&fit=crop&crop=face",
+    avatar: "/Fat.jpg",
   },
   {
     id: 5,
