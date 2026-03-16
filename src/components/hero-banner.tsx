@@ -4,10 +4,64 @@ import { useState, useEffect } from "react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import Link from "next/link";
 
+type HeroStat = {
+  value: number;
+  label: string;
+  prefix?: string;
+  suffix?: string;
+};
+
+const heroStats: HeroStat[] = [
+  { value: 5000, label: "Apprenants",prefix: "+ ", suffix: "" },
+  { value: 85, label: "Femmes", suffix: "%" },
+  { value: 92, label: "Taux de reussite", prefix: "+ ", suffix: "%" },
+];
+
 const HeroBanner = () => {
   const { isAuthenticated } = useLocalAuth();
   const [mobileImageLoaded, setMobileImageLoaded] = useState(false);
   const [desktopImageLoaded, setDesktopImageLoaded] = useState(false);
+  const [animatedValues, setAnimatedValues] = useState<number[]>(
+    () => heroStats.map(() => 0)
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (prefersReducedMotion) {
+      setAnimatedValues(heroStats.map((stat) => stat.value));
+      return;
+    }
+
+    const durationMs = 1400;
+    let startTime: number | null = null;
+    let rafId = 0;
+
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const step = (timestamp: number) => {
+      if (startTime === null) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / durationMs, 1);
+      const eased = easeOutCubic(progress);
+      setAnimatedValues(
+        heroStats.map((stat) => Math.round(stat.value * eased))
+      );
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    rafId = requestAnimationFrame(step);
+
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  const formatStatValue = (stat: HeroStat, value: number) =>
+    `${stat.prefix ?? ""}${value}${stat.suffix ?? ""}`;
 
   if (isAuthenticated) {
     return null;
@@ -59,19 +113,41 @@ const HeroBanner = () => {
               sans barrière technologique.
             </p>
 
-            <div className="flex flex-col gap-3 pt-2">
-              <Link 
-                href="#formations" 
-                className="bg-[#EF4444] hover:bg-[#DC2626] text-white px-6 py-4 rounded-xl font-bold text-base transition-all duration-300 text-center shadow-2xl hover:shadow-red-500/50 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Découvrir les formations
-              </Link>
-              <Link 
-                href="/register" 
-                className="bg-transparent border-2 border-white hover:bg-white/10 text-white px-6 py-4 rounded-xl font-bold text-base transition-all duration-300 text-center backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Commencer maintenant
-              </Link>
+            <div className="pt-2 flex flex-col items-center">
+              <div className="inline-flex flex-col items-stretch gap-4">
+                <div className="flex flex-col gap-3">
+                  <Link 
+                    href="#formations" 
+                    className="bg-[#EF4444] hover:bg-[#DC2626] text-white px-6 py-4 rounded-xl font-bold text-base transition-all duration-300 text-center shadow-2xl hover:shadow-red-500/50 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Découvrir les formations
+                  </Link>
+                  <Link 
+                    href="/register" 
+                    className="bg-transparent border-2 border-white hover:bg-white/10 text-white px-6 py-4 rounded-xl font-bold text-base transition-all duration-300 text-center backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Commencer maintenant
+                  </Link>
+                </div>
+
+                <div className="mt-[200px] flex w-full items-center justify-between gap-3 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-sm">
+                  {heroStats.map((stat, index) => (
+                    <div
+                      key={stat.label}
+                      className={`flex-1 px-2 text-center ${
+                        index > 0 ? "border-l border-white/25" : ""
+                      }`}
+                    >
+                      <div className="text-lg sm:text-xl font-extrabold tracking-tight">
+                        {formatStatValue(stat, animatedValues[index] ?? 0)}
+                      </div>
+                      <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-white/90">
+                        {stat.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -121,19 +197,39 @@ const HeroBanner = () => {
               sans barrière technologique.
             </p>
 
-            <div className="flex flex-wrap gap-5">
-              <Link 
-                href="#formations" 
-                className="bg-[#EF4444] hover:bg-[#DC2626] text-white px-10 py-5 rounded-xl font-bold text-lg xl:text-xl transition-all duration-300 shadow-2xl hover:shadow-red-500/50 hover:scale-[1.05] active:scale-[0.98] inline-block"
-              >
-                Découvrir les formations
-              </Link>
-              <Link 
-                href="/register" 
-                className="bg-transparent border-2 border-white hover:bg-white hover:text-[#1e3a8a] text-white px-10 py-5 rounded-xl font-bold text-lg xl:text-xl transition-all duration-300 backdrop-blur-sm hover:scale-[1.05] active:scale-[0.98] inline-block"
-              >
-                Commencer maintenant
-              </Link>
+            <div className="inline-flex flex-col items-stretch gap-8">
+              <div className="flex flex-wrap gap-5">
+                <Link 
+                  href="#formations" 
+                  className="bg-[#EF4444] hover:bg-[#DC2626] text-white px-10 py-5 rounded-xl font-bold text-lg xl:text-xl transition-all duration-300 shadow-2xl hover:shadow-red-500/50 hover:scale-[1.05] active:scale-[0.98] inline-block"
+                >
+                  Découvrir les formations
+                </Link>
+                <Link 
+                  href="/register" 
+                  className="bg-transparent border-2 border-white hover:bg-white hover:text-[#1e3a8a] text-white px-10 py-5 rounded-xl font-bold text-lg xl:text-xl transition-all duration-300 backdrop-blur-sm hover:scale-[1.05] active:scale-[0.98] inline-block"
+                >
+                  Commencer maintenant
+                </Link>
+              </div>
+
+              <div className="mt-[200px] flex w-full items-center justify-between gap-6 rounded-2xl border border-white/20 bg-white/10 px-6 py-4 text-white backdrop-blur-sm">
+                {heroStats.map((stat, index) => (
+                  <div
+                    key={stat.label}
+                    className={`flex-1 px-3 text-center ${
+                      index > 0 ? "border-l border-white/25" : ""
+                    }`}
+                  >
+                    <div className="text-2xl lg:text-3xl font-extrabold tracking-tight">
+                      {formatStatValue(stat, animatedValues[index] ?? 0)}
+                    </div>
+                    <div className="text-xs lg:text-sm font-semibold uppercase tracking-wide text-white/90">
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -143,4 +239,3 @@ const HeroBanner = () => {
 };
 
 export default HeroBanner;
-

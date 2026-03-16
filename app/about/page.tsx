@@ -8,22 +8,22 @@ import { Award, BookOpen, Users, Zap, CheckCircle, Target, Eye, Rocket } from "l
 const features = [
   {
     icon: BookOpen,
-    title: "Formations 100% Pratiques en Langue Locale:",
+    title: "Formations 100% Pratiques en Langue Locale",
     description: "Obtenez des certificats valorisés par les employeurs pour booster votre carrière.",
   },
   {
     icon: Users,
-    title: "Accès en ligne et présentiel:",
+    title: "Accès en ligne et présentiel",
     description: "Apprenez à votre rythme, quand vous voulez, où vous voulez, sur tout appareil.",
   },
   {
     icon: Award,
-    title: "Formateurs experts:",
+    title: "Formateurs experts",
     description: "Des cours créés par des experts du secteur avec des contenus actualisés et pratiques.",
   },
   {
     icon: Zap,
-    title: "Compétences pour l'emploi / entrepreneuriat:",
+    title: "Emploi / entrepreneuriat",
     description: "Renforcement des compétences essentielles pour accéder à l’emploi, créer une activité et devenir autonome professionnellement.",
   },
 ];
