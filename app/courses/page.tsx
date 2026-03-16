@@ -6,19 +6,12 @@ import {
   X,
   Filter,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  Clock,
-  Bell,
-  Lightbulb,
 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 import Swal from "sweetalert2";
 import { useCourses } from "@/application/use-cases/useCourses";
-import type { Course } from "@/domain/entities/course";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
@@ -51,15 +44,12 @@ const CoursesPage = () => {
     showMaintenance,
     refetch,
     total,
-    pages,
-    currentPage,
     filterData,
     filterLoading,
-    setPage,
     setSearchQuery,
     setFilterCategories,
     refresh,
-  } = useCourses(1, 8);
+  } = useCourses(1, 8, { fetchAll: true });
 
   // ✅ État local uniquement pour l'input de recherche (UI)
   const [searchInputValue, setSearchInputValue] = useState("");
@@ -166,13 +156,6 @@ const CoursesPage = () => {
       window.location.href = `/course-details/${course.id}`;
     },
     [isAuthenticated, setRedirectAfterLogin],
-  );
-
-  const handlePageChange = useCallback(
-    (page: number) => {
-      setPage(page);
-    },
-    [setPage],
   );
 
   // Gestion du loading
@@ -561,74 +544,17 @@ const CoursesPage = () => {
               </div>
             )}
 
-            {/* Grid de cours avec pagination carrousel */}
-            {!hasActiveFilters && pages > 1 && (
-              <div className="relative mb-8">
-                {/* Chevron gauche */}
-                {currentPage > 1 && (
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all"
-                  >
-                    <ChevronLeft className="w-6 h-6 text-gray-800" />
-                  </button>
-                )}
-
-                {/* Grid de cours */}
-                <div className="space-y-6">
-                  {Array.from(
-                    { length: Math.ceil(filteredCourses.length / 4) },
-                    (_, rowIndex) => {
-                      const startIndex = rowIndex * 4;
-                      const rowCourses = filteredCourses.slice(
-                        startIndex,
-                        startIndex + 4,
-                      );
-
-                      return (
-                        <div
-                          key={rowIndex}
-                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                        >
-                          {rowCourses.map((course) => (
-                            <CourseCard
-                              key={course.id}
-                              course={course}
-                              onEnrollClick={handleEnrollClick}
-                              onVideoClick={handleVideoClick}
-                            />
-                          ))}
-                        </div>
-                      );
-                    },
-                  )}
-                </div>
-
-                {/* Chevron droit */}
-                {currentPage < pages && (
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 z-10 w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl flex items-center justify-center transition-all"
-                  >
-                    <ChevronRight className="w-6 h-6 text-gray-800" />
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Affichage sans pagination si filtres actifs ou une seule page */}
-            {(hasActiveFilters || pages <= 1) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {filteredCourses.map((course) => (
-                  <CourseCard
-                    key={course.id}
-                    course={course}
-                    onEnrollClick={handleEnrollClick}
-                    onVideoClick={handleVideoClick}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Grid de cours */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {filteredCourses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onEnrollClick={handleEnrollClick}
+                  onVideoClick={handleVideoClick}
+                />
+              ))}
+            </div>
           </div>
         ) : searchInputValue ? (
           // ✅ Recherche sans résultat

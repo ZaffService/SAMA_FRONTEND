@@ -42,6 +42,10 @@ interface UseCoursesActions {
   clearError: () => void;
 }
 
+interface UseCoursesOptions {
+  fetchAll?: boolean;
+}
+
 /* =====================================================
    HOOK
 ===================================================== */
@@ -49,6 +53,7 @@ interface UseCoursesActions {
 export function useCourses(
   initialPage: number = 1,
   initialPerPage: number = 8,
+  options?: UseCoursesOptions,
 ): UseCoursesState & UseCoursesActions {
   /* =======================
      STATES
@@ -80,6 +85,7 @@ export function useCourses(
   });
 
   const perPage = useRef(initialPerPage);
+  const fetchAll = options?.fetchAll ?? false;
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialMount = useRef(true);
@@ -108,18 +114,56 @@ export function useCourses(
             }
           : undefined;
 
-      const result = await CoursesUseCases.getCourses(
-        currentFilters.page,
-        perPage.current,
-        searchOptions,
-      );
+      if (fetchAll) {
+        const firstResult = await CoursesUseCases.getCourses(
+          1,
+          perPage.current,
+          searchOptions,
+        );
 
-      if (!controller.signal.aborted) {
-        setCourses(result.courses);
-        setTotal(result.total);
-        setPages(result.pages);
-        setHasCoursesInDatabase(result.hasCoursesInDatabase);
-        setShowMaintenance(false);
+        if (controller.signal.aborted) return;
+
+        let allCourses = [...(firstResult.courses || [])];
+        let totalPages = firstResult.pages ?? 1;
+        const totalFromApi = firstResult.total;
+        let hasCourses = firstResult.hasCoursesInDatabase;
+
+        if (totalPages < 1) {
+          totalPages = 1;
+        }
+
+        for (let page = 2; page <= totalPages; page += 1) {
+          if (controller.signal.aborted) return;
+          const pageResult = await CoursesUseCases.getCourses(
+            page,
+            perPage.current,
+            searchOptions,
+          );
+          allCourses = allCourses.concat(pageResult.courses || []);
+          hasCourses = hasCourses || pageResult.hasCoursesInDatabase;
+        }
+
+        if (!controller.signal.aborted) {
+          setCourses(allCourses);
+          setTotal(totalFromApi ?? allCourses.length);
+          setPages(1);
+          setHasCoursesInDatabase(hasCourses);
+          setShowMaintenance(false);
+        }
+      } else {
+        const result = await CoursesUseCases.getCourses(
+          currentFilters.page,
+          perPage.current,
+          searchOptions,
+        );
+
+        if (!controller.signal.aborted) {
+          setCourses(result.courses);
+          setTotal(result.total);
+          setPages(result.pages);
+          setHasCoursesInDatabase(result.hasCoursesInDatabase);
+          setShowMaintenance(false);
+        }
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
@@ -131,7 +175,7 @@ export function useCourses(
         setLoading(false);
       }
     }
-  }, []);
+  }, [fetchAll]);
 
   /* =====================================================
      FETCH COURSES (DEBOUNCED)
@@ -216,7 +260,9 @@ export function useCourses(
      DERIVED STATE
   ===================================================== */
 
-  const hasMore = filters.page < pages && !loading;
+  const effectivePages = fetchAll ? 1 : pages;
+  const effectivePage = fetchAll ? 1 : filters.page;
+  const hasMore = !fetchAll && filters.page < pages && !loading;
 
   /* =====================================================
      RETURN
@@ -228,9 +274,9 @@ export function useCourses(
     error,
     showMaintenance,
     total,
-    pages,
+    pages: effectivePages,
     hasMore,
-    currentPage: filters.page,
+    currentPage: effectivePage,
     filterData,
     filterLoading,
     setPage,

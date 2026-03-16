@@ -4,21 +4,13 @@ import {
   useEffect,
   useState,
   useRef,
-  useLayoutEffect,
   useCallback,
 } from "react";
-import Link from "next/link";
 import {
   useSearchParams,
-  useRouter,
 } from "next/navigation";
 import {
-  Search,
-  X,
-  Filter,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -32,7 +24,6 @@ import HowItWorks from "@/components/how-it-works";
 import { Testimonials } from "@/components/testimonials";
 // import TrustCarousel from "@/components/TrustCarousel";
 import { CourseCard } from "@/components/course-card";
-import MaintenancePage from "@/components/MaintenancePage";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
 
@@ -41,18 +32,15 @@ import { useEnrolledCourses } from "@/application/use-cases/useEnrolledCourses";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CategoryFilter } from "@/components/category-filter";
-import type { Course, CourseFilter } from "@/domain/entities/course";
 import { EmptyContent } from "@/components/ui/empty";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
 import logger from "@/shared/helpers/logger";
 
 const Index = () => {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
   const [showFreeTutorials, setShowFreeTutorials] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null,
@@ -69,13 +57,10 @@ const Index = () => {
     courses,
     loading,
     error,
-    pages,
-    currentPage,
-    setPage,
     refresh,
     setFilterCategories,
     hasCoursesInDatabase,
-  } = useCourses(1, 8);
+  } = useCourses(1, 8, { fetchAll: true });
 
   const { enrolledCourses } = useEnrolledCourses();
   const { categories, loading: categoriesLoading } = useCategories();
@@ -103,15 +88,6 @@ const Index = () => {
 
   /**  Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
-  const isPageChanging = useRef(false);
-
-  const handlePageChange = useCallback(
-    (newPage: number) => {
-      isPageChanging.current = true;
-      setPage(newPage);
-    },
-    [setPage],
-  );
 
   /** Gérer la sélection de catégorie */
   const handleCategorySelect = useCallback(
@@ -119,23 +95,9 @@ const Index = () => {
       setSelectedCategoryId(categoryId);
       // Utiliser le backend pour filtrer par catégorie
       setFilterCategories(categoryId ? [categoryId] : []);
-      // Réinitialiser à la première page lors de changement de filtre
-      setPage(1);
     },
-    [setPage, setFilterCategories],
+    [setFilterCategories],
   );
-
-  /** Scroll automatique vers la section formations après changement de page */
-  // Supprimé pour éviter le masquage du titre après connexion
-  // useLayoutEffect(() => {
-  //   if (isPageChanging.current && courseSectionRef.current) {
-  //     courseSectionRef.current.scrollIntoView({
-  //       behavior: "auto",
-  //       block: "start",
-  //     });
-  //     isPageChanging.current = false;
-  //   }
-  // }, [currentPage]);
 
   /** Écouter l'événement pour activer les tutos gratuits */
   useEffect(() => {
@@ -168,25 +130,6 @@ const Index = () => {
       );
     };
   }, []);
-
-  const toggleFilter = (category: keyof CourseFilter, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [category]: prev[category]?.includes(value)
-        ? prev[category].filter((item) => item !== value)
-        : [...prev[category], value],
-    }));
-  };
-
-  const clearAllFilters = () => {
-    setFilters({
-      categories: [],
-      levels: [],
-      priceRange: [],
-      duration: [],
-      rating: [],
-    });
-  };
 
   const applyFilters = (courses: BackendCourse[]) =>
     courses.filter((course) => {
@@ -413,30 +356,6 @@ const Index = () => {
                 </div>
               )}
 
-              {/* Pagination */}
-              {pages > 1 && (
-                <div className="relative mt-4 flex justify-center items-center gap-4">
-                  {currentPage > 1 && (
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      className="px-3 py-2 bg-primary text-white rounded"
-                    >
-                      <ChevronLeft />
-                    </button>
-                  )}
-                  <span>
-                    Page {currentPage} sur {pages}
-                  </span>
-                  {currentPage < pages && (
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      className="px-3 py-2 bg-primary text-white rounded"
-                    >
-                      <ChevronRight />
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
           </>
         )}

@@ -2,29 +2,29 @@
 
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import Image from "next/image";
-import { Award, BookOpen, Users, Zap, ArrowRight, CheckCircle, Target, Eye, Rocket } from "lucide-react";
+import Link from "next/link";
+import { Award, BookOpen, Users, Zap, CheckCircle, Target, Eye, Rocket } from "lucide-react";
 
 const features = [
   {
     icon: BookOpen,
-    title: "Formations 100% Pratiques en Langue Locale: Obtenez des certificats valorisés par les employeurs pour booster votre carrière.",
-    description: "Des cours créés par des experts du secteur avec des contenus actualisés et pratiques.",
-  },
-  {
-    icon: Users,
-    title: "Accès en ligne et présentiel: Apprenez à votre rythme, quand vous voulez, où vous voulez, sur tout appareil.",
-    description: "Rejoignez une communauté d'apprenants passionnés et échangez avec nos formateurs.",
-  },
-  {
-    icon: Award,
-    title: "Formateurs experts: Des cours créés par des experts du secteur avec des contenus actualisés et pratiques.",
+    title: "Formations 100% Pratiques en Langue Locale:",
     description: "Obtenez des certificats valorisés par les employeurs pour booster votre carrière.",
   },
   {
-    icon: Zap,
-    title: "Compétences pour l'emploi / entrepreneuriat: Renforcement des compétences essentielles pour accéder à l'emploi, créer une activité et devenir autonome professionnellement.",
+    icon: Users,
+    title: "Accès en ligne et présentiel:",
     description: "Apprenez à votre rythme, quand vous voulez, où vous voulez, sur tout appareil.",
+  },
+  {
+    icon: Award,
+    title: "Formateurs experts:",
+    description: "Des cours créés par des experts du secteur avec des contenus actualisés et pratiques.",
+  },
+  {
+    icon: Zap,
+    title: "Compétences pour l'emploi / entrepreneuriat:",
+    description: "Renforcement des compétences essentielles pour accéder à l’emploi, créer une activité et devenir autonome professionnellement.",
   },
 ];
 
@@ -60,10 +60,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-xl font-bold mb-3 text-[var(--bibocom-blue)]">Notre Mission</h3>
               <p className="text-gray-600 leading-relaxed">
-                Chez BIBOCOM Digital, nous croyons que l'éducation est la clé du développement
-                personnel et professionnel. Notre plateforme offre des formations en ligne de
-                haute qualité dans les domaines du Marketing Digital, du Développement Web,
-                de la Gestion de Projet et bien plus encore.
+               La mission de BIBOCOM DIGITAL est de contribuer à l’insertion socio-professionnelle des jeunes et des femmes en Afrique en offrant des formations accessibles, pratiques et certifiantes dans les métiers du digital, de la création et de l’entrepreneuriat, grâce à une plateforme d’apprentissage hybride en langues locales combinant technologie, mentorat humain et immersion professionnelle.
               </p>
             </div>
 
@@ -74,7 +71,7 @@ export default function AboutPage() {
               </div>
               <h3 className="text-xl font-bold mb-3 text-[var(--bibocom-blue)]">Notre Vision</h3>
               <p className="text-gray-600 leading-relaxed mb-3">
-                Notre vision est de contribuer à une Afrique où chaque jeune possède les compétences nécessaires pour travailler, entreprendre et réussir dans l'économie numérique et créatif.
+                Notre vision est de contribuer à une Afrique où chaque jeune possède les compétences nécessaires pour travailler, entreprendre et réussir dans l’économie numérique et créatif.
               </p>
               <p className="text-gray-600 leading-relaxed">
                 BIBOCOM DIGITAL s'inscrit dans une dynamique de transformation sociale et économique.
@@ -99,9 +96,11 @@ export default function AboutPage() {
       {/* Pourquoi Choisir BIBOCOM Digital ? */}
       <section className="py-12 lg:py-16">
         <div className="container mx-auto px-6">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-10">
-            Pourquoi Choisir BIBOCOM Digital ?
+          <div className="text-center max-w-2xl mx-auto mb-14">
+          <h2 className="text-2xl md:text-3xl font-bold text-[#0a3183] mb-4">
+            Pourquoi choisir <strong className="text-[#e53c35] text-2xl md:text-3xl font-bold" >BIBOCOM</strong> Digital ?
           </h2>
+        </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {features.map((feature, index) => (
               <div
@@ -180,6 +179,14 @@ export default function AboutPage() {
             <p className="text-xl text-blue-100">
               Rejoignez des milliers d'apprenants qui transforment leur carrière avec BIBOCOM Digital.
             </p>
+            <div className="mt-8 flex justify-center">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center px-8 py-4 bg-[var(--bibocom-red)] text-white rounded-xl font-semibold shadow-lg hover:bg-[var(--bibocom-red)]/90 transition-all duration-300 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Commencer maintenant
+              </Link>
+            </div>
             {/* <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <a
                 href="/courses"
