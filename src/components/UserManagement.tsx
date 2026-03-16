@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Briefcase,
@@ -99,7 +99,8 @@ type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
 
 const UserManagement: React.FC = () => {
   const { user: currentUser } = useLocalAuth();
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | "ALL">("ALL");
@@ -155,53 +156,34 @@ const UserManagement: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [searchQuery]);
 
-  // Charger tous les utilisateurs (toutes pages) quand le rôle change
+  // Charger uniquement la page courante (pagination côté serveur)
   useEffect(() => {
     let cancelled = false;
 
-    const loadAllUsers = async () => {
+    const loadUsersPage = async () => {
       setLoading(true);
       try {
-        const batchLimit = 100;
-        const baseParams = {
+        const response: UsersResponse = await userService.getUsersByRole({
+          page: currentPage,
+          limit,
           ...(selectedRole !== "ALL" && { role: selectedRole }),
-        };
-
-        const firstResponse: UsersResponse =
-          await userService.getUsersByRole({
-            page: 1,
-            limit: batchLimit,
-            ...baseParams,
-          });
-
-        const effectiveLimit = Math.min(
-          firstResponse.limit && firstResponse.limit > 0
-            ? firstResponse.limit
-            : batchLimit,
-          batchLimit,
-        );
-        const total =
-          typeof firstResponse.total === "number"
-            ? firstResponse.total
-            : firstResponse.users.length;
-        const totalPages = Math.max(1, Math.ceil(total / effectiveLimit));
-
-        let all: User[] = [...firstResponse.users];
-
-        for (let page = 2; page <= totalPages; page += 1) {
-          const response: UsersResponse = await userService.getUsersByRole({
-            page,
-            limit: effectiveLimit,
-            ...baseParams,
-          });
-          all = all.concat(response.users);
-        }
+          ...(debouncedSearch && { search: debouncedSearch }),
+        });
 
         if (!cancelled) {
-          setAllUsers(all);
+          setUsers(response.users);
+          setTotalUsers(
+            typeof response.total === "number"
+              ? response.total
+              : response.users.length
+          );
         }
       } catch (error) {
         logger.error("Erreur chargement utilisateurs:", error);
+        if (!cancelled) {
+          setUsers([]);
+          setTotalUsers(0);
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -209,12 +191,12 @@ const UserManagement: React.FC = () => {
       }
     };
 
-    loadAllUsers();
+    loadUsersPage();
 
     return () => {
       cancelled = true;
     };
-  }, [selectedRole, usersReloadToken]);
+  }, [selectedRole, currentPage, limit, debouncedSearch, usersReloadToken]);
 
   const loadStats = async () => {
     try {
@@ -244,36 +226,10 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1); // Reset à la première page
   };
 
-  const filteredUsers = useMemo(() => {
-    if (!debouncedSearch) return allUsers;
-
-    const query = debouncedSearch.toLowerCase();
-    return allUsers.filter((user) => {
-      const searchable = [
-        user.firstName,
-        user.lastName,
-        `${user.firstName} ${user.lastName}`,
-        user.email,
-        user.telephone,
-        user.userProfile?.phone,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchable.includes(query);
-    });
-  }, [allUsers, debouncedSearch]);
-
-  const totalUsers = filteredUsers.length;
   const totalPages = totalUsers > 0 ? Math.ceil(totalUsers / limit) : 0;
   const startItem = totalUsers === 0 ? 0 : (currentPage - 1) * limit + 1;
   const endItem = Math.min(currentPage * limit, totalUsers);
-
-  const pageUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * limit;
-    return filteredUsers.slice(startIndex, startIndex + limit);
-  }, [filteredUsers, currentPage, limit]);
+  const pageUsers = users;
 
   useEffect(() => {
     if (totalPages > 0 && currentPage > totalPages) {

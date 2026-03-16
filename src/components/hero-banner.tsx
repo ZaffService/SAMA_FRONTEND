@@ -94,7 +94,7 @@ const HeroBanner = () => {
         />
 
         {/* Contenu mobile */}
-        <div className="absolute inset-0 flex items-center justify-center px-5 z-10">
+        <div className="absolute inset-0 flex items-center justify-center px-5 z-10 ">
           <div className="w-full max-w-md space-y-5">
             <h1 
               className="text-3xl sm:text-4xl font-extrabold text-white leading-tight text-center"
