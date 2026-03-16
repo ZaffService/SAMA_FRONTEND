@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,12 @@ export function EnrollStudentsDialog({
   onEnrollmentComplete,
 }: EnrollStudentsDialogProps) {
   const [students, setStudents] = useState<User[]>([]);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(16);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +54,10 @@ export function EnrollStudentsDialog({
 
   const resetState = () => {
     setSearchQuery("");
+    setDebouncedSearch("");
+    setCurrentPage(1);
+    setStudents([]);
+    setTotalStudents(0);
     setSelectedIds(new Set());
     setEnrolledIds(new Set());
     setLastResult(null);
@@ -60,48 +68,46 @@ export function EnrollStudentsDialog({
       resetState();
       return;
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, open]);
+
+  useEffect(() => {
+    if (!open) return;
 
     let cancelled = false;
 
     const loadStudents = async () => {
       setLoading(true);
       try {
-        const batchLimit = 100;
-        const firstResponse = await userService.getUsersByRole({
+        const response = await userService.getUsersByRole({
           role: "STUDENT",
-          page: 1,
-          limit: batchLimit,
+          page: currentPage,
+          limit,
+          ...(debouncedSearch && { search: debouncedSearch }),
         });
 
-        const effectiveLimit = Math.min(
-          firstResponse.limit && firstResponse.limit > 0
-            ? firstResponse.limit
-            : batchLimit,
-          batchLimit,
-        );
-        const total =
-          typeof firstResponse.total === "number"
-            ? firstResponse.total
-            : firstResponse.users.length;
-        const totalPages = Math.max(1, Math.ceil(total / effectiveLimit));
-
-        let allStudents = [...firstResponse.users];
-
-        for (let page = 2; page <= totalPages; page += 1) {
-          const response = await userService.getUsersByRole({
-            role: "STUDENT",
-            page,
-            limit: effectiveLimit,
-          });
-          allStudents = allStudents.concat(response.users);
-        }
-
         if (!cancelled) {
-          setStudents(allStudents);
+          setStudents(response.users);
+          setTotalStudents(
+            typeof response.total === "number"
+              ? response.total
+              : response.users.length,
+          );
         }
       } catch (error) {
         logger.error("Erreur chargement étudiants:", error);
         if (!cancelled) {
+          setStudents([]);
+          setTotalStudents(0);
           toast.error("Impossible de charger la liste des étudiants");
         }
       } finally {
@@ -116,46 +122,24 @@ export function EnrollStudentsDialog({
     return () => {
       cancelled = true;
     };
-  }, [open]);
-
-  const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return students;
-    const query = searchQuery.toLowerCase();
-    return students.filter((student) => {
-      const searchable = [
-        student.firstName,
-        student.lastName,
-        `${student.firstName} ${student.lastName}`,
-        student.email,
-        student.telephone,
-        student.userProfile?.phone,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return searchable.includes(query);
-    });
-  }, [students, searchQuery]);
+  }, [open, currentPage, limit, debouncedSearch]);
 
   const selectedCount = selectedIds.size;
-  const availableCount = students.length;
+  const availableCount = totalStudents;
   const enrolledCount = enrolledIds.size;
+  const totalPages = totalStudents > 0 ? Math.ceil(totalStudents / limit) : 0;
 
   const allFilteredSelected =
-    filteredStudents.length > 0 &&
-    filteredStudents.every((student) =>
-      selectedIds.has(String(student.id)),
-    );
+    students.length > 0 &&
+    students.every((student) => selectedIds.has(String(student.id)));
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (allFilteredSelected) {
-        filteredStudents.forEach((student) =>
-          next.delete(String(student.id)),
-        );
+        students.forEach((student) => next.delete(String(student.id)));
       } else {
-        filteredStudents.forEach((student) => next.add(String(student.id)));
+        students.forEach((student) => next.add(String(student.id)));
       }
       return next;
     });
@@ -265,7 +249,10 @@ export function EnrollStudentsDialog({
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Rechercher un étudiant..."
                 className="pl-9"
               />
@@ -273,7 +260,7 @@ export function EnrollStudentsDialog({
             <Button
               variant="outline"
               onClick={toggleSelectAll}
-              disabled={filteredStudents.length === 0}
+              disabled={students.length === 0}
               className="flex items-center gap-2"
             >
               <Users className="h-4 w-4" />
@@ -289,13 +276,13 @@ export function EnrollStudentsDialog({
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="ml-2">Chargement des étudiants...</span>
               </div>
-            ) : filteredStudents.length === 0 ? (
+            ) : students.length === 0 ? (
               <div className="py-10 text-center text-sm text-gray-500">
                 Aucun étudiant trouvé.
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredStudents.map((student) => {
+                {students.map((student) => {
                   const userId = String(student.id);
                   const isSelected = selectedIds.has(userId);
                   const isEnrolled = enrolledIds.has(userId);
@@ -354,6 +341,37 @@ export function EnrollStudentsDialog({
             )}
           </div>
         </div>
+
+        {totalPages > 1 && (
+          <div className="px-6 pb-4">
+            <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              <span>
+                Page <strong className="text-gray-900">{currentPage}</strong> sur{" "}
+                <strong className="text-gray-900">{totalPages}</strong>
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1 || loading}
+                >
+                  Précédent
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages || loading}
+                >
+                  Suivant
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {lastResult && (
           <div className="mx-6 mb-4 rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">
