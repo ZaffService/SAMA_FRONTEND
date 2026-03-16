@@ -153,14 +153,14 @@ const TestimonialCarousel = () => {
 
                 {/* Author */}
                 <div className="flex items-center justify-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#d93030] flex-shrink-0">
-                    <img
-                      src={t.avatar}
-                      alt={t.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="text-left">
+                 <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-[#d93030] shadow-lg flex-shrink-0">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                                  <div className="text-left">
                     <p className="text-white font-semibold">
                       {t.name}
                     </p>
@@ -175,7 +175,7 @@ const TestimonialCarousel = () => {
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-6 mt-10">
+        <div className="flex items-center justify-center gap-6 mt-20">
           <button
             onClick={prev}
             className="w-11 h-11 rounded-full border border-white/30 flex items-center justify-center text-white hover:bg-[#d93030] hover:border-[#d93030] transition-colors"
