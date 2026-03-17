@@ -167,7 +167,7 @@ const UserManagement: React.FC = () => {
           page: currentPage,
           limit,
           ...(selectedRole !== "ALL" && { role: selectedRole }),
-          ...(debouncedSearch && { search: debouncedSearch }),
+          ...(debouncedSearch && { q: debouncedSearch }),
         });
 
         if (!cancelled) {

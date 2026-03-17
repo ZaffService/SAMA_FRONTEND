@@ -92,7 +92,7 @@ export function EnrollStudentsDialog({
           role: "STUDENT",
           page: currentPage,
           limit,
-          ...(debouncedSearch && { search: debouncedSearch }),
+          ...(debouncedSearch && { q: debouncedSearch }),
         });
 
         if (!cancelled) {

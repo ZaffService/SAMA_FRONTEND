@@ -3,7 +3,6 @@ import type {
   GetUsersParams,
   UsersResponse,
   User,
-  Role,
   UserProfile,
 } from "@/types/user";
 
@@ -101,8 +100,11 @@ export const userService = {
     params?: Omit<GetUsersParams, "role">,
   ): Promise<UsersResponse> {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append("page", params.page.toString());
-    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    const page = params?.page ? Math.max(1, params.page) : undefined;
+    const limit =
+      typeof params?.limit === "number" ? Math.min(100, params.limit) : undefined;
+    if (page) queryParams.append("page", page.toString());
+    if (limit) queryParams.append("limit", limit.toString());
 
     const url = `${buildApiUrl(API_ENDPOINTS.USER.BY_ROLE)}?${queryParams}`;
 
@@ -127,9 +129,12 @@ export const userService = {
   async getUsersByRole(params: GetUsersParams): Promise<UsersResponse> {
     const queryParams = new URLSearchParams();
     if (params.role) queryParams.append("role", params.role);
-    if (params.page) queryParams.append("page", params.page.toString());
-    if (params.limit) queryParams.append("limit", params.limit.toString());
-    if (params.search) queryParams.append("search", params.search);
+    const page = params.page ? Math.max(1, params.page) : undefined;
+    const limit =
+      typeof params.limit === "number" ? Math.min(100, params.limit) : undefined;
+    if (page) queryParams.append("page", page.toString());
+    if (limit) queryParams.append("limit", limit.toString());
+    if (params.q) queryParams.append("q", params.q);
 
     const url = `${buildApiUrl(API_ENDPOINTS.USER.BY_ROLE)}?${queryParams}`;
 
