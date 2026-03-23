@@ -23,7 +23,7 @@ const features: FeatureItem[] = [
   },
   {
     icon: <Briefcase className="w-12 h-12 md:w-16 md:h-16 text-[var(--bibocom-blue)]" />,
-    label: "Compétences pour l'emploi / entrepreneuriat: Renforcement des compétences essentielles pour accéder à l’emploi, créer une activité et devenir autonome professionnellement.",
+    label: "Emploi / Entrepreneuriat: Renforcement des compétences essentielles pour devenir autonome professionnellement.",
   },
 ];
 
