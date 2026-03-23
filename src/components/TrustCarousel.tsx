@@ -1,14 +1,14 @@
 import Image from "next/image";
 
 const partners = [
-  { name: "Lasia Senegal", logo: "/lasia.png" },
-  { name: "GIZ", logo: "/giz.png" },
-  { name: "Orange", logo: "/orange.png" },
-  { name: "OuiCarry", logo: "/ouicarry.png" },
-  { name: "Alliance Française", logo: "/alliance-francaise.png" },
-  { name: "Digital Africa", logo: "/digital-africa.png" },
-  { name: "Paydunya", logo: "/paydunya.png" },
-  { name: "Sonatel", logo: "/sonatel.png" },
+  { name: "FONAMIF", logo: "/partenaire1.png" },
+  { name: "Ville de Dakar", logo: "/partenaire2.png" },
+  { name: "MFB", logo: "/partenaire3.png" },
+  { name: "Point Actu", logo: "/partenaire4.png" },
+  { name: "CCIAD", logo: "/partenaire5.png" },
+  { name: "FONAMIF", logo: "/partenaire1.png" },
+  { name: "Ville de Dakar", logo: "/partenaire2.png" },
+  { name: "MFB", logo: "/partenaire3.png" },
 ];
 
 const TrustCarousel = () => {
