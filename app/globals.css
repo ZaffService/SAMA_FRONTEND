@@ -255,6 +255,11 @@
   animation: scroll-left 25s linear infinite;
 }
 
+.partners-carousel:hover .animate-scroll-left,
+.partners-carousel:focus-within .animate-scroll-left {
+  animation-play-state: paused;
+}
+
 /* Effets de hover personnalisés */
 .hover-lift {
   transition: all 0.3s ease;

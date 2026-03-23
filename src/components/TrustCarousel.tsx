@@ -27,7 +27,7 @@ const TrustCarousel = () => {
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative partners-carousel">
         <div className="absolute left-0 top-0 bottom-0 w-16 md:w-24 z-10 bg-gradient-to-r from-[hsl(0_60%_97%)] to-transparent pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-16 md:w-24 z-10 bg-gradient-to-l from-[hsl(0_60%_97%)] to-transparent pointer-events-none" />
 
