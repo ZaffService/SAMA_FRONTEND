@@ -119,7 +119,7 @@ const HeroBanner = () => {
               </Link>
               <Link
                 href="/register"
-                className="bg-white/10 border-2 border-white hover:bg-white/20 text-white px-6 py-4 rounded-xl font-bold text-base transition-all duration-300 text-center hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-[#1e3a8a] border-1 border-[#1e3a8a]] hover:bg-white hover:text-[#1e3a8a] text-white px-6 py-4 rounded-xl font-bold text-base transition-all duration-300 text-center backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
               >
                 Commencer maintenant
               </Link>
@@ -199,7 +199,7 @@ const HeroBanner = () => {
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-transparent border-2 border-white hover:bg-white hover:text-[#1e3a8a] text-white px-10 py-5 rounded-xl font-bold text-lg xl:text-xl transition-all duration-300 backdrop-blur-sm hover:scale-[1.05] active:scale-[0.98] inline-block"
+                  className="bg-[#1e3a8a] border-2 border-white hover:bg-white hover:text-[#1e3a8a] text-white px-10 py-5 rounded-xl font-bold text-lg xl:text-xl transition-all duration-300 backdrop-blur-sm hover:scale-[1.05] active:scale-[0.98] inline-block"
                 >
                   Commencer maintenant
                 </Link>
