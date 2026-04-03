@@ -23,6 +23,7 @@ import WhyChooseBibocom from "@/components/why-choose-bibocom";
 import HowItWorks from "@/components/how-it-works";
 import { Testimonials } from "@/components/testimonials";
 import TrustCarousel from "@/components/TrustCarousel";
+import PresentielSection from "@/components/presentiel-section";
 import { CourseCard } from "@/components/course-card";
 import EmptyCoursesState from "@/components/EmptyCoursesState";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
@@ -360,6 +361,8 @@ const Index = () => {
           </>
         )}
       </main>
+
+      {/* <PresentielSection /> */}
 
       {/* Section "Comment ça marche ?" -仅 pour les utilisateurs non connectés */}
       <HowItWorks />

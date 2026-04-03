@@ -214,6 +214,20 @@
   }
 }
 
+@keyframes cta-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    box-shadow: 0 10px 24px rgba(209, 69, 91, 0.35);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(209, 69, 91, 0.55);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.8s ease-out forwards;
 }
@@ -240,6 +254,10 @@
 
 .animate-pulse-slow {
   animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-cta-blink {
+  animation: cta-blink 1.8s ease-in-out infinite;
 }
 
 @keyframes scroll-left {

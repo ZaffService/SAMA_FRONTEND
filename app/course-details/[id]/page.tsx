@@ -2502,10 +2502,10 @@ function CourseDetailsPageComponent() {
     totalLessons > 0
       ? Math.min(100, Math.round((completedLessonsCount / totalLessons) * 100))
       : 0;
-  const totalQuizCount = modules.reduce(
-    (sum, module) => sum + (module.quiz?.length || 0),
-    0,
-  );
+  const totalQuizCount =
+    typeof courseData?.quizCount === "number"
+      ? courseData.quizCount
+      : modules.reduce((sum, module) => sum + (module.quiz?.length || 0), 0);
   const hasAttachment = Boolean(
     course.attachment && course.attachment !== "undefined",
   );

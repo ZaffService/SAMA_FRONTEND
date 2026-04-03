@@ -136,6 +136,7 @@ export interface CourseDetailsData {
     quizId?: string | null;
     quizStatus?: string | null;
   };
+  quizCount?: number;
   modules: Array<{
     id: string;
     title: string;

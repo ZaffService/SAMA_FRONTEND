@@ -137,6 +137,22 @@ export function transformCourseDetails(data: any): CourseDetailsData {
     : Array.isArray(rawCourse?._modules)
       ? rawCourse._modules
       : [];
+  const quizCountFromApi = toPositiveNumber(
+    data?.quizzCount ??
+      data?.quizCount ??
+      data?._quizCount ??
+      rawCourse?.quizzCount ??
+      rawCourse?.quizCount ??
+      rawCourse?._quizCount,
+  );
+
+  const normalizeQuizzes = (module: any): any[] => {
+    if (Array.isArray(module?.quiz)) return module.quiz;
+    if (Array.isArray(module?.quizzes)) return module.quizzes;
+    if (Array.isArray(module?._quizzes)) return module._quizzes;
+    const fallback = module?.quiz ?? module?.quizzes ?? module?._quizzes;
+    return fallback ? [fallback] : [];
+  };
   
   // Gérer les deux cas: attachment (string) ou attachments (array)
   let attachmentUrl = rawCourse?.attachment ?? rawCourse?._attachment;
@@ -241,8 +257,11 @@ export function transformCourseDetails(data: any): CourseDetailsData {
         rawCourse?.certification_status ??
         null,
     },
-    modules: rawModules.map(
-      (module: any) => ({
+    quizCount: quizCountFromApi,
+    modules: rawModules.map((module: any) => {
+      const quizzes = normalizeQuizzes(module);
+
+      return {
         id: module?.id ?? module?._id ?? "",
         title: module?.title ?? module?._title ?? "Module sans titre",
         description: module?.description ?? module?._description ?? "",
@@ -260,13 +279,7 @@ export function transformCourseDetails(data: any): CourseDetailsData {
               : []
         ).map(transformLesson),
         // Transformer les quiz (underscore → camelCase)
-        quiz: (
-          Array.isArray(module?.quiz)
-            ? module.quiz
-            : Array.isArray(module?._quizzes)
-              ? module._quizzes
-              : []
-        ).map((q: any) => ({
+        quiz: quizzes.map((q: any) => ({
           id: q?._id ?? q?.id ?? "",
           title: q?._title ?? q?.title ?? "Quiz",
           description: q?._description ?? q?.description ?? "",
@@ -301,7 +314,8 @@ export function transformCourseDetails(data: any): CourseDetailsData {
                   : 0,
           })),
         })),
-    })),
+      };
+    }),
     moduleCount:
       typeof data?.moduleCount === "number" ? data.moduleCount : rawModules.length,
   };
