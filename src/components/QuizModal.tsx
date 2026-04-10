@@ -12,6 +12,8 @@ import {
   Download,
   GraduationCap,
   RefreshCcw,
+  Play,
+  Pause,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
@@ -33,10 +35,200 @@ interface QuizData {
     id: string;
     question: string;
     type: string;
-    options?: string[];
+    options?: QuizOption[];
     points: number;
+    questionAudioUrl?: string;
   }>;
 }
+
+interface QuizOption {
+  label: string;
+  audioUrl?: string;
+}
+
+const normalizeOptionLabel = (value: string) => value.trim().toLowerCase();
+
+const normalizeQuestionType = (value: unknown): string => {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "MULTIPLE_CHOICE";
+  }
+  return value.trim().toUpperCase();
+};
+
+const extractAudioUrl = (value: unknown): string | undefined => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+
+  const direct = record.audioUrl ?? record.audio_url ?? record.audio;
+  if (typeof direct === "string") {
+    const trimmed = direct.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+
+  if (direct && typeof direct === "object") {
+    const nested = direct as Record<string, unknown>;
+    const nestedUrl = nested.url ?? nested.audioUrl ?? nested.audio_url;
+    if (typeof nestedUrl === "string" && nestedUrl.trim().length > 0) {
+      return nestedUrl.trim();
+    }
+  }
+
+  return undefined;
+};
+
+const toOptionData = (entry: unknown): QuizOption | null => {
+  if (typeof entry === "string") {
+    const label = entry.trim();
+    return label.length > 0 ? { label } : null;
+  }
+  if (!entry || typeof entry !== "object") return null;
+
+  const record = entry as Record<string, unknown>;
+  const label = String(
+    record.option ??
+      record.label ??
+      record.name ??
+      record.text ??
+      record.response ??
+      record.value ??
+      "",
+  ).trim();
+
+  if (!label) return null;
+
+  return {
+    label,
+    audioUrl: extractAudioUrl(record),
+  };
+};
+
+const toQuestionOptions = (question: Record<string, unknown>): QuizOption[] | undefined => {
+  const rawOptions = question.options;
+  const rawResponses = Array.isArray(question.responses)
+    ? question.responses
+    : Array.isArray(question.answers)
+      ? question.answers
+      : Array.isArray(question.choices)
+        ? question.choices
+        : [];
+  const responseAudios =
+    Array.isArray(question.responsesAudios) ? question.responsesAudios : [];
+  const legacyResponseAudios =
+    Array.isArray(question.responseAudios) ? question.responseAudios : [];
+  const indexedAudioUrls = [...responseAudios, ...legacyResponseAudios]
+    .map((entry) => extractAudioUrl(entry))
+    .filter((url): url is string => Boolean(url));
+  const normalizedOptions = Array.isArray(rawOptions)
+    ? rawOptions
+        .map((option) => toOptionData(option))
+        .filter((option): option is QuizOption => option !== null)
+    : [];
+  const normalizedResponses = Array.isArray(rawResponses)
+    ? rawResponses
+        .map((response) => toOptionData(response))
+        .filter((option): option is QuizOption => option !== null)
+    : [];
+
+  if (normalizedOptions.length > 0 && normalizedResponses.length > 0) {
+    const responseByLabel = new Map(
+      normalizedResponses.map((response) => [
+        normalizeOptionLabel(response.label),
+        response,
+      ]),
+    );
+
+    return normalizedOptions.map((option, index) => ({
+      label: option.label || normalizedResponses[index]?.label || "",
+      audioUrl:
+        option.audioUrl ??
+        normalizedResponses[index]?.audioUrl ??
+        indexedAudioUrls[index] ??
+        responseByLabel.get(normalizeOptionLabel(option.label))?.audioUrl,
+    }));
+  }
+
+  if (normalizedOptions.length > 0) {
+    return normalizedOptions;
+  }
+
+  if (normalizedResponses.length > 0) {
+    return normalizedResponses;
+  }
+
+  return undefined;
+};
+
+const normalizeQuizPayload = (payload: unknown): QuizData | null => {
+  if (!payload || typeof payload !== "object") return null;
+
+  const root = payload as Record<string, unknown>;
+  const nestedData =
+    root.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : null;
+
+  const rawQuiz =
+    (root.quiz as Record<string, unknown> | undefined) ??
+    (nestedData?.quiz as Record<string, unknown> | undefined);
+  const rawQuestions =
+    (Array.isArray(root.questions) ? root.questions : undefined) ??
+    (Array.isArray(nestedData?.questions) ? nestedData?.questions : undefined);
+
+  if (!rawQuiz || !rawQuestions) return null;
+
+  const quizId = String(rawQuiz.id ?? "").trim();
+  const quizTitle = String(rawQuiz.title ?? "").trim();
+  if (!quizId || !quizTitle) return null;
+
+  const normalizedQuestions = rawQuestions
+    .map((question, index) => {
+      if (!question || typeof question !== "object") return null;
+      const record = question as Record<string, unknown>;
+      const id = String(record.id ?? `question-${index + 1}`).trim();
+      const label = String(record.question ?? record.title ?? "").trim();
+      if (!id || !label) return null;
+
+      const rawPoints = Number(record.points ?? 1);
+      return {
+        id,
+        question: label,
+        type: normalizeQuestionType(record.type ?? record.questionType),
+        options: toQuestionOptions(record),
+        points: Number.isFinite(rawPoints) ? rawPoints : 1,
+        questionAudioUrl: extractAudioUrl(record),
+      };
+    })
+    .filter((question): question is QuizData["questions"][number] => question !== null);
+
+  if (normalizedQuestions.length === 0) return null;
+
+  const passingScore = Number(rawQuiz.passingScore ?? 70);
+
+  return {
+    quiz: {
+      id: quizId,
+      title: quizTitle,
+      description:
+        typeof rawQuiz.description === "string" ? rawQuiz.description : undefined,
+      passingScore: Number.isFinite(passingScore) ? passingScore : 70,
+      dueDate: typeof rawQuiz.dueDate === "string" ? rawQuiz.dueDate : undefined,
+      deadline: typeof rawQuiz.deadline === "string" ? rawQuiz.deadline : undefined,
+      endDate: typeof rawQuiz.endDate === "string" ? rawQuiz.endDate : undefined,
+      expiresAt:
+        typeof rawQuiz.expiresAt === "string" ? rawQuiz.expiresAt : undefined,
+      availableUntil:
+        typeof rawQuiz.availableUntil === "string"
+          ? rawQuiz.availableUntil
+          : undefined,
+    },
+    questions: normalizedQuestions,
+  };
+};
 
 interface QuizModalProps {
   isOpen: boolean;
@@ -342,7 +534,13 @@ export function QuizModal({
         mode === "certification"
           ? await QuizApi.getCertificationQuiz(courseId as string)
           : await QuizApi.getQuizQuestions(quizId as string);
-      setQuizData(data);
+      const normalizedData = normalizeQuizPayload(data);
+
+      if (!normalizedData) {
+        throw new Error("Structure de quiz invalide");
+      }
+
+      setQuizData(normalizedData);
       setCurrentQuestionIndex(0);
       setAnswers({});
       setShowResults(false);
@@ -561,11 +759,11 @@ export function QuizModal({
 
         let options = question.options;
         if ((!options || options.length === 0) && question.type === "TRUE_FALSE") {
-          options = ["Vrai", "Faux"];
+          options = [{ label: "Vrai" }, { label: "Faux" }];
         }
 
         if (options && typeof selectedIndex === "number") {
-          const selectedText = options[selectedIndex];
+          const selectedText = options[selectedIndex]?.label;
           if (typeof selectedText === "string") {
             formattedAnswers[question.id] = selectedText;
             return;
@@ -992,8 +1190,9 @@ function QuestionCard({
     id: string;
     question: string;
     type: string;
-    options?: string[];
+    options?: QuizOption[];
     points: number;
+    questionAudioUrl?: string;
   };
   answer: number;
   onAnswerChange: (answer: number) => void;
@@ -1003,21 +1202,26 @@ function QuestionCard({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h3
-        className={`font-semibold text-gray-900 leading-relaxed ${
-          isPage ? "text-lg sm:text-xl" : "text-base sm:text-lg lg:text-xl"
-        }`}
-      >
-        {question.question}
-      </h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3
+          className={`font-semibold text-gray-900 leading-relaxed ${
+            isPage ? "text-lg sm:text-xl" : "text-base sm:text-lg lg:text-xl"
+          }`}
+        >
+          {question.question}
+        </h3>
+        {question.questionAudioUrl && (
+          <InlineAudioPlayer src={question.questionAudioUrl} size="question" />
+        )}
+      </div>
 
       {question.type === "MULTIPLE_CHOICE" && question.options && (
         <div className={isPage ? "space-y-3" : "space-y-2 sm:space-y-3"}>
-          {question.options.map((option: string, index: number) => {
+          {question.options.map((option, index: number) => {
             const isSelected = answer === index;
             return (
               <label
-                key={index}
+                key={`${option.label}-${index}`}
                 htmlFor={`option-${question.id}-${index}`}
                 className={`flex items-center gap-3 cursor-pointer transition-all group ${
                   isPage
@@ -1060,8 +1264,11 @@ function QuestionCard({
                     isSelected ? "text-emerald-900 font-semibold" : "text-gray-800"
                   } ${isPage ? "text-[15px]" : "text-sm sm:text-base"}`}
                 >
-                  {option}
+                  {option.label}
                 </span>
+                {option.audioUrl && (
+                  <InlineAudioPlayer src={option.audioUrl} size="option" />
+                )}
                 {!isPage && isSelected && (
                   <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 flex-shrink-0" />
                 )}
@@ -1140,6 +1347,86 @@ function QuestionCard({
           rows={4}
         />
       )}
+    </div>
+  );
+}
+
+function InlineAudioPlayer({
+  src,
+  size = "option",
+}: {
+  src: string;
+  size?: "question" | "option";
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("ended", onEnded);
+
+    return () => {
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("ended", onEnded);
+    };
+  }, [src]);
+
+  const handleTogglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+      return;
+    }
+
+    try {
+      await audio.play();
+    } catch (error) {
+      logger.error("Impossible de lire l'audio", error);
+    }
+  };
+
+  const buttonSizeClass =
+    size === "question" ? "h-9 w-9 sm:h-10 sm:w-10" : "h-8 w-8 sm:h-9 sm:w-9";
+  const iconSizeClass = size === "question" ? "h-4 w-4" : "h-3.5 w-3.5";
+
+  return (
+    <div
+      className="inline-flex items-center"
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={handleTogglePlay}
+        className={`flex items-center justify-center rounded-full border transition ${buttonSizeClass} ${
+          isPlaying
+            ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+            : "border-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+        }`}
+        aria-label={isPlaying ? "Mettre en pause" : "Lire l'audio"}
+      >
+        {isPlaying ? (
+          <Pause className={`${iconSizeClass} fill-current`} />
+        ) : (
+          <Play className={`${iconSizeClass} fill-current`} />
+        )}
+      </button>
     </div>
   );
 }

@@ -27,18 +27,197 @@ import {
 } from "@/shared/helpers/sweet-alert";
 import logger from "@/shared/helpers/logger";
 
+interface QuizOption {
+  label: string;
+  audioUrl?: string;
+}
+
 interface QuizQuestion {
-  id: number;
+  id: string;
   question: string;
   type: "single" | "multiple" | "text";
   points: number;
   order: number;
-  options?: string[];
+  options?: QuizOption[];
   correctAnswer?: number;
   correctAnswers?: number[];
   minWords?: number;
   explanation?: string;
+  questionAudioUrl?: string;
 }
+
+const normalizeStringValue = (value?: string) =>
+  (value ?? "").trim().toLowerCase();
+
+const extractAudioUrl = (source: any): string | undefined => {
+  if (!source) return undefined;
+  if (typeof source === "string") {
+    const trimmed = source.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  const candidate =
+    source?.audioUrl ??
+    source?.audio_url ??
+    source?.audio?.url ??
+    source?.audio;
+  if (typeof candidate === "string" && candidate.trim().length > 0) {
+    return candidate.trim();
+  }
+  return undefined;
+};
+
+const getResponseOrderIndex = (response: any): number => {
+  if (!response) return 0;
+  const orderFields = ["orderIndex", "order", "position", "index"];
+  for (const field of orderFields) {
+    const value = response[field];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === "string" && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return 0;
+};
+
+const buildQuizOptions = (question: any): {
+  options?: QuizOption[];
+  normalizedLabels: string[];
+} => {
+  const toOptionRecord = (
+    value: unknown,
+  ): { label: string; audioUrl?: string } => {
+    if (typeof value === "string") {
+      return { label: value.trim() };
+    }
+
+    if (!value || typeof value !== "object") {
+      return { label: "" };
+    }
+
+    const record = value as Record<string, unknown>;
+    return {
+      label: String(
+        record.option ??
+          record.label ??
+          record.text ??
+          record.response ??
+          record.value ??
+          "",
+      ).trim(),
+      audioUrl: extractAudioUrl(record.audioUrl ?? record.audio_url ?? record.audio),
+    };
+  };
+
+  const responses = Array.isArray(question?.responses)
+    ? [...question.responses]
+    : [];
+  const sortedResponses = responses.sort(
+    (a, b) => getResponseOrderIndex(a) - getResponseOrderIndex(b),
+  );
+
+  const rawOptions = Array.isArray(question?.options)
+    ? question.options
+        .map((opt: unknown) => toOptionRecord(opt))
+        .filter((opt) => opt.label.length > 0)
+    : [];
+  const fallbackLabels = sortedResponses
+    .map((resp) =>
+      String(resp?.response ?? resp?.option ?? resp?.label ?? "").trim(),
+    )
+    .filter((label) => label.length > 0);
+
+  const labels =
+    rawOptions.length > 0
+      ? rawOptions.map((opt) => opt.label)
+      : fallbackLabels.length > 0
+        ? fallbackLabels
+        : [];
+
+  if (labels.length === 0) {
+    return { options: undefined, normalizedLabels: [] };
+  }
+
+  const options: QuizOption[] = labels.map((label, index) => ({
+    label: label || `Option ${index + 1}`,
+    audioUrl:
+      rawOptions[index]?.audioUrl ?? extractAudioUrl(sortedResponses[index]),
+  }));
+
+  const normalizedLabels = options.map((option) =>
+    normalizeStringValue(option.label),
+  );
+
+  return { options, normalizedLabels };
+};
+
+const resolveAnswerIndex = (
+  value: unknown,
+  options: string[],
+): number => {
+  if (!options || options.length === 0) {
+    return -1;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(0, Math.trunc(value));
+  }
+
+  if (typeof value === "string") {
+    const numeric = Number(value);
+    if (!Number.isNaN(numeric)) {
+      return Math.max(0, Math.trunc(numeric));
+    }
+    const normalized = normalizeStringValue(value);
+    const matchIndex = options.findIndex((label) => label === normalized);
+    return matchIndex >= 0 ? matchIndex : -1;
+  }
+
+  return -1;
+};
+
+const resolveAnswerIndexes = (
+  values: unknown,
+  options: string[],
+): number[] => {
+  if (!Array.isArray(values)) return [];
+  const indexes = values
+    .map((value) => resolveAnswerIndex(value, options))
+    .filter((index) => index >= 0);
+  const uniqueIndexes = Array.from(new Set(indexes));
+  return uniqueIndexes;
+};
+
+const normalizeQuestionType = (value?: string): QuizQuestion["type"] => {
+  if (!value) return "single";
+  const normalized = value.trim().toUpperCase();
+  if (normalized.includes("MULTIPLE_RESPONSE")) return "multiple";
+  if (normalized.includes("MULTIPLE-RESPONSE")) return "multiple";
+  if (normalized.includes("MULTIPLE_CHOICE")) return "single";
+  if (normalized.includes("TRUE_FALSE")) return "single";
+  if (normalized.includes("TRUE-FALSE")) return "single";
+  if (normalized.includes("SHORT_ANSWER")) return "text";
+  if (normalized.includes("SHORT-ANSWER")) return "text";
+  if (normalized.includes("TEXT")) return "text";
+  if (normalized.includes("TRUE")) return "single";
+  return "single";
+};
+
+const AudioPlayer = ({ src }: { src: string }) => {
+  return (
+    <audio
+      src={src}
+      controls
+      preload="none"
+      controlsList="nodownload noplaybackrate"
+      className="h-10 w-32 min-w-[90px]"
+    />
+  );
+};
 
 export default function QuizAssessment() {
   const router = useRouter();
@@ -76,8 +255,8 @@ export default function QuizAssessment() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: number]: any }>({});
-  const [flaggedQuestions, setFlaggedQuestions] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState<string[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(1800); // 30 minutes
   const [showResults, setShowResults] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
@@ -96,80 +275,94 @@ export default function QuizAssessment() {
           const quizResponse = await QuizApi.getQuizQuestions(moduleId);
           logger.log("📡 Réponse API quiz:", quizResponse);
 
-          if (quizResponse && quizResponse.quiz && quizResponse.questions && Array.isArray(quizResponse.questions) && quizResponse.questions.length > 0) {
+          if (
+            quizResponse &&
+            quizResponse.quiz &&
+            quizResponse.questions &&
+            Array.isArray(quizResponse.questions) &&
+            quizResponse.questions.length > 0
+          ) {
             // Convertir les données API au format attendu par le frontend
-            const formattedData = quizResponse.questions.map((q: any, idx: number) => ({
-              id: q.id,
-              question: q.question,
-              type: q.type === 'multiple_choice' ? 'single' : q.type === 'true_false' ? 'single' : q.type === 'multiple_response' ? 'multiple' : 'text' as "single" | "multiple" | "text",
-              points: q.points || 4,
-              order: idx + 1,
-              options: q.options || [],
-              correctAnswer: q.correct_answer,
-              correctAnswers: q.correct_answers,
-              explanation: q.explanation,
-              minWords: q.min_words,
-            }));
+            const formattedData = quizResponse.questions.map(
+              (q: any, idx: number) => {
+                const questionType = normalizeQuestionType(
+                  q.type ?? q.questionType ?? q.question_type,
+                );
+                const { options, normalizedLabels } = buildQuizOptions(q);
+                const questionAudioUrl = extractAudioUrl(
+                  q.audioUrl ?? q.audio_url ?? q.audio,
+                );
+                const rawPoints =
+                  q.points ?? q.point ?? q.pointsAmount ?? q.value ?? 1;
+                const parsedPoints =
+                  typeof rawPoints === "number"
+                    ? rawPoints
+                    : Number(rawPoints ?? 1);
+                const points = Number.isNaN(parsedPoints) ? 1 : parsedPoints;
+
+                const correctAnswerIndex = resolveAnswerIndex(
+                  q.correctAnswer ??
+                    q.correct_answer ??
+                    q.correct_answer_index ??
+                    q.answer ??
+                    q.correct,
+                  normalizedLabels,
+                );
+
+                const correctAnswersIndexes = resolveAnswerIndexes(
+                  q.correctAnswers ??
+                    q.correct_answers ??
+                    q.correct_answer_indexes ??
+                    q.correct_answers_indexes,
+                  normalizedLabels,
+                );
+
+                const rawMinWords =
+                  q.minWords ?? q.min_words ?? q.min_words_count;
+                const parsedMinWords =
+                  typeof rawMinWords === "number"
+                    ? rawMinWords
+                    : Number(rawMinWords);
+                const minWords = Number.isNaN(parsedMinWords)
+                  ? undefined
+                  : parsedMinWords;
+
+                return {
+                  id: String(q.id ?? q.questionId ?? `question-${idx}`),
+                  question: String(q.question ?? q.title ?? "").trim(),
+                  type: questionType,
+                  points,
+                  order: idx + 1,
+                  options,
+                  correctAnswer:
+                    correctAnswerIndex >= 0 ? correctAnswerIndex : undefined,
+                  correctAnswers:
+                    correctAnswersIndexes.length > 0
+                      ? correctAnswersIndexes
+                      : undefined,
+                  explanation:
+                    q.explanation ??
+                    q.description ??
+                    q.instruction ??
+                    undefined,
+                  minWords,
+                  questionAudioUrl,
+                };
+              },
+            );
 
             setQuizData(formattedData);
-            logger.log("✅ Quiz chargé avec succès depuis l'API:", formattedData.length, "questions");
+            logger.log(
+              "✅ Quiz chargé avec succès depuis l'API:",
+              formattedData.length,
+              "questions",
+            );
             return;
           }
         } catch (quizErr) {
           logger.error("❌ Erreur API quiz:", quizErr);
+          setError("Erreur de chargement du quiz");
         }
-
-        // Fallback: données mockées
-        logger.log("🔄 Utilisation des données mockées");
-        const mockQuizData: QuizQuestion[] = [
-          {
-            id: 1,
-            question: "Qu'est-ce qu'un algorithme ?",
-            type: "single" as const,
-            points: 4,
-            order: 1,
-            options: [
-              "Un langage de programmation",
-              "Une séquence d'instructions pour résoudre un problème",
-              "Un type de donnée",
-              "Un système d'exploitation",
-            ],
-            correctAnswer: 1,
-            explanation:
-              "Un algorithme est une séquence finie et non ambiguë d'instructions permettant de résoudre un problème ou d'effectuer un calcul.",
-          },
-          {
-            id: 2,
-            question:
-              "Quelle est la caractéristique principale d'un algorithme ?",
-            type: "single" as const,
-            points: 4,
-            order: 2,
-            options: [
-              "Il doit être écrit en langage machine",
-              "Il doit être fini",
-              "Il doit être ambigu",
-              "Il doit être infini",
-            ],
-            correctAnswer: 1,
-            explanation:
-              "Un algorithme doit être fini, c'est-à-dire qu'il doit se terminer après un nombre fini d'étapes.",
-          },
-          {
-            id: 3,
-            question:
-              "Si tu veux faire du café, ton algorithme commencerait par :",
-            type: "single" as const,
-            points: 4,
-            order: 3,
-            options: ["Boire le café", "Faire chauffer l'eau", "Aller dormir"],
-            correctAnswer: 1,
-            explanation:
-              "Un algorithme doit commencer par les étapes de base nécessaires.",
-          },
-        ];
-
-        setQuizData(mockQuizData);
       } catch (err) {
         logger.error("Erreur chargement quiz:", err);
         setError("Erreur de chargement du quiz");
@@ -249,13 +442,13 @@ export default function QuizAssessment() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleAnswerChange = (questionId: number, answer: any) => {
+  const handleAnswerChange = (questionId: string, answer: any) => {
     setAnswers({ ...answers, [questionId]: answer });
     // 📌 Les réponses au quiz sont stockées en état React seulement
     // (Pas de localStorage - les résultats seront envoyés au serveur via l'API)
   };
 
-  const toggleFlag = (questionId: number) => {
+  const toggleFlag = (questionId: string) => {
     setFlaggedQuestions((prev) =>
       prev.includes(questionId)
         ? prev.filter((id) => id !== questionId)
@@ -588,7 +781,14 @@ export default function QuizAssessment() {
                 </Badge>
               </div>
 
-              <h2 className="text-2xl font-bold mb-6">{currentQ.question}</h2>
+              <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-2xl font-bold">{currentQ.question}</h2>
+                {currentQ.questionAudioUrl && (
+                  <div className="shrink-0">
+                    <AudioPlayer src={currentQ.questionAudioUrl} />
+                  </div>
+                )}
+              </div>
 
               {currentQ.type !== "text" ? (
                 <div className="space-y-3 mb-6">
@@ -613,14 +813,29 @@ export default function QuizAssessment() {
                               : "border-border"
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span>{option}</span>
-                          {isCorrectAnswer && (
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          )}
-                          {isUserAnswer && !isCorrectAnswer && (
-                            <XCircle className="h-5 w-5 text-destructive" />
-                          )}
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <span>{option.label}</span>
+                            {option.audioUrl && (
+                              <div className="shrink-0">
+                                <AudioPlayer src={option.audioUrl} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isCorrectAnswer && (
+                              <CheckCircle2
+                                className="h-5 w-5 text-green-500"
+                                aria-label="Bonne réponse"
+                              />
+                            )}
+                            {isUserAnswer && !isCorrectAnswer && (
+                              <XCircle
+                                className="h-5 w-5 text-destructive"
+                                aria-label="Réponse de l'apprenant incorrecte"
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -764,59 +979,97 @@ export default function QuizAssessment() {
                 </Button>
               </div>
 
-              <h2 className="text-2xl font-bold mb-8">{currentQ.question}</h2>
+              <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-2xl font-bold sm:mr-4">{currentQ.question}</h2>
+                {currentQ.questionAudioUrl && (
+                  <div className="shrink-0">
+                    <AudioPlayer src={currentQ.questionAudioUrl} />
+                  </div>
+                )}
+              </div>
 
               {/* Answer Options */}
               {currentQ.type === "single" && (
                 <div className="space-y-3">
-                  {currentQ.options?.map((option, index) => (
-                    <label
-                      key={index}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                        answers[currentQ.id] === index
-                          ? "border-primary bg-primary/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={`question-${currentQ.id}`}
-                        checked={answers[currentQ.id] === index}
-                        onChange={() => handleAnswerChange(currentQ.id, index)}
-                        className="h-4 w-4"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
+                  {currentQ.options?.map((option, index) => {
+                    const isSelected = answers[currentQ.id] === index;
+                    return (
+                      <div
+                        key={`${option.label}-${index}`}
+                        className={`flex items-center justify-between gap-4 p-4 border-2 rounded-lg transition-colors hover:bg-muted/50 ${
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                          <input
+                            type="radio"
+                            name={`question-${currentQ.id}`}
+                            checked={isSelected}
+                            onChange={() =>
+                              handleAnswerChange(currentQ.id, index)
+                            }
+                            className="h-4 w-4"
+                          />
+                          <span className="truncate">{option.label}</span>
+                        </label>
+                        {option.audioUrl && (
+                          <span
+                            className="shrink-0"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <AudioPlayer src={option.audioUrl} />
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
               {currentQ.type === "multiple" && (
                 <div className="space-y-3">
-                  {currentQ.options?.map((option, index) => (
-                    <label
-                      key={index}
-                      className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
-                        answers[currentQ.id]?.includes(index)
-                          ? "border-primary bg-primary/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={answers[currentQ.id]?.includes(index) || false}
-                        onChange={(e) => {
-                          const current = answers[currentQ.id] || [];
-                          const newAnswer = e.target.checked
-                            ? [...current, index]
-                            : current.filter((i: number) => i !== index);
-                          handleAnswerChange(currentQ.id, newAnswer);
-                        }}
-                        className="h-4 w-4 rounded"
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
+                  {currentQ.options?.map((option, index) => {
+                    const selectedValues = answers[currentQ.id] || [];
+                    const isSelected = selectedValues.includes(index);
+                    const toggleOption = () => {
+                      const current = answers[currentQ.id] || [];
+                      const updated = current.includes(index)
+                        ? current.filter((i: number) => i !== index)
+                        : [...current, index];
+                      handleAnswerChange(currentQ.id, updated);
+                    };
+
+                    return (
+                      <div
+                        key={`${option.label}-${index}`}
+                        className={`flex items-center justify-between gap-4 p-4 border-2 rounded-lg transition-colors hover:bg-muted/50 ${
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={toggleOption}
+                            className="h-4 w-4 rounded"
+                          />
+                          <span className="truncate">{option.label}</span>
+                        </label>
+                        {option.audioUrl && (
+                          <span
+                            className="shrink-0"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <AudioPlayer src={option.audioUrl} />
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

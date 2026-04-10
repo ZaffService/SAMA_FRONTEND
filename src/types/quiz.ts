@@ -1,8 +1,10 @@
 export interface ResponseQuiz {
   id: string;
+  itemId?: string;
   response: string;
   isCorrect: boolean;
   orderIndex: number;
+  audioUrl?: string | null;
 }
 
 export interface QuizQuestion {
@@ -12,6 +14,7 @@ export interface QuizQuestion {
   options?: string[];
   correctAnswer: string;
   points: number;
+  questionAudioUrl?: string | null;
   responses?: ResponseQuiz[];
 }
 

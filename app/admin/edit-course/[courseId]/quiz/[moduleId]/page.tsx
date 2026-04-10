@@ -16,12 +16,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { QuizService } from "@/infrastructure/api/quizService";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import logger from "@/shared/helpers/logger";
-import type { Quiz, QuizQuestion } from "@/types/quiz";
+import type { Quiz, QuizQuestion, ResponseQuiz } from "@/types/quiz";
 
 interface QuizPageParams {
   params: Promise<{ courseId: string; moduleId: string }>;
@@ -34,14 +34,35 @@ type Notice = {
   message: string;
 };
 
+type OptionDraft = {
+  itemId: string;
+  responseId?: string;
+  text: string;
+  optionAudio: Blob | null;
+  existingAudioUrl?: string | null;
+  isTouched: boolean;
+};
+
 type QuestionDraft = {
   id?: string;
   question: string;
   questionType: QuestionType;
-  options: string[];
+  options: OptionDraft[];
   correctAnswer: string;
   correctOptionIndex: number;
   points: number;
+  questionAudio: Blob | null;
+  questionAudioUrl?: string | null;
+};
+
+type ResponsePayloadDraft = {
+  responseId?: string;
+  itemId: string;
+  response: string;
+  isCorrect: boolean;
+  orderIndex: number;
+  optionAudio: Blob | null;
+  isTouched: boolean;
 };
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
@@ -53,13 +74,62 @@ const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
 const TRUE_FALSE_OPTIONS = ["Vrai", "Faux"];
 
 const normalizeText = (value: string) => value.trim().toLowerCase();
+const sortResponsesByOrder = (responses?: ResponseQuiz[]) =>
+  Array.isArray(responses)
+    ? [...responses].sort((left, right) => {
+        const leftOrder = Number(left?.orderIndex ?? 0);
+        const rightOrder = Number(right?.orderIndex ?? 0);
+        return leftOrder - rightOrder;
+      })
+    : [];
 
-const findOptionIndex = (options: string[], answer: string) => {
+const createItemId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const findOptionIndex = (options: OptionDraft[], answer: string) => {
   const normalized = normalizeText(answer || "");
   if (!normalized) return -1;
   return options.findIndex(
-    (option) => normalizeText(option || "") === normalized,
+    (option) => normalizeText(option?.text || "") === normalized,
   );
+};
+
+const ensureMultipleChoiceDraft = (draft: QuestionDraft): QuestionDraft => {
+  if (draft.questionType === "MULTIPLE_CHOICE") return draft;
+
+  const options =
+    draft.options.length >= 2
+      ? draft.options
+      : [
+          {
+            itemId: createItemId(),
+            text: "",
+            optionAudio: null,
+            existingAudioUrl: null,
+            isTouched: true,
+          },
+          {
+            itemId: createItemId(),
+            text: "",
+            optionAudio: null,
+            existingAudioUrl: null,
+            isTouched: true,
+          },
+        ];
+  const matchedIndex = findOptionIndex(options, draft.correctAnswer);
+  const correctIndex = matchedIndex >= 0 ? matchedIndex : 0;
+
+  return {
+    ...draft,
+    questionType: "MULTIPLE_CHOICE",
+    options,
+    correctOptionIndex: correctIndex,
+    correctAnswer: options[correctIndex]?.text ?? "",
+  };
 };
 
 const createQuestionDraft = (question?: QuizQuestion): QuestionDraft => {
@@ -68,16 +138,42 @@ const createQuestionDraft = (question?: QuizQuestion): QuestionDraft => {
   const baseOptions = Array.isArray(question?.options)
     ? question?.options
     : [];
+  const responsesByOrder = Array.isArray(question?.responses)
+    ? [...question.responses].sort((a, b) => {
+        const left = Number(a?.orderIndex ?? 0);
+        const right = Number(b?.orderIndex ?? 0);
+        return left - right;
+      })
+    : [];
+  const toOptionDraft = (value: string, index: number): OptionDraft => ({
+    itemId: String(
+      responsesByOrder[index]?.itemId ?? responsesByOrder[index]?.id ?? createItemId(),
+    ),
+    responseId: responsesByOrder[index]?.id
+      ? String(responsesByOrder[index]?.id)
+      : undefined,
+    text: value,
+    optionAudio: null,
+    existingAudioUrl:
+      typeof responsesByOrder[index]?.audioUrl === "string"
+        ? responsesByOrder[index]?.audioUrl
+        : null,
+    isTouched: false,
+  });
 
   if (questionType === "TRUE_FALSE") {
     return {
       id: question?.id,
       question: question?.question ?? "",
       questionType,
-      options: TRUE_FALSE_OPTIONS,
+      options: TRUE_FALSE_OPTIONS.map((option, index) =>
+        toOptionDraft(option, index),
+      ),
       correctAnswer: question?.correctAnswer ?? TRUE_FALSE_OPTIONS[0],
       correctOptionIndex: 0,
       points: question?.points ?? 1,
+      questionAudio: null,
+      questionAudioUrl: question?.questionAudioUrl ?? null,
     };
   }
 
@@ -90,25 +186,30 @@ const createQuestionDraft = (question?: QuizQuestion): QuestionDraft => {
       correctAnswer: question?.correctAnswer ?? "",
       correctOptionIndex: 0,
       points: question?.points ?? 1,
+      questionAudio: null,
+      questionAudioUrl: question?.questionAudioUrl ?? null,
     };
   }
 
   const options = baseOptions.length >= 2 ? baseOptions : ["", ""];
+  const optionDrafts = options.map((value, index) => toOptionDraft(value, index));
   const foundIndex = question
-    ? findOptionIndex(options, question.correctAnswer ?? "")
+    ? findOptionIndex(optionDrafts, question.correctAnswer ?? "")
     : -1;
   const correctIndex = Math.max(0, foundIndex);
   const resolvedAnswer =
-    options[correctIndex] ?? question?.correctAnswer ?? "";
+    optionDrafts[correctIndex]?.text ?? question?.correctAnswer ?? "";
 
   return {
     id: question?.id,
     question: question?.question ?? "",
     questionType: "MULTIPLE_CHOICE",
-    options,
+    options: optionDrafts,
     correctAnswer: resolvedAnswer,
     correctOptionIndex: correctIndex,
     points: question?.points ?? 1,
+    questionAudio: null,
+    questionAudioUrl: question?.questionAudioUrl ?? null,
   };
 };
 
@@ -261,14 +362,14 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
   };
 
   const startCreateQuestion = () => {
-    setQuestionDraft(createQuestionDraft());
+    setQuestionDraft(ensureMultipleChoiceDraft(createQuestionDraft()));
     setQuestionMode("create");
     setQuestionError(null);
     setEditingPendingIndex(null);
   };
 
   const startEditQuestion = (question: QuizQuestion) => {
-    setQuestionDraft(createQuestionDraft(question));
+    setQuestionDraft(ensureMultipleChoiceDraft(createQuestionDraft(question)));
     setQuestionMode("edit");
     setQuestionError(null);
     setEditingPendingIndex(null);
@@ -277,7 +378,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
   const startEditPendingQuestion = (index: number) => {
     const draft = pendingQuestions[index];
     if (!draft) return;
-    setQuestionDraft(draft);
+    setQuestionDraft(ensureMultipleChoiceDraft(draft));
     setQuestionMode("edit");
     setQuestionError(null);
     setEditingPendingIndex(index);
@@ -290,54 +391,22 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
     }
   };
 
-  const handleQuestionTypeChange = (value: QuestionType) => {
-    setQuestionDraft((prev) => {
-      if (!prev) return prev;
-
-      if (value === "TRUE_FALSE") {
-        return {
-          ...prev,
-          questionType: value,
-          options: TRUE_FALSE_OPTIONS,
-          correctAnswer: TRUE_FALSE_OPTIONS[0],
-          correctOptionIndex: 0,
-        };
-      }
-
-      if (value === "SHORT_ANSWER") {
-        return {
-          ...prev,
-          questionType: value,
-          options: [],
-          correctAnswer: "",
-          correctOptionIndex: 0,
-        };
-      }
-
-      const options = prev.options.length >= 2 ? prev.options : ["", ""];
-      const foundIndex = findOptionIndex(options, prev.correctAnswer);
-      const nextIndex =
-        foundIndex >= 0
-          ? foundIndex
-          : Math.min(prev.correctOptionIndex, options.length - 1);
-      const resolvedAnswer = options[Math.max(0, nextIndex)] ?? "";
-
-      return {
-        ...prev,
-        questionType: value,
-        options,
-        correctOptionIndex: Math.max(0, nextIndex),
-        correctAnswer: resolvedAnswer,
-      };
-    });
-    setQuestionError(null);
-  };
-
   const updateOptionValue = (index: number, value: string) => {
     setQuestionDraft((prev) => {
       if (!prev) return prev;
       const nextOptions = [...prev.options];
-      nextOptions[index] = value;
+      const current = nextOptions[index] ?? {
+        itemId: createItemId(),
+        text: "",
+        optionAudio: null,
+        existingAudioUrl: null,
+        isTouched: true,
+      };
+      nextOptions[index] = {
+        ...current,
+        text: value,
+        isTouched: current.isTouched || current.text !== value,
+      };
       if (prev.questionType === "MULTIPLE_CHOICE" && prev.correctOptionIndex === index) {
         return { ...prev, options: nextOptions, correctAnswer: value };
       }
@@ -348,7 +417,19 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
   const addOption = () => {
     setQuestionDraft((prev) => {
       if (!prev) return prev;
-      return { ...prev, options: [...prev.options, ""] };
+      return {
+        ...prev,
+        options: [
+          ...prev.options,
+          {
+            itemId: createItemId(),
+            text: "",
+            optionAudio: null,
+            existingAudioUrl: null,
+            isTouched: true,
+          },
+        ],
+      };
     });
   };
 
@@ -358,10 +439,36 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
       const filtered = prev.options.filter((_, idx) => idx !== index);
       let nextOptions = filtered;
       if (nextOptions.length === 0) {
-        nextOptions = ["", ""];
+        nextOptions = [
+          {
+            itemId: createItemId(),
+            text: "",
+            optionAudio: null,
+            existingAudioUrl: null,
+            isTouched: true,
+          },
+          {
+            itemId: createItemId(),
+            text: "",
+            optionAudio: null,
+            existingAudioUrl: null,
+            isTouched: true,
+          },
+        ];
       } else if (nextOptions.length === 1) {
-        nextOptions = [...nextOptions, ""];
+        nextOptions = [
+          ...nextOptions,
+          {
+            itemId: createItemId(),
+            text: "",
+            optionAudio: null,
+            existingAudioUrl: null,
+            isTouched: true,
+          },
+        ];
       }
+      // Les positions changent: marquer le reste comme modifié pour mettre à jour orderIndex/isCorrect côté API.
+      nextOptions = nextOptions.map((option) => ({ ...option, isTouched: true }));
       let nextCorrect = prev.correctOptionIndex;
 
       if (index === prev.correctOptionIndex) {
@@ -378,7 +485,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
         ...prev,
         options: nextOptions,
         correctOptionIndex: nextCorrect,
-        correctAnswer: nextOptions[nextCorrect] ?? "",
+        correctAnswer: nextOptions[nextCorrect]?.text ?? "",
       };
     });
   };
@@ -439,13 +546,40 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
         });
         setNotice({ type: "success", message: "Quiz mis à jour." });
       } else {
-        await QuizService.createQuiz({
+        const createdQuiz = await QuizService.createQuiz({
           moduleId,
           title: quizForm.title.trim(),
           description: quizForm.description.trim() || undefined,
           passingScore: Number(quizForm.passingScore),
           questions: pendingQuestions.map(buildQuestionPayload),
         });
+        const quizWithQuestions =
+          createdQuiz?.questions?.length > 0
+            ? createdQuiz
+            : await QuizService.getQuizByModule(moduleId);
+
+        if (quizWithQuestions?.questions?.length) {
+          for (let index = 0; index < pendingQuestions.length; index += 1) {
+            const draft = pendingQuestions[index];
+            const question = quizWithQuestions.questions[index];
+            if (!draft || !question?.id) continue;
+            const hasQuestionAudioUpdate = Boolean(draft.questionAudio);
+            const hasResponseAudioUpdate = draft.options.some((option) =>
+              Boolean(option.optionAudio),
+            );
+            if (!hasQuestionAudioUpdate && !hasResponseAudioUpdate) continue;
+            await syncQuestionResponses(
+              quizWithQuestions.id,
+              question.id,
+              draft,
+              question,
+              {
+                includeQuestionAudio: hasQuestionAudioUpdate,
+                includeResponses: hasResponseAudioUpdate,
+              },
+            );
+          }
+        }
         setNotice({ type: "success", message: "Quiz créé." });
         setPendingQuestions([]);
         resetQuestionEditor();
@@ -505,7 +639,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
     }
 
     if (draft.questionType === "MULTIPLE_CHOICE") {
-      const cleaned = draft.options.map((opt) => opt.trim());
+      const cleaned = draft.options.map((opt) => opt.text.trim());
       if (cleaned.length < 2) {
         return "Ajoutez au moins deux réponses.";
       }
@@ -532,43 +666,382 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
     return null;
   };
 
+  const getOptionTexts = (draft: QuestionDraft): string[] => {
+    if (draft.questionType === "TRUE_FALSE") {
+      return TRUE_FALSE_OPTIONS;
+    }
+    if (draft.questionType === "MULTIPLE_CHOICE") {
+      return draft.options.map((opt) => opt.text.trim());
+    }
+    return [];
+  };
+
+  const resolveCorrectIndex = (
+    draft: QuestionDraft,
+    optionTexts: string[],
+  ): number => {
+    if (optionTexts.length === 0) return -1;
+
+    if (draft.questionType === "TRUE_FALSE") {
+      const normalized = normalizeText(draft.correctAnswer);
+      const idx = optionTexts.findIndex(
+        (option) => normalizeText(option) === normalized,
+      );
+      return idx >= 0 ? idx : 0;
+    }
+
+    if (draft.questionType === "MULTIPLE_CHOICE") {
+      const matchedIndex = findOptionIndex(draft.options, draft.correctAnswer);
+      return matchedIndex >= 0
+        ? matchedIndex
+        : Math.min(
+            Math.max(draft.correctOptionIndex, 0),
+            Math.max(optionTexts.length - 1, 0),
+          );
+    }
+
+    return -1;
+  };
+
   const buildQuestionPayload = (draft: QuestionDraft) => {
+    const optionTexts = getOptionTexts(draft);
+    const correctIndex = resolveCorrectIndex(draft, optionTexts);
+    const correctAnswerValue =
+      draft.questionType === "SHORT_ANSWER"
+        ? draft.correctAnswer.trim()
+        : optionTexts[correctIndex] || optionTexts[0] || "";
+
     const base = {
       question: draft.question.trim(),
       questionType: draft.questionType,
       points: Number(draft.points) || 1,
     };
 
-    if (draft.questionType === "MULTIPLE_CHOICE") {
-      const options = draft.options.map((opt) => opt.trim());
-      const matchedIndex = findOptionIndex(options, draft.correctAnswer);
-      const boundedIndex =
-        matchedIndex >= 0
-          ? matchedIndex
-          : Math.min(
-              Math.max(draft.correctOptionIndex, 0),
-              Math.max(options.length - 1, 0),
-            );
-      return {
-        ...base,
-        options,
-        correctAnswer: options[boundedIndex] || options[0] || "",
-      };
-    }
-
     if (draft.questionType === "TRUE_FALSE") {
       return {
         ...base,
-        options: TRUE_FALSE_OPTIONS,
-        correctAnswer: draft.correctAnswer,
+        options: optionTexts,
+        correctAnswer: correctAnswerValue,
+      };
+    }
+
+    if (draft.questionType === "MULTIPLE_CHOICE") {
+      return {
+        ...base,
+        options: optionTexts,
+        correctAnswer: correctAnswerValue,
       };
     }
 
     return {
       ...base,
-      correctAnswer: draft.correctAnswer.trim(),
+      correctAnswer: correctAnswerValue,
     };
   };
+
+  const hasQuestionFieldChanges = (
+    draft: QuestionDraft,
+    existingQuestion?: QuizQuestion,
+  ) => {
+    if (!existingQuestion) {
+      return true;
+    }
+
+    const nextQuestionText = draft.question.trim();
+    const currentQuestionText = String(existingQuestion.question ?? "").trim();
+    if (nextQuestionText !== currentQuestionText) {
+      return true;
+    }
+
+    const nextPoints = Number(draft.points) || 1;
+    const currentPoints = Number(existingQuestion.points ?? 1);
+    if (nextPoints !== currentPoints) {
+      return true;
+    }
+
+    if (draft.questionType !== existingQuestion.questionType) {
+      return true;
+    }
+
+    const nextOptionTexts = getOptionTexts(draft);
+    const currentOptionTexts = Array.isArray(existingQuestion.options)
+      ? existingQuestion.options.map((option) => String(option).trim())
+      : [];
+    if (
+      nextOptionTexts.length !== currentOptionTexts.length ||
+      nextOptionTexts.some(
+        (option, index) => option !== String(currentOptionTexts[index] ?? "").trim(),
+      )
+    ) {
+      return true;
+    }
+
+    const nextCorrectIndex = resolveCorrectIndex(draft, nextOptionTexts);
+    const nextCorrectAnswer =
+      draft.questionType === "SHORT_ANSWER"
+        ? draft.correctAnswer.trim()
+        : nextOptionTexts[nextCorrectIndex] || nextOptionTexts[0] || "";
+    const currentCorrectAnswer = String(existingQuestion.correctAnswer ?? "").trim();
+    if (nextCorrectAnswer !== currentCorrectAnswer) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const buildQuestionFormData = (draft: QuestionDraft) => {
+    const payload = buildQuestionPayload(draft) as Record<string, any>;
+    const optionTexts = getOptionTexts(draft);
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      if (key === "options" && Array.isArray(value)) {
+        formData.append("options", JSON.stringify(value));
+        return;
+      }
+      formData.append(key, String(value));
+    });
+
+    if (optionTexts.length > 0 && !formData.has("options")) {
+      formData.append("options", JSON.stringify(optionTexts));
+    }
+
+    if (draft.questionAudio) {
+      formData.append("questionAudio", draft.questionAudio, "question-audio.webm");
+    }
+
+    return formData;
+  };
+
+  const buildResponsePayloads = (
+    draft: QuestionDraft,
+    existingQuestion?: QuizQuestion,
+  ): ResponsePayloadDraft[] => {
+    const optionTexts = getOptionTexts(draft);
+    const correctIndex = resolveCorrectIndex(draft, optionTexts);
+    const existingResponsesByOrder = sortResponsesByOrder(existingQuestion?.responses);
+    const existingResponsesByItemId = new Map(
+      existingResponsesByOrder
+        .filter((response) => Boolean(response?.itemId))
+        .map((response) => [String(response.itemId), response]),
+    );
+
+    return optionTexts.map((response, index) => {
+      const draftOption = draft.options[index];
+      const existingResponse =
+        (draftOption?.itemId
+          ? existingResponsesByItemId.get(String(draftOption.itemId))
+          : undefined) ?? existingResponsesByOrder[index];
+      const resolvedResponseId =
+        (existingResponse?.id ? String(existingResponse.id) : undefined) ||
+        draftOption?.responseId?.trim();
+      const resolvedItemId =
+        draftOption?.itemId ||
+        existingResponse?.itemId ||
+        (existingResponse?.id ? String(existingResponse.id) : createItemId());
+      const hasResponseId = Boolean(resolvedResponseId?.trim());
+      const isTouched = !hasResponseId ? true : Boolean(draftOption?.isTouched);
+
+      return {
+        responseId: resolvedResponseId,
+        itemId: resolvedItemId,
+        optionAudio: draftOption?.optionAudio ?? null,
+        response,
+        isCorrect: index === correctIndex,
+        orderIndex: index,
+        isTouched,
+      };
+    });
+  };
+
+  const reconcileResponseIdsWithLatest = (
+    responses: ResponsePayloadDraft[],
+    latestQuestion?: QuizQuestion,
+  ): ResponsePayloadDraft[] => {
+    const latestResponsesByOrder = sortResponsesByOrder(latestQuestion?.responses);
+    if (latestResponsesByOrder.length === 0) {
+      return responses;
+    }
+
+    const latestIds = new Set(
+      latestResponsesByOrder
+        .map((response) => String(response?.id ?? "").trim())
+        .filter(Boolean),
+    );
+    const latestByItemId = new Map(
+      latestResponsesByOrder
+        .filter((response) => Boolean(response?.itemId))
+        .map((response) => [String(response.itemId), response]),
+    );
+    const latestByOrder = new Map<number, ResponseQuiz>();
+    latestResponsesByOrder.forEach((response, index) => {
+      latestByOrder.set(Number(response?.orderIndex ?? index), response);
+    });
+
+    return responses.map((response) => {
+      const currentResponseId = String(response.responseId ?? "").trim();
+      if (currentResponseId && latestIds.has(currentResponseId)) {
+        return response;
+      }
+
+      const byItemId = latestByItemId.get(String(response.itemId));
+      if (byItemId?.id) {
+        return { ...response, responseId: String(byItemId.id) };
+      }
+
+      const byOrder = latestByOrder.get(response.orderIndex);
+      const sameTextByOrder =
+        Boolean(byOrder) &&
+        normalizeText(byOrder?.response ?? "") === normalizeText(response.response);
+      if (sameTextByOrder && byOrder?.id) {
+        return { ...response, responseId: String(byOrder.id) };
+      }
+
+      return { ...response, responseId: undefined };
+    });
+  };
+
+  const buildResponsesFormData = (responses: ResponsePayloadDraft[]) => {
+    const formData = new FormData();
+    const serializedResponses = responses.reduce<Record<string, any>[]>(
+      (acc, current) => {
+        const base = {
+          itemId: current.itemId,
+          response: current.response,
+          isCorrect: current.isCorrect,
+          orderIndex: current.orderIndex,
+        };
+
+        const responseId = current.responseId?.trim();
+        acc.push(responseId ? { responseId, ...base } : base);
+        return acc;
+      },
+      [],
+    );
+
+    if (serializedResponses.length === 0) {
+      return formData;
+    }
+
+    formData.append("responses", JSON.stringify(serializedResponses));
+
+    const serializedItemIds = new Set(
+      serializedResponses.map((item) => String(item.itemId)),
+    );
+
+    responses.forEach((response) => {
+      if (!response.optionAudio) return;
+      if (!serializedItemIds.has(response.itemId)) return;
+      formData.append(
+        `responsesAudios[${response.itemId}]`,
+        response.optionAudio,
+        `${response.itemId}.webm`,
+      );
+    });
+
+    return formData;
+  };
+
+  const syncQuestionResponses = async (
+    quizId: string,
+    questionId: string,
+    draft: QuestionDraft,
+    existingQuestion?: QuizQuestion,
+    options?: {
+      includeQuestionFields?: boolean;
+      includeQuestionAudio?: boolean;
+      includeResponses?: boolean;
+    },
+  ) => {
+    const includeQuestionFields = Boolean(options?.includeQuestionFields);
+    const includeQuestionAudio = Boolean(options?.includeQuestionAudio);
+    const includeResponses = options?.includeResponses !== false;
+
+    const mergedFormData = new FormData();
+
+    if (includeQuestionFields) {
+      const questionPayload = buildQuestionPayload(draft) as Record<string, any>;
+      Object.entries(questionPayload).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (key === "options" && Array.isArray(value)) {
+          mergedFormData.append("options", JSON.stringify(value));
+          return;
+        }
+        mergedFormData.append(key, String(value));
+      });
+    }
+
+    if (includeQuestionAudio && draft.questionAudio) {
+      mergedFormData.append("questionAudio", draft.questionAudio, "question-audio.webm");
+    }
+
+    if (!includeResponses) {
+      if (Array.from(mergedFormData.keys()).length > 0) {
+        await QuizService.updateQuestion(quizId, questionId, mergedFormData);
+      }
+      return;
+    }
+
+    const responses = buildResponsePayloads(draft, existingQuestion);
+    let latestQuestion = existingQuestion;
+    if (responses.length > 0) {
+      const freshQuiz = await QuizService.getQuizById(quizId);
+      latestQuestion = freshQuiz.questions.find(
+        (question) => question.id === questionId,
+      );
+    }
+
+    const responsesWithValidatedIds = reconcileResponseIdsWithLatest(
+      responses,
+      latestQuestion,
+    );
+    const latestIds = new Set(
+      sortResponsesByOrder(latestQuestion?.responses)
+        .map((response) => String(response?.id ?? "").trim())
+        .filter(Boolean),
+    );
+
+    const responsesToSend = responsesWithValidatedIds.filter((response) => {
+      const responseId = String(response.responseId ?? "").trim();
+      if (responseId && latestIds.size > 0 && !latestIds.has(responseId)) {
+        return false;
+      }
+      return response.isTouched || !responseId;
+    });
+
+    if (responsesToSend.length > 0) {
+      const responsesFormData = buildResponsesFormData(responsesToSend);
+      const serializedResponses = responsesFormData.get("responses");
+      if (typeof serializedResponses === "string" && serializedResponses.length > 0) {
+        mergedFormData.set("responses", serializedResponses);
+      }
+
+      responsesToSend.forEach((response) => {
+        if (!response.optionAudio) return;
+        mergedFormData.append(
+          `responsesAudios[${response.itemId}]`,
+          response.optionAudio,
+          `${response.itemId}.webm`,
+        );
+      });
+    }
+
+    if (Array.from(mergedFormData.keys()).length === 0) {
+      return;
+    }
+
+    await QuizService.updateQuestion(quizId, questionId, mergedFormData);
+  };
+
+  const hasResponseChanges = (
+    draft: QuestionDraft,
+    existingQuestion?: QuizQuestion,
+  ) =>
+    buildResponsePayloads(draft, existingQuestion).some((response) => {
+      const responseId = String(response.responseId ?? "").trim();
+      return response.isTouched || !responseId;
+    });
 
   const handleSaveQuestion = async () => {
     if (!questionDraft) return;
@@ -583,14 +1056,56 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
     setIsSavingQuestion(true);
 
     try {
-      const payload = buildQuestionPayload(questionDraft);
-
       if (quiz) {
+        const questionFormData = buildQuestionFormData(questionDraft);
         if (questionMode === "edit" && questionDraft.id) {
-          await QuizService.updateQuestion(quiz.id, questionDraft.id, payload);
+          const existingQuestion = quiz.questions.find(
+            (question) => question.id === questionDraft.id,
+          );
+          const mustUpdateQuestionFields = hasQuestionFieldChanges(
+            questionDraft,
+            existingQuestion,
+          );
+          const mustUpdateQuestionAudio = Boolean(questionDraft.questionAudio);
+          const mustUpdateResponses = hasResponseChanges(
+            questionDraft,
+            existingQuestion,
+          );
+          if (mustUpdateQuestionFields || mustUpdateQuestionAudio || mustUpdateResponses) {
+            await syncQuestionResponses(
+              quiz.id,
+              questionDraft.id,
+              questionDraft,
+              existingQuestion,
+              {
+                includeQuestionFields: mustUpdateQuestionFields,
+                includeQuestionAudio: mustUpdateQuestionAudio,
+                includeResponses: mustUpdateResponses,
+              },
+            );
+          }
           setNotice({ type: "success", message: "Question mise à jour." });
         } else {
-          await QuizService.addQuestion(quiz.id, payload);
+          const createdQuestion = await QuizService.addQuestion(
+            quiz.id,
+            questionFormData,
+          );
+          if (createdQuestion?.id) {
+            const hasResponseAudioUpdate = questionDraft.options.some((option) =>
+              Boolean(option.optionAudio),
+            );
+            if (hasResponseAudioUpdate) {
+              await syncQuestionResponses(
+                quiz.id,
+                createdQuestion.id,
+                questionDraft,
+                createdQuestion,
+                {
+                  includeResponses: true,
+                },
+              );
+            }
+          }
           setNotice({ type: "success", message: "Question ajoutée." });
         }
 
@@ -952,42 +1467,49 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Question
                         </label>
-                        <Input
-                          value={questionDraft.question}
-                          onChange={(event) =>
-                            setQuestionDraft((prev) =>
-                              prev
-                                ? { ...prev, question: event.target.value }
-                                : prev,
-                            )
-                          }
-                          placeholder="Entrez la question"
-                        />
+                        <div className="flex items-center gap-3">
+                          <Input
+                            className="flex-1"
+                            value={questionDraft.question}
+                            onChange={(event) =>
+                              setQuestionDraft((prev) =>
+                                prev
+                                  ? { ...prev, question: event.target.value }
+                                  : prev,
+                              )
+                            }
+                            placeholder="Entrez la question"
+                          />
+                          <div className="shrink-0">
+                            <VoiceRecorder
+                              existingAudio={questionDraft.questionAudio}
+                              existingAudioUrl={questionDraft.questionAudioUrl}
+                              onAudioReady={(blob) =>
+                                setQuestionDraft((prev) =>
+                                  prev
+                                    ? { ...prev, questionAudio: blob }
+                                    : prev,
+                                )
+                              }
+                              onRemoveExistingAudio={() =>
+                                setQuestionDraft((prev) =>
+                                  prev
+                                    ? { ...prev, questionAudioUrl: null, questionAudio: null }
+                                    : prev,
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Type de question
                         </label>
-                        <RadioGroup
-                          value={questionDraft.questionType}
-                          onValueChange={(value) =>
-                            handleQuestionTypeChange(value as QuestionType)
-                          }
-                          className="grid grid-cols-1 gap-2 sm:grid-cols-3"
-                        >
-                          {Object.entries(QUESTION_TYPE_LABELS).map(
-                            ([type, label]) => (
-                              <label
-                                key={type}
-                                className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-                              >
-                                <RadioGroupItem value={type} />
-                                <span>{label}</span>
-                              </label>
-                            ),
-                          )}
-                        </RadioGroup>
+                        <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
+                          {QUESTION_TYPE_LABELS.MULTIPLE_CHOICE}
+                        </div>
                       </div>
 
                       <div>
@@ -1034,18 +1556,59 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                           <div className="space-y-2">
                             {questionDraft.options.map((option, index) => (
                               <div
-                                key={`option-${index}`}
+                                key={option.itemId || `option-${index}`}
                                 className="flex flex-col gap-2 sm:flex-row sm:items-center"
                               >
                                 <div className="flex flex-1 min-w-0 items-center gap-2">
                                   <Input
                                     className="flex-1"
-                                    value={option}
+                                    value={option.text}
                                     onChange={(event) =>
                                       updateOptionValue(index, event.target.value)
                                     }
                                     placeholder={`Option ${index + 1}`}
                                   />
+                                  <div className="shrink-0">
+                                    <VoiceRecorder
+                                      existingAudio={option.optionAudio}
+                                      existingAudioUrl={option.existingAudioUrl}
+                                      onAudioReady={(blob) =>
+                                        setQuestionDraft((prev) => {
+                                          if (!prev) return prev;
+                                          const nextOptions = [...prev.options];
+                                          const current =
+                                            nextOptions[index] ?? {
+                                              itemId: createItemId(),
+                                              text: "",
+                                              optionAudio: null,
+                                              existingAudioUrl: null,
+                                              isTouched: true,
+                                            };
+                                          nextOptions[index] = {
+                                            ...current,
+                                            optionAudio: blob,
+                                            isTouched: true,
+                                          };
+                                          return { ...prev, options: nextOptions };
+                                        })
+                                      }
+                                      onRemoveExistingAudio={() =>
+                                        setQuestionDraft((prev) => {
+                                          if (!prev) return prev;
+                                          const nextOptions = [...prev.options];
+                                          const current = nextOptions[index];
+                                          if (!current) return prev;
+                                          nextOptions[index] = {
+                                            ...current,
+                                            existingAudioUrl: null,
+                                            optionAudio: null,
+                                            isTouched: true,
+                                          };
+                                          return { ...prev, options: nextOptions };
+                                        })
+                                      }
+                                    />
+                                  </div>
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1072,11 +1635,18 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                     prev.options,
                                     selected,
                                   );
+                                  const resolvedIndex = nextIndex >= 0 ? nextIndex : 0;
+                                  const previousCorrectIndex = prev.correctOptionIndex;
+                                  const nextOptions = prev.options.map((current, idx) =>
+                                    idx === previousCorrectIndex || idx === resolvedIndex
+                                      ? { ...current, isTouched: true }
+                                      : current,
+                                  );
                                   return {
                                     ...prev,
+                                    options: nextOptions,
                                     correctAnswer: selected,
-                                    correctOptionIndex:
-                                      nextIndex >= 0 ? nextIndex : 0,
+                                    correctOptionIndex: resolvedIndex,
                                   };
                                 })
                               }
@@ -1086,8 +1656,11 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                 Sélectionnez la réponse correcte
                               </option>
                               {questionDraft.options.map((option, index) => (
-                                <option key={`correct-${index}`} value={option}>
-                                  {option || `Option ${index + 1}`}
+                                <option
+                                  key={`correct-${index}`}
+                                  value={option.text}
+                                >
+                                  {option.text || `Option ${index + 1}`}
                                 </option>
                               ))}
                             </select>
@@ -1103,11 +1676,29 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                           <select
                             value={questionDraft.correctAnswer}
                             onChange={(event) =>
-                              setQuestionDraft((prev) =>
-                                prev
-                                  ? { ...prev, correctAnswer: event.target.value }
-                                  : prev,
-                              )
+                              setQuestionDraft((prev) => {
+                                if (!prev) return prev;
+                                const selected = event.target.value;
+                                const currentIndex = findOptionIndex(
+                                  prev.options,
+                                  prev.correctAnswer,
+                                );
+                                const nextIndex = findOptionIndex(
+                                  prev.options,
+                                  selected,
+                                );
+                                const nextOptions = prev.options.map((current, idx) =>
+                                  idx === currentIndex || idx === nextIndex
+                                    ? { ...current, isTouched: true }
+                                    : current,
+                                );
+
+                                return {
+                                  ...prev,
+                                  options: nextOptions,
+                                  correctAnswer: selected,
+                                };
+                              })
                             }
                             className="w-full p-2 border rounded"
                           >

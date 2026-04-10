@@ -8,13 +8,7 @@ type QuizPayload = {
   title: string;
   description?: string;
   passingScore?: number;
-  questions?: Array<{
-    question: string;
-    questionType: "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
-    options?: string[];
-    correctAnswer: string;
-    points?: number;
-  }>;
+  questions?: QuestionPayload[];
 };
 
 type QuestionPayload = {
@@ -23,6 +17,7 @@ type QuestionPayload = {
   options?: string[];
   correctAnswer: string;
   points?: number;
+  [key: string]: any;
 };
 
 const getStoredAccessToken = (): string | null => {
@@ -75,9 +70,24 @@ const normalizeQuestionType = (value: string | undefined) => {
   return "MULTIPLE_CHOICE";
 };
 
+const normalizeOptionLabel = (option: any): string => {
+  if (typeof option === "string") return option;
+  if (!option || typeof option !== "object") return "";
+  return String(
+    option.option ??
+      option.label ??
+      option.text ??
+      option.response ??
+      option.value ??
+      "",
+  ).trim();
+};
+
 const normalizeQuestion = (question: any): QuizQuestion => {
   const options = Array.isArray(question?.options)
-    ? question.options.map((opt: any) => String(opt))
+    ? question.options
+        .map((opt: any) => normalizeOptionLabel(opt))
+        .filter((opt: string) => opt.length > 0)
     : undefined;
 
   return {
@@ -91,8 +101,32 @@ const normalizeQuestion = (question: any): QuizQuestion => {
       question?.correctAnswer ?? question?.correct_answer ?? "",
     ),
     points: Number(question?.points ?? 1),
+    questionAudioUrl:
+      typeof question?.audioUrl === "string"
+        ? question.audioUrl
+        : typeof question?.questionAudioUrl === "string"
+          ? question.questionAudioUrl
+          : null,
     responses: Array.isArray(question?.responses)
-      ? question.responses
+      ? question.responses.map((response: any, index: number) => ({
+          id: String(response?.id ?? response?.responseId ?? ""),
+          itemId:
+            typeof response?.itemId === "string" ? response.itemId : undefined,
+          response: String(
+            response?.response ??
+              response?.label ??
+              response?.option ??
+              options?.[index] ??
+              "",
+          ),
+          isCorrect: Boolean(response?.isCorrect),
+          orderIndex:
+            typeof response?.orderIndex === "number"
+              ? response.orderIndex
+              : index,
+          audioUrl:
+            typeof response?.audioUrl === "string" ? response.audioUrl : null,
+        }))
       : undefined,
   };
 };
@@ -170,6 +204,7 @@ export class QuizService {
         "Content-Type": "application/json",
         ...buildAuthHeaders(),
       },
+      cache: "no-store",
       credentials: "include",
     });
 
@@ -181,19 +216,22 @@ export class QuizService {
     return normalizeQuiz(data);
   }
 
-  static async createQuiz(payload: QuizPayload): Promise<Quiz> {
+  static async createQuiz(payload: QuizPayload | FormData): Promise<Quiz> {
+    const isFormData = payload instanceof FormData;
     const response = await fetch(buildApiUrl("/quiz"), {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...buildAuthHeaders(),
       },
       credentials: "include",
-      body: JSON.stringify({
-        ...payload,
-        passingScore: payload.passingScore ?? 70,
-        questions: payload.questions ?? [],
-      }),
+      body: isFormData
+        ? payload
+        : JSON.stringify({
+            ...payload,
+            passingScore: payload.passingScore ?? 70,
+            questions: payload.questions ?? [],
+          }),
     });
 
     if (!response.ok) {
@@ -246,19 +284,22 @@ export class QuizService {
 
   static async addQuestion(
     quizId: string,
-    payload: QuestionPayload,
+    payload: QuestionPayload | FormData,
   ): Promise<QuizQuestion> {
+    const isFormData = payload instanceof FormData;
     const response = await fetch(buildApiUrl(`/quiz/${quizId}/questions`), {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...buildAuthHeaders(),
       },
       credentials: "include",
-      body: JSON.stringify({
-        ...payload,
-        points: payload.points ?? 1,
-      }),
+      body: isFormData
+        ? payload
+        : JSON.stringify({
+            ...(payload as QuestionPayload),
+            points: (payload as QuestionPayload).points ?? 1,
+          }),
     });
 
     if (!response.ok) {
@@ -273,21 +314,24 @@ export class QuizService {
   static async updateQuestion(
     quizId: string,
     questionId: string,
-    payload: QuestionPayload,
+    payload: QuestionPayload | FormData,
   ): Promise<QuizQuestion> {
+    const isFormData = payload instanceof FormData;
     const response = await fetch(
       buildApiUrl(`/quiz/${quizId}/questions/${questionId}`),
       {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
+          ...(isFormData ? {} : { "Content-Type": "application/json" }),
           ...buildAuthHeaders(),
         },
         credentials: "include",
-        body: JSON.stringify({
-          ...payload,
-          points: payload.points ?? 1,
-        }),
+        body: isFormData
+          ? payload
+          : JSON.stringify({
+              ...(payload as QuestionPayload),
+              points: (payload as QuestionPayload).points ?? 1,
+            }),
       },
     );
 

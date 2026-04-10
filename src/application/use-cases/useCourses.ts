@@ -168,8 +168,13 @@ export function useCourses(
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
 
-      setError(err instanceof Error ? err.message : "Erreur de chargement");
-      setShowMaintenance(true);
+      const message =
+        err instanceof Error ? err.message : "Erreur de chargement";
+      setError(message);
+      const isNetworkError =
+        err instanceof Error &&
+        err.message.includes("Impossible de se connecter au serveur");
+      setShowMaintenance(isNetworkError);
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
