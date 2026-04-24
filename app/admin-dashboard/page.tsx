@@ -25,10 +25,13 @@ export default function AdminDashboard() {
 
   // Vérifier si on vient de créer un cours (paramètre courseCreated=true)
   useEffect(() => {
+    const focus = searchParams.get("focus");
     const courseCreated = searchParams.get("courseCreated");
-    if (courseCreated === "true") {
+    if (focus === "courses" || courseCreated === "true") {
       // Rediriger vers la gestion des cours
       setCurrentView("manage-courses");
+    }
+    if (focus === "courses" || courseCreated === "true") {
       // Nettoyer l'URL
       router.replace("/admin-dashboard", undefined);
     }

@@ -140,10 +140,13 @@ const StudentDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50">
       <Header />
-      <ProfileCompletionBanner />
 
       {/* Ajout de padding-top plus important pour mobile et tablette */}
       <main className="container mx-auto px-4 pt-24 sm:pt-28 md:pt-32 lg:pt-28 pb-12 space-y-6 md:space-y-8">
+        <ProfileCompletionBanner
+          stickyClassName="top-[96px] sm:top-[100px] lg:top-[104px]"
+        />
+
         {/* En-tête avec salutation - Meilleure visibilité mobile */}
         <div className="space-y-2 pt-4 sm:pt-0">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">

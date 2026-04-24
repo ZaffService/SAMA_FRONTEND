@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BackendCourse, CoursesApi } from "@/infrastructure/api/courses-api";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
@@ -146,6 +147,10 @@ export function CourseManagement({
       enrollment_count?: number;
       studentsCount?: number;
       students_count?: number;
+      enrollments?: unknown[];
+      _enrollments?: unknown[];
+      students?: unknown[];
+      enrolledStudents?: unknown[];
     };
     if (typeof course.enrollmentCount === "number" && Number.isFinite(course.enrollmentCount)) {
       return course.enrollmentCount;
@@ -158,6 +163,18 @@ export function CourseManagement({
     }
     if (typeof raw.students_count === "number" && Number.isFinite(raw.students_count)) {
       return raw.students_count;
+    }
+    if (Array.isArray(raw.enrollments)) {
+      return raw.enrollments.length;
+    }
+    if (Array.isArray(raw._enrollments)) {
+      return raw._enrollments.length;
+    }
+    if (Array.isArray(raw.students)) {
+      return raw.students.length;
+    }
+    if (Array.isArray(raw.enrolledStudents)) {
+      return raw.enrolledStudents.length;
     }
     return 0;
   };
@@ -270,6 +287,8 @@ export function CourseManagement({
     return matchesSearch && matchesStatus;
   });
 
+  const hasPaidCourses = filteredCourses.some((course) => course.price > 0);
+
   return (
     <div className="space-y-6">
       {/* En-tête avec recherche et filtres */}
@@ -335,6 +354,12 @@ export function CourseManagement({
                     <TableHead>Prix</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Étudiants</TableHead>
+                    {hasPaidCourses && (
+                      <TableHead
+                        className="w-12 px-2 text-center align-middle"
+                        aria-hidden="true"
+                      />
+                    )}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -370,6 +395,20 @@ export function CourseManagement({
                       </TableCell>
                       <TableCell>{getStatusBadge(course.status)}</TableCell>
                       <TableCell>{course.enrollmentCount || 0}</TableCell>
+                      {hasPaidCourses && (
+                        <TableCell className="w-12 px-2 text-center align-middle">
+                          {course.price > 0 ? (
+                            <Link
+                              href={`/admin-dashboard/courses/${course.id}/students`}
+                              aria-label={`Voir les étudiants inscrits au cours ${course.title}`}
+                              title="Voir les étudiants inscrits"
+                              className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          ) : null}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {user?.role === "ADMIN" && (

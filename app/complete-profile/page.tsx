@@ -414,7 +414,7 @@ export default function CompleteProfile() {
           </div>
 
           {/* Info Banner */}
-          <Card className="mb-8 border-0 bg-gradient-to-r from-[#FFF7E6] via-white to-[#EEF4FF] shadow-md">
+          {/* <Card className="mb-8 border-0 bg-gradient-to-r from-[#FFF7E6] via-white to-[#EEF4FF] shadow-md">
             <CardContent className="relative p-5 sm:p-6">
               <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#d93030]/10 blur-2xl" />
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -447,7 +447,7 @@ export default function CompleteProfile() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {metadataError && (
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">

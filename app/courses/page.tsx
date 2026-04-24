@@ -214,7 +214,6 @@ const CoursesPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <ProfileCompletionBanner />
 
       <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 pt-20 sm:pt-24 lg:pt-28">
         <div className="mb-6 sm:mb-8">
@@ -246,6 +245,8 @@ const CoursesPage = () => {
             </div>
           </div>
         </div>
+
+        <ProfileCompletionBanner />
 
         {/* Section Explorez par domaine */}
         {!filterLoading && (

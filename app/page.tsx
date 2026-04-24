@@ -261,6 +261,8 @@ const Index = () => {
           <EmptyCoursesState />
         ) : (
           <>
+            <ProfileCompletionBanner />
+
             {/* 🎯 Filtre par catégories */}
             <section className="mb-12 py-8 border-b border-slate-200">
               <CategoryFilter
@@ -277,7 +279,6 @@ const Index = () => {
               id="formations-section"
               className="pt-12"
             >
-              <ProfileCompletionBanner />
               {/* Titre "Formations Populaires" avec lignes décoratives */}
               <div className="flex flex-col items-center mb-12">
                 {/* Titre avec lignes */}
