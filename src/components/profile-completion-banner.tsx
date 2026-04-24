@@ -90,7 +90,7 @@ export function ProfileCompletionBanner({
           <Button
             onClick={() => router.push("/complete-profile")}
             size="sm"
-            className="group h-8 shrink-0 rounded-full bg-[#002c75] px-3 text-xs font-semibold text-white shadow-none transition-colors hover:bg-[#001f54] sm:text-sm"
+            className="group h-8 shrink-0  bg-[#002c75] px-3 text-xs font-semibold text-white shadow-none transition-colors hover:bg-[#001f54] sm:text-sm"
           >
             Compléter mon profil
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
