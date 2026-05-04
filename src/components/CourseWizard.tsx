@@ -834,7 +834,7 @@ function Step2ModulesAndLessons({
 }) {
   return (
     <div>
-      <p className="text-gray-600 mb-4">
+      <p className="mb-4 text-white/70">
         Organisez votre cours en modules et ajoutez des leçons avec du contenu
         et des vidéos.
       </p>
@@ -853,7 +853,7 @@ function Step3Quizzes({
 }) {
   return (
     <div>
-      <p className="text-gray-600 mb-4">
+      <p className="mb-4 text-white/70">
         Créez des quiz d&apos;évaluation pour tester les connaissances des
         étudiants.
       </p>
@@ -874,7 +874,7 @@ function Step4Attachments({
 }) {
   return (
     <div>
-      <p className="text-gray-600 mb-4">
+      <p className="mb-4 text-white/70">
         Ajoutez des ressources supplémentaires pour vos étudiants.
       </p>
       <AttachmentManager
@@ -902,7 +902,7 @@ function Step5VideoUploads({
 }) {
   return (
     <div>
-      <p className="text-gray-600 mb-4">
+      <p className="mb-4 text-white/70">
         Uploadez les vidéos de vos leçons. Cette étape est nécessaire avant de
         publier votre cours.
       </p>

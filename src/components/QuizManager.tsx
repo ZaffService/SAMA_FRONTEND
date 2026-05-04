@@ -15,6 +15,9 @@ interface QuizManagerProps {
 
 export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+  const panelClassName = "border-[#302D47] bg-[#181721] text-white";
+  const inputClassName =
+    "border-[#3B3754] bg-[#1F1D2B] text-white placeholder:text-white/50";
 
   const getModuleKey = (module: Module, index: number): string => {
     return module.id || module.tempId || `module-${index}`;
@@ -138,16 +141,19 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h3 className="text-lg font-semibold mb-2">Gestion des Quiz</h3>
-        <p className="text-gray-600">
+        <h3 className="mb-2 text-lg font-semibold text-white">Gestion des Quiz</h3>
+        <p className="text-white/70">
           Créez des quiz d&apos;évaluation pour tester les connaissances des
           étudiants.
         </p>
       </div>
 
       {modules.map((module, moduleIndex) => (
-        <Card key={getModuleKey(module, moduleIndex)} className="w-full">
-          <CardHeader>
+        <Card
+          key={getModuleKey(module, moduleIndex)}
+          className={`w-full ${panelClassName}`}
+        >
+          <CardHeader className="border-b border-[#302D47]">
             <CardTitle className="flex items-center justify-between">
               <span>{module.title}</span>
               <Button
@@ -156,6 +162,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                 }
                 size="sm"
                 variant="outline"
+                className="border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#2B2740]"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Ajouter Quiz
@@ -167,7 +174,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
             {module.lessons.map((lesson, lessonIndex) => (
               <div
                 key={getLessonKey(lesson, lessonIndex)}
-                className="mb-4 p-4 border rounded-lg"
+                className="mb-4 rounded-lg border border-[#302D47] bg-[#1F1D2B] p-4"
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium">{lesson.title}</h4>
@@ -177,14 +184,14 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
 
             {/* Quizzes */}
             {module.quizzes && module.quizzes.length > 0 && (
-              <div className="mt-6 p-4 bg-purple-50 border rounded-lg">
-                <h4 className="font-medium text-purple-900 mb-4">
+              <div className="mt-6 rounded-lg border border-[#3B3754] bg-[#1F1D2B] p-4">
+                <h4 className="mb-4 font-medium text-white">
                   Quiz du module
                 </h4>
                 {module.quizzes.map((quiz, quizIndex) => (
                   <div key={quizIndex} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="mb-1 block text-sm font-medium text-white/85">
                         Titre du Quiz
                       </label>
                       <Input
@@ -209,12 +216,13 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                           onQuizzesChange(updatedModules);
                         }}
                         placeholder="Titre du quiz"
+                        className={inputClassName}
                       />
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">Questions</h5>
+                        <h5 className="font-medium text-white">Questions</h5>
                         <Button
                           onClick={() =>
                             addQuestionToQuiz(
@@ -224,6 +232,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                           }
                           size="sm"
                           variant="outline"
+                          className="border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#2B2740]"
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Ajouter Question
@@ -231,7 +240,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                       </div>
 
                       {quiz.questions.map((question, qIndex) => (
-                        <Card key={qIndex} className="mb-4">
+                        <Card key={qIndex} className={`mb-4 ${panelClassName}`}>
                           <CardContent className="pt-4">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium">
@@ -264,11 +273,11 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                                 )
                               }
                               placeholder="Entrez la question"
-                              className="mb-2"
+                              className={`mb-2 ${inputClassName}`}
                             />
 
                             <div className="space-y-2">
-                              <label className="block text-sm font-medium">
+                              <label className="block text-sm font-medium text-white/85">
                                 Options
                               </label>
                               {question.options.map((option, oIndex) => (
@@ -287,12 +296,13 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                                     );
                                   }}
                                   placeholder={`Option ${oIndex + 1}`}
+                                  className={inputClassName}
                                 />
                               ))}
                             </div>
 
                             <div className="mt-2">
-                              <label className="block text-sm font-medium mb-1">
+                              <label className="mb-1 block text-sm font-medium text-white/85">
                                 Réponse correcte
                               </label>
                               <select
@@ -306,7 +316,7 @@ export function QuizManager({ modules, onQuizzesChange }: QuizManagerProps) {
                                     e.target.value,
                                   )
                                 }
-                                className="w-full p-2 border rounded"
+                                className="w-full rounded border border-[#3B3754] bg-[#1F1D2B] p-2 text-white"
                               >
                                 <option value="">
                                   Sélectionnez la réponse correcte

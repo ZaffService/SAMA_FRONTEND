@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileUploadProgress } from "./FileUploadProgress";
-import { UploadStatus } from "@/services/fileUploadService";
 import { toast } from "sonner";
-import { Upload, AlertCircle, CheckCircle, Clock, Video } from "lucide-react";
+import { AlertCircle, Clock, Video } from "lucide-react";
 
 interface VideoFile {
   id: string;
@@ -24,6 +21,9 @@ interface VideoUploadManagerProps {
   className?: string;
 }
 
+const panelClassName =
+  "border-[#302D47] bg-[#181721] text-white shadow-none";
+
 export function VideoUploadManager({
   videos,
   onVideoSuccess,
@@ -31,8 +31,6 @@ export function VideoUploadManager({
   onRemoveVideo,
   className = "",
 }: VideoUploadManagerProps) {
-  const [uploadingAll, setUploadingAll] = useState(false);
-
   // Calculer les statistiques globales (simplifié pour l'instant)
   const stats = useMemo(
     () => ({
@@ -45,33 +43,16 @@ export function VideoUploadManager({
     [videos.length],
   );
 
-  const handleUploadAll = useCallback(async () => {
-    setUploadingAll(true);
-    toast.info("Démarrage de l'upload de toutes les vidéos...");
-
-    try {
-      // Ici, on pourrait implémenter une logique pour uploader toutes les vidéos
-      // Pour l'instant, on affiche juste un message
-      toast.success(
-        "Uploads démarrés. Surveillez la progression individuelle.",
-      );
-    } catch (error) {
-      toast.error("Erreur lors du démarrage des uploads");
-    } finally {
-      setUploadingAll(false);
-    }
-  }, []);
-
   const hasVideos = videos.length > 0;
 
   if (!hasVideos) {
     return (
-      <Card className={className}>
+      <Card className={`${panelClassName} ${className}`}>
         <CardContent className="pt-6">
-          <div className="text-center py-8 text-gray-500">
-            <Video className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>Aucune vidéo à uploader</p>
-            <p className="text-sm">
+          <div className="py-8 text-center text-white/65">
+            <Video className="mx-auto mb-4 h-12 w-12 text-white/35" />
+            <p className="font-medium text-white">Aucune vidéo à uploader</p>
+            <p className="mt-1 text-sm text-white/55">
               Ajoutez des vidéos aux leçons pour les voir ici
             </p>
           </div>
@@ -81,25 +62,25 @@ export function VideoUploadManager({
   }
 
   return (
-    <Card className={className}>
-      <CardHeader>
+    <Card className={`${panelClassName} ${className}`}>
+      <CardHeader className="border-b border-[#302D47]">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Video className="h-5 w-5" />
+          <CardTitle className="flex items-center space-x-2 text-base font-semibold text-white">
+            <Video className="h-5 w-5 text-[#93C5FD]" />
             <span>Upload des Vidéos</span>
           </CardTitle>
           <div className="flex items-center space-x-4 text-sm">
-            <span className="text-gray-600">
+            <span className="text-white/65">
               {stats.completed}/{stats.total} terminés
             </span>
             {stats.uploading > 0 && (
-              <span className="text-blue-600 flex items-center space-x-1">
+              <span className="flex items-center space-x-1 text-[#93C5FD]">
                 <Clock className="h-4 w-4" />
                 <span>{stats.uploading} en cours</span>
               </span>
             )}
             {stats.failed > 0 && (
-              <span className="text-red-600 flex items-center space-x-1">
+              <span className="flex items-center space-x-1 text-red-400">
                 <AlertCircle className="h-4 w-4" />
                 <span>{stats.failed} échoués</span>
               </span>

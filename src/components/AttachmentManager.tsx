@@ -157,13 +157,13 @@ export function AttachmentManager({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Fichiers joints au cours</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-lg font-semibold text-white">Fichiers joints au cours</h3>
+          <p className="text-sm text-white/70">
             Ajoutez des ressources supplémentaires pour vos étudiants (PDF,
             documents, archives, etc.)
           </p>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-white/65">
           {attachments.length}/{maxFiles} fichiers
         </div>
       </div>
@@ -184,28 +184,28 @@ export function AttachmentManager({
           border-2 border-dashed rounded-lg p-8 text-center transition-colors
           ${
             isDragOver
-              ? "border-blue-400 bg-blue-50"
-              : "border-gray-300 hover:border-gray-400"
+              ? "border-[#3B82F6] bg-[#1E2A45]"
+              : "border-[#3B3754] bg-[#181721] hover:border-[#4C476A]"
           }
         `}
       >
         <Upload
-          className={`h-12 w-12 mx-auto mb-4 ${isDragOver ? "text-blue-500" : "text-gray-400"}`}
+          className={`h-12 w-12 mx-auto mb-4 ${isDragOver ? "text-[#60A5FA]" : "text-white/45"}`}
         />
         <div className="space-y-2">
-          <p className="text-lg font-medium text-gray-900">
+          <p className="text-lg font-medium text-white">
             Glissez-déposez vos fichiers ici
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-white/70">
             ou{" "}
             <label
               htmlFor="attachment-upload"
-              className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+              className="cursor-pointer font-medium text-[#60A5FA] hover:text-[#93C5FD]"
             >
               parcourez vos fichiers
             </label>
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-white/55">
             Formats acceptés: PDF, Word, Excel, PowerPoint, ZIP, images • Max{" "}
             {maxFileSize}MB par fichier
           </p>
@@ -223,19 +223,19 @@ export function AttachmentManager({
       {/* Attachments List */}
       {attachments.length > 0 && (
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">
+          <h4 className="font-medium text-white">
             Fichiers ajoutés ({attachments.length})
           </h4>
           {attachments.map((attachment) => (
-            <Card key={attachment.id} className="p-4">
+            <Card key={attachment.id} className="border-[#302D47] bg-[#181721] p-4 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {getFileIcon(attachment.file)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="truncate text-sm font-medium text-white">
                       {attachment.file.name}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-white/65">
                       {formatFileSize(attachment.file.size)} •{" "}
                       {attachment.file.type}
                     </p>
@@ -248,7 +248,7 @@ export function AttachmentManager({
                     variant="ghost"
                     size="sm"
                     onClick={() => removeAttachment(attachment.id)}
-                    className="text-red-600 hover:text-red-700 p-1"
+                    className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -259,7 +259,7 @@ export function AttachmentManager({
                   <img
                     src={attachment.preview}
                     alt="Preview"
-                    className="max-w-xs max-h-32 object-cover rounded border"
+                    className="max-h-32 max-w-xs rounded border border-[#3B3754] object-cover"
                   />
                 </div>
               )}
@@ -269,10 +269,10 @@ export function AttachmentManager({
       )}
 
       {attachments.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <File className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+        <div className="py-8 text-center text-white/65">
+          <File className="mx-auto mb-4 h-12 w-12 text-white/35" />
           <p className="text-sm">Aucun fichier joint pour le moment</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="mt-1 text-xs text-white/45">
             Les fichiers joints sont optionnels mais peuvent enrichir
             l'expérience d'apprentissage
           </p>

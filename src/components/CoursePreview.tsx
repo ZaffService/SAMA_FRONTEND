@@ -36,9 +36,9 @@ const levelLabels: Record<string, string> = {
 };
 
 const levelColors: Record<string, string> = {
-  BEGINNER: "bg-green-100 text-green-800",
-  INTERMEDIATE: "bg-yellow-100 text-yellow-800",
-  ADVANCED: "bg-red-100 text-red-800",
+  BEGINNER: "bg-emerald-500/20 text-emerald-200 border border-emerald-400/35",
+  INTERMEDIATE: "bg-amber-500/20 text-amber-200 border border-amber-400/35",
+  ADVANCED: "bg-red-500/20 text-red-200 border border-red-400/35",
 };
 
 export function CoursePreview({
@@ -87,18 +87,18 @@ export function CoursePreview({
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="mb-2 text-2xl font-bold text-white">
           Aperçu de votre cours
         </h2>
-        <p className="text-gray-600">
+        <p className="text-white/70">
           Voici comment votre cours apparaîtra aux étudiants
         </p>
       </div>
 
       {/* Course Card Preview */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-[#302D47] bg-[#1F1D2B] text-white">
         {/* Thumbnail */}
-        <div className="relative h-48 md:h-64 bg-white">
+        <div className="relative h-48 md:h-64 bg-[#181721]">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
@@ -121,7 +121,9 @@ export function CoursePreview({
           </div>
           {parsedPrice === 0 && (
             <div className="absolute top-4 right-4">
-              <Badge className="bg-green-500 text-white">Gratuit</Badge>
+              <Badge className="border border-emerald-400/35 bg-emerald-500/20 text-emerald-200">
+                Gratuit
+              </Badge>
             </div>
           )}
         </div>
@@ -129,76 +131,76 @@ export function CoursePreview({
         <CardContent className="pt-6">
           {/* Title & Category */}
           <div className="mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="mb-2 text-2xl font-bold text-white">
               {courseData.title || "Titre du cours"}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-white/60">
               Catégorie: {courseData.category?.name || "Non catégorisé"}
             </p>
           </div>
 
           {/* Instructor */}
-          <div className="flex items-center mb-4 pb-4 border-b">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-medium">
+          <div className="mb-4 flex items-center border-b border-[#302D47] pb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1E335F]">
+              <span className="font-medium text-[#93C5FD]">
                 {instructorName.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-white">
                 {instructorName}
               </p>
-              <p className="text-xs text-gray-500">Instructeur</p>
+              <p className="text-xs text-white/60">Instructeur</p>
             </div>
           </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-gray-400" />
+              <FileText className="w-5 h-5 text-white/55" />
               <div>
-                <p className="text-lg font-bold">{totalLessons}</p>
-                <p className="text-xs text-gray-500">Leçons</p>
+                <p className="text-lg font-bold text-white">{totalLessons}</p>
+                <p className="text-xs text-white/60">Leçons</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <HelpCircle className="w-5 h-5 text-gray-400" />
+              <HelpCircle className="w-5 h-5 text-white/55" />
               <div>
-                <p className="text-lg font-bold">{totalQuizzes}</p>
-                <p className="text-xs text-gray-500">Quiz</p>
+                <p className="text-lg font-bold text-white">{totalQuizzes}</p>
+                <p className="text-xs text-white/60">Quiz</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-gray-400" />
+              <Clock className="w-5 h-5 text-white/55" />
               <div>
-                <p className="text-lg font-bold">
+                <p className="text-lg font-bold text-white">
                   {formatDuration(totalDuration)}
                 </p>
-                <p className="text-xs text-gray-500">Durée</p>
+                <p className="text-xs text-white/60">Durée</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-gray-400" />
+              <Users className="w-5 h-5 text-white/55" />
               <div>
-                <p className="text-lg font-bold">{totalQuestions}</p>
-                <p className="text-xs text-gray-500">Questions</p>
+                <p className="text-lg font-bold text-white">{totalQuestions}</p>
+                <p className="text-xs text-white/60">Questions</p>
               </div>
             </div>
           </div>
 
           {/* Description */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Description</h3>
-            <p className="text-gray-600 text-sm whitespace-pre-wrap">
+            <h3 className="mb-2 text-lg font-semibold text-white">Description</h3>
+            <p className="text-sm whitespace-pre-wrap text-white/75">
               {courseData.description || "Aucune description"}
             </p>
           </div>
 
           {/* Price */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="rounded-lg border border-[#302D47] bg-[#181721] p-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Prix du cours</span>
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-white/70">Prix du cours</span>
+              <span className="text-2xl font-bold text-white">
                 {parsedPrice === 0
                   ? "Gratuit"
                   : `${parsedPrice.toLocaleString()} XOF`}
@@ -209,11 +211,11 @@ export function CoursePreview({
       </Card>
 
       {/* Modules & Lessons Preview */}
-      <Card>
-        <CardHeader>
+      <Card className="border-[#302D47] bg-[#1F1D2B] text-white">
+        <CardHeader className="border-b border-[#302D47]">
           <CardTitle className="flex items-center space-x-2">
             <span>Structure du cours</span>
-            <Badge variant="secondary">
+            <Badge className="border border-[#3B3754] bg-[#181721] text-white/80">
               {courseData.modules.length} module
               {courseData.modules.length !== 1 ? "s" : ""}
             </Badge>
@@ -224,18 +226,18 @@ export function CoursePreview({
             {courseData.modules.map((module, moduleIndex) => (
               <div
                 key={module.id || module.tempId || `module-${moduleIndex}`}
-                className="border rounded-lg overflow-hidden"
+                className="overflow-hidden rounded-lg border border-[#302D47] bg-[#181721]"
               >
                 {/* Module Header */}
-                <div className="bg-gray-50 p-4">
+                <div className="border-b border-[#302D47] bg-[#1A1828] p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold text-sm">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1E335F] text-sm font-semibold text-[#93C5FD]">
                         {moduleIndex + 1}
                       </span>
                       <div>
-                        <h4 className="font-medium">{module.title}</h4>
-                        <p className="text-sm text-gray-500">
+                        <h4 className="font-medium text-white">{module.title}</h4>
+                        <p className="text-sm text-white/60">
                           {module.lessons.length} leçon(s)
                           {module.quizzes && module.quizzes.length > 0
                             ? ` + ${module.quizzes.length} quiz`
@@ -248,26 +250,26 @@ export function CoursePreview({
 
                 {/* Lessons */}
                 {module.lessons.length > 0 && (
-                  <div className="divide-y">
+                  <div className="divide-y divide-[#302D47]">
                     {module.lessons.map((lesson, lessonIndex) => (
                       <div
                         key={
                           lesson.id || lesson.tempId || `lesson-${lessonIndex}`
                         }
-                        className="flex items-center justify-between p-4 hover:bg-gray-50"
+                        className="flex items-center justify-between p-4 hover:bg-[#2A263F]"
                       >
                         <div className="flex items-center space-x-3">
                           {lesson.videoUrl ? (
-                            <PlayCircle className="w-5 h-5 text-blue-500" />
+                            <PlayCircle className="w-5 h-5 text-[#93C5FD]" />
                           ) : (
-                            <FileText className="w-5 h-5 text-gray-400" />
+                            <FileText className="w-5 h-5 text-white/50" />
                           )}
                           <div>
-                            <p className="text-sm font-medium">
+                            <p className="text-sm font-medium text-white">
                               {lessonIndex + 1}. {lesson.title}
                             </p>
                             {lesson.duration && (
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-white/60">
                                 {lesson.duration} minutes
                               </p>
                             )}
@@ -280,15 +282,15 @@ export function CoursePreview({
 
                 {/* Quiz */}
                 {module.quizzes && module.quizzes.length > 0 && (
-                  <div className="p-4 bg-purple-50 border-t">
+                  <div className="border-t border-[#302D47] bg-[#201A33] p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <HelpCircle className="w-5 h-5 text-purple-600" />
+                        <HelpCircle className="w-5 h-5 text-violet-300" />
                         <div>
-                          <p className="font-medium text-purple-900">
+                          <p className="font-medium text-violet-200">
                             {module.quizzes[0].title}
                           </p>
-                          <p className="text-sm text-purple-700">
+                          <p className="text-sm text-violet-200/80">
                             {module.quizzes[0].questions.length} questions •
                             Score de passage: {module.quizzes[0].passingScore}%
                           </p>
@@ -304,26 +306,26 @@ export function CoursePreview({
       </Card>
 
       {/* Summary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-4">Récapitulatif</h3>
+      <div className="rounded-lg border border-[#3B3754] bg-[#181721] p-6">
+        <h3 className="mb-4 font-semibold text-white">Récapitulatif</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">
+            <p className="text-3xl font-bold text-[#93C5FD]">
               {courseData.modules.length}
             </p>
-            <p className="text-sm text-blue-700">Modules</p>
+            <p className="text-sm text-white/70">Modules</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">{totalLessons}</p>
-            <p className="text-sm text-blue-700">Leçons</p>
+            <p className="text-3xl font-bold text-[#93C5FD]">{totalLessons}</p>
+            <p className="text-sm text-white/70">Leçons</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">{totalQuizzes}</p>
-            <p className="text-sm text-blue-700">Quiz</p>
+            <p className="text-3xl font-bold text-[#93C5FD]">{totalQuizzes}</p>
+            <p className="text-sm text-white/70">Quiz</p>
           </div>
           <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600">{totalDuration}</p>
-            <p className="text-sm text-blue-700">Minutes</p>
+            <p className="text-3xl font-bold text-[#93C5FD]">{totalDuration}</p>
+            <p className="text-sm text-white/70">Minutes</p>
           </div>
         </div>
       </div>

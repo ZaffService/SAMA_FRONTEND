@@ -348,6 +348,31 @@ const readBooleanCandidate = (...values: unknown[]): boolean | null => {
   return null;
 };
 
+/** Clé distincte de la session quiz : survit à « Recommencer » (clearStoredSession). */
+const certificationPassedEverStorageKey = (courseId: string) =>
+  `certificationPassedEver:${courseId}`;
+
+function markCertificationPassedEver(courseId: string | undefined): void {
+  if (!courseId || typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(certificationPassedEverStorageKey(courseId), "1");
+  } catch {
+    /* quota / navigation privée */
+  }
+}
+
+function hasCertificationPassedEver(courseId: string | undefined): boolean {
+  if (!courseId || typeof window === "undefined") return false;
+  try {
+    return (
+      window.sessionStorage.getItem(certificationPassedEverStorageKey(courseId)) ===
+      "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 type StoredQuizSession = {
   timestamp: number;
   currentQuestionIndex: number;
@@ -617,6 +642,14 @@ export function QuizModal({
     setAnswers(restoredAnswers);
     setShowResults(parsed.showResults);
     setQuizResult(parsed.quizResult);
+    if (
+      mode === "certification" &&
+      courseId &&
+      parsed.quizResult &&
+      (parsed.quizResult.passed || parsed.quizResult.eligibleForCertificate)
+    ) {
+      markCertificationPassedEver(courseId);
+    }
     setStartTime(parsed.startTime ? new Date(parsed.startTime) : new Date());
     setTimeLeft(parsed.timeLeft);
     setStorageHydrated(true);
@@ -823,13 +856,31 @@ export function QuizModal({
         rawResult.is_course_free,
       );
 
+      const certificationEligibleFromApi =
+        mode === "certification"
+          ? readBooleanCandidate(
+              rawResult.eligibleForCertificate,
+              rawResult.eligible_for_certificate,
+              (result as { eligibleForCertificate?: boolean })
+                .eligibleForCertificate,
+            )
+          : null;
+
+      if (mode === "certification" && courseId && result.passed) {
+        markCertificationPassedEver(courseId);
+      }
+
       setQuizResult({
         score: normalizedScore,
         passed: result.passed,
         correctAnswers: normalizedCorrectAnswers,
         totalQuestions: normalizedTotalQuestions,
         eligibleForCertificate:
-          mode === "certification" ? result.passed : undefined,
+          mode === "certification"
+            ? (certificationEligibleFromApi !== null
+                ? certificationEligibleFromApi
+                : result.passed) || hasCertificationPassedEver(courseId)
+            : undefined,
         isPaidEnrollment:
           mode === "certification" ? (isPaidEnrollment ?? undefined) : undefined,
         isCourseFree: mode === "certification" ? (isCourseFree ?? undefined) : undefined,
@@ -1497,8 +1548,13 @@ function QuizResults({
     correctAnswersCount <= 1 ? "bonne réponse" : "bonnes réponses";
   const totalQuestionsLabel =
     totalQuestionsCount <= 1 ? "question" : "questions";
-  const showCertificationFailure = isCertificationMode && !passed;
-  const showCertificationClaimAction = isCertificationMode && passed;
+  const eligibleForCertificate = Boolean(
+    quizResult?.eligibleForCertificate === true,
+  );
+  const showCertificationClaimAction =
+    isCertificationMode && (passed || eligibleForCertificate);
+  const showCertificationFailure =
+    isCertificationMode && !passed && !eligibleForCertificate;
 
   const handleClaimCertificate = async (redirectOnPayment = true) => {
     if (!courseId) {
@@ -1588,7 +1644,7 @@ function QuizResults({
     setIsClaimingCertificate(false);
     setIsPollingClaim(false);
     autoClaimStartedRef.current = false;
-  }, [courseId, quizResult?.passed]);
+  }, [courseId]);
 
   useEffect(() => {
     if (!showCertificationClaimAction || !courseId) return;
@@ -1673,7 +1729,9 @@ function QuizResults({
           <GraduationCap className="h-5 w-5 text-[#111827]" />
           {claimState.isIssued
             ? "Votre certificat est prêt"
-            : "Certification réussie"}
+            : passed
+              ? "Certification réussie"
+              : "Certification déjà validée"}
         </p>
 
         {!claimState.isIssued && (
@@ -1682,7 +1740,9 @@ function QuizResults({
               ? "Vérification du paiement en cours..."
               : claimState.paymentRequired
                 ? "Paiement requis pour finaliser l'émission du certificat."
-                : "Cliquez sur \"Récupérer mon certificat\"."}
+                : eligibleForCertificate && !passed
+                  ? "Votre réussite précédente est conservée. Cliquez sur \"Récupérer mon certificat\"."
+                  : "Cliquez sur \"Récupérer mon certificat\"."}
           </p>
         )}
 
@@ -1727,10 +1787,22 @@ function QuizResults({
     ) : null
   ) : null;
 
+  const pageScoreRingBorder = isCertificationMode
+    ? passed
+      ? "border-[#22B573]"
+      : eligibleForCertificate
+        ? "border-amber-400"
+        : "border-red-400"
+    : passed
+      ? "border-[#22B573]"
+      : "border-red-400";
+
   if (isPage) {
     return (
       <div className="mx-auto w-full max-w-2xl py-6 text-center sm:py-10">
-        <div className="mx-auto mb-7 flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-[#22B573] bg-white sm:h-36 sm:w-36">
+        <div
+          className={`mx-auto mb-7 flex h-28 w-28 items-center justify-center rounded-full border-[10px] bg-white sm:h-36 sm:w-36 ${pageScoreRingBorder}`}
+        >
           <span className="text-4xl font-bold text-[#111827] sm:text-5xl">
             {percentage}%
           </span>
@@ -1740,11 +1812,19 @@ function QuizResults({
           {isCertificationMode
             ? passed
               ? "Certification réussie"
-              : "Certification non réussie"
+              : eligibleForCertificate
+                ? "Tentative non réussie"
+                : "Certification non réussie"
             : passed
               ? "Excellent travail!"
               : "Continuez vos efforts"}
         </h3>
+        {isCertificationMode && !passed && eligibleForCertificate && (
+          <p className="mb-3 text-center text-sm text-amber-800">
+            Cette tentative n’atteint pas le score requis, mais votre certification
+            reste acquise. Vous pouvez récupérer votre certificat ci-dessous.
+          </p>
+        )}
         <p className="mb-8 text-lg text-[#667085]">
           Vous avez obtenu{" "}
           <span className="font-semibold text-[#111827]">{correctAnswersCount}</span>{" "}

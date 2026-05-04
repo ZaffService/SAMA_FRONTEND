@@ -83,6 +83,17 @@ interface CertificationEditorProps {
   onBack: () => void;
 }
 
+const cardSurface =
+  "border-[#302D47] bg-[#1F1D2B] text-white shadow-none";
+const fieldClassName =
+  "border-[#3B3754] bg-[#181721] text-white placeholder:text-white/55";
+const alertErrorDark =
+  "border border-[#EF4444]/60 bg-[#35181D] text-[#FECACA] [&_svg]:text-[#FCA5A5]";
+const alertInfoDark =
+  "border border-[#3B3754] bg-[#181721] text-white/90 [&_svg]:text-[#93C5FD]";
+const alertSuccessDark =
+  "border border-emerald-500/40 bg-emerald-950/35 text-emerald-100 [&_svg]:text-emerald-300";
+
 export function CertificationEditor({
   courseId,
   onBack,
@@ -374,9 +385,9 @@ export function CertificationEditor({
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto p-8 text-white">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
+      <div className="min-h-screen bg-[#12121E] text-white">
+        <div className="mx-auto flex max-w-5xl items-center justify-center p-8 py-20">
+          <Loader2 className="h-7 w-7 animate-spin text-[#93C5FD]" />
           <span className="ml-3 text-white/70">Chargement...</span>
         </div>
       </div>
@@ -384,8 +395,8 @@ export function CertificationEditor({
   }
 
   return (
-    <div className="min-h-screen bg-[#090B13] text-white">
-      <div className="max-w-5xl mx-auto p-8 space-y-6">
+    <div className="min-h-screen bg-[#12121E] text-white">
+      <div className="mx-auto max-w-5xl space-y-6 p-8">
         <div className="flex items-center">
           <Button variant="ghost" onClick={onBack} className="mr-4 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white">
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -401,25 +412,27 @@ export function CertificationEditor({
           <h1 className="text-3xl font-bold text-white mt-4">
             Certification du cours
           </h1>
-          <p className="text-white font-bold mt-2">
+          <p className="mt-2 text-white/70">
             Configurez le quiz de certification pour{" "}
-            <span className="font-medium text-white">{courseTitle}</span>.
+            <span className="font-semibold text-white">{courseTitle}</span>.
           </p>
         </div>
 
         {loadError && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className={alertErrorDark}>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{loadError}</AlertDescription>
+            <AlertTitle className="text-white">Erreur</AlertTitle>
+            <AlertDescription className="text-[#FECACA]">
+              {loadError}
+            </AlertDescription>
           </Alert>
         )}
 
         {!isCertifying && (
-          <Alert>
+          <Alert className={alertInfoDark}>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Certification non activée</AlertTitle>
-            <AlertDescription>
+            <AlertTitle className="text-white">Certification non activée</AlertTitle>
+            <AlertDescription className="text-white/75">
               Ce cours n&apos;est pas certifiant. Activez la certification lors
               de la création du cours pour accéder à cette section.
             </AlertDescription>
@@ -427,16 +440,18 @@ export function CertificationEditor({
         )}
 
         {isCertifying && (
-          <Card className="border border-white/10 bg-[#0F172A]/95">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="text-lg font-semibold text-white">État du quiz de certification</span>
+          <Card className={cardSurface}>
+            <CardHeader className="border-b border-[#302D47]">
+              <CardTitle className="flex items-center justify-between text-lg font-semibold text-white">
+                <span>État du quiz de certification</span>
                 {quizSummary ? (
-                  <Badge className="bg-emerald-500/20 text-emerald-200 border border-emerald-400/35">
+                  <Badge className="border border-emerald-400/35 bg-emerald-500/20 text-emerald-200">
                     Configuré
                   </Badge>
                 ) : (
-                  <Badge variant="secondary">Non configuré</Badge>
+                  <Badge className="border border-[#3B3754] bg-[#181721] text-white/80 hover:bg-[#2B2740]">
+                    Non configuré
+                  </Badge>
                 )}
               </CardTitle>
             </CardHeader>
@@ -484,6 +499,7 @@ export function CertificationEditor({
                     <Button
                       onClick={() => setShowForm(true)}
                       disabled={modules.length === 0}
+                      className="bg-[#3B82F6] font-semibold text-white hover:bg-[#2563EB] disabled:opacity-50"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Créer le quiz
@@ -496,10 +512,10 @@ export function CertificationEditor({
         )}
 
         {isCertifying && modules.length === 0 && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className={alertErrorDark}>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Modules requis</AlertTitle>
-            <AlertDescription>
+            <AlertTitle className="text-white">Modules requis</AlertTitle>
+            <AlertDescription className="text-[#FECACA]">
               Ajoutez au moins un module au cours avant de créer un quiz de
               certification.
             </AlertDescription>
@@ -510,9 +526,7 @@ export function CertificationEditor({
           <Alert
             variant={notice.type === "error" ? "destructive" : "default"}
             className={
-              notice.type === "success"
-                ? "border-emerald-200 text-emerald-800 bg-emerald-50"
-                : undefined
+              notice.type === "success" ? alertSuccessDark : alertErrorDark
             }
           >
             {notice.type === "success" ? (
@@ -520,17 +534,25 @@ export function CertificationEditor({
             ) : (
               <AlertCircle className="h-4 w-4" />
             )}
-            <AlertTitle>
+            <AlertTitle className="text-white">
               {notice.type === "success" ? "Succès" : "Erreur"}
             </AlertTitle>
-            <AlertDescription>{notice.message}</AlertDescription>
+            <AlertDescription
+              className={
+                notice.type === "success" ? "text-emerald-100" : "text-[#FECACA]"
+              }
+            >
+              {notice.message}
+            </AlertDescription>
           </Alert>
         )}
 
         {isCertifying && showForm && (
-          <Card className="border border-white/10 bg-[#0F172A]/95">
-            <CardHeader>
-              <CardTitle>Créer le quiz de certification</CardTitle>
+          <Card className={cardSurface}>
+            <CardHeader className="border-b border-[#302D47]">
+              <CardTitle className="text-lg font-semibold text-white">
+                Créer le quiz de certification
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -547,7 +569,7 @@ export function CertificationEditor({
                       }))
                     }
                     placeholder="Quiz de certification"
-                    className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
+                    className={fieldClassName}
                   />
                 </div>
                 <div>
@@ -569,7 +591,7 @@ export function CertificationEditor({
                         })(),
                       }))
                     }
-                    className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
+                    className={fieldClassName}
                   />
                 </div>
               </div>
@@ -588,7 +610,7 @@ export function CertificationEditor({
                   }
                   rows={3}
                   placeholder="Décrivez l'objectif du quiz..."
-                  className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
+                  className={fieldClassName}
                 />
               </div>
 
@@ -597,7 +619,11 @@ export function CertificationEditor({
                   <h3 className="text-lg font-semibold text-white">
                     Questions *
                   </h3>
-                  <Button variant="outline" onClick={addQuestion} className="border-white/20 bg-transparent text-white hover:bg-white/10">
+                  <Button
+                    variant="outline"
+                    onClick={addQuestion}
+                    className="border-[#3B3754] bg-[#181721] text-white hover:bg-[#2B2740]"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Ajouter une question
                   </Button>
@@ -611,9 +637,12 @@ export function CertificationEditor({
                   const selectableOptions = getValidOptions(optionsList);
 
                   return (
-                    <Card key={question.id} className="border border-white/10 bg-[#0B1220]">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                        <CardTitle className="text-base">
+                    <Card
+                      key={question.id}
+                      className="border-[#302D47] bg-[#181721] text-white shadow-none"
+                    >
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-[#302D47]">
+                        <CardTitle className="text-base text-white">
                           Question {index + 1}
                         </CardTitle>
                         <div className="flex items-center gap-2">
@@ -622,6 +651,7 @@ export function CertificationEditor({
                             size="icon"
                             onClick={() => moveQuestion(index, index - 1)}
                             disabled={index === 0}
+                            className="text-white/70 hover:bg-white/10 hover:text-white"
                           >
                             <ArrowUp className="h-4 w-4" />
                           </Button>
@@ -630,6 +660,7 @@ export function CertificationEditor({
                             size="icon"
                             onClick={() => moveQuestion(index, index + 1)}
                             disabled={index === questions.length - 1}
+                            className="text-white/70 hover:bg-white/10 hover:text-white"
                           >
                             <ArrowDown className="h-4 w-4" />
                           </Button>
@@ -637,8 +668,9 @@ export function CertificationEditor({
                             variant="ghost"
                             size="icon"
                             onClick={() => removeQuestion(question.id)}
+                            className="text-white/70 hover:bg-red-500/15 hover:text-red-300"
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            <Trash2 className="h-4 w-4 text-red-400" />
                           </Button>
                         </div>
                       </CardHeader>
@@ -657,7 +689,7 @@ export function CertificationEditor({
                             }
                             rows={3}
                             placeholder="Écrivez la question..."
-                            className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
+                            className={fieldClassName}
                           />
                         </div>
 
@@ -675,10 +707,12 @@ export function CertificationEditor({
                                 )
                               }
                             >
-                              <SelectTrigger className="border-white/15 bg-[#111827] text-white">
+                              <SelectTrigger
+                                className={`${fieldClassName} font-semibold`}
+                              >
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="border-white/15 bg-[#111827] text-white">
+                              <SelectContent className="border-[#3B3754] bg-[#1F1D2B] text-white">
                                 <SelectItem value="TRUE_FALSE">
                                   Vrai / Faux
                                 </SelectItem>
@@ -711,7 +745,7 @@ export function CertificationEditor({
                                     ) || 0,
                                 }))
                               }
-                              className="border-white/15 bg-[#111827] text-white"
+                              className={fieldClassName}
                             />
                           </div>
                         </div>
@@ -723,7 +757,11 @@ export function CertificationEditor({
                           {isTrueFalse ? (
                             <div className="flex gap-2">
                               {TRUE_FALSE_OPTIONS.map((option) => (
-                                <Badge key={option} variant="secondary" className="bg-white/10 text-white/80">
+                                <Badge
+                                  key={option}
+                                  variant="secondary"
+                                  className="border border-[#3B3754] bg-[#1F1D2B] text-white/85"
+                                >
                                   {option}
                                 </Badge>
                               ))}
@@ -745,7 +783,7 @@ export function CertificationEditor({
                                       )
                                     }
                                     placeholder={`Option ${optionIndex + 1}`}
-                                    className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
+                                    className={fieldClassName}
                                   />
                                   <Button
                                     variant="ghost"
@@ -754,8 +792,9 @@ export function CertificationEditor({
                                       removeOption(question.id, optionIndex)
                                     }
                                     disabled={optionsList.length <= 2}
+                                    className="text-white/70 hover:bg-red-500/15 hover:text-red-300"
                                   >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                    <Trash2 className="h-4 w-4 text-red-400" />
                                   </Button>
                                 </div>
                               ))}
@@ -763,7 +802,7 @@ export function CertificationEditor({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => addOption(question.id)}
-                                className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                                className="border-[#3B3754] bg-[#181721] text-white hover:bg-[#2B2740]"
                               >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Ajouter une option
@@ -786,7 +825,9 @@ export function CertificationEditor({
                             }
                             disabled={selectableOptions.length === 0}
                           >
-                            <SelectTrigger className="border-white/15 bg-[#111827] text-white">
+                            <SelectTrigger
+                              className={`${fieldClassName} font-semibold`}
+                            >
                               <SelectValue
                                 placeholder={
                                   selectableOptions.length === 0
@@ -795,7 +836,7 @@ export function CertificationEditor({
                                 }
                               />
                             </SelectTrigger>
-                            <SelectContent className="border-white/15 bg-[#111827] text-white">
+                            <SelectContent className="border-[#3B3754] bg-[#1F1D2B] text-white">
                               {selectableOptions.map((option) => (
                                 <SelectItem key={option} value={option}>
                                   {option}
@@ -822,7 +863,7 @@ export function CertificationEditor({
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || modules.length === 0}
-                  className="bg-blue-600 text-white hover:bg-blue-500"
+                  className="bg-[#3B82F6] font-semibold text-white hover:bg-[#2563EB]"
                 >
                   {isSubmitting ? (
                     <>

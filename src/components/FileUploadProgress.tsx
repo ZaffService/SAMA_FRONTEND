@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Upload,
   CheckCircle,
   XCircle,
   RotateCcw,
@@ -85,17 +84,19 @@ export function FileUploadProgress({
   const getStatusIcon = () => {
     switch (uploadState.status) {
       case UploadStatus.PENDING:
-        return <FileVideo className="h-5 w-5 text-gray-500" />;
+        return <FileVideo className="h-5 w-5 text-white/45" />;
       case UploadStatus.UPLOADING:
-        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
+        return (
+          <Loader2 className="h-5 w-5 animate-spin text-[#93C5FD]" />
+        );
       case UploadStatus.COMPLETED:
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-5 w-5 text-emerald-400" />;
       case UploadStatus.FAILED:
-        return <XCircle className="h-5 w-5 text-red-500" />;
+        return <XCircle className="h-5 w-5 text-red-400" />;
       case UploadStatus.CANCELLED:
-        return <X className="h-5 w-5 text-gray-500" />;
+        return <X className="h-5 w-5 text-white/45" />;
       default:
-        return <FileVideo className="h-5 w-5 text-gray-500" />;
+        return <FileVideo className="h-5 w-5 text-white/45" />;
     }
   };
 
@@ -119,17 +120,17 @@ export function FileUploadProgress({
   const getStatusColor = () => {
     switch (uploadState.status) {
       case UploadStatus.PENDING:
-        return "text-gray-600";
+        return "text-white/55";
       case UploadStatus.UPLOADING:
-        return "text-blue-600";
+        return "text-[#93C5FD]";
       case UploadStatus.COMPLETED:
-        return "text-green-600";
+        return "text-emerald-300";
       case UploadStatus.FAILED:
-        return "text-red-600";
+        return "text-red-400";
       case UploadStatus.CANCELLED:
-        return "text-gray-600";
+        return "text-white/55";
       default:
-        return "text-gray-600";
+        return "text-white/55";
     }
   };
 
@@ -141,15 +142,22 @@ export function FileUploadProgress({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const btnOutline =
+    "border-[#3B3754] bg-[#181721] text-white hover:bg-[#2B2740]";
+
   return (
-    <div className={`border rounded-lg p-4 bg-white ${className}`}>
+    <div
+      className={`rounded-lg border border-[#302D47] bg-[#1F1D2B] p-4 text-white ${className}`}
+    >
       {/* En-tête avec informations du fichier */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           {getStatusIcon()}
           <div>
-            <p className="font-medium text-sm truncate max-w-xs">{file.name}</p>
-            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+            <p className="max-w-xs truncate text-sm font-medium text-white">
+              {file.name}
+            </p>
+            <p className="text-xs text-white/55">{formatFileSize(file.size)}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -157,7 +165,7 @@ export function FileUploadProgress({
             {getStatusText()}
           </span>
           {uploadState.progress && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-white/50">
               {uploadState.progress.percentage}%
             </span>
           )}
@@ -167,8 +175,11 @@ export function FileUploadProgress({
       {/* Barre de progression */}
       {uploadState.progress && (
         <div className="mb-3">
-          <Progress value={uploadState.progress.percentage} className="h-2" />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <Progress
+            value={uploadState.progress.percentage}
+            className="h-2 bg-white/10"
+          />
+          <div className="mt-1 flex justify-between text-xs text-white/50">
             <span>
               {formatFileSize(uploadState.progress.loaded)} /{" "}
               {formatFileSize(uploadState.progress.total)}
@@ -182,7 +193,7 @@ export function FileUploadProgress({
       {uploadState.retryCount > 0 &&
         uploadState.retryCount < uploadState.maxRetries && (
           <div className="mb-3">
-            <p className="text-xs text-orange-600">
+            <p className="text-xs text-amber-400/90">
               Tentative {uploadState.retryCount + 1} sur{" "}
               {uploadState.maxRetries + 1}
             </p>
@@ -191,9 +202,12 @@ export function FileUploadProgress({
 
       {/* Message d'erreur */}
       {isFailed && uploadState.result?.error && (
-        <Alert variant="destructive" className="mb-3">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
+        <Alert
+          variant="destructive"
+          className="mb-3 border border-[#EF4444]/50 bg-[#35181D] text-[#FECACA]"
+        >
+          <AlertCircle className="h-4 w-4 text-[#FCA5A5]" />
+          <AlertDescription className="text-sm text-[#FECACA]">
             {uploadState.result.error}
           </AlertDescription>
         </Alert>
@@ -206,7 +220,7 @@ export function FileUploadProgress({
             size="sm"
             variant="outline"
             onClick={handleCancel}
-            className="flex items-center space-x-1"
+            className={`flex items-center space-x-1 ${btnOutline}`}
           >
             <X className="h-4 w-4" />
             <span>Annuler</span>
@@ -217,7 +231,7 @@ export function FileUploadProgress({
           <Button
             size="sm"
             onClick={handleRetry}
-            className="flex items-center space-x-1"
+            className="flex items-center space-x-1 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
           >
             <RotateCcw className="h-4 w-4" />
             <span>Réessayer</span>
@@ -229,7 +243,7 @@ export function FileUploadProgress({
             size="sm"
             variant="outline"
             onClick={handleReset}
-            className="flex items-center space-x-1"
+            className={`flex items-center space-x-1 ${btnOutline}`}
           >
             <RotateCcw className="h-4 w-4" />
             <span>Réinitialiser</span>

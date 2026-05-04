@@ -341,6 +341,8 @@ export class QuizApi {
     quizId?: string;
     score: number;
     passed: boolean;
+    /** Vrai si l’étudiant peut réclamer le certificat (réussite actuelle ou antérieure). */
+    eligibleForCertificate?: boolean;
     answers?: Record<string, any>;
   }> {
     try {
