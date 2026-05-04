@@ -78,7 +78,7 @@ export function CourseEditor({
     description: "",
     categoryId: "",
     level: "BEGINNER" as "BEGINNER" | "INTERMEDIATE" | "ADVANCED",
-    price: 0,
+    price: "",
     status: "DRAFT" as "DRAFT" | "PUBLISHED" | "ARCHIVED",
     modules: [] as Module[],
   });
@@ -118,7 +118,7 @@ export function CourseEditor({
           | "BEGINNER"
           | "INTERMEDIATE"
           | "ADVANCED",
-        price: details.course.price || course?.price || 0,
+        price: String(details.course.price || course?.price || ""),
         status: (course?.status || "DRAFT") as
           | "DRAFT"
           | "PUBLISHED"
@@ -211,7 +211,8 @@ export function CourseEditor({
     if (!formData.description.trim())
       return "La description du cours est requise";
     if (!formData.categoryId) return "La catégorie est requise";
-    if (formData.price < 0) return "Le prix ne peut pas être négatif";
+    const parsedPrice = Number.parseInt(formData.price || "0", 10) || 0;
+    if (parsedPrice < 0) return "Le prix ne peut pas être négatif";
     if (formData.modules.length === 0) return "Au moins un module est requis";
 
     for (const module of formData.modules) {
@@ -241,6 +242,7 @@ export function CourseEditor({
     try {
       await CoursesApi.updateCourse(course!.id, {
         ...formData,
+        price: Number.parseInt(formData.price || "0", 10) || 0,
         thumbnail: thumbnailFile || undefined,
         thumbnailUrl: thumbnailUrl || undefined,
         attachments: attachmentFile || undefined,
@@ -418,14 +420,12 @@ export function CourseEditor({
                       </label>
                       <Input
                         type="text"
-                        inputMode="numeric"
+                        inputMode="text"
                         pattern="[0-9]*"
                         value={formData.price}
                         onChange={(e) =>
                           updateFormData({
-                            price:
-                              parseInt(e.target.value.replace(/[^\d]/g, ""), 10) ||
-                              0,
+                            price: e.target.value.replace(/[^\d]/g, ""),
                           })
                         }
                         min="0"

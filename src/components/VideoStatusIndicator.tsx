@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Eye,
   AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { CoursesApi, LessonStatus } from "@/infrastructure/api/courses-api";
 import { VideoStatusItem } from "./VideoStatusItem";
@@ -46,11 +47,13 @@ interface Course {
 interface VideoStatusIndicatorProps {
   courseId: string;
   onStatusChange?: (isComplete: boolean) => void;
+  onBack?: () => void;
 }
 
 export function VideoStatusIndicator({
   courseId,
   onStatusChange,
+  onBack,
 }: VideoStatusIndicatorProps) {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,7 +138,7 @@ export function VideoStatusIndicator({
 
   if (loading) {
     return (
-      <Card>
+      <Card className="border-[#2A2938] bg-[#1F1E2B] text-white shadow-xl">
         <CardContent className="pt-6">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -148,7 +151,7 @@ export function VideoStatusIndicator({
 
   if (error || !course) {
     return (
-      <Card>
+      <Card className="border-[#2A2938] bg-[#1F1E2B] text-white shadow-xl">
         <CardContent className="pt-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -159,7 +162,7 @@ export function VideoStatusIndicator({
           <Button
             onClick={loadCourseStatus}
             variant="outline"
-            className="mt-4"
+            className="mt-4 border-[#3A3950] bg-transparent text-white hover:bg-white/10"
             disabled={refreshing}
           >
             <RefreshCw
@@ -175,16 +178,37 @@ export function VideoStatusIndicator({
   const stats = getLessonStats();
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">
-            Statut des vidéos - {course.title}
-          </CardTitle>
+    <Card className="border-[#2A2938] bg-[#1F1E2B] text-white shadow-xl">
+      <CardHeader className="border-b border-[#2A2938]">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            {onBack && (
+              <Button
+                type="button"
+                onClick={onBack}
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-full border-[#3A3950] bg-transparent text-white hover:bg-white/10"
+                aria-label="Retour"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <div className="min-w-0">
+              <CardTitle className="text-lg sm:text-xl text-white">
+                Statut des vidéos
+              </CardTitle>
+              <p className="mt-1 text-sm text-white/70 line-clamp-1">
+                {course.title}
+              </p>
+            </div>
+          </div>
+
           <Button
             onClick={loadCourseStatus}
             variant="outline"
             size="sm"
+            className="border-[#3A3950] bg-transparent text-white hover:bg-white/10"
             disabled={refreshing}
           >
             <RefreshCw
@@ -193,16 +217,17 @@ export function VideoStatusIndicator({
             Actualiser
           </Button>
         </div>
-        <div className="flex items-center space-x-4 text-sm text-gray-600">
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/70">
           <span>Total: {stats.total} leçons</span>
-          <span className="text-green-600">• {stats.uploaded} uploadées</span>
-          <span className="text-yellow-600">• {stats.pending} en attente</span>
-          <span className="text-blue-600">• {stats.ready} prêtes</span>
+          <span className="text-emerald-300">• {stats.uploaded} uploadées</span>
+          <span className="text-amber-300">• {stats.pending} en attente</span>
+          <span className="text-sky-300">• {stats.ready} prêtes</span>
         </div>
       </CardHeader>
       <CardContent>
         {!course.isComplete && (
-          <Alert className="mb-4">
+          <Alert className="mb-4 border-[#2A2938] bg-[#141320] text-white">
             <Clock className="h-4 w-4" />
             <AlertDescription>
               Certaines vidéos sont encore en cours d'upload. Le cours sera
@@ -215,7 +240,7 @@ export function VideoStatusIndicator({
         <div className="space-y-4">
           {course.modules.map((module) => (
             <div key={module.id}>
-              <h4 className="font-medium text-gray-900 mb-2">{module.title}</h4>
+              <h4 className="font-semibold text-white mb-2">{module.title}</h4>
               <div className="space-y-2 ml-4">
                 {module.lessons.map((lesson) => (
                   <VideoStatusItem

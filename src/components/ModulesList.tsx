@@ -401,16 +401,16 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-3xl font-bold text-white">
             Modules du cours
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="mt-1 text-white/65">
             Gérez les modules de votre cours ({modules.length} {modules.length === 1 ? 'module' : 'modules'})
           </p>
         </div>
         <Button
           onClick={addModule}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+          className="flex items-center gap-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500"
         >
           <Plus className="h-5 w-5" />
           Ajouter un module
@@ -418,16 +418,16 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       </div>
 
       {modules.length === 0 ? (
-        <Card className="border-2 border-dashed border-gray-300">
+        <Card className="border-2 border-dashed border-white/20 bg-[#111827]/80">
           <CardContent className="py-12 text-center">
-            <BookOpen className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <BookOpen className="mx-auto mb-4 h-12 w-12 text-white/40" />
+            <h3 className="mb-2 text-lg font-medium text-white">
               Aucun module créé
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="mb-4 text-white/60">
               Commencez par ajouter votre premier module
             </p>
-            <Button onClick={addModule} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={addModule} className="bg-blue-600 text-white hover:bg-blue-500">
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un module
             </Button>
@@ -453,9 +453,9 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
               key={module.id || module.tempId} 
               className={`overflow-hidden transition-all ${
                 dragOverIndex === index && draggedIndex !== index
-                  ? "border-2 border-blue-500 bg-blue-50"
+                  ? "border-2 border-blue-500/70 bg-blue-500/10"
                   : ""
-              } ${draggedIndex === index ? "opacity-50" : ""}`}
+              } ${draggedIndex === index ? "opacity-50" : ""} border border-white/10 bg-[#0F172A]/95`}
               onDragOver={(e) => handleDragOver(e, index)}
               onDrop={(e) => handleDrop(e, index)}
               onDragLeave={(e) => handleDragLeave(e)}
@@ -466,49 +466,49 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                     draggable
                     onDragStart={(e) => handleDragStart(e, index)}
                     onDragEnd={handleDragEnd}
-                    className="cursor-move p-2 hover:bg-gray-100 transition-colors rounded mr-2"
+                    className="mr-2 cursor-move rounded p-2 transition-colors hover:bg-white/10"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <GripVertical className="h-5 w-5 text-gray-400" />
+                    <GripVertical className="h-5 w-5 text-white/45" />
                   </div>
 
-                  <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                    <span className="text-blue-600 font-bold text-lg">
+                  <div className="mr-4 flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-500/20">
+                    <span className="text-lg font-bold text-blue-300">
                       {index + 1}
                     </span>
                   </div>
 
-                  <div className="flex-grow min-w-0">
+                  <div className="grow min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-md">
+                      <span className="inline-flex items-center rounded-md bg-blue-500/20 px-2 py-1 text-xs font-medium text-blue-200">
                         Module
                       </span>
                       {!module.id && (
-                        <span className="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-md">
+                        <span className="inline-flex items-center rounded-md bg-amber-500/20 px-2 py-1 text-xs font-medium text-amber-200">
                           Non sauvegardé
                         </span>
                       )}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
+                    <h3 className="truncate text-lg font-semibold text-white">
                       {module.title || "Sans titre"}
                     </h3>
                     {module.description && !expandedModules[index] && (
-                      <p className="text-sm text-gray-600 line-clamp-1 mt-1">
+                      <p className="mt-1 line-clamp-1 text-sm text-white/65">
                         {module.description}
                       </p>
                     )}
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="mt-1 text-sm text-white/50">
                       {lessonsCount(module)} {lessonsCount(module) === 1 ? 'leçon' : 'leçons'}
                       {modules.length > 1 && ' • Glissez pour réorganiser'}
                     </p>
                   </div>
 
-                  <div className="flex-shrink-0 flex items-center gap-2 ml-4">
+                  <div className="shrink-0 flex items-center gap-2 ml-4">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => toggleModule(index)}
-                      className="flex items-center gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                      className="flex items-center gap-1 border-blue-400/35 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20"
                     >
                       <Edit3 className="h-4 w-4" />
                       {expandedModules[index] ? 'Fermer' : 'Modifier'}
@@ -518,8 +518,8 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                       size="sm"
                       onClick={() => onManageLessons(module.id || module.tempId || '')}
                       disabled={!module.id}
-                      className={`flex items-center gap-1 border-gray-200 hover:bg-gray-50 ${
-                        !module.id ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-gray-600'
+                      className={`flex items-center gap-1 border-white/20 bg-white/5 hover:bg-white/10 ${
+                        !module.id ? 'cursor-not-allowed opacity-50 text-white/35' : 'text-white/80'
                       }`}
                       title={!module.id ? "Enregistrez le module pour gérer les leçons" : "Gérer les leçons"}
                     >
@@ -531,10 +531,10 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                       size="sm"
                       onClick={() => moduleId && handleManageQuiz(moduleId)}
                       disabled={!moduleId || isQuizLoading}
-                      className={`flex items-center gap-1 border-indigo-200 hover:bg-indigo-50 ${
+                      className={`flex items-center gap-1 border-indigo-400/35 bg-indigo-500/10 hover:bg-indigo-500/20 ${
                         !moduleId
-                          ? "opacity-50 cursor-not-allowed text-gray-400"
-                          : "text-indigo-600"
+                          ? "opacity-50 cursor-not-allowed text-white/35"
+                          : "text-indigo-200"
                       }`}
                       title={
                         !moduleId
@@ -553,7 +553,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                       {hasQuiz && !isQuizLoading && (
                         <Badge
                           variant="secondary"
-                          className="ml-1 border border-indigo-200 bg-indigo-100 text-indigo-700"
+                          className="ml-1 border border-indigo-400/30 bg-indigo-500/20 text-indigo-100"
                         >
                           {questionsCount}
                         </Badge>
@@ -578,7 +578,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                         }
                       }}
                       disabled={!module.id}
-                      className={`flex items-center gap-1 ${!module.id ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-red-600 border-red-200 hover:bg-red-50'}`}
+                      className={`flex items-center gap-1 ${!module.id ? 'opacity-50 cursor-not-allowed text-white/35' : 'border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/20'}`}
                       title={!module.id ? "Enregistrez le module pour pouvoir le supprimer" : "Supprimer ce module"}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -587,16 +587,16 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                 </div>
 
                 {expandedModules[index] && (
-                  <div className="border-t border-gray-200 bg-gray-50 p-6">
+                  <div className="border-t border-white/10 bg-[#0B1220] p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-semibold text-gray-900">
+                      <h4 className="text-lg font-semibold text-white">
                         Module {index + 1}: {editingValues[index]?.title || "Sans titre"}
                       </h4>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => cancelEdit(index)}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="text-white/55 hover:text-white"
                       >
                         <X className="h-5 w-5" />
                       </Button>
@@ -604,7 +604,7 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-white/80">
                           Titre du module *
                         </label>
                         <Input
@@ -612,10 +612,11 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                           onChange={(e) => updateEditingValue(index, 'title', e.target.value)}
                           placeholder="Entrez le titre du module"
                           required
+                          className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="mb-1 block text-sm font-medium text-white/80">
                           Description du module
                         </label>
                         <Textarea
@@ -623,21 +624,22 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
                           onChange={(e) => updateEditingValue(index, 'description', e.target.value)}
                           placeholder="Décrivez le contenu de ce module..."
                           rows={3}
+                          className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                         />
                       </div>
 
-                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
                         <Button
                           variant="outline"
                           onClick={() => cancelEdit(index)}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 border-white/20 bg-transparent text-white hover:bg-white/10"
                         >
                           <X className="h-4 w-4" />
                           Annuler
                         </Button>
                         <Button
                           onClick={() => saveModule(index)}
-                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                          className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-500"
                         >
                           <Save className="h-4 w-4" />
                           Enregistrer le module
@@ -654,28 +656,28 @@ export function ModulesList({ modules, onModulesChange, onManageLessons, onSaveM
       )}
 
       <Dialog open={!!deleteConfirmModule} onOpenChange={(open) => !open && setDeleteConfirmModule(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md border-white/15 bg-[#0F172A] text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-red-300">
               <Trash2 className="h-5 w-5" />
               Confirmer la suppression
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-gray-700">
+            <p className="text-white/80">
               Êtes-vous sûr de vouloir supprimer le module "{deleteConfirmModule?.title}" ?
             </p>
             {deleteConfirmModule && deleteConfirmModule.lessons && deleteConfirmModule.lessons.length > 0 && (
-              <p className="text-sm text-red-600 mt-2">
+              <p className="mt-2 text-sm text-red-300">
                 Ce module contient {deleteConfirmModule.lessons.length} leçon(s) qui sera/seront également supprimée(s).
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmModule(null)}>
+            <Button variant="outline" onClick={() => setDeleteConfirmModule(null)} className="border-white/20 bg-transparent text-white hover:bg-white/10">
               Annuler
             </Button>
-            <Button onClick={stableHandleDeleteModule} className="bg-red-600 hover:bg-red-700">
+            <Button onClick={stableHandleDeleteModule} className="bg-red-600 text-white hover:bg-red-500">
               <Trash2 className="h-4 w-4 mr-2" />
               Supprimer
             </Button>

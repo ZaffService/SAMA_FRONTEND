@@ -6,11 +6,26 @@ import { useParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
-  Mail,
-  Phone,
+  BadgeDollarSign,
+  BookOpenCheck,
+  CalendarDays,
+  LineChart as LineChartIcon,
   RefreshCw,
+  TrendingUp,
   Users,
 } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
@@ -31,19 +46,40 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
-import { userService } from "@/services/userService";
-import type { User as StudentUser } from "@/types/user";
+import { buildApiUrl } from "@/infrastructure/api/baseConfig";
 import logger from "@/shared/helpers/logger";
 
+type DashboardStat = {
+  totalRevenue: number;
+  totalEnrollments: number;
+  currentMonthRevenue: number;
+  currentMonthEnrollments: number;
+  completionRate: number;
+};
+
+type MonthlyPoint = {
+  month: string;
+  monthIndex: number;
+  revenue: number;
+  enrollments: number;
+};
+
 type StudentRow = {
-  id: string;
+  enrollmentId: string;
   fullName: string;
   email: string;
   telephone: string;
   progress: number;
+  status: "ACTIVE" | "COMPLETED" | "DROPPED";
 };
 
-type EnrollmentRecord = Record<string, any>;
+type CourseOverviewData = {
+  title: string;
+  instructorName: string;
+  createdAt: string;
+  stats: DashboardStat;
+  monthlyData: MonthlyPoint[];
+};
 
 const normalizeText = (value: unknown): string => {
   if (typeof value !== "string") return "";
@@ -64,242 +100,94 @@ const resolveRouteCourseId = (param: string | string[] | undefined): string => {
   return param ?? "";
 };
 
-const extractCourseRecord = (payload: any): Record<string, any> => {
-  return payload?.course ?? payload?.data?.course ?? payload?.data ?? payload ?? {};
+const formatAmount = (value: number): string => {
+  return `${Math.round(value).toLocaleString("fr-FR")} CFA`;
 };
 
-const resolveCourseIdentity = (record: Record<string, any>): string => {
-  return normalizeText(
-    record?.id ?? record?._id ?? record?.courseId ?? record?.course_id,
-  );
-};
-
-const findCourseInListPayload = (
-  payload: any,
-  courseId: string,
-): Record<string, any> | null => {
-  const candidateLists = [
-    Array.isArray(payload) ? payload : null,
-    Array.isArray(payload?.courses) ? payload.courses : null,
-    Array.isArray(payload?.data?.courses) ? payload.data.courses : null,
-    Array.isArray(payload?.items) ? payload.items : null,
-  ].filter((list): list is Record<string, any>[] => Array.isArray(list));
-
-  for (const list of candidateLists) {
-    const match = list.find((record) => resolveCourseIdentity(record) === courseId);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-};
-
-const extractEnrollmentRecords = (payload: any): EnrollmentRecord[] => {
-  const courseRecord = extractCourseRecord(payload);
-  const candidates = [
-    courseRecord?.enrollments,
-    courseRecord?._enrollments,
-    courseRecord?.students,
-    courseRecord?.enrolledStudents,
-    payload?.enrollments,
-    payload?._enrollments,
-    payload?.students,
-    payload?.enrolledStudents,
-  ];
-
-  return candidates.find(Array.isArray) ?? [];
-};
-
-const extractStudentSource = (record: EnrollmentRecord): Record<string, any> => {
-  return (
-    record?.user ??
-    record?.student ??
-    record?.profile ??
-    record?.studentData ??
-    record
-  );
-};
-
-const resolveEnrollmentUserId = (record: EnrollmentRecord): string => {
-  const candidates = [
-    record?.userId,
-    record?.user_id,
-    record?.studentId,
-    record?.student_id,
-    record?.user?.id,
-    record?.user?.userId,
-    record?.student?.id,
-    record?.student?.userId,
-  ];
-
-  for (const candidate of candidates) {
-    const value = normalizeText(candidate);
-    if (value) return value;
-  }
-
-  return "";
-};
-
-const resolveProgress = (record: EnrollmentRecord, source?: Record<string, any>) => {
-  const candidates = [
-    record?.progressPercentage,
-    record?.progress_percentage,
-    record?.progress,
-    record?.completionPercentage,
-    record?.completion_percentage,
-    source?.progressPercentage,
-    source?.progress_percentage,
-    source?.progress,
-  ];
-
-  for (const candidate of candidates) {
-    if (candidate === undefined || candidate === null || candidate === "") continue;
-    return clampProgress(candidate);
-  }
-
-  return 0;
-};
-
-const resolveFullName = (source: Record<string, any>): string => {
-  const directName = normalizeText(
-    source?.display_name ?? source?.displayName ?? source?.name ?? source?.username,
-  );
-  if (directName) return directName;
-
-  const firstName = normalizeText(
-    source?.firstName ?? source?.first_name ?? source?.prenom,
-  );
-  const lastName = normalizeText(
-    source?.lastName ?? source?.last_name ?? source?.nom,
-  );
-
-  const combined = [firstName, lastName].filter(Boolean).join(" ").trim();
-  if (combined) return combined;
-
-  const email = normalizeText(source?.email);
-  if (email) return email;
-
-  return "Étudiant";
-};
-
-const resolveEmail = (source: Record<string, any>): string => {
-  return normalizeText(source?.email) || "-";
-};
-
-const resolveTelephone = (source: Record<string, any>): string => {
-  const candidates = [
-    source?.telephone,
-    source?.phone,
-    source?.phoneNumber,
-    source?.phone_number,
-    source?.userProfile?.phone,
-    source?.userProfile?.telephone,
-    source?.profile?.phone,
-    source?.profile?.telephone,
-  ];
-
-  for (const candidate of candidates) {
-    const value = normalizeText(candidate);
-    if (value) return value;
-  }
-
-  return "-";
-};
-
-const resolveCourseTitle = (payload: any): string => {
-  const courseRecord = extractCourseRecord(payload);
-  return (
-    normalizeText(courseRecord?.title) ||
-    normalizeText(courseRecord?._title) ||
-    "Cours sans titre"
-  );
-};
-
-const resolveCourseStudentCount = (payload: any): number => {
-  const courseRecord = extractCourseRecord(payload);
-  const candidates = [
-    courseRecord?.studentsCount,
-    courseRecord?._studentsCount,
-    courseRecord?.enrollmentCount,
-    courseRecord?.enrolledCount,
-    Array.isArray(courseRecord?.enrollments) ? courseRecord.enrollments.length : null,
-    Array.isArray(courseRecord?._enrollments) ? courseRecord._enrollments.length : null,
-    Array.isArray(courseRecord?.students) ? courseRecord.students.length : null,
-    Array.isArray(courseRecord?.enrolledStudents)
-      ? courseRecord.enrolledStudents.length
-      : null,
-  ];
-
-  for (const candidate of candidates) {
-    const numeric = Number(candidate);
-    if (Number.isFinite(numeric)) {
-      return Math.max(0, Math.round(numeric));
-    }
-  }
-
-  return 0;
-};
-
-const getAllStudents = async (): Promise<StudentUser[]> => {
-  const pageSize = 100;
-  const maxPages = 20;
-  const collected: StudentUser[] = [];
-  let currentPage = 1;
-  let total = 0;
-
-  while (currentPage <= maxPages) {
-    const response = await userService.getUsersByRole({
-      role: "STUDENT",
-      page: currentPage,
-      limit: pageSize,
-    });
-
-    collected.push(...response.users);
-    total = response.total || collected.length;
-
-    if (response.users.length === 0) break;
-    if (collected.length >= total) break;
-
-    currentPage += 1;
-  }
-
-  return collected;
-};
-
-const buildStudentRows = (
-  enrollmentRecords: EnrollmentRecord[],
-  studentsDirectory: StudentUser[],
-): StudentRow[] => {
-  const directoryById = new Map<string, StudentUser>();
-
-  studentsDirectory.forEach((student) => {
-    directoryById.set(String(student.id), student);
+const formatDate = (value: string): string => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return parsed.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
+};
 
-  const rows: StudentRow[] = [];
-  const seen = new Set<string>();
+const resolveStatusLabel = (status: StudentRow["status"]): string => {
+  if (status === "COMPLETED") return "COMPLETE";
+  if (status === "DROPPED") return "ABANDON";
+  return "ACTIF";
+};
 
-  enrollmentRecords.forEach((record, index) => {
-    const userId = resolveEnrollmentUserId(record);
-    const nestedSource = extractStudentSource(record);
-    const directoryStudent = userId ? directoryById.get(userId) : undefined;
-    const source = directoryStudent ?? nestedSource;
-    const rowId = userId || String(source?.id ?? record?.id ?? `enrollment-${index}`);
+const resolveStatusClassName = (status: StudentRow["status"]): string => {
+  if (status === "COMPLETED") {
+    return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+  }
+  if (status === "DROPPED") {
+    return "bg-rose-100 text-rose-700 border border-rose-200";
+  }
+  return "bg-sky-100 text-sky-700 border border-sky-200";
+};
 
-    if (seen.has(rowId)) return;
-    seen.add(rowId);
+const mapOverviewPayload = (payload: any, courseFallbackTitle: string): CourseOverviewData => {
+  const data = payload?.data ?? payload ?? {};
+  const course = data?.course ?? {};
+  const stats = data?.stats ?? {};
+  const monthlyData = Array.isArray(data?.monthlyData) ? data.monthlyData : [];
 
-    rows.push({
-      id: rowId,
-      fullName: resolveFullName(source),
-      email: resolveEmail(source),
-      telephone: resolveTelephone(source),
-      progress: resolveProgress(record, source),
-    });
+  return {
+    title: normalizeText(course?.title) || courseFallbackTitle || "Cours sans titre",
+    instructorName: [normalizeText(course?.instructor?.firstName), normalizeText(course?.instructor?.lastName)]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "Instructeur non renseigné",
+    createdAt: normalizeText(course?.createdAt),
+    stats: {
+      totalRevenue: Number(stats?.totalRevenue) || 0,
+      totalEnrollments: Number(stats?.totalEnrollments) || 0,
+      currentMonthRevenue: Number(stats?.currentMonthRevenue) || 0,
+      currentMonthEnrollments: Number(stats?.currentMonthEnrollments) || 0,
+      completionRate: Number(stats?.completionRate) || 0,
+    },
+    monthlyData: monthlyData.map((item: any) => ({
+      month: normalizeText(item?.month) || "-",
+      monthIndex: Number(item?.monthIndex) || 0,
+      revenue: Number(item?.revenue) || 0,
+      enrollments: Number(item?.enrollments) || 0,
+    })),
+  };
+};
+
+const mapStudentsPayload = (payload: any): StudentRow[] => {
+  const data = payload?.data ?? payload ?? {};
+  const students = Array.isArray(data?.students) ? data.students : [];
+
+  return students.map((item: any, index: number) => {
+    const user = item?.user ?? {};
+    const firstName = normalizeText(user?.firstName);
+    const lastName = normalizeText(user?.lastName);
+    const fullName =
+      [firstName, lastName].filter(Boolean).join(" ").trim() || "Étudiant";
+    const statusRaw = normalizeText(item?.status).toUpperCase();
+    const status: StudentRow["status"] =
+      statusRaw === "COMPLETED" || statusRaw === "DROPPED" ? statusRaw : "ACTIVE";
+    const rawProgress = clampProgress(item?.progress);
+    const totalLessons = Number(item?.lessonProgress?.totalLessons) || 0;
+    const completedLessons = Number(item?.lessonProgress?.completedLessons) || 0;
+    const computedProgress =
+      totalLessons > 0 ? clampProgress((completedLessons / totalLessons) * 100) : 0;
+    const progress = rawProgress > 0 ? rawProgress : computedProgress;
+
+    return {
+      enrollmentId: normalizeText(item?.enrollmentId) || `student-${index}`,
+      fullName,
+      email: normalizeText(user?.email) || "-",
+      telephone: normalizeText(user?.telephone) || "-",
+      progress,
+      status,
+    };
   });
-
-  return rows;
 };
 
 function CourseStudentsPageContent() {
@@ -310,8 +198,8 @@ function CourseStudentsPageContent() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [courseTitle, setCourseTitle] = useState("...");
-  const [enrollmentCount, setEnrollmentCount] = useState(0);
+  const [courseTitle, setCourseTitle] = useState("Cours");
+  const [overview, setOverview] = useState<CourseOverviewData | null>(null);
   const [students, setStudents] = useState<StudentRow[]>([]);
 
   const loadData = useCallback(async () => {
@@ -325,67 +213,36 @@ function CourseStudentsPageContent() {
     setError(null);
 
     try {
-      const [courseListResult, courseDetailsResult, directoryResult] =
-        await Promise.allSettled([
-          CoursesApi.getCourses(1, 200, { userRole: "ADMIN" }),
-          CoursesApi.getCourseDetails(courseId),
-          getAllStudents(),
-        ]);
+      const courseDetails = await CoursesApi.getCourseDetails(courseId);
+      const fallbackTitle = normalizeText(courseDetails?.course?.title) || "Cours";
+      setCourseTitle(fallbackTitle);
 
-      const courseFromList =
-        courseListResult.status === "fulfilled"
-          ? findCourseInListPayload(courseListResult.value, courseId)
-          : null;
-      const courseFromDetails =
-        courseDetailsResult.status === "fulfilled"
-          ? extractCourseRecord(courseDetailsResult.value)
-          : null;
-      const listEnrollmentRecords = courseFromList
-        ? extractEnrollmentRecords(courseFromList)
-        : [];
-      const detailEnrollmentRecords = courseFromDetails
-        ? extractEnrollmentRecords(courseFromDetails)
-        : [];
-      const selectedCourse =
-        listEnrollmentRecords.length > 0
-          ? courseFromList
-          : detailEnrollmentRecords.length > 0
-            ? courseFromDetails
-            : courseFromList ?? courseFromDetails;
+      const currentYear = new Date().getFullYear();
+      const [overviewPayload, studentsPayload] = await Promise.all([
+        fetch(buildApiUrl(`/course/${courseId}/overview?year=${currentYear}`), {
+          method: "GET",
+          credentials: "include",
+        }).then(async (response) => {
+          const json = await response.json().catch(() => null);
+          if (!response.ok || !json?.success) {
+            throw new Error(json?.error?.message || `Erreur overview: ${response.status}`);
+          }
+          return json;
+        }),
+        fetch(buildApiUrl(`/course/${courseId}/students?page=1&limit=20`), {
+          method: "GET",
+          credentials: "include",
+        }).then(async (response) => {
+          const json = await response.json().catch(() => null);
+          if (!response.ok || !json?.success) {
+            throw new Error(json?.error?.message || `Erreur students: ${response.status}`);
+          }
+          return json;
+        }),
+      ]);
 
-      if (!selectedCourse) {
-        const firstError =
-          courseListResult.status === "rejected"
-            ? courseListResult.reason
-            : courseDetailsResult.status === "rejected"
-              ? courseDetailsResult.reason
-              : null;
-        throw firstError instanceof Error
-          ? firstError
-          : new Error("Impossible de charger les informations du cours");
-      }
-
-      const enrollmentRecords =
-        listEnrollmentRecords.length > 0
-          ? listEnrollmentRecords
-          : detailEnrollmentRecords;
-
-      const studentsDirectory =
-        directoryResult.status === "fulfilled" ? directoryResult.value : [];
-
-      const rows = buildStudentRows(enrollmentRecords, studentsDirectory);
-
-      setCourseTitle(resolveCourseTitle(selectedCourse));
-      setEnrollmentCount(
-        enrollmentRecords.length > 0
-          ? enrollmentRecords.length
-          : resolveCourseStudentCount(selectedCourse),
-      );
-      setStudents(rows);
-
-      logger.log("📚 [CourseStudentsPage] Course record:", selectedCourse);
-      logger.log("📚 [CourseStudentsPage] Enrollments:", enrollmentRecords);
-      logger.log("📚 [CourseStudentsPage] Students rows:", rows);
+      setOverview(mapOverviewPayload(overviewPayload, fallbackTitle));
+      setStudents(mapStudentsPayload(studentsPayload));
     } catch (requestError) {
       logger.error(
         "❌ [CourseStudentsPage] Erreur chargement des étudiants:",
@@ -394,7 +251,7 @@ function CourseStudentsPageContent() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Impossible de charger les étudiants de ce cours",
+          : "Impossible de charger les analytics de ce cours",
       );
     } finally {
       setLoading(false);
@@ -409,7 +266,7 @@ function CourseStudentsPageContent() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <Spinner className="size-7 text-[#002c75]" />
-        <p className="text-sm font-medium text-slate-600">
+        <p className="text-sm font-medium text-white/70">
           Chargement des étudiants inscrits...
         </p>
       </div>
@@ -417,79 +274,39 @@ function CourseStudentsPageContent() {
   );
 
   const renderEmptyState = () => (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
-        <Users className="h-8 w-8 text-slate-400" />
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#3B3754] bg-[#1F1D2B] px-6 py-16 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#26233A] shadow-sm">
+        <Users className="h-8 w-8 text-white/40" />
       </div>
-      <h3 className="text-lg font-semibold text-slate-900">
+      <h3 className="text-lg font-semibold text-white">
         Aucun étudiant inscrit sur ce cours
       </h3>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
+      <p className="mt-2 max-w-xl text-sm leading-6 text-white/60">
         Les inscriptions apparaîtront ici dès qu'un étudiant sera enrôlé.
       </p>
     </div>
   );
 
+  const currentStats = overview?.stats ?? {
+    totalRevenue: 0,
+    totalEnrollments: students.length,
+    currentMonthRevenue: 0,
+    currentMonthEnrollments: 0,
+    completionRate: 0,
+  };
+
+  const monthlySeries = overview?.monthlyData ?? [];
+
   return (
-    <div className="relative min-h-screen bg-[#F4F7FC]">
+    <div className="relative min-h-screen bg-[#151322]">
       <div className="mx-auto w-full max-w-[1400px] px-4 py-6 lg:px-10 lg:py-8">
-        <div className="absolute inset-x-0 top-0 -z-10 h-64 bg-gradient-to-br from-[#002c75]/10 via-transparent to-[#FF3B3F]/5" />
+        <div className="absolute inset-x-0 top-0 -z-10 h-64 bg-linear-to-br from-[#0E1B46]/40 via-transparent to-[#1F1D2B]/30" />
 
         <div className="space-y-6">
-          <div className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-sm backdrop-blur">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="space-y-4">
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="w-fit gap-2 rounded-full border border-slate-200 bg-white/80 px-4 text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <Link href="/admin-dashboard?focus=courses">
-                    <ArrowLeft className="h-4 w-4" />
-                    Retour
-                  </Link>
-                </Button>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-                    Gestion des cours
-                  </p>
-                  <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-                    Étudiants inscrits — {courseTitle}
-                  </h1>
-                  <p className="text-sm text-slate-600">
-                    {enrollmentCount} étudiant(s) inscrit(s)
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Total
-                  </p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {enrollmentCount}
-                  </p>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={() => void loadData()}
-                  disabled={loading}
-                  className="gap-2 rounded-full"
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                  Rafraîchir
-                </Button>
-              </div>
-            </div>
-          </div>
-
           {loading ? (
             renderLoading()
           ) : error ? (
-            <Alert variant="destructive" className="border-red-200 bg-white">
+            <Alert variant="destructive" className="border-red-400/40 bg-[#1F1D2B] text-white">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Impossible de charger la liste</AlertTitle>
               <AlertDescription className="space-y-4">
@@ -500,87 +317,239 @@ function CourseStudentsPageContent() {
               </AlertDescription>
             </Alert>
           ) : (
-            <Card className="overflow-hidden border-slate-200 shadow-sm">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/60">
-                <CardTitle className="text-lg text-slate-900">
-                  Liste des étudiants
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  Nom, coordonnées et progression individuelle
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                {students.length === 0 ? (
-                  <div className="p-6">{renderEmptyState()}</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-16">#</TableHead>
-                          <TableHead>Nom complet</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Téléphone</TableHead>
-                          <TableHead className="min-w-[260px]">
-                            Progression
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {students.map((student, index) => (
-                          <TableRow key={student.id}>
-                            <TableCell className="font-medium text-slate-500">
-                              {index + 1}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex min-w-0 items-center gap-3">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#002c75] to-[#1d4ed8] text-xs font-semibold text-white shadow-sm">
-                                  {student.fullName
-                                    .split(" ")
-                                    .filter(Boolean)
-                                    .slice(0, 2)
-                                    .map((part) => part[0])
-                                    .join("")
-                                    .toUpperCase() || "E"}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate font-semibold text-slate-900">
-                                    {student.fullName}
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-600">
-                              <div className="inline-flex items-center gap-2">
-                                <Mail className="h-3.5 w-3.5 text-slate-400" />
-                                <span>{student.email}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-600">
-                              <div className="inline-flex items-center gap-2">
-                                <Phone className="h-3.5 w-3.5 text-slate-400" />
-                                <span>{student.telephone || "-"}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Progress
-                                  value={student.progress}
-                                  className="h-2 flex-1 bg-slate-200"
-                                />
-                                <span className="min-w-[3.5rem] text-right text-sm font-semibold text-slate-900">
-                                  {student.progress}%
-                                </span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button
+                  asChild
+                  className="h-10 rounded-full border border-[#3B3754] bg-[#1F1D2B] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#26233A]"
+                >
+                  <Link href="/admin-dashboard?focus=courses" className="flex items-center justify-baseline gap-2">
+                    <div className="flex gap-2 items-center justify-center mt-1">
+                      <ArrowLeft className="h-4 w-4" />
+                    Retour
+                    </div>
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => void loadData()}
+                  disabled={loading}
+                  className="gap-2 rounded-full border-[#3B3754] bg-[#1F1D2B] px-4 text-white hover:bg-[#26233A]"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                  Rafraîchir
+                </Button>
+              </div>
+
+              <Card className="overflow-hidden border border-[#302D47] bg-[#1F1D2B] text-white shadow-xl">
+                <CardContent className="p-6 lg:p-8">
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold lg:text-3xl">
+                        {overview?.title || courseTitle}
+                      </h2>
+                      <p className="mt-1 text-sm text-white/70">
+                        Instructeur: {overview?.instructorName || "N/A"} | Cree le{" "}
+                        {overview?.createdAt ? formatDate(overview.createdAt) : "-"}
+                      </p>
+                    </div>
+                    <div className="flex w-full flex-wrap items-stretch gap-3 lg:w-auto lg:flex-nowrap">
+                      <div className="min-w-[140px] flex-1 rounded-xl border border-[#3B3754] bg-[#26233A] px-3 py-2">
+                        <p className="text-xs uppercase tracking-[0.15em] text-white/70">Revenu total</p>
+                        <p className="mt-1 text-xl font-bold">{formatAmount(currentStats.totalRevenue)}</p>
+                      </div>
+                      <div className="min-w-[120px] flex-1 rounded-xl border border-[#3B3754] bg-[#26233A] px-3 py-2">
+                        <p className="text-xs uppercase tracking-[0.15em] text-white/70">Inscrits</p>
+                        <p className="mt-1 text-xl font-bold">{currentStats.totalEnrollments}</p>
+                      </div>
+                      <div className="min-w-[160px] flex-1 rounded-xl border border-[#3B3754] bg-[#26233A] px-3 py-2">
+                        <p className="text-xs uppercase tracking-[0.15em] text-white/70">Revenu ce mois</p>
+                        <p className="mt-1 text-xl font-bold">{formatAmount(currentStats.currentMonthRevenue)}</p>
+                      </div>
+                      <div className="min-w-[140px] flex-1 rounded-xl border border-[#3B3754] bg-[#26233A] px-3 py-2">
+                        <p className="text-xs uppercase tracking-[0.15em] text-white/70">Taux completion</p>
+                        <p className="mt-1 text-xl font-bold">{Math.round(currentStats.completionRate)}%</p>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <BadgeDollarSign className="h-4 w-4 text-[#002c75]" />
+                      Revenus mensuels
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[260px] pt-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlySeries}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#3B3754" />
+                        <XAxis dataKey="month" stroke="#9CA3AF" />
+                        <YAxis stroke="#9CA3AF" />
+                        <Tooltip />
+                        <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <LineChartIcon className="h-4 w-4 text-[#80B5FF]" />
+                      Inscriptions mensuelles
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[260px] pt-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={monthlySeries}>
+                        <defs>
+                          <linearGradient id="monthlyEnrollmentsFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#80B5FF" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#80B5FF" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#3B3754" />
+                        <XAxis dataKey="month" stroke="#9CA3AF" />
+                        <YAxis stroke="#9CA3AF" />
+                        <Tooltip
+                          contentStyle={{
+                            background: "#181721",
+                            border: "1px solid #3B3754",
+                            borderRadius: "10px",
+                            color: "#fff",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="enrollments"
+                          fill="url(#monthlyEnrollmentsFill)"
+                          stroke="#80B5FF"
+                          strokeWidth={2}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="enrollments"
+                          stroke="#80B5FF"
+                          strokeWidth={2}
+                          dot
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="rounded-xl bg-[#26233A] p-2">
+                      <Users className="h-5 w-5 text-[#002c75]" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/60">Total inscrits</p>
+                      <p className="text-xl font-bold text-white">{currentStats.totalEnrollments}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="rounded-xl bg-[#26233A] p-2">
+                      <BookOpenCheck className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/60">Completion</p>
+                      <p className="text-xl font-bold text-white">{Math.round(currentStats.completionRate)}%</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="rounded-xl bg-[#26233A] p-2">
+                      <TrendingUp className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/60">Inscriptions mois</p>
+                      <p className="text-xl font-bold text-white">{currentStats.currentMonthEnrollments}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <div className="rounded-xl bg-[#26233A] p-2">
+                      <CalendarDays className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/60">Date creation</p>
+                      <p className="text-sm font-semibold text-white">{overview?.createdAt ? formatDate(overview.createdAt) : "-"}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="overflow-hidden border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
+                <CardHeader className="border-b border-[#302D47] bg-[#26233A]/40">
+                  <CardTitle className="text-lg text-white">
+                    Tableau des étudiants du cours
+                  </CardTitle>
+                  <CardDescription className="text-white/60">
+                    Nom, email, téléphone, progression et statut
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {students.length === 0 ? (
+                    <div className="p-6">{renderEmptyState()}</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table className="text-white">
+                        <TableHeader>
+                          <TableRow className="border-b border-[#302D47] hover:bg-transparent">
+                            <TableHead className="text-white/75">Nom & prénom</TableHead>
+                            <TableHead className="text-white/75">Email</TableHead>
+                            <TableHead className="text-white/75">Téléphone</TableHead>
+                            <TableHead className="min-w-[220px] text-white/75">Progression</TableHead>
+                            <TableHead className="text-white/75">Statut</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {students.map((student) => (
+                            <TableRow key={student.enrollmentId} className="border-b border-[#2A273D] hover:bg-[#26233A]/60">
+                              <TableCell className="font-semibold text-white">
+                                {student.fullName}
+                              </TableCell>
+                              <TableCell className="text-white/70">{student.email}</TableCell>
+                              <TableCell className="text-white/70">{student.telephone}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <Progress
+                                    value={student.progress}
+                                    className="h-2 flex-1 bg-[#3B3754]"
+                                  />
+                                  <span className="min-w-12 text-sm font-semibold text-white">
+                                    {student.progress}%
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${resolveStatusClassName(student.status)}`}
+                                >
+                                  {resolveStatusLabel(student.status)}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </div>

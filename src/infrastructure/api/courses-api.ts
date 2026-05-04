@@ -471,7 +471,7 @@ export class CoursesApi {
         headers: {
           "Content-Type": "application/json",
         },
-        // credentials: "include", // ❌ Pas nécessaire pour les catégories
+        credentials: "include", // ❌ Pas nécessaire pour les catégories
       },
     );
 

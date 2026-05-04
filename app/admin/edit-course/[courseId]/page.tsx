@@ -40,26 +40,34 @@ function CourseActionCard({
 }: CourseActionCardProps) {
   return (
     <Card
-      className={`group cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-0 overflow-hidden ${
-        variant === "outline" ? "bg-white border-2 border-dashed border-gray-300" : ""
+      className={`group cursor-pointer overflow-hidden border transition-all duration-300 hover:-translate-y-1 ${
+        variant === "outline"
+          ? "border-dashed border-white/20 bg-white/[0.02]"
+          : "border-white/10 bg-[#121621]/95 hover:border-blue-400/40 hover:shadow-[0_24px_60px_-30px_rgba(59,130,246,0.65)]"
       }`}
       onClick={onClick}
     >
       <CardContent className="p-0">
-        <div className={`p-8 bg-gradient-to-br ${gradient} ${variant === "outline" ? "opacity-0" : ""}`}>
-          <div className="flex justify-center mb-4">
-            <div className="p-4 rounded-2xl bg-white/20 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-              <div className="text-white">
-                {icon}
-              </div>
+        <div
+          className={`relative p-6 bg-gradient-to-br ${gradient} ${
+            variant === "outline" ? "opacity-0" : ""
+          }`}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.28),transparent_55%)]" />
+          <div className="relative flex items-center justify-between">
+            <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/80">
+              Action
+            </div>
+            <div className="rounded-xl bg-white/20 p-3 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+              <div className="text-white">{icon}</div>
             </div>
           </div>
         </div>
-        <div className="p-6 bg-white">
-          <h3 className="text-xl font-bold mb-2 text-gray-800 group-hover:text-blue-600 transition-colors">
+        <div className="space-y-2 p-6">
+          <h3 className="text-xl font-bold text-white transition-colors group-hover:text-blue-300">
             {title}
           </h3>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm leading-relaxed text-white/65">
             {description}
           </p>
         </div>
@@ -147,8 +155,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
         return (
           <CourseBasicInfoEditor
             courseId={courseId}
-            open={true}
-            onOpenChange={(open) => !open && setActiveEditor(null)}
+            onBack={() => setActiveEditor(null)}
             onCourseUpdated={handleCourseUpdated}
           />
         );
@@ -190,57 +197,54 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
 
   if (activeEditor) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
+      <div className="min-h-screen bg-[#090B13]">
         {renderEditor()}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
-      {/* Background decorative elements */}
+    <div className="min-h-screen bg-[#090B13] text-white">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-56 right-0 h-[26rem] w-[26rem] rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute top-1/2 -left-32 h-[24rem] w-[24rem] rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:34px_34px] opacity-20" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto p-8">
-        {/* Header avec bouton retour */}
-        <div className="flex items-center mb-12">
+      <div className="relative mx-auto max-w-7xl p-6 md:p-10">
+        <div className="mb-8 flex items-center">
           <Button
             variant="ghost"
             onClick={handleBack}
-            className="group hover:bg-blue-800 hover:shadow-md transition-all duration-200"
+            className="group rounded-xl border border-white/10 bg-white/[0.03] px-4 text-white/80 transition-all duration-200 hover:border-blue-400/50 hover:bg-blue-500/10 hover:text-white"
           >
             <ArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" />
             Retour au tableau de bord
           </Button>
         </div>
 
-        {/* Header Section */}
-        <div className="mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium mb-6 shadow-lg">
+        <div className="mb-8 rounded-3xl border border-white/10 bg-[#101522]/95 p-7 shadow-[0_36px_80px_-44px_rgba(0,0,0,0.9)] md:p-10">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-blue-400/25 bg-blue-500/15 px-4 py-2 text-sm font-medium text-blue-200">
             <BookOpen className="h-4 w-4" />
             <span>ÉDITEUR DE COURS</span>
           </div>
           
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+          <h1 className="mb-3 text-3xl font-bold tracking-tight text-white md:text-5xl">
             Modifier le cours
           </h1>
           
-          <p className="text-lg text-gray-600 max-w-2xl">
+          <p className="max-w-2xl text-base text-white/65 md:text-lg">
             Gérez les différents aspects de votre cours pour créer une expérience d'apprentissage exceptionnelle.
           </p>
         </div>
 
-        {/* Menu de gestion */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           <CourseActionCard
             title="Informations de base"
             description="Modifier le titre, la description, le prix et les paramètres généraux du cours"
             icon={<Edit3 className="h-8 w-8" />}
             onClick={() => setActiveEditor("basic-info")}
-            gradient="from-blue-500 to-blue-600"
+            gradient="from-[#1D4ED8] via-[#2563EB] to-[#1E40AF]"
           />
 
           <CourseActionCard
@@ -248,7 +252,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
             description="Ajouter, modifier ou supprimer des modules et organiser le contenu"
             icon={<FolderPlus className="h-8 w-8" />}
             onClick={() => setActiveEditor("modules")}
-            gradient="from-indigo-500 to-purple-600"
+            gradient="from-[#5B21B6] via-[#7C3AED] to-[#4338CA]"
           />
 
           {!courseLoading && isCertifying && (
@@ -257,20 +261,19 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
               description="Configurer le quiz de certification et suivre son état"
               icon={<BadgeCheck className="h-8 w-8" />}
               onClick={() => setActiveEditor("certification")}
-              gradient="from-emerald-500 to-teal-600"
+              gradient="from-[#047857] via-[#059669] to-[#0D9488]"
             />
           )}
         </div>
 
-        {/* Helper Section */}
-        <div className="mt-12 p-6 bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-white/10 bg-[#0F1422]/95 p-6 shadow-[0_24px_60px_-38px_rgba(59,130,246,0.5)]">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <HelpCircle className="h-6 w-6 text-blue-600" />
+            <div className="rounded-xl border border-blue-400/30 bg-blue-500/10 p-3">
+              <HelpCircle className="h-6 w-6 text-blue-300" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-1">Besoin d'aide ?</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="mb-1 font-semibold text-white">Besoin d'aide ?</h3>
+              <p className="text-sm text-white/65">
                 Sélectionnez une option ci-dessus pour commencer à éditer votre cours. 
                 Vous pouvez modifier les informations de base ou gérer le contenu de vos modules.
               </p>

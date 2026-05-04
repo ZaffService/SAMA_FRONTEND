@@ -13,8 +13,14 @@ interface UseEnrolledCoursesActions {
   refetch: () => Promise<void>;
 }
 
-export function useEnrolledCourses(): UseEnrolledCoursesState &
-  UseEnrolledCoursesActions {
+interface UseEnrolledCoursesOptions {
+  enabled?: boolean;
+}
+
+export function useEnrolledCourses(
+  options: UseEnrolledCoursesOptions = {},
+): UseEnrolledCoursesState & UseEnrolledCoursesActions {
+  const { enabled = true } = options;
   const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,12 +72,22 @@ export function useEnrolledCourses(): UseEnrolledCoursesState &
   };
 
   const refetch = async () => {
+    if (!enabled) {
+      return;
+    }
     await fetchEnrolledCourses();
   };
 
   useEffect(() => {
+    if (!enabled) {
+      setEnrolledCourses([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     fetchEnrolledCourses();
-  }, []);
+  }, [enabled]);
 
   return {
     enrolledCourses,

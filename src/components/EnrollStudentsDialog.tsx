@@ -190,7 +190,7 @@ export function EnrollStudentsDialog({
       await Swal.fire({
         icon: "success",
         title: "Enrôlement réussi",
-        html: `<div style=\"font-size:14px;line-height:1.5;color:#374151;\">${response.enrollments.length} étudiant(s) inscrit(s) avec succès</div>`,
+        html: `<div style="font-size:14px;line-height:1.5;color:rgba(255,255,255,.82);">${response.enrollments.length} étudiant(s) inscrit(s) avec succès</div>`,
         confirmButtonText: "OK",
         confirmButtonColor: "#002c75",
         showCloseButton: true,
@@ -214,39 +214,41 @@ export function EnrollStudentsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         id="enroll-students-dialog"
-        className="sm:max-w-[900px] p-0 overflow-hidden"
+        className="sm:max-w-[900px] overflow-hidden border border-[#302D47] bg-[#1F1D2B] p-0 text-white shadow-2xl"
       >
-        <div className="border-b px-6 py-5">
+        <div className="border-b border-[#302D47] bg-[#181721]/60 px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Enrôler des étudiants
-              </h2>
-              <p className="text-sm text-gray-500">
-                Cours : <span className="font-semibold">{course?.title ?? "-"}</span>
+              <h2 className="text-lg font-semibold text-white">Enrôler des étudiants</h2>
+              <p className="text-sm text-white/55">
+                Cours :{" "}
+                <span className="font-semibold text-white/90">
+                  {course?.title ?? "-"}
+                </span>
               </p>
             </div>
           </div>
         </div>
 
         <div className="px-6 py-4">
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+          <div className="flex flex-wrap gap-4 text-sm text-white/60">
             <span>
-              <strong className="text-gray-900">{availableCount}</strong> étudiants disponibles
+              <strong className="text-white/90">{availableCount}</strong> étudiants disponibles
             </span>
             {enrolledCount > 0 && (
               <span>
-                <strong className="text-green-600">{enrolledCount}</strong> enrôlés
+                <strong className="text-green-400">{enrolledCount}</strong> enrôlés
               </span>
             )}
             <span>
-              <strong className="text-blue-600">{selectedCount}</strong> sélectionnés
+              <strong className="text-[#A9F5E5]">{selectedCount}</strong>{" "}
+              sélectionnés
             </span>
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
               <Input
                 value={searchQuery}
                 onChange={(event) => {
@@ -254,14 +256,14 @@ export function EnrollStudentsDialog({
                   setCurrentPage(1);
                 }}
                 placeholder="Rechercher un étudiant..."
-                className="pl-9"
+                className="border-[#3B3754] bg-[#181721] pl-9 text-white placeholder:text-white/35 focus-visible:ring-[#A9F5E5]/30"
               />
             </div>
             <Button
               variant="outline"
               onClick={toggleSelectAll}
               disabled={students.length === 0}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-[#3B3754] bg-[#181721] text-white hover:bg-[#26233A]"
             >
               <Users className="h-4 w-4" />
               {allFilteredSelected ? "Désélectionner" : "Tout sélectionner"}
@@ -272,12 +274,12 @@ export function EnrollStudentsDialog({
         <div className="px-6">
           <div className="max-h-[420px] overflow-y-auto pr-1 pb-4">
             {loading ? (
-              <div className="flex items-center justify-center py-10 text-gray-500">
+              <div className="flex items-center justify-center py-10 text-white/60">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="ml-2">Chargement des étudiants...</span>
               </div>
             ) : students.length === 0 ? (
-              <div className="py-10 text-center text-sm text-gray-500">
+              <div className="py-10 text-center text-sm text-white/60">
                 Aucun étudiant trouvé.
               </div>
             ) : (
@@ -302,10 +304,10 @@ export function EnrollStudentsDialog({
                           toggleStudent(userId);
                         }
                       }}
-                      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${
+                      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors ${
                         isSelected
-                          ? "border-blue-200 bg-blue-50"
-                          : "border-gray-200 bg-white hover:border-blue-200 hover:bg-blue-50/40"
+                          ? "border-[#A9F5E5]/35 bg-[#26233A]/70"
+                          : "border-[#302D47] bg-[#181721] hover:border-[#A9F5E5]/25 hover:bg-[#26233A]/50"
                       }`}
                     >
                       <div
@@ -317,23 +319,23 @@ export function EnrollStudentsDialog({
                       >
                         <Checkbox checked={isSelected} />
                       </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF4FF] text-xs font-semibold text-[#002c75]">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#3B3754] bg-[#1F1D2B] text-xs font-semibold text-white/85">
                         {getInitials(student)}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-semibold text-white/90">
                             {student.firstName} {student.lastName}
                           </p>
                           {isEnrolled && (
-                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                            <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-xs font-semibold text-green-300">
                               Enrôlé
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">{student.email}</p>
+                        <p className="text-xs text-white/55">{student.email}</p>
                       </div>
-                      <div className="text-xs text-gray-500">{phone}</div>
+                      <div className="text-xs text-white/45">{phone}</div>
                     </div>
                   );
                 })}
@@ -344,10 +346,10 @@ export function EnrollStudentsDialog({
 
         {totalPages > 1 && (
           <div className="px-6 pb-4">
-            <div className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <div className="flex items-center justify-between rounded-lg border border-[#302D47] bg-[#181721] px-4 py-3 text-sm text-white/60">
               <span>
-                Page <strong className="text-gray-900">{currentPage}</strong> sur{" "}
-                <strong className="text-gray-900">{totalPages}</strong>
+                Page <strong className="text-white/90">{currentPage}</strong> sur{" "}
+                <strong className="text-white/90">{totalPages}</strong>
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -355,6 +357,7 @@ export function EnrollStudentsDialog({
                   size="sm"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1 || loading}
+                  className="border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
                 >
                   Précédent
                 </Button>
@@ -365,6 +368,7 @@ export function EnrollStudentsDialog({
                     setCurrentPage(Math.min(totalPages, currentPage + 1))
                   }
                   disabled={currentPage === totalPages || loading}
+                  className="border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
                 >
                   Suivant
                 </Button>
@@ -374,7 +378,7 @@ export function EnrollStudentsDialog({
         )}
 
         {lastResult && (
-          <div className="mx-6 mb-4 rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <div className="mx-6 mb-4 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-200">
             <div>
               {lastResult.enrollments.length} étudiant(s) inscrit(s) • {" "}
               {lastResult.skippedUserIds.length} ignoré(s) • {" "}
@@ -383,8 +387,8 @@ export function EnrollStudentsDialog({
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t px-6 py-4">
-          <p className="text-sm text-gray-600">
+        <div className="flex items-center justify-between border-t border-[#302D47] bg-[#181721]/40 px-6 py-4">
+          <p className="text-sm text-white/60">
             {selectedCount > 0
               ? `${selectedCount} étudiant(s) seront enrôlé(s)`
               : "Sélectionnez des étudiants à enrôler"}
@@ -394,13 +398,14 @@ export function EnrollStudentsDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={submitting}
+              className="border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
             >
               Annuler
             </Button>
             <Button
               onClick={handleEnroll}
               disabled={submitting || selectedCount === 0}
-              className="bg-[#002c75] hover:bg-[#001f54]"
+              className="bg-[#002c75] text-white hover:bg-[#001f54] disabled:opacity-60"
             >
               {submitting ? (
                 <>

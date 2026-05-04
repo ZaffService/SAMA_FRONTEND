@@ -1171,8 +1171,8 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="min-h-screen flex items-center justify-center bg-[#090B13]">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
       </div>
     );
   }
@@ -1190,22 +1190,22 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#090B13] text-white">
       <div className="max-w-5xl mx-auto p-6 sm:p-8 space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               onClick={() => courseId && router.push(`/admin/edit-course/${courseId}`)}
-              className="text-gray-700"
+              className="rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
               Retour au cours
             </Button>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-500">Gestion du Quiz</p>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <p className="text-sm text-white/55">Gestion du Quiz</p>
+            <h1 className="text-2xl font-bold text-white">
               {moduleTitle || "Module"}
             </h1>
           </div>
@@ -1214,7 +1214,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
         {notice && (
           <Alert
             variant={notice.type === "error" ? "destructive" : "default"}
-            className="bg-white"
+            className="border-white/10 bg-[#0F172A]"
           >
             {notice.type === "error" ? (
               <AlertCircle className="h-4 w-4" />
@@ -1229,7 +1229,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
         )}
 
         {loadError && (
-          <Alert variant="destructive" className="bg-white">
+          <Alert variant="destructive" className="border-red-400/35 bg-red-500/10 text-red-100">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur de chargement</AlertTitle>
             <AlertDescription>{loadError}</AlertDescription>
@@ -1238,16 +1238,16 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <span className="ml-3 text-gray-600">Chargement du quiz...</span>
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            <span className="ml-3 text-white/65">Chargement du quiz...</span>
           </div>
         ) : (
           <>
-            <Card className="shadow-sm">
+            <Card className="border border-white/10 bg-[#0F172A]/95 shadow-sm">
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle className="text-xl">Quiz du module</CardTitle>
-                  <p className="text-sm text-gray-500">
+                  <CardTitle className="text-xl text-white">Quiz du module</CardTitle>
+                  <p className="text-sm text-white/55">
                     Gérez le titre, la description et le score de passage.
                   </p>
                 </div>
@@ -1257,6 +1257,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                       variant="outline"
                       size="sm"
                       onClick={() => setIsEditingQuiz(true)}
+                      className="border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors"
                     >
                       <Pencil className="h-4 w-4 mr-2" />
                       Modifier
@@ -1265,7 +1266,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                       variant="outline"
                       size="sm"
                       onClick={() => setQuizDeleteConfirm(true)}
-                      className="border-red-200 text-red-600 hover:bg-red-50"
+                      className="border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/20"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Supprimer
@@ -1275,12 +1276,12 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
               </CardHeader>
               <CardContent className="space-y-4">
                 {quizDeleteConfirm && quiz && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="rounded-lg border border-red-400/35 bg-red-500/10 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="font-medium text-red-700">
+                      <p className="font-medium text-red-200">
                         Confirmer la suppression du quiz "{quiz.title}" ?
                       </p>
-                      <p className="text-sm text-red-600">
+                      <p className="text-sm text-red-300/90">
                         Cette action supprimera toutes les questions associées.
                       </p>
                     </div>
@@ -1311,26 +1312,26 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                 {quiz && !isEditingQuiz ? (
                   <div className="space-y-2">
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm text-gray-500">Titre</span>
-                      <span className="text-lg font-semibold text-gray-900">
+                      <span className="text-sm text-white/55">Titre</span>
+                      <span className="text-lg font-semibold text-white">
                         {quiz.title}
                       </span>
                     </div>
                     {quiz.description && (
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm text-gray-500">Description</span>
-                        <span className="text-gray-700">{quiz.description}</span>
+                        <span className="text-sm text-white/55">Description</span>
+                        <span className="text-white/80">{quiz.description}</span>
                       </div>
                     )}
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm text-gray-500">Score de passage</span>
-                      <span className="text-gray-700">{quiz.passingScore}%</span>
+                      <span className="text-sm text-white/55">Score de passage</span>
+                      <span className="text-white/80">{quiz.passingScore}%</span>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/70 mb-1">
                         Titre du quiz
                       </label>
                       <Input
@@ -1342,10 +1343,11 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                           }))
                         }
                         placeholder="Ex: Quiz - Module 1"
+                        className="border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/70 mb-1">
                         Description (optionnel)
                       </label>
                       <Textarea
@@ -1358,10 +1360,11 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                         }
                         placeholder="Décrivez l'objectif du quiz"
                         rows={3}
+                        className="border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/70 mb-1">
                         Score de passage (%)
                       </label>
                       <Input
@@ -1379,6 +1382,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                             })(),
                           }))
                         }
+                        className="border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                       />
                     </div>
                     <div className="flex items-center justify-end gap-2">
@@ -1413,18 +1417,18 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm">
+            <Card className="border border-white/10 bg-[#0F172A]/95 shadow-sm">
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle>Questions</CardTitle>
-                  <p className="text-sm text-gray-500">
+                  <CardTitle className="text-white">Questions</CardTitle>
+                  <p className="text-sm text-white/55">
                     {questionCount} question{questionCount > 1 ? "s" : ""}
                   </p>
                 </div>
                 <Button
                   onClick={startCreateQuestion}
                   disabled={isSavingQuiz}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 text-white hover:bg-blue-500"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter une question
@@ -1432,7 +1436,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
               </CardHeader>
               <CardContent className="space-y-6">
                 {!quiz && (
-                  <Alert className="bg-white">
+                  <Alert className="border-white/10 bg-[#111827]">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Quiz requis</AlertTitle>
                     <AlertDescription>
@@ -1442,9 +1446,9 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                 )}
 
                 {questionDraft && (
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 space-y-4">
+                  <div className="rounded-lg border border-white/10 bg-[#0B1220] p-5 space-y-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-white">
                         {questionMode === "edit"
                           ? "Modifier la question"
                           : "Nouvelle question"}
@@ -1455,7 +1459,10 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                     </div>
 
                     {questionError && (
-                      <Alert variant="destructive" className="bg-white">
+                      <Alert
+                        variant="destructive"
+                        className="border-red-400/35 bg-red-500/10 text-red-100"
+                      >
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Erreur</AlertTitle>
                         <AlertDescription>{questionError}</AlertDescription>
@@ -1464,12 +1471,12 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/70 mb-1">
                           Question
                         </label>
                         <div className="flex items-center gap-3">
                           <Input
-                            className="flex-1"
+                            className="flex-1 border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                             value={questionDraft.question}
                             onChange={(event) =>
                               setQuestionDraft((prev) =>
@@ -1504,16 +1511,16 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-white/70 mb-2">
                           Type de question
                         </label>
-                        <div className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">
+                        <div className="rounded-md border border-white/10 bg-[#0B1220] px-3 py-2 text-sm text-white/80">
                           {QUESTION_TYPE_LABELS.MULTIPLE_CHOICE}
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/70 mb-1">
                           Points
                         </label>
                         <Input
@@ -1535,19 +1542,21 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                 : prev,
                             )
                           }
+                          className="border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                         />
                       </div>
 
                       {questionDraft.questionType === "MULTIPLE_CHOICE" && (
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-gray-700">
+                            <label className="text-sm font-medium text-white/70">
                               Réponses
                             </label>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={addOption}
+                              className="text-white/80 hover:text-white hover:bg-white/10"
                             >
                               <Plus className="h-4 w-4 mr-1" />
                               Ajouter une réponse
@@ -1561,7 +1570,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                               >
                                 <div className="flex flex-1 min-w-0 items-center gap-2">
                                   <Input
-                                    className="flex-1"
+                                    className="flex-1 border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                                     value={option.text}
                                     onChange={(event) =>
                                       updateOptionValue(index, event.target.value)
@@ -1613,7 +1622,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => removeOption(index)}
-                                    className="shrink-0 min-w-[110px] whitespace-nowrap"
+                                    className="shrink-0 min-w-[110px] whitespace-nowrap border-white/10 bg-transparent text-white hover:bg-white/10"
                                   >
                                     Supprimer
                                   </Button>
@@ -1622,7 +1631,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                             ))}
                           </div>
                           <div className="mt-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-white/70 mb-1">
                               Réponse correcte
                             </label>
                             <select
@@ -1650,7 +1659,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                   };
                                 })
                               }
-                              className="w-full p-2 border rounded"
+                              className="w-full p-2 rounded-md border border-white/10 bg-[#0B1220] text-white"
                             >
                               <option value="">
                                 Sélectionnez la réponse correcte
@@ -1670,7 +1679,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
 
                       {questionDraft.questionType === "TRUE_FALSE" && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-white/70 mb-2">
                             Réponse correcte
                           </label>
                           <select
@@ -1700,7 +1709,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                 };
                               })
                             }
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 rounded-md border border-white/10 bg-[#0B1220] text-white"
                           >
                             <option value="">
                               Sélectionnez la réponse correcte
@@ -1716,7 +1725,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
 
                       {questionDraft.questionType === "SHORT_ANSWER" && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-white/70 mb-1">
                             Réponse correcte
                           </label>
                           <Input
@@ -1732,12 +1741,17 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                               )
                             }
                             placeholder="Réponse attendue"
+                            className="border-white/10 bg-[#0B1220] text-white placeholder:text-white/40"
                           />
                         </div>
                       )}
 
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" onClick={resetQuestionEditor}>
+                        <Button
+                          variant="outline"
+                          onClick={resetQuestionEditor}
+                          className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                        >
                           Annuler
                         </Button>
                         <Button
@@ -1756,8 +1770,8 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                 )}
 
                 {questionCount === 0 && !questionDraft && (
-                  <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-                    <p className="text-gray-600">
+                  <div className="rounded-lg border border-dashed border-white/20 bg-[#111827]/75 p-8 text-center">
+                    <p className="text-white/65">
                       Aucune question pour le moment. Ajoutez votre première
                       question pour démarrer.
                     </p>
@@ -1770,14 +1784,14 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                       ? quiz.questions.map((question, index) => (
                           <div
                             key={question.id || `question-${index}`}
-                            className="w-full rounded-lg border border-gray-200 bg-white p-4"
+                            className="w-full rounded-lg border border-white/10 bg-[#0B1220] p-4"
                           >
                             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-white">
                                   Q{index + 1}: {question.question}
                                 </h4>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-white/60">
                                   Type: {QUESTION_TYPE_LABELS[question.questionType]} •
                                   Points: {question.points}
                                 </p>
@@ -1787,6 +1801,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => startEditQuestion(question)}
+                                  className="border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors"
                                 >
                                   <Pencil className="h-4 w-4 mr-1" />
                                   Modifier
@@ -1798,7 +1813,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                     question.id && setQuestionDeleteId(question.id)
                                   }
                                   disabled={!question.id}
-                                  className="border-red-200 text-red-600 hover:bg-red-50 shrink-0 min-w-[110px] whitespace-nowrap"
+                                  className="border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/20 shrink-0 min-w-[110px] whitespace-nowrap"
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
                                   Supprimer
@@ -1807,8 +1822,8 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                             </div>
 
                             {question.id && questionDeleteId === question.id && (
-                              <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-sm text-red-700">
+                              <div className="mt-4 rounded-md border border-red-400/35 bg-red-500/10 p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-sm text-red-200">
                                   Confirmer la suppression de cette question ?
                                 </p>
                                 <div className="flex items-center gap-2">
@@ -1817,6 +1832,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                     size="sm"
                                     onClick={() => setQuestionDeleteId(null)}
                                     disabled={questionDeleteLoading === question.id}
+                                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
                                   >
                                     Annuler
                                   </Button>
@@ -1841,14 +1857,14 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                       : pendingQuestions.map((question, index) => (
                           <div
                             key={`pending-${index}`}
-                            className="w-full rounded-lg border border-gray-200 bg-white p-4"
+                            className="w-full rounded-lg border border-white/10 bg-[#0B1220] p-4"
                           >
                             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-white">
                                   Q{index + 1}: {question.question}
                                 </h4>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-white/60">
                                   Type: {QUESTION_TYPE_LABELS[question.questionType]} •
                                   Points: {question.points}
                                 </p>
@@ -1858,6 +1874,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => startEditPendingQuestion(index)}
+                                  className="border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors"
                                 >
                                   <Pencil className="h-4 w-4 mr-1" />
                                   Modifier
@@ -1866,7 +1883,7 @@ export default function QuizManagementPage({ params }: QuizPageParams) {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleDeletePendingQuestion(index)}
-                                  className="border-red-200 text-red-600 hover:bg-red-50 shrink-0 min-w-[110px] whitespace-nowrap"
+                                  className="border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/20 shrink-0 min-w-[110px] whitespace-nowrap"
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
                                   Supprimer

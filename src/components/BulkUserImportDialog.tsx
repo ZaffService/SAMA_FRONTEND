@@ -2,18 +2,9 @@
 
 import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Loader2, UploadCloud } from "lucide-react";
-import Swal from "sweetalert2";
+import { Loader2, UploadCloud } from "lucide-react";
 import {
   UserApi,
   type ImportUsersResponse,
@@ -54,43 +45,11 @@ const normalizeCellValue = (value: unknown): string => {
   return String(value);
 };
 
-const createUserImportTemplate = (): void => {
-  const templateData = [
-    {
-      email: "exemple@email.com",
-      prenom: "Prénom",
-      nom: "Nom",
-      telephone: "+221771234567",
-      role: "STUDENT",
-      password: "",
-    },
-  ];
-
-  const worksheet = XLSX.utils.json_to_sheet(templateData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Utilisateurs");
-
-  worksheet["!cols"] = [
-    { wch: 30 },
-    { wch: 15 },
-    { wch: 15 },
-    { wch: 20 },
-    { wch: 12 },
-    { wch: 15 },
-  ];
-
-  XLSX.writeFile(workbook, "template_import_utilisateurs.xlsx");
-};
-
 export interface BulkUserImportDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   onImportSuccess?: (result: ImportUsersResponse) => void;
 }
 
 export function BulkUserImportDialog({
-  open,
-  onOpenChange,
   onImportSuccess,
 }: BulkUserImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -117,13 +76,6 @@ export function BulkUserImportDialog({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      resetState();
-    }
-    onOpenChange(nextOpen);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,62 +197,11 @@ export function BulkUserImportDialog({
       const response = await UserApi.importUsers(file);
       setResult(response);
 
-      const swalTarget = document.getElementById("bulk-user-import-dialog");
-
-      if (response.failed > 0) {
-        await Swal.fire({
-          icon: "warning",
-          title: "Import terminé avec avertissements",
-          text: response.message,
-          confirmButtonText: "OK",
-          confirmButtonColor: "#002c75",
-          showCloseButton: true,
-          heightAuto: false,
-          target: swalTarget ?? undefined,
-        });
-      } else if (response.imported > 0) {
-        await Swal.fire({
-          icon: "success",
-          title: "Import réussi",
-          text: response.message,
-          confirmButtonText: "OK",
-          confirmButtonColor: "#002c75",
-          showCloseButton: true,
-          heightAuto: false,
-          target: swalTarget ?? undefined,
-        });
-      } else {
-        await Swal.fire({
-          icon: "info",
-          title: "Import terminé",
-          text: response.message,
-          confirmButtonText: "OK",
-          confirmButtonColor: "#002c75",
-          showCloseButton: true,
-          heightAuto: false,
-          target: swalTarget ?? undefined,
-        });
-      }
-
       if (response.imported > 0) {
         onImportSuccess?.(response);
       }
     } catch (error) {
       logger.error("❌ Import utilisateurs: erreur", error);
-      const swalTarget = document.getElementById("bulk-user-import-dialog");
-      await Swal.fire({
-        icon: "error",
-        title: "Erreur d'import",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Erreur inconnue lors de l'import.",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#002c75",
-        showCloseButton: true,
-        heightAuto: false,
-        target: swalTarget ?? undefined,
-      });
       setSubmitError(
         error instanceof Error
           ? error.message
@@ -312,36 +213,24 @@ export function BulkUserImportDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        id="bulk-user-import-dialog"
-        className="sm:max-w-2xl max-h-[90vh] overflow-hidden"
-      >
-        <DialogHeader>
-          <DialogTitle>Importation massive d&apos;utilisateurs</DialogTitle>
-          <DialogDescription>
-            Importez un fichier Excel (.xlsx, .xls) ou CSV pour créer plusieurs
-            utilisateurs en une seule opération.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="rounded-xl border border-[#302D47] bg-[#1F1D2B] p-5 text-white shadow-sm">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-white">
+          Importation massive d&apos;utilisateurs
+        </h2>
+        <p className="mt-1 text-sm text-white/70">
+          Importez un fichier Excel (.xlsx, .xls) ou CSV pour créer plusieurs
+          utilisateurs en une seule opération.
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-4 max-h-[62vh] overflow-y-auto pr-2">
-            <div className="rounded-lg border border-dashed border-gray-200 p-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
+          <div className="rounded-lg border border-dashed border-[#3B3754] bg-[#26233A]/45 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <label className="text-sm font-semibold text-gray-900" htmlFor="file">
+              <label className="text-sm font-semibold text-white" htmlFor="file">
                 Fichier à importer
               </label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={createUserImportTemplate}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Télécharger le template
-              </Button>
             </div>
             <div className="mt-2 space-y-2">
               <Input
@@ -357,42 +246,42 @@ export function BulkUserImportDialog({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isImporting}
-                className="flex w-full items-center justify-between gap-3 rounded-md border border-dashed border-gray-300 bg-white px-4 py-3 text-left text-sm text-gray-700 transition hover:border-[#002c75] hover:bg-[#EEF4FF] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-between gap-3 rounded-md border border-dashed border-[#3B3754] bg-[#1F1D2B] px-4 py-3 text-left text-sm text-white/80 transition hover:border-[#80B5FF] hover:bg-[#26233A] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF4FF] text-[#002c75]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2A365F] text-[#80B5FF]">
                     <UploadCloud className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-white">
                       {file ? "Changer le fichier" : "Choisir un fichier"}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-white/60">
                       {file
                         ? file.name
                         : "Cliquez pour sélectionner un fichier .xlsx, .xls ou .csv"}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-semibold text-[#002c75]">
+                <span className="text-xs font-semibold text-[#80B5FF]">
                   Parcourir
                 </span>
               </button>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-white/60">
                 Taille max : 10MB. Formats acceptés : .xlsx, .xls, .csv
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-white/60">
                 Colonnes obligatoires : email, prenom, nom. Optionnelles :
                 telephone, role, password.
               </p>
               {file && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
-                  <span className="font-semibold text-gray-800">{file.name}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
+                  <span className="font-semibold text-white">{file.name}</span>
                   <span>• {formatFileSize(file.size)}</span>
                   <button
                     type="button"
                     onClick={handleClearFile}
-                    className="text-[#002c75] hover:text-[#001f54]"
+                    className="text-[#80B5FF] hover:text-[#A9CCFF]"
                   >
                     Retirer le fichier
                   </button>
@@ -402,20 +291,20 @@ export function BulkUserImportDialog({
                 <p className="text-xs text-red-600">{fileError}</p>
               )}
             </div>
-            </div>
+          </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-lg border border-[#302D47] bg-[#1F1D2B] p-4">
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-white">
                 Prévisualisation des 10 premières lignes
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-white/60">
                 Vérifiez rapidement les colonnes avant l&apos;import.
               </p>
             </div>
             <div className="mt-3">
               {isPreviewLoading && (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-white/60">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Prévisualisation en cours...
                 </div>
@@ -426,7 +315,7 @@ export function BulkUserImportDialog({
               {!isPreviewLoading &&
                 !previewError &&
                 previewHeaders.length === 0 && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-white/60">
                     Sélectionnez un fichier pour afficher l&apos;aperçu.
                   </p>
                 )}
@@ -434,8 +323,8 @@ export function BulkUserImportDialog({
                 !previewError &&
                 previewHeaders.length > 0 && (
                   <div className="max-h-64 overflow-auto">
-                    <table className="min-w-full text-left text-xs text-gray-700">
-                      <thead className="bg-gray-50 text-[11px] uppercase text-gray-500">
+                    <table className="min-w-full text-left text-xs text-white/80">
+                      <thead className="bg-[#26233A] text-[11px] uppercase text-white/65">
                         <tr>
                           <th className="px-3 py-2 font-semibold">Ligne</th>
                           {previewHeaders.map((header, index) => (
@@ -445,20 +334,20 @@ export function BulkUserImportDialog({
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-[#2F2B45]">
                         {previewRows.length === 0 ? (
                           <tr>
                             <td
                               colSpan={previewHeaders.length + 1}
-                              className="px-3 py-3 text-center text-xs text-gray-500"
+                              className="px-3 py-3 text-center text-xs text-white/60"
                             >
                               Aucune ligne détectée.
                             </td>
                           </tr>
                         ) : (
                           previewRows.map((row, rowIndex) => (
-                            <tr key={`preview-row-${rowIndex}`}>
-                              <td className="px-3 py-2 text-gray-500">
+                            <tr key={`preview-row-${rowIndex}`} className="hover:bg-[#26233A]/60">
+                              <td className="px-3 py-2 text-white/60">
                                 {rowIndex + 2}
                               </td>
                               {previewHeaders.map((_, colIndex) => (
@@ -477,24 +366,24 @@ export function BulkUserImportDialog({
                   </div>
                 )}
             </div>
-            </div>
+          </div>
 
-            {submitError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {submitError && (
+            <div className="rounded-lg border border-red-500/40 bg-red-950/40 p-3 text-sm text-red-300">
               {submitError}
             </div>
-            )}
+          )}
 
-            {result && (
+          {result && (
             <div
               className={`rounded-lg border p-4 text-sm ${
                 result.failed > 0
-                  ? "border-yellow-200 bg-yellow-50"
-                  : "border-green-200 bg-green-50"
+                  ? "border-amber-500/40 bg-amber-950/30"
+                  : "border-emerald-500/40 bg-emerald-950/30"
               }`}
             >
-              <p className="font-semibold text-gray-900">{result.message}</p>
-              <div className="mt-3 grid gap-2 text-xs text-gray-700 sm:grid-cols-2">
+              <p className="font-semibold text-white">{result.message}</p>
+              <div className="mt-3 grid gap-2 text-xs text-white/80 sm:grid-cols-2">
                 <div>
                   Total traité :{" "}
                   <span className="font-semibold">{result.totalProcessed}</span>
@@ -514,10 +403,10 @@ export function BulkUserImportDialog({
 
               {result.errors?.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-semibold text-red-700">
+                  <p className="text-xs font-semibold text-red-300">
                     Erreurs détectées
                   </p>
-                  <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-xs text-red-700">
+                  <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-xs text-red-300">
                     {result.errors.map((err, index) => (
                       <li key={`${err.line}-${index}`}>
                         Ligne {err.line}: {err.message}
@@ -529,10 +418,10 @@ export function BulkUserImportDialog({
 
               {result.existingUsers?.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-semibold text-gray-700">
+                  <p className="text-xs font-semibold text-white/80">
                     Utilisateurs déjà existants
                   </p>
-                  <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-xs text-gray-700">
+                  <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-xs text-white/70">
                     {result.existingUsers.map((user, index) => (
                       <li key={`${user.email}-${index}`}>
                         {user.prenom} {user.nom} ({user.email})
@@ -542,31 +431,35 @@ export function BulkUserImportDialog({
                 </div>
               )}
             </div>
-            )}
-          </div>
+          )}
+        </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isImporting}
-            >
-              Fermer
-            </Button>
-            <Button type="submit" disabled={!file || isImporting}>
-              {isImporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Import en cours...
-                </>
-              ) : (
-                "Importer"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={resetState}
+            disabled={isImporting}
+            className="border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A] hover:text-white"
+          >
+            Réinitialiser
+          </Button>
+          <Button
+            type="submit"
+            disabled={!file || isImporting}
+            className="bg-[#80B5FF] text-[#0E1B46] hover:bg-[#A9CCFF]"
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Import en cours...
+              </>
+            ) : (
+              "Importer"
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

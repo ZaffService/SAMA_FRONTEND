@@ -114,7 +114,7 @@ const UserManagement: React.FC = () => {
     instructors: 0,
     admins: 0,
   });
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [showImportForm, setShowImportForm] = useState(false);
   const [usersReloadToken, setUsersReloadToken] = useState(0);
   const [profileMetadata, setProfileMetadata] =
     useState<ProfileMetadataResponse | null>(null);
@@ -560,37 +560,39 @@ const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 text-white">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">Gestion des Utilisateurs</h1>
+        <h1 className="text-2xl font-bold text-white">Gestion des Utilisateurs</h1>
         <button
           type="button"
-          onClick={() => setIsImportDialogOpen(true)}
-          className="inline-flex items-center justify-center rounded-lg bg-[#002c75] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#001f54]"
+          onClick={() => setShowImportForm((prev) => !prev)}
+          className="inline-flex items-center justify-center rounded-lg bg-[#a9f5e5] px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#458a7b]"
         >
-          Ajout en masse
+          {showImportForm ? "Masquer le formulaire d'import" : "Ajout en masse"}
         </button>
       </div>
 
-      <BulkUserImportDialog
-        open={isImportDialogOpen}
-        onOpenChange={setIsImportDialogOpen}
-        onImportSuccess={(result) => {
-          if (result.imported > 0) {
-            setUsersReloadToken((prev) => prev + 1);
-            loadStats();
-          }
-        }}
-      />
+      {showImportForm && (
+        <div className="mb-6">
+          <BulkUserImportDialog
+            onImportSuccess={(result) => {
+              if (result.imported > 0) {
+                setUsersReloadToken((prev) => prev + 1);
+                loadStats();
+              }
+            }}
+          />
+        </div>
+      )}
 
       {/* Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-[#EAF1FF] p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-[#002c75]">Total</h3>
-          <p className="text-2xl font-bold text-[#002c75]">{stats.total}</p>
+        <div className="rounded-lg border border-[#3B3754] bg-[#1F1D2B] p-4">
+          <h3 className="text-lg font-semibold text-white">Total</h3>
+          <p className="text-2xl font-bold text-white">{stats.total}</p>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold text-green-800">Étudiants</h3>
+        <div className="rounded-lg border border-[#3B3754] bg-[#1F1D2B] p-4">
+          <h3 className="text-lg font-semibold text-green-300">Étudiants</h3>
           <p className="text-2xl font-bold text-green-600">{stats.students}</p>
         </div>
       </div>
@@ -600,7 +602,7 @@ const UserManagement: React.FC = () => {
         <select
           value={selectedRole}
           onChange={(e) => handleRoleChange(e.target.value as Role | "ALL")}
-          className="px-3 py-2 border rounded-md"
+          className="rounded-md border border-[#3B3754] bg-[#1F1D2B] px-3 py-2 text-white"
         >
           <option value="ALL">Tous les rôles</option>
           <option value="STUDENT">Étudiants</option>
@@ -612,7 +614,7 @@ const UserManagement: React.FC = () => {
           <select
             value={limit}
             onChange={(e) => handleLimitChange(Number(e.target.value))}
-            className="px-3 py-2 border rounded-md"
+            className="rounded-md border border-[#3B3754] bg-[#1F1D2B] px-3 py-2 text-white"
           >
             <option value={5}>5 par page</option>
             <option value={16}>16 par page</option>
@@ -628,37 +630,37 @@ const UserManagement: React.FC = () => {
               setCurrentPage(1);
             }}
             placeholder="Rechercher un utilisateur..."
-            className="w-full sm:w-72 px-3 py-2 border rounded-md"
+            className="w-full rounded-md border border-[#3B3754] bg-[#1F1D2B] px-3 py-2 text-white placeholder:text-white/40 sm:w-72"
             autoComplete="off"
           />
         </div>
       </div>
 
       {/* Table des utilisateurs */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-[#302D47] bg-[#1F1D2B] shadow">
         {loading ? (
-          <div className="p-8 text-center">Chargement...</div>
+          <div className="p-8 text-center text-white">Chargement...</div>
         ) : (
           <>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-[#302D47]">
+              <thead className="bg-[#26233A]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-white/80">
                     Utilisateur
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-white/80">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-white/80">
                     Téléphone
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-white/80">
                     Rôle
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-white/80">
                     Statut
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-white/80">
                     Date d'inscription
                   </th>
                   {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -666,45 +668,45 @@ const UserManagement: React.FC = () => {
                   </th> */}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-[#2A273D] bg-[#1F1D2B]">
                 {pageUsers.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-6 py-8 text-center text-sm text-gray-500"
+                      className="px-6 py-8 text-center text-sm text-white/60"
                     >
                       Aucun utilisateur trouvé.
                     </td>
                   </tr>
                 ) : (
                   pageUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
+                    <tr key={user.id} className="hover:bg-[#26233A]">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-700">
+                          <div className="h-10 w-10 shrink-0">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2B2841]">
+                              <span className="text-sm font-medium text-white">
                                 {user.firstName[0]}
                                 {user.lastName[0]}
                               </span>
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-white">
                               {user.firstName} {user.lastName}
                             </div>
                             {user.userProfile?.phone && (
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-white/55">
                                 {user.userProfile.phone}
                               </div>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         {user.email}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         {user.telephone || "-"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -735,7 +737,7 @@ const UserManagement: React.FC = () => {
                           {user.emailVerified ? "Vérifié" : "Non vérifié"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
                         {new Date(user.createdAt).toLocaleDateString("fr-FR")}
                       </td>
                       {/* <td className="px-6 py-4 whitespace-nowrap">
@@ -756,12 +758,12 @@ const UserManagement: React.FC = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="flex items-center justify-between border-t border-[#302D47] bg-[#1F1D2B] px-4 py-3 sm:px-6">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center rounded-md border border-[#3B3754] bg-[#181721] px-4 py-2 text-sm font-medium text-white hover:bg-[#26233A] disabled:opacity-50"
                   >
                     Précédent
                   </button>
@@ -770,14 +772,14 @@ const UserManagement: React.FC = () => {
                       setCurrentPage(Math.min(totalPages, currentPage + 1))
                     }
                     disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                    className="relative ml-3 inline-flex items-center rounded-md border border-[#3B3754] bg-[#181721] px-4 py-2 text-sm font-medium text-white hover:bg-[#26233A] disabled:opacity-50"
                   >
                     Suivant
                   </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-white/80">
                       Affichage de{" "}
                       <span className="font-medium">{startItem}</span> à{" "}
                       <span className="font-medium">{endItem}</span> sur{" "}
@@ -790,7 +792,7 @@ const UserManagement: React.FC = () => {
                       <button
                         onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                        className="relative inline-flex items-center border border-[#3B3754] bg-[#181721] px-3 py-2 text-sm font-medium text-white hover:bg-[#26233A] disabled:opacity-50"
                       >
                         Précédent
                       </button>
@@ -799,7 +801,7 @@ const UserManagement: React.FC = () => {
                           return (
                             <span
                               key={`ellipsis-${index}`}
-                              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500"
+                              className="relative inline-flex items-center border border-[#3B3754] bg-[#181721] px-4 py-2 text-sm font-medium text-white/70"
                             >
                               ...
                             </span>
@@ -811,8 +813,8 @@ const UserManagement: React.FC = () => {
                             onClick={() => setCurrentPage(item)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                               currentPage === item
-                                ? "z-10 bg-indigo-50 border-indigo-500 text-indigo-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                ? "z-10 border-[#A9F5E5] bg-[#A9F5E5]/20 text-[#A9F5E5]"
+                                : "border-[#3B3754] bg-[#181721] text-white/80 hover:bg-[#26233A]"
                             }`}
                           >
                             {item}
@@ -824,7 +826,7 @@ const UserManagement: React.FC = () => {
                           setCurrentPage(Math.min(totalPages, currentPage + 1))
                         }
                         disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                        className="relative inline-flex items-center border border-[#3B3754] bg-[#181721] px-3 py-2 text-sm font-medium text-white hover:bg-[#26233A] disabled:opacity-50"
                       >
                         Suivant
                       </button>

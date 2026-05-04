@@ -56,6 +56,8 @@ export function LessonManager({
   onLessonsChange,
   courseId,
 }: LessonManagerProps) {
+  const fieldClassName =
+    "border-[#3B3754] bg-[#181721] text-white placeholder:text-white/55";
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
     {},
@@ -203,18 +205,18 @@ export function LessonManager({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Leçons</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-lg font-semibold text-white">Leçons</h3>
+          <p className="text-sm text-white">
             Ajoutez du contenu et des vidéos à votre leçon.
           </p>
         </div>
         <Button
           type="button"
           onClick={addLesson}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-2 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
         >
           <Plus className="h-4 w-4" />
           <span>Ajouter une leçon</span>
@@ -222,11 +224,15 @@ export function LessonManager({
       </div>
 
       {lessons.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+        <div className="rounded-lg border-2 border-dashed border-[#3B3754] bg-[#181721] py-8 text-center text-white">
           <div className="space-y-2">
             <h4 className="text-md font-medium">Aucune leçon créée</h4>
             <p>Commencez par ajouter votre première leçon.</p>
-            <Button type="button" onClick={addLesson} className="mt-4">
+            <Button
+              type="button"
+              onClick={addLesson}
+              className="mt-4 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
+            >
               Créer la première leçon
             </Button>
           </div>
@@ -242,16 +248,16 @@ export function LessonManager({
               onDragEnd={handleDragEnd}
               className="cursor-move"
             >
-              <Card>
+              <Card className="border border-[#3B3754] bg-[#1F1D2B]">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center space-x-2">
-                      <GripVertical className="h-4 w-4 text-gray-400" />
+                    <CardTitle className="text-base flex items-center space-x-2 text-white">
+                      <GripVertical className="h-4 w-4 text-white/50" />
                       <span>
                         Leçon {index + 1}: {lesson.title || "Sans titre"}
                       </span>
                     </CardTitle>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="mt-1 text-xs text-white/60">
                       Glissez pour réorganiser
                     </p>
                     <Button
@@ -259,7 +265,7 @@ export function LessonManager({
                       variant="outline"
                       size="sm"
                       onClick={() => removeLesson(index)}
-                      className="text-red-600 hover:text-red-700"
+                      className="border-[#3B3754] bg-[#181721] text-red-400 hover:bg-[#33242a] hover:text-red-300"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -269,7 +275,7 @@ export function LessonManager({
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="mb-1 block text-sm font-semibold text-white">
                         Titre de la leçon *
                       </label>
                       <Input
@@ -278,12 +284,13 @@ export function LessonManager({
                           updateLesson(index, { title: e.target.value })
                         }
                         placeholder="Entrez le titre de la leçon"
+                        className={fieldClassName}
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="mb-1 block text-sm font-semibold text-white">
                         Durée (minutes)
                       </label>
                       <Input
@@ -297,13 +304,14 @@ export function LessonManager({
                           })
                         }
                         placeholder="0"
+                        className={fieldClassName}
                         min="0"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="mb-1 block text-sm font-semibold text-white">
                       Contenu de la leçon *
                     </label>
                     <Textarea
@@ -313,12 +321,13 @@ export function LessonManager({
                       }
                       placeholder="Écrivez le contenu de votre leçon..."
                       rows={4}
+                      className={fieldClassName}
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="mb-2 block text-sm font-semibold text-white">
                       Vidéo de la leçon (optionnel)
                     </label>
 
@@ -344,10 +353,10 @@ export function LessonManager({
                               border-2 border-dashed rounded-lg p-6 text-center transition-colors
                               ${
                                 currentDragOver
-                                  ? "border-blue-400 bg-blue-50"
-                                  : "border-gray-300 hover:border-gray-400"
+                                  ? "border-[#3B82F6] bg-[#1E335F]/30"
+                                  : "border-[#3B3754] hover:border-[#5B5680]"
                               }
-                              ${lesson.videoFile ? "bg-green-50 border-green-300" : ""}
+                              ${lesson.videoFile ? "border-[#34D399] bg-[#12352D]" : ""}
                             `}
                             onDragOver={(e) => handleDragOverVideo(e, index)}
                             onDragLeave={(e) => handleDragLeaveVideo(e, index)}
@@ -357,19 +366,19 @@ export function LessonManager({
                               <div className="space-y-3">
                                 <div className="flex items-center justify-center space-x-2">
                                   <CheckCircle className="h-5 w-5 text-green-600" />
-                                  <span className="text-sm font-medium text-green-700">
+                                  <span className="text-sm font-medium text-[#A9F5E5]">
                                     Vidéo ajoutée
                                   </span>
                                 </div>
 
-                                <div className="flex items-center justify-between bg-white p-3 rounded border">
+                                <div className="flex items-center justify-between rounded border border-[#3B3754] bg-[#181721] p-3">
                                   <div className="flex items-center space-x-3">
                                     <FileVideo className="h-8 w-8 text-blue-500" />
                                     <div className="text-left">
-                                      <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                      <p className="max-w-xs truncate text-sm font-medium text-white">
                                         {lesson.videoFile.name}
                                       </p>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-xs text-white/65">
                                         {formatFileSize(lesson.videoFile.size)}{" "}
                                         • {lesson.videoFile.type}
                                       </p>
@@ -380,7 +389,7 @@ export function LessonManager({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => removeVideo(index)}
-                                    className="text-red-600 hover:text-red-700"
+                                    className="text-red-400 hover:text-red-300"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -390,16 +399,16 @@ export function LessonManager({
                               <div className="space-y-3">
                                 <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
                                 <div className="space-y-2">
-                                  <p className="text-sm font-medium text-gray-900">
+                                  <p className="text-sm font-medium text-white">
                                     Téléchargement en cours...
                                   </p>
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div className="h-2 w-full rounded-full bg-[#2B2841]">
                                     <div
                                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                       style={{ width: `${currentProgress}%` }}
                                     ></div>
                                   </div>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-white/65">
                                     {currentProgress}% terminé
                                   </p>
                                 </div>
@@ -407,24 +416,24 @@ export function LessonManager({
                             ) : (
                               <div className="space-y-3">
                                 <Upload
-                                  className={`h-10 w-10 mx-auto ${currentDragOver ? "text-blue-500" : "text-gray-400"}`}
+                                  className={`mx-auto h-10 w-10 ${currentDragOver ? "text-[#3B82F6]" : "text-white/55"}`}
                                 />
                                 <div className="space-y-2">
-                                  <p className="text-lg font-medium text-gray-900">
+                                  <p className="text-lg font-medium text-white">
                                     {currentDragOver
                                       ? "Déposez votre vidéo ici"
                                       : "Glissez-déposez une vidéo"}
                                   </p>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-white/75">
                                     ou{" "}
                                     <label
                                       htmlFor={`video-upload-${index}`}
-                                      className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+                                      className="cursor-pointer font-medium text-[#3B82F6] hover:text-[#60A5FA]"
                                     >
                                       parcourez vos fichiers
                                     </label>
                                   </p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-white/60">
                                     Formats acceptés: MP4, WebM, OGG, AVI, MOV,
                                     WMV, FLV, MKV • Max 500MB
                                   </p>
@@ -466,6 +475,8 @@ interface ModuleManagerProps {
 }
 
 export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) {
+  const fieldClassName =
+    "border-[#3B3754] bg-[#181721] text-white placeholder:text-white/55";
   const [editingModule, setEditingModule] = useState<{
     isOpen: boolean;
     moduleId: string;
@@ -597,18 +608,18 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Modules</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-lg font-semibold text-white">Modules</h3>
+          <p className="text-sm text-white">
             Organisez votre cours en modules et leçons.
           </p>
         </div>
         <Button
           type="button"
           onClick={addModule}
-          className="flex items-center space-x-2"
+          className="flex items-center space-x-2 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
         >
           <Plus className="h-4 w-4" />
           <span>Ajouter un module</span>
@@ -616,11 +627,15 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
       </div>
 
       {modules.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+        <div className="rounded-lg border-2 border-dashed border-[#3B3754] bg-[#181721] py-8 text-center text-white">
           <div className="space-y-2">
             <h4 className="text-md font-medium">Aucun module créé</h4>
             <p>Commencez par ajouter votre premier module.</p>
-            <Button type="button" onClick={addModule} className="mt-4">
+            <Button
+              type="button"
+              onClick={addModule}
+              className="mt-4 bg-[#3B82F6] text-white hover:bg-[#2563EB]"
+            >
               Créer le premier module
             </Button>
           </div>
@@ -628,10 +643,13 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
       ) : (
         <div className="space-y-4">
           {modules.map((module, index) => (
-            <Card key={module.id || module.tempId || `module-${index}`}>
+            <Card
+              key={module.id || module.tempId || `module-${index}`}
+              className="border border-[#3B3754] bg-[#1F1D2B]"
+            >
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">
+                  <CardTitle className="text-base text-white">
                     Module {index + 1}: {module.title || "Sans titre"}
                   </CardTitle>
                   <div className="flex items-center space-x-2">
@@ -641,7 +659,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                         variant="outline"
                         size="sm"
                         onClick={() => openEditDialog(module)}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="border-[#3B3754] bg-[#181721] text-[#80B5FF] hover:bg-[#26233A] hover:text-[#A5CCFF]"
                       >
                         <Edit className="h-4 w-4" />
                         <span className="ml-1">Modifier</span>
@@ -652,7 +670,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                       variant="outline"
                       size="sm"
                       onClick={() => removeModule(index)}
-                      className="text-red-600 hover:text-red-700"
+                      className="border-[#3B3754] bg-[#181721] text-red-400 hover:bg-[#33242a] hover:text-red-300"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -661,7 +679,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-semibold text-white">
                     Titre du module *
                   </label>
                   <Input
@@ -670,12 +688,13 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                       updateModule(index, { title: e.target.value })
                     }
                     placeholder="Entrez le titre du module"
+                    className={fieldClassName}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-semibold text-white">
                     Description du module
                   </label>
                   <Textarea
@@ -684,11 +703,12 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                       updateModule(index, { description: e.target.value })
                     }
                     placeholder="Décrivez le contenu de ce module..."
+                    className={fieldClassName}
                     rows={2}
                   />
                 </div>
 
-                <div className="border-t pt-4">
+                <div className="border-t border-[#3B3754] pt-4">
                   <LessonManager
                     lessons={module.lessons}
                     onLessonsChange={(lessons) => handleLessonsChange(index, lessons)}
@@ -702,36 +722,44 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
       )}
 
       {/* Dialogue de modification du module */}
-      <Dialog open={editingModule?.isOpen || false} onOpenChange={(open) => {
-        if (!open) closeEditDialog();
-      }}>
-        <DialogContent className="sm:max-w-[500px]">
+      <Dialog
+        open={editingModule?.isOpen || false}
+        onOpenChange={(open) => {
+          if (!open) closeEditDialog();
+        }}
+      >
+        <DialogContent className="sm:max-w-[500px] border border-[#3B3754] bg-[#1F1D2B] text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Edit className="h-5 w-5" />
+            <DialogTitle className="flex items-center space-x-2 text-white">
+              <Edit className="h-5 w-5 text-[#80B5FF]" />
               <span>Modifier le module</span>
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {success && (
-              <Alert className="border-green-500 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-700">
+              <Alert className="border-[#34D399] bg-[#12352D]">
+                <CheckCircle className="h-4 w-4 text-[#A9F5E5]" />
+                <AlertDescription className="text-[#A9F5E5]">
                   Module modifié avec succès !
                 </AlertDescription>
               </Alert>
             )}
 
             {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+              <Alert className="border-[#EF4444] bg-[#35181D] text-white">
+                <AlertCircle className="h-4 w-4 text-[#FCA5A5]" />
+                <AlertDescription className="text-[#FECACA]">
+                  {error}
+                </AlertDescription>
               </Alert>
             )}
 
             <div className="space-y-2">
-              <label htmlFor="edit-module-title" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="edit-module-title"
+                className="block text-sm font-semibold text-white"
+              >
                 Titre du module *
               </label>
               <Input
@@ -739,13 +767,17 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                 value={editingModule?.title || ""}
                 onChange={(e) => handleEditFieldChange("title", e.target.value)}
                 placeholder="Entrez le titre du module"
+                className="border-[#3B3754] bg-[#181721] text-white placeholder:text-white/55"
                 disabled={isSubmitting}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="edit-module-description" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="edit-module-description"
+                className="block text-sm font-semibold text-white"
+              >
                 Description du module
               </label>
               <Textarea
@@ -753,6 +785,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
                 value={editingModule?.description || ""}
                 onChange={(e) => handleEditFieldChange("description", e.target.value)}
                 placeholder="Décrivez le contenu de ce module..."
+                className="border-[#3B3754] bg-[#181721] text-white placeholder:text-white/55"
                 rows={4}
                 disabled={isSubmitting}
               />
@@ -762,9 +795,9 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
           <DialogFooter className="flex justify-end space-x-2">
             <Button
               type="button"
-              variant="outline"
               onClick={closeEditDialog}
               disabled={isSubmitting}
+              className="border border-[#3B3754] bg-[#181721] text-white hover:bg-[#26233A]"
             >
               Annuler
             </Button>
@@ -772,6 +805,7 @@ export function ModuleManager({ modules, onModulesChange }: ModuleManagerProps) 
               type="button"
               onClick={handleEditSubmit}
               disabled={isSubmitting || success}
+              className="bg-[#3B82F6] text-white hover:bg-[#2563EB]"
             >
               {isSubmitting ? (
                 <>

@@ -167,13 +167,13 @@ export function VideoStatusItem({
   const getStatusColor = (status: LessonStatus) => {
     switch (status) {
       case LessonStatus.PENDING_VIDEO:
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-amber-500/15 text-amber-200 border-amber-500/30";
       case LessonStatus.VIDEO_UPLOADED:
-        return "bg-green-100 text-green-800";
+        return "bg-emerald-500/15 text-emerald-200 border-emerald-500/30";
       case LessonStatus.READY:
-        return "bg-blue-100 text-blue-800";
+        return "bg-sky-500/15 text-sky-200 border-sky-500/30";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-white/10 text-white/80 border-white/15";
     }
   };
 
@@ -191,19 +191,24 @@ export function VideoStatusItem({
   };
 
   return (
-    <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg border">
-      <div className="flex items-center space-x-3 flex-1">
+    <div className="flex items-center justify-between gap-3 py-3 px-4 bg-[#141320] rounded-xl border border-[#2A2938]">
+      <div className="flex items-center space-x-3 flex-1 min-w-0">
         {getStatusIcon(lesson.status)}
         <div>
-          <div className="font-medium text-sm">{lesson.title}</div>
-          <div className="text-xs text-gray-600">
+          <div className="font-medium text-sm text-white line-clamp-1">
+            {lesson.title}
+          </div>
+          <div className="text-xs text-white/60">
             Statut: {getStatusText(lesson.status)}
           </div>
         </div>
       </div>
 
       <div className="flex items-center space-x-2">
-        <Badge variant="outline" className={getStatusColor(lesson.status)}>
+        <Badge
+          variant="outline"
+          className={`border ${getStatusColor(lesson.status)}`}
+        >
           {getStatusText(lesson.status)}
         </Badge>
 
@@ -225,6 +230,7 @@ export function VideoStatusItem({
               size="sm"
               onClick={() => changeVideoFileInputRef.current?.click()}
               disabled={isUploading}
+              className="border-[#3A3950] bg-transparent text-white hover:bg-white/10"
             >
               {isUploading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -253,13 +259,14 @@ export function VideoStatusItem({
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
+              className="border-[#3A3950] bg-transparent text-white hover:bg-white/10"
             >
               <Upload className="h-4 w-4 mr-2" />
               Choisir vidéo
             </Button>
 
             {selectedFile && (
-              <span className="text-xs text-gray-600 max-w-32 truncate">
+              <span className="text-xs text-white/60 max-w-32 truncate">
                 {selectedFile.name} (
                 {(selectedFile.size / 1024 / 1024).toFixed(1)}MB)
               </span>
@@ -269,7 +276,7 @@ export function VideoStatusItem({
               onClick={handleUpload}
               disabled={!selectedFile || isUploading}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isUploading ? "Upload en cours..." : "Uploader"}
             </Button>

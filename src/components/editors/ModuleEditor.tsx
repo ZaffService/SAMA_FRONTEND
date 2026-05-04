@@ -122,24 +122,24 @@ export function ModuleEditor({ courseId, onBack, onManageLessons }: ModuleEditor
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="mx-auto max-w-7xl p-8 text-white">
         <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Chargement des modules...</span>
+          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          <span className="ml-2 text-white/75">Chargement des modules...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-8">
+    <div className="min-h-screen bg-[#090B13] text-white">
+      <div className="mx-auto max-w-5xl p-8">
         {/* Header avec bouton retour */}
         <div className="flex items-center mb-8">
           <Button 
             variant="ghost" 
             onClick={onBack}
-            className="mr-4"
+            className="mr-4 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             Retour

@@ -5,16 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
-  BookOpen,
+  GraduationCap,
   Plus,
   Users,
-  UserPlus,
   FolderOpen,
-  BarChart3,
   Settings,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
+  CircleDot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { type DashboardView } from "./AdminLayout";
@@ -34,19 +31,20 @@ export function AdminSidebar({
   onLogout,
   onOpenCategoryDialog,
 }: AdminSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const isExpanded = isHovered;
 
   const menuItems = [
     {
       id: "overview" as const,
-      label: "Tableau de bord",
+      label: "Dashboard",
       icon: LayoutDashboard,
       active: currentView === "overview",
     },
     {
       id: "manage-courses" as const,
-      label: "Gestion des cours",
-      icon: BookOpen,
+      label: "Gestion Cours",
+      icon: GraduationCap,
       active: currentView === "manage-courses",
     },
     {
@@ -57,7 +55,7 @@ export function AdminSidebar({
     },
     {
       id: "manage-users" as const,
-      label: "Gérer utilisateurs",
+      label: "Gerer Utilisateur",
       icon: Users,
       active: currentView === "manage-users",
     },
@@ -71,31 +69,36 @@ export function AdminSidebar({
     // },
     {
       id: "manage-categories" as const,
-      label: "Catégories",
+      label: "Categorie",
       icon: FolderOpen,
       active: currentView === "manage-categories",
       disabled: false,
       badge: null,
     },
-    {
-      id: "stats" as const,
-      label: "Statistiques",
-      icon: BarChart3,
-      active: false,
-      disabled: true,
-      badge: "Bientôt",
-    },
+    // {
+    //   id: "stats" as const,
+    //   label: "Statistiques",
+    //   icon: CircleDot,
+    //   active: false,
+    //   disabled: true,
+    //   badge: "Bientôt",
+    // },
     {
       id: "settings" as const,
-      label: "Paramètres",
+      label: "Parametre",
       icon: Settings,
       active: false,
-      disabled: true,
-      badge: "Bientôt",
+      disabled: false,
+      badge: null,
     },
   ];
 
   const handleMenuClick = (item: (typeof menuItems)[0]) => {
+    if (item.id === "settings") {
+      toast.info("Parametre - Cette fonctionnalite sera disponible bientot");
+      return;
+    }
+
     if (item.disabled) {
       toast.info(
         `${item.label} - Cette fonctionnalité est en cours de développement`,
@@ -115,27 +118,18 @@ export function AdminSidebar({
 
   return (
     <div
-      className={`relative flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[#001B4D] text-white transition-all duration-300 ${
-        isCollapsed ? "w-[72px]" : "w-72"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`relative flex h-screen flex-col overflow-hidden border-r border-white/10 bg-[#181721] text-white transition-all duration-300 ${
+        isExpanded ? "w-72" : "w-[72px]"
       }`}
     >
-      {/* Brand */}
-      <div className={`${isCollapsed ? "px-3" : "px-5"} pt-6 pb-4`}>
-        <div className="flex items-center gap-3">
+      {/* Brand Icon */}
+      <div className="px-3 pt-6 pb-4">
+        <div className="flex justify-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
-            <LayoutDashboard className="h-5 w-5 text-white" />
+            <div className="h-3 w-3 rounded-full bg-[#A9F5E5]" />
           </div>
-          {!isCollapsed && (
-            <div className="space-y-0.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/70">
-                Bibocom
-              </p>
-              <div className="flex items-center gap-2">
-                <p className="text-lg font-bold text-white">Admin</p>
-                <span className="h-2 w-2 rounded-full bg-[#FF3B3F]" />
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -145,25 +139,25 @@ export function AdminSidebar({
           <Button
             key={item.id}
             variant="ghost"
-            className={`group relative w-full justify-start rounded-xl h-11 transition-all ${
+            className={`group relative h-11 w-full justify-start rounded-xl transition-all duration-200 ${
               item.active
-                ? "bg-[#002c75] text-white hover:bg-[#01338A]"
-                : "text-white/75 hover:bg-white/10 hover:text-white"
+                ? "bg-[#A9F5E5] text-[#181721] hover:bg-[#97e9d8]"
+                : "text-white/75 hover:bg-[#26233A] hover:text-[#FFFFFF]"
             } ${item.disabled ? "opacity-60 cursor-not-allowed" : ""} ${
-              isCollapsed ? "px-2" : "px-4"
+              isExpanded ? "px-4" : "px-2"
             }`}
             onClick={() => handleMenuClick(item)}
             disabled={item.disabled}
           >
-            {item.active && !isCollapsed && (
-              <span className="absolute left-0 top-2 h-7 w-1 rounded-full bg-[#FF3B3F]" />
+            {item.active && isExpanded && (
+              <span className="absolute left-0 top-2 h-7 w-1 rounded-full bg-[#A9F5E5]" />
             )}
             <item.icon
               className={`h-5 w-5 ${
-                item.active ? "text-white" : "text-white/60"
-              } ${isCollapsed ? "" : "mr-3"}`}
+                item.active ? "text-[#181721]" : "text-white/60 group-hover:text-[#FFFFFF]"
+              } ${isExpanded ? "mr-3" : "mx-auto"}`}
             />
-            {!isCollapsed && (
+            {isExpanded && (
               <>
                 <span className="flex-1 text-left font-medium">
                   {item.label}
@@ -173,7 +167,7 @@ export function AdminSidebar({
                     variant="secondary"
                     className="text-[11px] bg-white/10 text-white/80 border border-white/20"
                   >
-                    {item.badge}
+                    {/* {item.badge} */}
                   </Badge>
                 )}
               </>
@@ -186,31 +180,15 @@ export function AdminSidebar({
       <div className="px-3 pb-4 border-t border-white/10">
         <Button
           variant="ghost"
-          className={`w-full justify-start h-11 rounded-xl text-white/80 hover:bg-white/10 hover:text-white ${
-            isCollapsed ? "px-2" : "px-4"
+          className={`h-11 w-full justify-start rounded-xl text-white/80 transition-all duration-200 hover:bg-[#26233A] hover:text-[#FFFFFF] ${
+            isExpanded ? "px-4" : "px-2"
           }`}
           onClick={onLogout}
         >
           <LogOut
-            className={`h-5 w-5 text-white/60 ${isCollapsed ? "" : "mr-3"}`}
+            className={`h-5 w-5 text-white/60 ${isExpanded ? "mr-3" : "mx-auto"}`}
           />
-          {!isCollapsed && <span className="font-medium">Déconnexion</span>}
-        </Button>
-      </div>
-
-      {/* Collapse Button */}
-      <div className="px-3 pb-6 border-t border-white/10">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full h-9 rounded-xl text-white/70 hover:bg-white/15 hover:text-white"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          {isExpanded && <span className="font-medium">Déconnexion</span>}
         </Button>
       </div>
     </div>

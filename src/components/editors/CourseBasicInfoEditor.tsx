@@ -1,17 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ArrowLeft } from "lucide-react";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
 import { ThumbnailUploader } from "@/components/ThumbnailUploader";
 import { showSuccessToast, showErrorToast } from "@/shared/helpers/sweet-alert";
@@ -27,15 +19,14 @@ export interface CourseBasicData {
   description: string;
   categoryId: string;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  price: number;
+  price: string;
   thumbnailUrl?: string;
   status?: string;
 }
 
 interface CourseBasicInfoEditorProps {
   courseId: string | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onBack?: () => void;
   onCourseUpdated?: () => void;
 }
 
@@ -67,27 +58,27 @@ function Step1BasicInfo({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-white/85">
             Titre du cours *
           </label>
           <input
             type="text"
             value={formData.title || ""}
             onChange={(e) => updateFormData({ title: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-white/15 bg-[#121829] px-3 py-2.5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Entrez le titre de votre cours"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-white/85">
             Catégorie *
           </label>
           <select
             value={formData.categoryId || ""}
             onChange={(e) => updateFormData({ categoryId: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-white/15 bg-[#121829] px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Sélectionnez une catégorie</option>
             {categories.map((category) => (
@@ -101,15 +92,15 @@ function Step1BasicInfo({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-white/85">
             Niveau *
           </label>
           <select
             value={formData.level || "BEGINNER"}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
               updateFormData({ level: e.target.value as "BEGINNER" | "INTERMEDIATE" | "ADVANCED" })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-white/15 bg-[#121829] px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="BEGINNER">Débutant</option>
             <option value="INTERMEDIATE">Intermédiaire</option>
@@ -118,21 +109,20 @@ function Step1BasicInfo({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-white/85">
             Prix (XOF) *
           </label>
           <input
             type="text"
-            inputMode="numeric"
+            inputMode="text"
             pattern="[0-9]*"
-            value={formData.price ?? 0}
+            value={formData.price ?? ""}
             onChange={(e) =>
               updateFormData({
-                price:
-                  parseInt(e.target.value.replace(/[^\d]/g, ""), 10) || 0,
+                price: e.target.value.replace(/[^\d]/g, ""),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-lg border border-white/15 bg-[#121829] px-3 py-2.5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0"
             min="0"
             step="100"
@@ -142,13 +132,13 @@ function Step1BasicInfo({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="mb-2 block text-sm font-medium text-white/85">
           Description du cours *
         </label>
         <textarea
           value={formData.description || ""}
           onChange={(e) => updateFormData({ description: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-white/15 bg-[#121829] px-3 py-2.5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Décrivez votre cours en détail..."
           rows={6}
           required
@@ -160,8 +150,7 @@ function Step1BasicInfo({
 
 export function CourseBasicInfoEditor({
   courseId,
-  open,
-  onOpenChange,
+  onBack,
   onCourseUpdated,
 }: CourseBasicInfoEditorProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -173,7 +162,7 @@ export function CourseBasicInfoEditor({
     description: "",
     categoryId: "",
     level: "BEGINNER",
-    price: 0,
+    price: "",
     thumbnailUrl: "",
     status: "DRAFT",
   });
@@ -195,17 +184,16 @@ export function CourseBasicInfoEditor({
     loadCategories();
   }, []);
 
-  // Load course data when modal opens
+  // Load course data when courseId changes
   useEffect(() => {
-    if (open && courseId) {
-      logger.log("🔍 Ouverture du modal, chargement des données pour courseId:", courseId);
+    if (courseId) {
+      logger.log("🔍 Chargement des données pour courseId:", courseId);
       loadCourseData();
-    } else if (open && !courseId) {
+    } else {
       logger.error("❌ courseId est null ou undefined");
       showErrorToast("Erreur", "ID du cours manquant");
-      onOpenChange(false);
     }
-  }, [open, courseId]);
+  }, [courseId]);
 
   const loadCourseData = async () => {
     if (!courseId) return;
@@ -224,7 +212,7 @@ export function CourseBasicInfoEditor({
         description: details.course?.description || "",
         categoryId: details.course?.categoryId || "",
         level: (details.course?.level as "BEGINNER" | "INTERMEDIATE" | "ADVANCED") || "BEGINNER",
-        price: details.course?.price ?? 0,
+        price: String(details.course?.price ?? ""),
         thumbnailUrl: details.course?.thumbnailUrl || "",
         status: "DRAFT", // Le status sera conservé depuis originalData
       };
@@ -240,7 +228,7 @@ export function CourseBasicInfoEditor({
     } catch (error) {
       logger.error("❌ Erreur lors du chargement des données du cours:", error);
       showErrorToast("Erreur", "Impossible de charger les données du cours");
-      onOpenChange(false);
+      onBack?.();
     } finally {
       setIsLoading(false);
     }
@@ -300,7 +288,7 @@ export function CourseBasicInfoEditor({
         description: formData.description,
         categoryId: formData.categoryId,
         level: formData.level,
-        price: formData.price,
+        price: Number.parseInt(formData.price || "0", 10) || 0,
       };
 
       logger.log("📤 Données envoyées pour mise à jour:", JSON.stringify(updateData, null, 2));
@@ -311,7 +299,6 @@ export function CourseBasicInfoEditor({
       logger.log("✅ Sauvegarde réussie");
       showSuccessToast("Succès", "Cours modifié avec succès !");
       onCourseUpdated?.();
-      onOpenChange(false);
     } catch (error) {
       logger.error("❌ Erreur lors de la mise à jour:", error);
       showErrorToast("Erreur", "Impossible de modifier le cours");
@@ -320,53 +307,77 @@ export function CourseBasicInfoEditor({
     }
   };
 
-  const handleClose = () => {
+  const handleBack = () => {
     if (hasChanges) {
       // Ici on pourrait ajouter une confirmation de perte de données
-      logger.log("⚠️ Fermeture avec modifications non sauvegardées");
+      logger.log("⚠️ Retour avec modifications non sauvegardées");
     }
-    onOpenChange(false);
+    onBack?.();
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Modifier les info du cours</DialogTitle>
-          <DialogDescription>
-            Modifiez les informations de base de votre cours. Seules les informations modifiées seront sauvegardées.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="relative mx-auto w-full max-w-7xl p-6 md:p-10 text-white">
+      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute -top-44 right-8 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute bottom-0 -left-24 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl" />
+      </div>
+
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={handleBack}
+          className="group rounded-xl border border-white/10 bg-white/5 px-4 text-white/80 hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-white"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Retour aux actions du cours
+        </Button>
+      </div>
+
+      <div className="rounded-3xl border border-white/10 bg-[#101522]/95 p-6 shadow-[0_28px_90px_-45px_rgba(0,0,0,0.9)] md:p-8">
+        <div className="mb-8 border-b border-white/10 pb-6">
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Modifier les infos du cours
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm text-white/65 md:text-base">
+            Modifiez les informations de base de votre cours. Seules les
+            informations modifiées seront sauvegardées.
+          </p>
+        </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Chargement des données...</span>
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            <span className="ml-2 text-white/75">Chargement des données...</span>
           </div>
         ) : (
-          <>
-            <Step1BasicInfo
-              formData={formData}
-              updateFormData={updateFormData}
-              categories={categories}
-              thumbnailUrl={thumbnailUrl}
-              onThumbnailUploaded={handleThumbnailUploaded}
-              onThumbnailRemoved={handleThumbnailRemoved}
-            />
-            <div className="text-sm text-gray-500 mt-2">
-              * Champs obligatoires
+          <div className="space-y-8">
+            <div className="rounded-2xl border border-white/10 bg-[#0E1320]/95 p-5 md:p-6">
+              <Step1BasicInfo
+                formData={formData}
+                updateFormData={updateFormData}
+                categories={categories}
+                thumbnailUrl={thumbnailUrl}
+                onThumbnailUploaded={handleThumbnailUploaded}
+                onThumbnailRemoved={handleThumbnailRemoved}
+              />
             </div>
-          </>
+            <div className="text-sm text-white/55">* Champs obligatoires</div>
+          </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isSaving}>
-            Annuler
+        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={isSaving}
+            className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+          >
+            Retour
           </Button>
           <Button
             onClick={handleSave}
             disabled={!hasChanges || isSaving || isLoading}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-500"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -375,8 +386,8 @@ export function CourseBasicInfoEditor({
             )}
             <span>{isSaving ? "Sauvegarde..." : "Sauvegarder"}</span>
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   );
 }

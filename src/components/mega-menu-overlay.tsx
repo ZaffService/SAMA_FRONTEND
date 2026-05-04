@@ -149,6 +149,8 @@ export function MegaMenuOverlay({ isOpen, onClose }: MegaMenuOverlayProps) {
                           <button
                             key={category.id}
                             onClick={() => category.id && setSelectedCategory(category.id)}
+                            onMouseEnter={() => category.id && setSelectedCategory(category.id)}
+                            onFocus={() => category.id && setSelectedCategory(category.id)}
                             className={`
                               w-full text-left px-3 md:px-4 py-2.5 md:py-3 rounded-lg 
                               flex items-center justify-between

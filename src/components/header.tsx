@@ -42,35 +42,36 @@ export function Header() {
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [searchDataLoaded, setSearchDataLoaded] = useState(false);
 
   const { user, logout, isLoading, isAuthenticated } = useLocalAuth();
   const { avatarUrl, firstName, lastName } = useAvatar();
 
-  // Charger tous les cours et catégories pour les suggestions (une seule fois au mount)
+  // Charger cours + catégories uniquement quand la recherche s'ouvre (évite des requêtes inutiles sur /student-dashboard)
   useEffect(() => {
+    if (!searchOpen || searchDataLoaded) return;
+
     const loadAllData = async () => {
       try {
         setCoursesLoading(true);
-        const coursesResult = await CoursesApi.getCourses(1, 100);
+        setCategoriesLoading(true);
+        const [coursesResult, categoriesResult] = await Promise.all([
+          CoursesApi.getCourses(1, 100),
+          CategoriesApi.getCategories(),
+        ]);
         setAllCourses(coursesResult.courses);
+        setAllCategories(categoriesResult);
+        setSearchDataLoaded(true);
       } catch (error) {
-        logger.error("Erreur lors du chargement des cours:", error);
+        logger.error("Erreur lors du chargement des données de recherche:", error);
       } finally {
         setCoursesLoading(false);
-      }
-
-      try {
-        setCategoriesLoading(true);
-        const categoriesResult = await CategoriesApi.getCategories();
-        setAllCategories(categoriesResult);
-      } catch (error) {
-        logger.error("Erreur lors du chargement des catégories:", error);
-      } finally {
         setCategoriesLoading(false);
       }
     };
+
     loadAllData();
-  }, []);
+  }, [searchOpen, searchDataLoaded]);
 
   // Détection du scroll pour la transition du header
   useEffect(() => {
@@ -486,42 +487,73 @@ export function Header() {
                     <DropdownMenu.Content
                       align="end"
                       sideOffset={10}
-                      className="w-[260px] rounded-2xl border bg-white shadow-xl overflow-hidden z-[60]"
+                      className="z-[60] w-[min(92vw,320px)] overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_24px_55px_-22px_rgba(15,23,42,0.4)] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
                     >
-                      <div className="p-4 border-b">
-                        <p className="font-bold text-sm truncate">{displayName}</p>
-                        <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      <div className="border-b bg-gradient-to-r from-gray-50 to-white p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-bold text-gray-700">
+                            {avatarUrl ? (
+                              <Image
+                                src={avatarUrl}
+                                alt={displayName}
+                                width={44}
+                                height={44}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              initials
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-base font-bold text-gray-900">{displayName}</p>
+                            <p className="truncate text-xs text-gray-500">{user?.email}</p>
+                          </div>
+                        </div>
                       </div>
-<div className="flex flex-col">
-  <Link
-    href={ user?.role === "ADMIN" ? "/admin-dashboard" : user?.role === "INSTRUCTOR" ? "/instructor-dashboard" : user?.role === "STUDENT" ? "/student-dashboard" : "/" }
-    onClick={() => setMobileMenuOpen(false)}
-    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
-  >
-    {/* <LayoutDashboard className="h-4 w-4" /> */}
-    Tableau de bord
-  </Link>
+                      <div className="flex flex-col p-2">
+                        <Link
+                          href={ user?.role === "ADMIN" ? "/admin-dashboard" : user?.role === "INSTRUCTOR" ? "/instructor-dashboard" : user?.role === "STUDENT" ? "/student-dashboard" : "/" }
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        >
+                          <span className="flex w-full items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100">
+                              <LayoutDashboard className="h-4 w-4" />
+                            </span>
+                            <span className="truncate leading-none">Tableau de bord</span>
+                          </span>
+                        </Link>
 
-  <Link
-    href="/user-profile"
-    onClick={() => setMobileMenuOpen(false)}
-    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold hover:bg-gray-100 transition-colors"
-  >
-    {/* <User className="h-4 w-4" /> */}
-    Profil
-  </Link>
-</div>
+                        <Link
+                          href="/user-profile"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        >
+                          <span className="flex w-full items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-100">
+                              <User className="h-4 w-4" />
+                            </span>
+                            <span className="truncate leading-none">Profil</span>
+                          </span>
+                        </Link>
+                      </div>
 
+                      <div className="border-t p-2">
                       <button
                         onClick={() => {
                           logout();
                           setMobileMenuOpen(false);
                         }}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-gray-100 transition-colors"
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 transition-all hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                       >
-                        <LogOut className="h-4 w-4" />
-                        Déconnexion
+                        <span className="flex w-full items-center gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500 transition-colors group-hover:bg-red-100">
+                            <LogOut className="h-4 w-4" />
+                          </span>
+                          <span className="truncate leading-none">Déconnexion</span>
+                        </span>
                       </button>
+                      </div>
                     </DropdownMenu.Content>
                   </DropdownMenu.Root>
                 ) : (
@@ -615,10 +647,12 @@ export function Header() {
         </div>
       </header>
 
-      <MegaMenuOverlay
-        isOpen={formationsMenuOpen}
-        onClose={() => setFormationsMenuOpen(false)}
-      />
+      {formationsMenuOpen && (
+        <MegaMenuOverlay
+          isOpen={formationsMenuOpen}
+          onClose={() => setFormationsMenuOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -60,7 +60,7 @@ interface CourseFormData {
   description: string;
   categoryId: string;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  price: number;
+  price: string;
   status: CourseStatus;
   isCertifying: boolean;
   modules: Module[];
@@ -92,7 +92,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     description: "",
     categoryId: "",
     level: "BEGINNER",
-    price: 0,
+    price: "",
     status: CourseStatus.DRAFT,
     isCertifying: false,
     modules: [],
@@ -191,7 +191,9 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
         if (!formData.description.trim())
           return "La description du cours est requise";
         if (!formData.categoryId) return "La catégorie est requise";
-        if (formData.price < 0) return "Le prix ne peut pas être négatif";
+        if ((Number.parseInt(formData.price || "0", 10) || 0) < 0) {
+          return "Le prix ne peut pas être négatif";
+        }
         break;
       case 2: // Modules and Lessons
         if (formData.modules.length === 0)
@@ -301,6 +303,7 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
     // instructorId sera null et récupéré par le backend depuis les cookies JWT
     return {
       ...formData,
+      price: Number.parseInt(formData.price || "0", 10) || 0,
       isCertifying: resolvedIsCertifying,
       status: statusOverride || formData.status,
       instructorId: null, // Le backend extrait l'instructorId réel des cookies
@@ -523,12 +526,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="mx-auto max-w-5xl p-6 text-white">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-white">
           Créer un nouveau cours
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="mt-2 text-white/70">
           Suivez les étapes ci-dessous pour créer votre cours.
         </p>
       </div>
@@ -541,24 +544,26 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
       />
 
       {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+        <Alert className="mb-6 border border-[#EF4444] bg-[#35181D] text-white">
+          <AlertCircle className="h-4 w-4 text-[#FCA5A5]" />
+          <AlertDescription className="text-[#FECACA]">
+            {error}
+          </AlertDescription>
         </Alert>
       )}
 
-      <Card className="mb-6">
+      <Card className="mb-6 border border-[#302D47] bg-[#1F1D2B]">
         <CardContent className="pt-6">{renderStep()}</CardContent>
       </Card>
 
-      <div className="flex justify-between items-center pt-6 border-t">
+      <div className="flex items-center justify-between border-t border-[#3B3754] pt-6">
         <div className="flex space-x-4">
           {currentStep > 1 && (
             <Button
               type="button"
-              variant="outline"
               onClick={handlePrevStep}
               disabled={isSubmitting || isSavingDraft}
+              className="bg-[#3B82F6] font-semibold text-white hover:bg-[#2563EB]"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               Précédent
@@ -566,7 +571,12 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
           )}
 
           {currentStep < TOTAL_STEPS ? (
-            <Button type="button" onClick={handleNextStep} disabled={isLoading}>
+            <Button
+              type="button"
+              onClick={handleNextStep}
+              disabled={isLoading}
+              className="bg-[#3B82F6] font-semibold text-white hover:bg-[#2563EB]"
+            >
               Suivant
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
@@ -621,6 +631,12 @@ function Step1BasicInfo({
   canEditCertification: boolean;
   showCertificationLockMessage: boolean;
 }) {
+  const fieldClassName =
+    "border-[#3B3754] bg-[#181721] text-white placeholder:text-white/55 font-semibold";
+  const selectTriggerClassName =
+    "border-[#3B3754] bg-[#181721] text-white font-semibold";
+  const selectContentClassName = "border-[#3B3754] bg-[#1F1D2B] text-white";
+
   return (
     <div className="space-y-6">
       <div className="mb-6">
@@ -633,29 +649,30 @@ function Step1BasicInfo({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-white">
             Titre du cours *
           </label>
           <Input
             value={formData.title}
             onChange={(e) => updateFormData({ title: e.target.value })}
             placeholder="Entrez le titre de votre cours"
+            className={fieldClassName}
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-white">
             Catégorie *
           </label>
           <Select
             value={formData.categoryId}
             onValueChange={(value) => updateFormData({ categoryId: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className={selectTriggerClassName}>
               <SelectValue placeholder="Sélectionnez une catégorie" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={selectContentClassName}>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -668,7 +685,7 @@ function Step1BasicInfo({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-white">
             Niveau *
           </label>
           <Select
@@ -677,10 +694,10 @@ function Step1BasicInfo({
               updateFormData({ level: value })
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className={selectTriggerClassName}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={selectContentClassName}>
               <SelectItem value="BEGINNER">Débutant</SelectItem>
               <SelectItem value="INTERMEDIATE">Intermédiaire</SelectItem>
               <SelectItem value="ADVANCED">Avancé</SelectItem>
@@ -689,7 +706,7 @@ function Step1BasicInfo({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-white">
             Prix (XOF) *
           </label>
           <Input
@@ -699,15 +716,16 @@ function Step1BasicInfo({
             value={formData.price}
             onChange={(e) => {
               const digits = e.target.value.replace(/[^\d]/g, "");
-              updateFormData({ price: digits ? parseInt(digits, 10) : 0 });
+              updateFormData({ price: digits });
             }}
             placeholder="0"
+            className={fieldClassName}
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-bold text-white">
             Statut du cours *
           </label>
           <Select
@@ -720,10 +738,10 @@ function Step1BasicInfo({
               updateFormData({ status: value });
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className={selectTriggerClassName}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={selectContentClassName}>
               <SelectItem value={CourseStatus.DRAFT}>Brouillon</SelectItem>
               <SelectItem
                 value={CourseStatus.PUBLISHED}
@@ -735,7 +753,7 @@ function Step1BasicInfo({
               </SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="mt-1 text-xs font-semibold text-white/80">
             Le cours sera créé en tant que brouillon par défaut
           </p>
           {formData.isCertifying && (
@@ -746,20 +764,20 @@ function Step1BasicInfo({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <div className="rounded-lg border border-[#3B3754] bg-[#181721] p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start space-x-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1E335F] text-[#80B5FF]">
               <BadgeCheck className="h-4 w-4" />
             </div>
             <div>
               <label
                 htmlFor="course-certification"
-                className="block text-sm font-medium text-gray-900"
+                className="block text-sm font-semibold text-white"
               >
                 Activer la certification
               </label>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="mt-1 text-xs text-white/75">
                Activez cette option pour rendre le cours certifiant. 
                 Les étudiants recevront un certificat uniquement après 
                 validation du quiz de certification défini dans le cours.
@@ -783,14 +801,14 @@ function Step1BasicInfo({
           />
         </div>
         {showCertificationLockMessage && (
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-white/60">
             Vous n&apos;avez pas les droits pour activer la certification.
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="mb-2 block text-sm font-bold text-white">
           Description du cours *
         </label>
         <Textarea
@@ -798,6 +816,7 @@ function Step1BasicInfo({
           onChange={(e) => updateFormData({ description: e.target.value })}
           placeholder="Décrivez votre cours en détail..."
           rows={6}
+          className={fieldClassName}
           required
         />
       </div>

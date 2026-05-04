@@ -33,10 +33,11 @@ export const defaultCourseSteps: Step[] = [
 
 export function StepIndicator({
   currentStep,
-  totalSteps,
+  totalSteps: _totalSteps,
   steps,
   onStepClick,
 }: StepIndicatorProps) {
+  void _totalSteps;
   return (
     <div className="w-full py-6">
       <div className="flex items-center justify-between">
@@ -53,15 +54,15 @@ export function StepIndicator({
                   onClick={() => isClickable && onStepClick(step.id)}
                   disabled={!isClickable}
                   className={`
-                    w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors
+                    h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200
                     ${
                       isCompleted
-                        ? "bg-green-600 text-white"
+                        ? "bg-[#34D399] text-[#181721]"
                         : isCurrent
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-600"
+                          ? "bg-[#3B82F6] text-[#FFFFFF] shadow-[0_0_0_4px_rgba(59,130,246,0.2)]"
+                          : "border border-[#3B3754] bg-transparent text-[#FFFFFF]"
                     }
-                    ${isClickable ? "cursor-pointer hover:opacity-80" : "cursor-not-allowed"}
+                    ${isClickable ? "cursor-pointer hover:scale-105" : "cursor-not-allowed opacity-70"}
                   `}
                 >
                   {isCompleted ? <Check className="w-5 h-5" /> : step.id}
@@ -72,16 +73,13 @@ export function StepIndicator({
                   <p
                     className={`text-sm font-medium ${
                       isCurrent
-                        ? "text-blue-600"
+                        ? "text-[#3B82F6]"
                         : isCompleted
-                          ? "text-green-600"
-                          : "text-gray-500"
+                          ? "text-[#A9F5E5]"
+                          : "text-[#FFFFFF]"
                     }`}
                   >
                     {step.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 max-w-24">
-                    {step.description}
                   </p>
                 </div>
               </div>
@@ -90,7 +88,7 @@ export function StepIndicator({
               {index < steps.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-4 ${
-                    step.id < currentStep ? "bg-green-600" : "bg-gray-200"
+                    step.id < currentStep ? "bg-[#34D399]" : "bg-[#3B3754]"
                   }`}
                 />
               )}

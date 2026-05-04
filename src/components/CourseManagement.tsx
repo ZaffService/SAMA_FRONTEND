@@ -28,6 +28,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -228,6 +230,23 @@ export function CourseManagement({
     }
   };
 
+  const handleConfirmDraft = async (course: BackendCourse) => {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Confirmer la mise en brouillon",
+      text: `Êtes-vous sûr de vouloir mettre le cours "${course.title}" en brouillon ? Il ne sera plus visible comme cours publié.`,
+      showCancelButton: true,
+      confirmButtonColor: "#f59e0b",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Mettre en brouillon",
+      cancelButtonText: "Annuler",
+    });
+
+    if (result.isConfirmed) {
+      await handleStatusChange(course.id, "DRAFT");
+    }
+  };
+
   const handleArchiveCourse = async () => {
     if (!courseToArchive) return;
 
@@ -287,24 +306,22 @@ export function CourseManagement({
     return matchesSearch && matchesStatus;
   });
 
-  const hasPaidCourses = filteredCourses.some((course) => course.price > 0);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-[#FFFFFF]">
       {/* En-tête avec recherche et filtres */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex flex-1 gap-4 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
             <Input
               placeholder="Rechercher un cours..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="border-[#3B3754] bg-[#1F1D2B] pl-10 text-white placeholder:text-white/40"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40 border-[#3B3754] bg-[#1F1D2B] text-white">
               <SelectValue placeholder="Statut" />
             </SelectTrigger>
             <SelectContent>
@@ -321,7 +338,7 @@ export function CourseManagement({
           variant="outline"
           onClick={fetchCourses}
           disabled={isLoading}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           Rafraîchir
@@ -329,43 +346,37 @@ export function CourseManagement({
       </div>
 
       {/* Tableau des cours */}
-      <Card>
+      <Card className="border border-[#302D47] bg-[#1F1D2B] text-white">
         <CardHeader>
-          <CardTitle>Liste des cours ({filteredCourses.length})</CardTitle>
+          <CardTitle className="text-white">Liste des cours ({filteredCourses.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2">Chargement des cours...</span>
+              <span className="ml-2 text-white">Chargement des cours...</span>
             </div>
           ) : filteredCourses.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="py-12 text-center text-white/60">
               <p>Aucun cours trouvé</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="text-white">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Catégorie</TableHead>
-                    <TableHead>Prix</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Étudiants</TableHead>
-                    {hasPaidCourses && (
-                      <TableHead
-                        className="w-12 px-2 text-center align-middle"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-b border-[#302D47] hover:bg-transparent">
+                    <TableHead className="text-white/80">Image</TableHead>
+                    <TableHead className="text-white/80">Titre</TableHead>
+                    <TableHead className="text-white/80">Catégorie</TableHead>
+                    <TableHead className="text-white/80">Prix</TableHead>
+                    <TableHead className="text-white/80">Statut</TableHead>
+                    <TableHead className="text-white/80">Étudiants</TableHead>
+                    <TableHead className="text-right text-white/80">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredCourses.map((course) => (
-                    <TableRow key={course.id}>
+                    <TableRow key={course.id} className="border-b border-[#2A273D] hover:bg-[#26233A]/60">
                       <TableCell>
                         <img
                           src={course.thumbnailUrl || "/placeholder.svg"}
@@ -375,8 +386,8 @@ export function CourseManagement({
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{course.title}</p>
-                          <p className="text-sm text-gray-500 truncate max-w-xs">
+                          <p className="font-medium text-white">{course.title}</p>
+                          <p className="max-w-xs truncate text-sm text-white/55">
                             {course.description}
                           </p>
                         </div>
@@ -390,33 +401,20 @@ export function CourseManagement({
                             Gratuit
                           </span>
                         ) : (
-                          <span>{course.price.toLocaleString()} XOF</span>
+                          <span className="text-white">{course.price.toLocaleString()} XOF</span>
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(course.status)}</TableCell>
                       <TableCell>{course.enrollmentCount || 0}</TableCell>
-                      {hasPaidCourses && (
-                        <TableCell className="w-12 px-2 text-center align-middle">
-                          {course.price > 0 ? (
-                            <Link
-                              href={`/admin-dashboard/courses/${course.id}/students`}
-                              aria-label={`Voir les étudiants inscrits au cours ${course.title}`}
-                              title="Voir les étudiants inscrits"
-                              className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          ) : null}
-                        </TableCell>
-                      )}
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end">
+                          <div className="inline-flex items-center justify-end gap-1.5 rounded-xl border border-[#302D47] bg-[#181721]/70 p-1.5 shadow-sm">
                           {user?.role === "ADMIN" && (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => setCourseToEnroll(course)}
-                              className="flex items-center gap-2"
+                              className="h-9 gap-2 rounded-lg border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
                             >
                               <UserPlus className="h-4 w-4" />
                               Enrôler
@@ -424,16 +422,43 @@ export function CourseManagement({
                           )}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 rounded-lg text-white/80 hover:bg-[#26233A] hover:text-white"
+                              >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent
+                              align="end"
+                              className="min-w-56 border-[#302D47] bg-[#1F1D2B]/95 p-1 text-white shadow-xl backdrop-blur supports-backdrop-filter:bg-[#1F1D2B]/80 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+                            >
+                              <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-white/60">
+                                Actions
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator className="bg-[#302D47]" />
+                              {(user?.role === "ADMIN" || user?.role === "INSTRUCTOR") &&
+                                (course.enrollmentCount || 0) > 0 && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      router.push(
+                                        `/admin-dashboard/courses/${course.id}/students`,
+                                      )
+                                    }
+                                    className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
+                                  >
+                                    <Eye className="h-4 w-4 mr-2 text-[#A9F5E5]" />
+                                    Voir etudiants inscrit
+                                  </DropdownMenuItem>
+                                )}
+                              <DropdownMenuSeparator className="bg-[#302D47]" />
                               {course.status !== "PUBLISHED" && (
                                 <DropdownMenuItem
                                   onClick={() =>
                                     handleStatusChange(course.id, "PUBLISHED")
                                   }
+                                  className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                                   Publier
@@ -441,9 +466,8 @@ export function CourseManagement({
                               )}
                               {course.status !== "DRAFT" && (
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStatusChange(course.id, "DRAFT")
-                                  }
+                                  onClick={() => handleConfirmDraft(course)}
+                                  className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
                                 >
                                   <XCircle className="h-4 w-4 mr-2 text-orange-600" />
                                   Mettre en brouillon
@@ -455,6 +479,7 @@ export function CourseManagement({
                                   course.status === "DRAFT") && (
                                   <DropdownMenuItem
                                     onClick={() => setCourseToArchive(course)}
+                                    className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
                                   >
                                     <Archive className="h-4 w-4 mr-2 text-gray-600" />
                                     Archiver
@@ -466,6 +491,7 @@ export function CourseManagement({
                                 user?.role === "INSTRUCTOR") && (
                                   <DropdownMenuItem
                                     onClick={() => handleEditCourse(course)}
+                                    className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
                                   >
                                     <Edit3 className="h-4 w-4 mr-2 text-blue-600" />
                                     Modifier le cours
@@ -478,6 +504,7 @@ export function CourseManagement({
                                 onViewVideoStatus && (
                                   <DropdownMenuItem
                                     onClick={() => onViewVideoStatus(course.id)}
+                                    className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
                                   >
                                     <Video className="h-4 w-4 mr-2 text-purple-600" />
                                     Voir statut vidéos
@@ -489,6 +516,7 @@ export function CourseManagement({
                                 user?.role === "INSTRUCTOR") && (
                                 <DropdownMenuItem
                                   onClick={() => router.push(`/course-details/${course.id}`)}
+                                  className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
                                 >
                                   <Eye className="h-4 w-4 mr-2 text-indigo-600" />
                                   Aperçu
@@ -499,7 +527,7 @@ export function CourseManagement({
                               {user?.role === "ADMIN" && (
                                 <DropdownMenuItem
                                   onClick={() => handleConfirmDelete(course)}
-                                  className="text-red-600 focus:text-red-600"
+                                  className="cursor-pointer rounded-md px-2 py-2 text-sm text-red-400 outline-none transition-colors focus:bg-red-500/10 focus:text-red-300 data-highlighted:bg-red-500/10 data-highlighted:text-red-300"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Supprimer
@@ -507,6 +535,7 @@ export function CourseManagement({
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>

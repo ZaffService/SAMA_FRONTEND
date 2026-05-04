@@ -319,14 +319,14 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#090B13] text-white">
       <div className="max-w-5xl mx-auto p-8">
         {/* Header */}
         <div className="flex items-center mb-8">
           <Button
             variant="ghost"
             onClick={onBack}
-            className="mr-4"
+            className="mr-4 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             Retour
@@ -336,7 +336,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
         <h2 className="text-3xl font-bold mb-2">
           Ajouter des leçons
         </h2>
-        <p className="text-gray-600 mb-8">
+        <p className="text-white/65 mb-8">
           {selectedModule ? `Module: ${selectedModule.title}` : 'Sélectionnez un module'}
         </p>
 
@@ -348,12 +348,12 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
             </h3>
             <div className="space-y-3">
               {existingLessons.map((lesson, index) => (
-                <Card key={lesson.id || `existing-${index}`}>
+                <Card key={lesson.id || `existing-${index}`} className="border border-white/10 bg-[#0F172A]/95">
                   {/* Si la lesson est en cours d'édition, afficher le formulaire */}
                   {editingLesson?.id === lesson.id ? (
                     <CardContent className="py-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-medium text-lg">Modifier la leçon</h4>
+                        <h4 className="font-medium text-lg text-white">Modifier la leçon</h4>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -375,7 +375,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                         className="space-y-4"
                       >
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-white/80 mb-1">
                             Titre de la leçon *
                           </label>
                           <Input
@@ -383,10 +383,11 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                             defaultValue={lesson.title}
                             placeholder="Entrez le titre de la leçon"
                             required
+                            className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-white/80 mb-1">
                             Contenu de la leçon *
                           </label>
                           <Textarea
@@ -395,10 +396,11 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                             placeholder="Écrivez le contenu de la leçon..."
                             rows={4}
                             required
+                            className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-white/80 mb-1">
                             Durée (minutes)
                           </label>
                           <Input
@@ -409,6 +411,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                             defaultValue={lesson.duration || ""}
                             placeholder="0"
                             min="0"
+                            className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                           />
                         </div>
                         <div className="flex justify-end space-x-2">
@@ -416,10 +419,11 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                             type="button"
                             variant="outline"
                             onClick={handleCancelEdit}
+                            className="border-white/20 bg-transparent text-white hover:bg-white/10"
                           >
                             Annuler
                           </Button>
-                          <Button type="submit" disabled={isUpdating}>
+                          <Button type="submit" disabled={isUpdating} className="bg-blue-600 text-white hover:bg-blue-500">
                             {isUpdating ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -436,16 +440,16 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                     /* Affichage normal de la leçon */
                     <CardContent className="py-4">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                          <span className="text-gray-600 font-medium">{index + 1}</span>
+                        <div className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/20">
+                          <span className="font-medium text-blue-200">{index + 1}</span>
                         </div>
-                        <div className="flex-grow">
-                          <p className="font-medium text-gray-900">{lesson.title || "Sans titre"}</p>
-                          <p className="text-sm text-gray-500">
+                        <div className="grow">
+                          <p className="font-medium text-white">{lesson.title || "Sans titre"}</p>
+                          <p className="text-sm text-white/60">
                             {lesson.content ? `${lesson.content.substring(0, 50)}...` : 'Sans contenu'}
                           </p>
                           {lesson.duration > 0 && (
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-white/45 mt-1">
                               Durée: {lesson.duration} min
                             </p>
                           )}
@@ -455,7 +459,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditLesson(lesson)}
-                            className="text-blue-600 hover:text-blue-700"
+                            className="border-blue-400/35 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20"
                           >
                             <Edit3 className="h-4 w-4" />
                           </Button>
@@ -463,7 +467,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                             variant="outline"
                             size="sm"
                             onClick={() => handleDeleteLesson(lesson.id!, lesson.title)}
-                            className="text-red-600 hover:text-red-700"
+                            className="border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/20"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -482,13 +486,13 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold">Nouvelles leçons</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-white/60">
                 Ajoutez de nouvelles leçons au module
               </p>
             </div>
             <Button
               onClick={addLesson}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-500"
             >
               <Plus className="h-5 w-5" />
               Ajouter une leçon
@@ -496,16 +500,16 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
           </div>
 
           {newLessons.length === 0 ? (
-            <Card className="border-2 border-dashed border-gray-300">
+            <Card className="border-2 border-dashed border-white/20 bg-[#111827]/80">
               <CardContent className="py-12 text-center">
-                <Plus className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <Plus className="h-12 w-12 mx-auto text-white/40 mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">
                   Aucune nouvelle leçon
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-white/60 mb-4">
                   Cliquez sur "Ajouter une leçon" pour créer une nouvelle leçon
                 </p>
-                <Button onClick={addLesson} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={addLesson} className="bg-blue-600 text-white hover:bg-blue-500">
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter une leçon
                 </Button>
@@ -514,11 +518,11 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
           ) : (
             <div className="space-y-4">
               {newLessons.map((lesson, index) => (
-                <Card key={lesson.tempId || `new-${index}`}>
+                <Card key={lesson.tempId || `new-${index}`} className="border border-white/10 bg-[#0F172A]/95">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-gray-400" />
+                        <GripVertical className="h-4 w-4 text-white/40" />
                         <span>
                           Nouvelle leçon {existingLessons.length + index + 1}
                         </span>
@@ -527,7 +531,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                         variant="outline"
                         size="sm"
                         onClick={() => removeNewLesson(index)}
-                        className="text-red-600 hover:text-red-700"
+                        className="border-red-400/35 bg-red-500/10 text-red-200 hover:bg-red-500/20"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -537,7 +541,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/80 mb-1">
                           Titre de la leçon *
                         </label>
                         <Input
@@ -547,11 +551,12 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                           }
                           placeholder="Entrez le titre de la leçon"
                           required
+                          className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-white/80 mb-1">
                           Durée (minutes)
                         </label>
                         <Input
@@ -570,12 +575,13 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                           }
                           placeholder="0"
                           min="0"
+                          className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-white/80 mb-1">
                         Contenu de la leçon *
                       </label>
                       <Textarea
@@ -586,11 +592,12 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                         placeholder="Écrivez le contenu de votre leçon..."
                         rows={4}
                         required
+                        className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-white/80 mb-2">
                         Vidéo de la leçon (optionnel)
                       </label>
 
@@ -616,10 +623,10 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                                 border-2 border-dashed rounded-lg p-6 text-center transition-colors
                                 ${
                                   currentDragOver
-                                    ? "border-blue-400 bg-blue-50"
-                                    : "border-gray-300 hover:border-gray-400"
+                                    ? "border-blue-400 bg-blue-500/10"
+                                    : "border-white/20 hover:border-white/35"
                                 }
-                                ${lesson.videoFile ? "bg-green-50 border-green-300" : ""}
+                                ${lesson.videoFile ? "bg-emerald-500/10 border-emerald-400/50" : ""}
                               `}
                               onDragOver={(e) => handleDragOverVideo(e, index)}
                               onDragLeave={(e) => handleDragLeaveVideo(e, index)}
@@ -629,19 +636,19 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                                 <div className="space-y-3">
                                   <div className="flex items-center justify-center space-x-2">
                                     <CheckCircle className="h-5 w-5 text-green-600" />
-                                    <span className="text-sm font-medium text-green-700">
+                                    <span className="text-sm font-medium text-emerald-200">
                                       Vidéo ajoutée
                                     </span>
                                   </div>
 
-                                  <div className="flex items-center justify-between bg-white p-3 rounded border">
+                                  <div className="flex items-center justify-between rounded border border-white/15 bg-[#111827] p-3">
                                     <div className="flex items-center space-x-3">
                                       <FileVideo className="h-8 w-8 text-blue-500" />
                                       <div className="text-left">
-                                        <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                        <p className="text-sm font-medium text-white truncate max-w-xs">
                                           {lesson.videoFile.name}
                                         </p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-white/55">
                                           {formatFileSize(lesson.videoFile.size)}{" "}
                                           • {lesson.videoFile.type}
                                         </p>
@@ -652,7 +659,7 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => removeVideo(index)}
-                                      className="text-red-600 hover:text-red-700"
+                                      className="text-red-300 hover:text-red-200"
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -662,41 +669,39 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
                                 <div className="space-y-3">
                                   <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
                                   <div className="space-y-2">
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-white">
                                       Téléchargement en cours...
                                     </p>
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div className="h-2 w-full rounded-full bg-white/15">
                                       <div
                                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                         style={{ width: `${currentProgress}%` }}
                                       ></div>
                                     </div>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-white/55">
                                       {currentProgress}% terminé
                                     </p>
                                   </div>
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  <Upload
-                                    className={`h-10 w-10 mx-auto ${currentDragOver ? "text-blue-500" : "text-gray-400"}`}
-                                  />
+                                  <Upload className={`h-10 w-10 mx-auto ${currentDragOver ? "text-blue-400" : "text-white/40"}`} />
                                   <div className="space-y-2">
-                                    <p className="text-lg font-medium text-gray-900">
+                                    <p className="text-lg font-medium text-white">
                                       {currentDragOver
                                         ? "Déposez votre vidéo ici"
                                         : "Glissez-déposez une vidéo"}
                                     </p>
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-white/60">
                                       ou{" "}
                                       <label
                                         htmlFor={`video-upload-${index}`}
-                                        className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
+                                        className="cursor-pointer font-medium text-blue-300 hover:text-blue-200"
                                       >
                                         parcourez vos fichiers
                                       </label>
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-white/50">
                                       Formats acceptés: MP4, WebM, OGG, AVI, MOV,
                                       WMV, FLV, MKV • Max 500MB
                                     </p>
@@ -726,11 +731,11 @@ export function LessonEditor({ courseId, onBack, selectedModuleId: propSelectedM
 
           {/* Bouton de sauvegarde */}
           {newLessons.length > 0 && (
-            <div className="flex justify-end pt-6 border-t">
+            <div className="flex justify-end pt-6 border-t border-white/10">
               <Button
                 onClick={handleSaveNewLessons}
                 disabled={isSaving}
-                className="px-8 bg-blue-600 hover:bg-blue-700"
+                className="px-8 bg-blue-600 text-white hover:bg-blue-500"
               >
                 {isSaving ? (
                   <>

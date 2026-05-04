@@ -374,20 +374,20 @@ export function CertificationEditor({
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl mx-auto p-8">
+      <div className="max-w-5xl mx-auto p-8 text-white">
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
-          <span className="ml-3 text-gray-600">Chargement...</span>
+          <Loader2 className="h-7 w-7 animate-spin text-blue-400" />
+          <span className="ml-3 text-white/70">Chargement...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#090B13] text-white">
       <div className="max-w-5xl mx-auto p-8 space-y-6">
         <div className="flex items-center">
-          <Button variant="ghost" onClick={onBack} className="mr-4">
+          <Button variant="ghost" onClick={onBack} className="mr-4 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white">
             <ArrowLeft className="h-5 w-5 mr-2" />
             Retour
           </Button>
@@ -398,12 +398,12 @@ export function CertificationEditor({
             <BadgeCheck className="h-4 w-4" />
             CERTIFICATION
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">
+          <h1 className="text-3xl font-bold text-white mt-4">
             Certification du cours
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-white font-bold mt-2">
             Configurez le quiz de certification pour{" "}
-            <span className="font-medium text-gray-900">{courseTitle}</span>.
+            <span className="font-medium text-white">{courseTitle}</span>.
           </p>
         </div>
 
@@ -427,12 +427,12 @@ export function CertificationEditor({
         )}
 
         {isCertifying && (
-          <Card>
+          <Card className="border border-white/10 bg-[#0F172A]/95">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>État du quiz de certification</span>
+                <span className="text-lg font-semibold text-white">État du quiz de certification</span>
                 {quizSummary ? (
-                  <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  <Badge className="bg-emerald-500/20 text-emerald-200 border border-emerald-400/35">
                     Configuré
                   </Badge>
                 ) : (
@@ -444,26 +444,26 @@ export function CertificationEditor({
               {quizSummary ? (
                 <div className="grid gap-4 md:grid-cols-4">
                   <div>
-                    <p className="text-sm text-gray-500">Titre</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-white/55">Titre</p>
+                    <p className="font-semibold text-white">
                       {quizSummary.title}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Score de passage</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-white/55">Score de passage</p>
+                    <p className="font-semibold text-white">
                       {quizSummary.passingScore}%
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Questions</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-white/55">Questions</p>
+                    <p className="font-semibold text-white">
                       {quizSummary.questionsCount}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Module cible</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-white/55">Module cible</p>
+                    <p className="font-semibold text-white">
                       {targetModule?.title || "Dernier module"}
                     </p>
                   </div>
@@ -471,11 +471,11 @@ export function CertificationEditor({
               ) : (
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-gray-700">
+                    <p className="text-white/80">
                       Aucun quiz de certification n&apos;est encore configuré
                       pour ce cours.
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-white/55">
                       Créez le quiz pour permettre aux étudiants d&apos;obtenir
                       leur certificat.
                     </p>
@@ -528,14 +528,14 @@ export function CertificationEditor({
         )}
 
         {isCertifying && showForm && (
-          <Card>
+          <Card className="border border-white/10 bg-[#0F172A]/95">
             <CardHeader>
               <CardTitle>Créer le quiz de certification</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Titre du quiz *
                   </label>
                   <Input
@@ -547,10 +547,11 @@ export function CertificationEditor({
                       }))
                     }
                     placeholder="Quiz de certification"
+                    className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
                     Score de passage (%) *
                   </label>
                   <Input
@@ -568,12 +569,13 @@ export function CertificationEditor({
                         })(),
                       }))
                     }
+                    className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white/80 mb-2">
                   Description
                 </label>
                 <Textarea
@@ -586,15 +588,16 @@ export function CertificationEditor({
                   }
                   rows={3}
                   placeholder="Décrivez l'objectif du quiz..."
+                  className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                 />
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-white">
                     Questions *
                   </h3>
-                  <Button variant="outline" onClick={addQuestion}>
+                  <Button variant="outline" onClick={addQuestion} className="border-white/20 bg-transparent text-white hover:bg-white/10">
                     <Plus className="h-4 w-4 mr-2" />
                     Ajouter une question
                   </Button>
@@ -608,7 +611,7 @@ export function CertificationEditor({
                   const selectableOptions = getValidOptions(optionsList);
 
                   return (
-                    <Card key={question.id} className="border border-gray-200">
+                    <Card key={question.id} className="border border-white/10 bg-[#0B1220]">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0">
                         <CardTitle className="text-base">
                           Question {index + 1}
@@ -641,7 +644,7 @@ export function CertificationEditor({
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-white/80 mb-2">
                             Énoncé *
                           </label>
                           <Textarea
@@ -654,12 +657,13 @@ export function CertificationEditor({
                             }
                             rows={3}
                             placeholder="Écrivez la question..."
+                            className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                           />
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-white/80 mb-2">
                               Type de question *
                             </label>
                             <Select
@@ -671,10 +675,10 @@ export function CertificationEditor({
                                 )
                               }
                             >
-                              <SelectTrigger>
+                              <SelectTrigger className="border-white/15 bg-[#111827] text-white">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="border-white/15 bg-[#111827] text-white">
                                 <SelectItem value="TRUE_FALSE">
                                   Vrai / Faux
                                 </SelectItem>
@@ -689,7 +693,7 @@ export function CertificationEditor({
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-white/80 mb-2">
                               Points
                             </label>
                             <Input
@@ -707,18 +711,19 @@ export function CertificationEditor({
                                     ) || 0,
                                 }))
                               }
+                              className="border-white/15 bg-[#111827] text-white"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-white/80 mb-2">
                             Options *
                           </label>
                           {isTrueFalse ? (
                             <div className="flex gap-2">
                               {TRUE_FALSE_OPTIONS.map((option) => (
-                                <Badge key={option} variant="secondary">
+                                <Badge key={option} variant="secondary" className="bg-white/10 text-white/80">
                                   {option}
                                 </Badge>
                               ))}
@@ -740,6 +745,7 @@ export function CertificationEditor({
                                       )
                                     }
                                     placeholder={`Option ${optionIndex + 1}`}
+                                    className="border-white/15 bg-[#111827] text-white placeholder:text-white/45"
                                   />
                                   <Button
                                     variant="ghost"
@@ -757,6 +763,7 @@ export function CertificationEditor({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => addOption(question.id)}
+                                className="border-white/20 bg-transparent text-white hover:bg-white/10"
                               >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Ajouter une option
@@ -766,7 +773,7 @@ export function CertificationEditor({
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-white/80 mb-2">
                             Bonne réponse *
                           </label>
                           <Select
@@ -779,7 +786,7 @@ export function CertificationEditor({
                             }
                             disabled={selectableOptions.length === 0}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-white/15 bg-[#111827] text-white">
                               <SelectValue
                                 placeholder={
                                   selectableOptions.length === 0
@@ -788,7 +795,7 @@ export function CertificationEditor({
                                 }
                               />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="border-white/15 bg-[#111827] text-white">
                               {selectableOptions.map((option) => (
                                 <SelectItem key={option} value={option}>
                                   {option}
@@ -808,12 +815,14 @@ export function CertificationEditor({
                   variant="ghost"
                   onClick={onBack}
                   disabled={isSubmitting}
+                  className="text-white/75 hover:bg-white/10 hover:text-white"
                 >
                   Annuler
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting || modules.length === 0}
+                  className="bg-blue-600 text-white hover:bg-blue-500"
                 >
                   {isSubmitting ? (
                     <>

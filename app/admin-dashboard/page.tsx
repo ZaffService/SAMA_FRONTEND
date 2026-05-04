@@ -77,6 +77,7 @@ export default function AdminDashboard() {
           selectedCourseId && (
             <VideoStatusIndicator
               courseId={selectedCourseId}
+              onBack={() => setCurrentView("manage-courses")}
               onStatusChange={(isComplete) => {
                 logger.log("Statut du cours mis à jour:", isComplete);
               }}

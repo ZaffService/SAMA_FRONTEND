@@ -55,6 +55,7 @@ export function useCourses(
   initialPerPage: number = 8,
   options?: UseCoursesOptions,
 ): UseCoursesState & UseCoursesActions {
+  const MAX_FETCH_ALL_PAGES = 20;
   /* =======================
      STATES
   ======================= */
@@ -132,7 +133,9 @@ export function useCourses(
           totalPages = 1;
         }
 
-        for (let page = 2; page <= totalPages; page += 1) {
+        const safeTotalPages = Math.min(totalPages, MAX_FETCH_ALL_PAGES);
+
+        for (let page = 2; page <= safeTotalPages; page += 1) {
           if (controller.signal.aborted) return;
           const pageResult = await CoursesUseCases.getCourses(
             page,
@@ -149,6 +152,11 @@ export function useCourses(
           setPages(1);
           setHasCoursesInDatabase(hasCourses);
           setShowMaintenance(false);
+          if (totalPages > MAX_FETCH_ALL_PAGES) {
+            logger.warn(
+              `⚠️ [useCourses] fetchAll limité à ${MAX_FETCH_ALL_PAGES} pages (total API: ${totalPages})`,
+            );
+          }
         }
       } else {
         const result = await CoursesUseCases.getCourses(

@@ -76,17 +76,17 @@ export function ThumbnailUploader({
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full border border-[#3B3754] bg-[#181721]">
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
-            <Image className="h-5 w-5 text-gray-500" />
-            <h3 className="text-lg font-medium text-gray-900">
+            <Image className="h-5 w-5 text-[#A9F5E5]" />
+            <h3 className="text-lg font-semibold text-white">
               Image de couverture du cours
             </h3>
           </div>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+          <div className="rounded-lg border-2 border-dashed border-[#3B3754] bg-[#1F1D2B] p-6">
             {thumbnailUrl ? (
               <div className="space-y-4">
                 <div className="relative">
@@ -108,7 +108,7 @@ export function ThumbnailUploader({
                 <div className="flex justify-center">
                   <Button
                     type="button"
-                    variant="outline"
+                    className="border border-[#3B3754] bg-[#181721] text-white hover:bg-[#26233A]"
                     onClick={handleUploadClick}
                     disabled={isUploading}
                   >
@@ -123,19 +123,20 @@ export function ThumbnailUploader({
               </div>
             ) : (
               <div className="text-center space-y-4">
-                <div className="mx-auto h-12 w-12 text-gray-400">
+                <div className="mx-auto h-12 w-12 text-[#A9F5E5]/70">
                   <Image className="h-12 w-12" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm font-semibold text-white">
                     Ajoutez une image de couverture pour votre cours
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="mt-1 text-xs font-medium text-white/75">
                     PNG, JPG jusqu'à 5MB
                   </p>
                 </div>
                 <Button
                   type="button"
+                  className="bg-[#3B82F6] font-semibold text-white hover:bg-[#2563EB]"
                   onClick={handleUploadClick}
                   disabled={isUploading}
                 >

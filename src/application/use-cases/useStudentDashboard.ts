@@ -21,6 +21,10 @@ interface StudentCoursesData {
   enrolled_courses: any[];
   completed_courses: any[];
   in_progress_courses: any[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // ❌ SUPPRESSION DU CACHE MÉMOIRE - Les données doivent toujours venir de la DB
@@ -28,6 +32,8 @@ interface StudentCoursesData {
 export function useStudentDashboard(options: {
   userId: string | null;
   enabled?: boolean;
+  page?: number;
+  limit?: number;
 }): {
   dashboard: DashboardData | null;
   calendar: null;
@@ -36,11 +42,21 @@ export function useStudentDashboard(options: {
   error: string | null;
   refreshData: () => Promise<void>;
 } {
-  const { userId, enabled = true } = options;
+  const { userId, enabled = true, page = 1, limit = 8 } = options;
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [courses, setCourses] = useState<StudentCoursesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const normalizeProgressItems = (payload: any): any[] => {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload.courses)) return payload.courses;
+    if (Array.isArray(payload.data)) return payload.data;
+    if (Array.isArray(payload.items)) return payload.items;
+    if (Array.isArray(payload.results)) return payload.results;
+    return [];
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -66,177 +82,23 @@ export function useStudentDashboard(options: {
         logger.log("📊 Chargement des données dashboard étudiant ID:", userId);
         const startTime = performance.now();
 
-        // ✅ CHARGER LES DONNÉES DIRECTEMENT DEPUIS LES APIs (PAS DE CACHE)
-        const [dashboardResult, coursesResult, quizStats] = await Promise.all([
-          StudentApi.getStudentDashboard(),
-          StudentApi.getEnrolledCourses(),
-          StudentApi.computeQuizStats(), // ✅ UTILISER LES VRAIES STATISTIQUES DE QUIZ
-        ]);
+        const progressPage = await StudentApi.getProgressPage(page, limit);
+        const progressItems = normalizeProgressItems(progressPage);
 
-        logger.log(
-          "✅ Dashboard chargé:",
-          dashboardResult.total_courses,
-          "cours",
-        );
-
-        logger.log("✅ Cours chargés:", coursesResult.length, "cours");
-
-        // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE
-        logger.log(
-          "📊 [useStudentDashboard] Début récupération progression pour",
-          coursesResult.length,
-          "cours",
-        );
-        const coursesWithProgress = await Promise.all(
-          coursesResult.map(async (course) => {
-            const courseId = course.id || course.course_id;
-            if (!courseId) {
-              logger.log("⚠️ [useStudentDashboard] Cours sans ID:", course);
-              return course;
-            }
-
-            logger.log(
-              `📚 [useStudentDashboard] Récupération progression + détails pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
-            );
-
-            const [progressResult, detailsResult] = await Promise.allSettled([
-              StudentApi.getCourseProgress(courseId),
-              StudentApi.getCourseDetails(courseId),
-            ]);
-
-            const progressData =
-              progressResult.status === "fulfilled"
-                ? progressResult.value
-                : null;
-
-            if (progressResult.status === "rejected") {
-              logger.error(
-                `❌ [useStudentDashboard] Erreur récupération progression pour cours ${courseId}:`,
-                progressResult.reason,
-              );
-            }
-
-            const detailsData =
-              detailsResult.status === "fulfilled"
-                ? detailsResult.value
-                : null;
-
-            if (detailsResult.status === "rejected") {
-              logger.warn(
-                `⚠️ [useStudentDashboard] Détails cours indisponibles pour ${courseId}:`,
-                detailsResult.reason,
-              );
-            }
-
-            const rawDetails =
-              detailsData?.course ||
-              detailsData?.data?.course ||
-              detailsData?.courseData?.course ||
-              detailsData;
-
-            const rawPrice =
-              rawDetails?.price ??
-              rawDetails?._price ??
-              course.price ??
-              course._price;
-            const resolvedPrice = Number.isFinite(Number(rawPrice))
-              ? Number(rawPrice)
-              : 0;
-
-            const enrichedCourse = {
-              ...course,
-              title:
-                rawDetails?.title ??
-                rawDetails?._title ??
-                course.title ??
-                "Cours sans titre",
-              description:
-                rawDetails?.description ??
-                rawDetails?._description ??
-                course.description,
-              thumbnailUrl:
-                rawDetails?.thumbnailUrl ??
-                rawDetails?._thumbnailUrl ??
-                rawDetails?.thumbnail_url ??
-                rawDetails?.thumbnail ??
-                rawDetails?._thumbnail ??
-                rawDetails?.thumbnail?.url ??
-                rawDetails?.image ??
-                rawDetails?.coverImage ??
-                rawDetails?.cover_image ??
-                course.thumbnailUrl ??
-                course.thumbnail_url ??
-                course.thumbnail ??
-                course._thumbnail ??
-                course.image ??
-                course.coverImage ??
-                course.cover_image,
-              price: resolvedPrice,
-              level:
-                rawDetails?.level ??
-                rawDetails?._level ??
-                course.level ??
-                "BEGINNER",
-              instructorName:
-                rawDetails?.instructorName ??
-                rawDetails?.instructor_name ??
-                rawDetails?.instructor ??
-                course.instructorName ??
-                course.instructor_name ??
-                course.instructor,
-              previewAvailable:
-                rawDetails?.previewAvailable ??
-                rawDetails?.preview_available ??
-                course.previewAvailable ??
-                course.preview_available ??
-                false,
-              enrollmentCount:
-                rawDetails?.enrollmentCount ??
-                rawDetails?.enrollment_count ??
-                course.enrollmentCount ??
-                course.enrollment_count ??
-                0,
-            };
-
-            if (progressData) {
-              logger.log(
-                `✅ [useStudentDashboard] Progression reçue pour cours ${courseId}:`,
-                {
-                  progress: progressData.progress,
-                  completed_lessons: progressData.completed_lessons,
-                  total_lessons: progressData.total_lessons,
-                  last_accessed: progressData.last_accessed,
-                  timestamp: new Date().toISOString(),
-                },
-              );
-
-              return {
-                ...enrichedCourse,
-                progressPercentage: progressData.progress,
-                completedLessons: progressData.completed_lessons,
-                totalLessons: progressData.total_lessons,
-                lastAccessed: progressData.last_accessed,
-              };
-            }
-
-            return {
-              ...enrichedCourse,
-              progressPercentage: course.progressPercentage || 0,
-              completedLessons: course.completedLessons || 0,
-              totalLessons: course.totalLessons || 0,
-            };
-          }),
-        );
+        const coursesWithProgress = progressItems.map((item: any) => ({
+          id: item.courseId ?? item.course_id,
+          course_id: item.courseId ?? item.course_id,
+          title: item.title,
+          thumbnailUrl: item.thumbnailUrl,
+          progressPercentage: Number(item.progress ?? 0),
+          status: Number(item.progress ?? 0) >= 100 ? "COMPLETED" : "ACTIVE",
+          currentLesson: item.lastLessonId ?? null,
+          lastAccessed: item.lastLessonId ?? null,
+        }));
 
         logger.log(
           "✅ [useStudentDashboard] Progression chargée pour tous les cours",
         );
-        logger.log("📊 [useStudentDashboard] Résumé des progressions:");
-        coursesWithProgress.forEach((course) => {
-          logger.log(
-            `  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons)`,
-          );
-        });
 
         // ✅ CALCULER LES COURS TERMINÉS BASÉ SUR LA PROGRESSION RÉELLE
         const completedCoursesCount = coursesWithProgress.filter(
@@ -253,25 +115,40 @@ export function useStudentDashboard(options: {
         );
 
         const adaptedDashboard = {
-          enrolled_course_count: dashboardResult.total_courses,
+          enrolled_course_count:
+            typeof progressPage.total === "number"
+              ? progressPage.total
+              : coursesWithProgress.length,
           completed_courses: completedCoursesCount, // ✅ UTILISER LE CALCUL DYNAMIQUE AU LIEU DE L'API BACKEND
           certificates_earned: 0, // Non disponible dans l'API actuelle
           study_hours: 0, // Non disponible dans l'API actuelle
-          progress_percentage: dashboardResult.total_progress,
-          passed_quizzes: quizStats.passedQuizzes,
-          failed_quizzes: quizStats.failedQuizzes,
+          progress_percentage:
+            coursesWithProgress.length > 0
+              ? Math.round(
+                  coursesWithProgress.reduce(
+                    (sum, course) => sum + (course.progressPercentage ?? 0),
+                    0,
+                  ) / coursesWithProgress.length,
+                )
+              : 0,
+          passed_quizzes: 0,
+          failed_quizzes: 0,
           total_attempts: 0, // Non calculé dans computeQuizStats
           average_score: 0, // Non calculé dans computeQuizStats
         };
 
-        const adaptedCourses = {
+        const adaptedCourses: StudentCoursesData = {
           enrolled_courses: coursesWithProgress,
           completed_courses: coursesWithProgress.filter(
-            (course) => course.status === "COMPLETED",
+            (course: any) => course.status === "COMPLETED",
           ),
           in_progress_courses: coursesWithProgress.filter(
-            (course) => course.status === "ACTIVE",
+            (course: any) => course.status === "ACTIVE",
           ),
+          total: progressPage.total ?? coursesWithProgress.length,
+          page: progressPage.page ?? page,
+          limit: progressPage.limit ?? limit,
+          totalPages: progressPage.totalPages ?? 1,
         };
 
         setDashboard(adaptedDashboard);
@@ -287,7 +164,7 @@ export function useStudentDashboard(options: {
     };
 
     fetchDashboardData();
-  }, [userId, enabled]);
+  }, [userId, enabled, page, limit]);
 
   // Fonction pour rafraîchir les données
   const refreshData = async () => {
@@ -295,173 +172,22 @@ export function useStudentDashboard(options: {
       logger.log(
         "🔄 [useStudentDashboard] Début rafraîchissement des données...",
       );
-      const [dashboardResult, coursesResult, quizStats] = await Promise.all([
-        StudentApi.getStudentDashboard(),
-        StudentApi.getEnrolledCourses(),
-        StudentApi.computeQuizStats(),
-      ]);
-
-      // ✅ FETCH PROGRESS FOR EACH ENROLLED COURSE
-      logger.log(
-        "📊 [useStudentDashboard] Rafraîchissement progression pour",
-        coursesResult.length,
-        "cours",
-      );
-      const coursesWithProgress = await Promise.all(
-        coursesResult.map(async (course) => {
-          const courseId = course.id || course.course_id;
-          if (!courseId) {
-            logger.log(
-              "⚠️ [useStudentDashboard] Cours sans ID lors du refresh:",
-              course,
-            );
-            return course;
-          }
-
-          logger.log(
-            `📚 [useStudentDashboard] Refresh progression + détails pour cours ID: ${courseId} - ${course.title || "sans titre"}`,
-          );
-
-          const [progressResult, detailsResult] = await Promise.allSettled([
-            StudentApi.getCourseProgress(courseId),
-            StudentApi.getCourseDetails(courseId),
-          ]);
-
-          const progressData =
-            progressResult.status === "fulfilled"
-              ? progressResult.value
-              : null;
-
-          if (progressResult.status === "rejected") {
-            logger.error(
-              ` [useStudentDashboard] Erreur refresh progression pour cours ${courseId}:`,
-              progressResult.reason,
-            );
-          }
-
-          const detailsData =
-            detailsResult.status === "fulfilled"
-              ? detailsResult.value
-              : null;
-
-          if (detailsResult.status === "rejected") {
-            logger.warn(
-              `⚠️ [useStudentDashboard] Détails cours indisponibles (refresh) pour ${courseId}:`,
-              detailsResult.reason,
-            );
-          }
-
-          const rawDetails =
-            detailsData?.course ||
-            detailsData?.data?.course ||
-            detailsData?.courseData?.course ||
-            detailsData;
-
-          const rawPrice =
-            rawDetails?.price ??
-            rawDetails?._price ??
-            course.price ??
-            course._price;
-          const resolvedPrice = Number.isFinite(Number(rawPrice))
-            ? Number(rawPrice)
-            : 0;
-
-          const enrichedCourse = {
-            ...course,
-            title:
-              rawDetails?.title ??
-              rawDetails?._title ??
-              course.title ??
-              "Cours sans titre",
-            description:
-              rawDetails?.description ??
-              rawDetails?._description ??
-              course.description,
-            thumbnailUrl:
-              rawDetails?.thumbnailUrl ??
-              rawDetails?._thumbnailUrl ??
-              rawDetails?.thumbnail_url ??
-              rawDetails?.thumbnail ??
-              rawDetails?._thumbnail ??
-              rawDetails?.thumbnail?.url ??
-              rawDetails?.image ??
-              rawDetails?.coverImage ??
-              rawDetails?.cover_image ??
-              course.thumbnailUrl ??
-              course.thumbnail_url ??
-              course.thumbnail ??
-              course._thumbnail ??
-              course.image ??
-              course.coverImage ??
-              course.cover_image,
-            price: resolvedPrice,
-            level:
-              rawDetails?.level ??
-              rawDetails?._level ??
-              course.level ??
-              "BEGINNER",
-            instructorName:
-              rawDetails?.instructorName ??
-              rawDetails?.instructor_name ??
-              rawDetails?.instructor ??
-              course.instructorName ??
-              course.instructor_name ??
-              course.instructor,
-            previewAvailable:
-              rawDetails?.previewAvailable ??
-              rawDetails?.preview_available ??
-              course.previewAvailable ??
-              course.preview_available ??
-              false,
-            enrollmentCount:
-              rawDetails?.enrollmentCount ??
-              rawDetails?.enrollment_count ??
-              course.enrollmentCount ??
-              course.enrollment_count ??
-              0,
-          };
-
-          if (progressData) {
-            logger.log(
-              `✅ [useStudentDashboard] Progression rafraîchie pour cours ${courseId}:`,
-              {
-                progress: progressData.progress,
-                completed_lessons: progressData.completed_lessons,
-                total_lessons: progressData.total_lessons,
-                last_accessed: progressData.last_accessed,
-                timestamp: new Date().toISOString(),
-              },
-            );
-
-            return {
-              ...enrichedCourse,
-              progressPercentage: progressData.progress,
-              completedLessons: progressData.completed_lessons,
-              totalLessons: progressData.total_lessons,
-              lastAccessed: progressData.last_accessed,
-            };
-          }
-
-          return {
-            ...enrichedCourse,
-            progressPercentage: course.progressPercentage || 0,
-            completedLessons: course.completedLessons || 0,
-            totalLessons: course.totalLessons || 0,
-          };
-        }),
-      );
+      const progressPage = await StudentApi.getProgressPage(page, limit);
+      const progressItems = normalizeProgressItems(progressPage);
+      const coursesWithProgress = progressItems.map((item: any) => ({
+        id: item.courseId ?? item.course_id,
+        course_id: item.courseId ?? item.course_id,
+        title: item.title,
+        thumbnailUrl: item.thumbnailUrl,
+        progressPercentage: Number(item.progress ?? 0),
+        status: Number(item.progress ?? 0) >= 100 ? "COMPLETED" : "ACTIVE",
+        currentLesson: item.lastLessonId ?? null,
+        lastAccessed: item.lastLessonId ?? null,
+      }));
 
       logger.log(
         "✅ [useStudentDashboard] Progression rafraîchie pour tous les cours",
       );
-      logger.log(
-        "📊 [useStudentDashboard] Résumé des progressions après refresh:",
-      );
-      coursesWithProgress.forEach((course) => {
-        logger.log(
-          `  - Cours ${course.id || course.course_id}: ${course.progressPercentage}% (${course.completedLessons}/${course.totalLessons} leçons) - Dernier accès: ${course.lastAccessed || "N/A"}`,
-        );
-      });
 
       // ✅ CALCULER LES COURS TERMINÉS BASÉ SUR LA PROGRESSION RÉELLE (REFRESH)
       const completedCoursesCount = coursesWithProgress.filter(
@@ -474,13 +200,24 @@ export function useStudentDashboard(options: {
 
       // Adapter les données pour correspondre aux types attendus
       const adaptedDashboard = {
-        enrolled_course_count: dashboardResult.total_courses,
+        enrolled_course_count:
+          typeof progressPage.total === "number"
+            ? progressPage.total
+            : coursesWithProgress.length,
         completed_courses: completedCoursesCount, // ✅ UTILISER LE CALCUL DYNAMIQUE AU LIEU DE L'API BACKEND
         certificates_earned: 0, // Non disponible dans l'API actuelle
         study_hours: 0, // Non disponible dans l'API actuelle
-        progress_percentage: dashboardResult.total_progress,
-        passed_quizzes: quizStats.passedQuizzes,
-        failed_quizzes: quizStats.failedQuizzes,
+        progress_percentage:
+          coursesWithProgress.length > 0
+            ? Math.round(
+                coursesWithProgress.reduce(
+                  (sum, course) => sum + (course.progressPercentage ?? 0),
+                  0,
+                ) / coursesWithProgress.length,
+              )
+            : 0,
+        passed_quizzes: 0,
+        failed_quizzes: 0,
         total_attempts: 0, // Non calculé dans computeQuizStats
         average_score: 0, // Non calculé dans computeQuizStats
       };
@@ -496,6 +233,10 @@ export function useStudentDashboard(options: {
             course.status === "ACTIVE" &&
             (course.progressPercentage ?? 0) < 100,
         ),
+        total: progressPage.total ?? coursesWithProgress.length,
+        page: progressPage.page ?? page,
+        limit: progressPage.limit ?? limit,
+        totalPages: progressPage.totalPages ?? 1,
       };
 
       setDashboard(adaptedDashboard);

@@ -1,7 +1,7 @@
 "use client";
 
-import { BookOpen, CheckCircle, Play, Award } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen } from "lucide-react";
 
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -11,38 +11,62 @@ import { CourseCard } from "@/components/course-card";
 
 import { useStudentDashboard } from "@/application/use-cases/useStudentDashboard";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { UserApi } from "@/infrastructure/api/user-api";
 import logger from "@/shared/helpers/logger";
 import type { BackendCourse } from "@/infrastructure/api/courses-api";
 
 const StudentDashboard = () => {
   const { user } = useLocalAuth();
+  const [page, setPage] = useState(1);
+  const limit = 8;
+
   const { courses, loading, error } = useStudentDashboard({
     userId: user?.id?.toString() || null,
+    page,
+    limit,
   });
 
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  const authName = useMemo(() => {
+    const first =
+      (user as any)?.firstName ||
+      (user as any)?.first_name ||
+      (user as any)?.name?.split?.(" ")?.[0] ||
+      "";
+    const last =
+      (user as any)?.lastName || (user as any)?.last_name || "";
+
+    const full = `${String(first).trim()} ${String(last).trim()}`.trim();
+    return full || String(first).trim() || null;
+  }, [user]);
+
+  const greetingName = authName || profileName;
+
+  useEffect(() => {
+    if (authName) return;
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        // Fallback: endpoint profil (sans modifier le backend)
+        const profile = await UserApi.getUserProfile();
+        const first = (profile as any)?.firstName || (profile as any)?.user?.firstName;
+        const last = (profile as any)?.lastName || (profile as any)?.user?.lastName;
+        const full = `${String(first ?? "").trim()} ${String(last ?? "").trim()}`.trim();
+        if (!cancelled) setProfileName(full || String(first ?? "").trim() || null);
+      } catch (e) {
+        logger.warn("Impossible de récupérer le nom utilisateur pour la salutation", e);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [authName]);
+
   type EnrolledCourseCard = BackendCourse & { progress?: number };
-
-  // Activité récente basée sur les vraies données de cours
-  const recentActivities =
-    courses?.enrolled_courses?.slice(0, 5).map((course, index) => {
-      logger.log("🎨 [Dashboard UI] Cours à afficher:", course);
-      logger.log(
-        "🎨 [Dashboard UI] Progression:",
-        course.progressPercentage,
-        course.progress,
-      );
-
-      return {
-        id: course.id || course.course_id || index,
-        courseId: course.id || course.course_id,
-        lessonId: course.lastAccessed || course.last_accessed || null,
-        type: course.status === "COMPLETED" ? "completed" : "in_progress",
-        title: course.title || "Cours sans titre",
-        progress: Math.round(course.progressPercentage || course.progress || 0),
-        completed: course.status === "COMPLETED",
-        time: "Récemment",
-      };
-    }) || [];
 
   const enrolledCourses: EnrolledCourseCard[] = (
     courses?.enrolled_courses ?? []
@@ -84,23 +108,20 @@ const StudentDashboard = () => {
           typeof course.progressPercentage === "number"
             ? course.progressPercentage
             : course.progress,
+        // champs utiles pour "Reprendre"
+        currentLesson:
+          course.currentLesson ||
+          course.current_lesson ||
+          course.currentLessonId ||
+          course.current_lesson_id ||
+          course.lastAccessed ||
+          course.last_accessed ||
+          course.current_lesson?.lessonId ||
+          course.current_lesson?.lesson_id,
       };
     })
     .filter((course): course is EnrolledCourseCard => course !== null);
-
-  const buildCourseHref = (
-    courseId?: string | number | null,
-    lessonId?: string | number | null,
-  ) => {
-    if (!courseId) return null;
-    const encodedCourseId = encodeURIComponent(courseId.toString());
-    if (lessonId) {
-      return `/course-details/${encodedCourseId}?lessonId=${encodeURIComponent(
-        lessonId.toString(),
-      )}`;
-    }
-    return `/course-details/${encodedCourseId}`;
-  };
+  const totalPages = courses?.totalPages ?? 1;
 
   if (loading) {
     return (
@@ -150,128 +171,12 @@ const StudentDashboard = () => {
         {/* En-tête avec salutation - Meilleure visibilité mobile */}
         <div className="space-y-2 pt-4 sm:pt-0">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-            Bonjour
+            Bonjour{greetingName ? ` ${greetingName}` : ""}
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg">
             Voici un aperçu de votre progression d'apprentissage
           </p>
         </div>
-
-        {/* Section Activité Récente - Responsive optimisé */}
-        <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
-          <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <Award className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <CardTitle className="text-base sm:text-xl font-semibold text-slate-900">
-                  Activité Récente
-                </CardTitle>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
-            <div className="space-y-2 sm:space-y-3">
-              {recentActivities.length > 0 ? (
-                recentActivities.map((activity) => {
-                  const href = buildCourseHref(
-                    activity.courseId,
-                    activity.lessonId,
-                  );
-
-                  // Contenu inline flex — tout sur la même ligne
-                  const activityContent = (
-                    <div className="flex flex-row items-center gap-3 sm:gap-4 w-full">
-                      {/* Icône */}
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`h-9 w-9 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center shadow-sm ${
-                            activity.completed
-                              ? "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/25"
-                              : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25"
-                          }`}
-                        >
-                          {activity.completed ? (
-                            <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                          ) : (
-                            <Play className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Titre + temps */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm sm:text-base text-slate-900 truncate group-hover:text-primary transition-colors">
-                          {activity.title}
-                        </p>
-                        <p className="text-xs sm:text-sm text-slate-500">
-                          {activity.time}
-                        </p>
-                      </div>
-
-                      {/* Progression */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                        <div className="text-right">
-                          <div
-                            className={`text-base sm:text-lg font-bold ${
-                              activity.completed
-                                ? "text-emerald-600"
-                                : "text-blue-600"
-                            }`}
-                          >
-                            {activity.progress}%
-                          </div>
-                          <div className="text-xs text-slate-500 hidden sm:block">
-                            progression
-                          </div>
-                        </div>
-                        {activity.completed && (
-                          <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                            <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-
-                  if (!href) {
-                    return (
-                      <div
-                        key={activity.id}
-                        className="group flex w-full items-center p-3 sm:p-4 rounded-xl border border-slate-200 bg-white"
-                      >
-                        {activityContent}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={activity.id}
-                      href={href}
-                      className="group w-full flex items-center p-3 sm:p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                    >
-                      {activityContent}
-                    </Link>
-                  );
-                })
-              ) : (
-                <div className="text-center py-12 sm:py-16">
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 mx-auto mb-4 flex items-center justify-center">
-                    <BookOpen className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
-                  </div>
-                  <p className="text-slate-600 text-base sm:text-lg font-medium mb-2">
-                    Aucune activité récente
-                  </p>
-                  <p className="text-xs sm:text-sm text-slate-500 px-4">
-                    Commencez un cours pour voir votre progression ici
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Section Cours Inscrits - Style Udemy */}
         <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
@@ -285,17 +190,42 @@ const StudentDashboard = () => {
                   Mes cours inscrits
                 </CardTitle>
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Précédent
+                  </button>
+                  <span className="text-sm text-slate-600">
+                    Page {page} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Suivant
+                  </button>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             {enrolledCourses.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {enrolledCourses.map((course) => (
                   <CourseCard
                     key={course.id}
                     course={course}
                     isEnrolled={true}
                     progress={course.progress}
+                    variant="compact"
+                    resumeLessonId={(course as any).currentLesson}
                   />
                 ))}
               </div>

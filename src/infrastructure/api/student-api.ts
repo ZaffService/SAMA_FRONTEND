@@ -60,7 +60,32 @@ export interface StudentDashboard {
   total_progress: number;
 }
 
+export type ProgressRecord = {
+  courseId?: string;
+  course_id?: string;
+  title?: string;
+  progress?: number;
+  lastLessonId?: string | null;
+  lastLessonTitle?: string | null;
+  lastViewedAt?: string | null;
+  thumbnailUrl?: string | null;
+};
+
+export type PaginatedResponse<T> = {
+  data?: T[];
+  courses?: T[];
+  results?: T[];
+  items?: T[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+};
+
 export class StudentApi {
+  private static enrolledCoursesInFlight: Promise<Enrollment[]> | null = null;
+  private static progressPageInFlight = new Map<string, Promise<PaginatedResponse<ProgressRecord>>>();
+
   static async getCurrentStudent(): Promise<Student> {
     // This should get user info from auth context or another source
     // For now, return a basic structure
@@ -138,6 +163,11 @@ export class StudentApi {
 
   static async getEnrolledCourses(): Promise<Enrollment[]> {
     try {
+      if (this.enrolledCoursesInFlight) {
+        return await this.enrolledCoursesInFlight;
+      }
+
+      this.enrolledCoursesInFlight = (async () => {
       logger.log("🔍 [StudentApi] Appel getEnrolledCourses");
       logger.log(
         "🔍 [StudentApi] URL:",
@@ -191,9 +221,63 @@ export class StudentApi {
       }
 
       return courses;
+      })();
+
+      return await this.enrolledCoursesInFlight;
     } catch (error) {
       logger.error("❌ [StudentApi] Erreur getEnrolledCourses:", error);
       throw error;
+    } finally {
+      this.enrolledCoursesInFlight = null;
+    }
+  }
+
+  static async computeQuizStatsFromEnrolledCourses(
+    enrolledCourses: Enrollment[],
+  ): Promise<{
+    passedQuizzes: number;
+    failedQuizzes: number;
+  }> {
+    try {
+      let passedQuizzes = 0;
+      let failedQuizzes = 0;
+
+      for (const course of enrolledCourses) {
+        const courseId = course.id || course.course_id;
+        if (!courseId) continue;
+
+        const courseDetails = await this.getCourseDetails(courseId);
+        if (!courseDetails.modules) continue;
+
+        for (const module of courseDetails.modules) {
+          try {
+            const quizData = await this.getQuizQuestions(module.id);
+            if (!quizData.quiz) continue;
+
+            const quiz = quizData.quiz;
+            const passingScore = quiz.passingScore || 70;
+            const attempts = await this.getQuizAttempts(quiz.id);
+            if (attempts.length === 0) continue;
+
+            for (const attempt of attempts) {
+              if (attempt.score !== null && attempt.score !== undefined) {
+                if (attempt.score >= passingScore) {
+                  passedQuizzes++;
+                } else {
+                  failedQuizzes++;
+                }
+              }
+            }
+          } catch (error) {
+            logger.warn(`Erreur pour le module ${module.id}:`, error);
+          }
+        }
+      }
+
+      return { passedQuizzes, failedQuizzes };
+    } catch (error) {
+      logger.error("Erreur computeQuizStatsFromEnrolledCourses:", error);
+      return { passedQuizzes: 0, failedQuizzes: 0 };
     }
   }
 
@@ -496,70 +580,7 @@ export class StudentApi {
     try {
       const enrolledCourses = await this.getEnrolledCourses();
 
-      let passedQuizzes = 0;
-      let failedQuizzes = 0;
-
-      // Parcourir chaque cours inscrit
-      for (const course of enrolledCourses) {
-        const courseId = course.id || course.course_id;
-        if (!courseId) continue;
-
-        const courseDetails = await this.getCourseDetails(courseId);
-
-        // Vérifier si courseDetails.modules existe
-        if (!courseDetails.modules) continue;
-
-        // Parcourir chaque module du cours
-        for (const module of courseDetails.modules) {
-          try {
-            // Obtenir les questions du quiz pour ce module (qui inclut les infos du quiz)
-            const quizData = await this.getQuizQuestions(module.id);
-
-            if (!quizData.quiz) continue; // Pas de quiz pour ce module
-
-            const quiz = quizData.quiz;
-            const passingScore = quiz.passingScore || 70; // Défaut 70 si non défini
-
-            logger.log(
-              `📊 Quiz: ${quiz.title}, passingScore: ${passingScore}`,
-            );
-
-            // Obtenir les tentatives pour ce quiz
-            const attempts = await this.getQuizAttempts(quiz.id);
-
-            logger.log(`   Tentatives trouvées: ${attempts.length}`);
-
-            if (attempts.length === 0) continue; // Pas de tentatives, ignorer ce quiz
-
-            // Compter les tentatives individuelles comme réussies ou échouées
-            // Un quiz est réussi si score >= 70%, sinon échoué
-            for (const attempt of attempts) {
-              if (attempt.score !== null && attempt.score !== undefined) {
-                if (attempt.score >= passingScore) {
-                  passedQuizzes++;
-                  logger.log(`   ✅ Passé: ${attempt.score}`);
-                } else {
-                  failedQuizzes++;
-                  logger.log(`   ❌ Échoué: ${attempt.score}`);
-                }
-              }
-            }
-          } catch (error) {
-            // Si erreur pour ce module/quiz, continuer avec les autres
-            logger.warn(`Erreur pour le module ${module.id}:`, error);
-            continue;
-          }
-        }
-      }
-
-      logger.log(
-        `📊 Total: ${passedQuizzes} passés, ${failedQuizzes} échoués`,
-      );
-
-      return {
-        passedQuizzes,
-        failedQuizzes,
-      };
+      return await this.computeQuizStatsFromEnrolledCourses(enrolledCourses);
     } catch (error) {
       logger.error("Erreur computeQuizStats:", error);
       // Retourner des valeurs par défaut en cas d'erreur
@@ -646,6 +667,36 @@ export class StudentApi {
         total_attempts: 0,
         average_score: 0,
       };
+    }
+  }
+
+  static async getProgressPage(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<ProgressRecord>> {
+    const key = `${page}:${limit}`;
+    const existing = this.progressPageInFlight.get(key);
+    if (existing) return await existing;
+
+    const task = (async () => {
+      const url = buildApiUrl(
+        `${API_ENDPOINTS.COURSES.PROGRESS_LIST}?page=${page}&limit=${limit}`,
+      );
+      logger.log("📈 [StudentApi] Appel getProgressPage:", url);
+
+      const response = await fetch(url, { method: "GET", credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      const payload = (await response.json()) as any;
+      return payload as PaginatedResponse<ProgressRecord>;
+    })();
+
+    this.progressPageInFlight.set(key, task);
+    try {
+      return await task;
+    } finally {
+      this.progressPageInFlight.delete(key);
     }
   }
 }

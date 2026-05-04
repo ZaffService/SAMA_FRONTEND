@@ -28,6 +28,9 @@ export interface CourseSearchOptions {
  * Constantes pour les endpoints API
  */
 export const API_ENDPOINTS = {
+  DASHBOARD: {
+    ANALYTICS: "/api/dashboard/analytics",
+  },
   COURSES: {
     SEARCH: "/course/search",
     ADMIN_COURSES: "/course/admin/all",
@@ -41,6 +44,7 @@ export const API_ENDPOINTS = {
     ENROLLMENT: "/course/enrollment",
     FOLLOW: (courseId: string) => `/course/follow/${courseId}`,
     PROGRESS: (courseId: string) => `/course/progress/${courseId}`,
+    PROGRESS_LIST: "/course/progress",
     CATEGORIES: "/course/categories",
     ENROLLED: "/course/enrolled",
     QUIZ: "/course/quiz",
@@ -59,7 +63,7 @@ export const API_ENDPOINTS = {
     VERIFY_EMAIL: "/user/verify-email",
     BY_ROLE: "/user/by-role",
     REQUEST_PASSWORD_RESET: "/user/request-password-reset",
-    RESET_PASSWORD: "/user/reset-password",
+    RESET_PASSWORD: "/user/forgot-password",
     ADMIN_CREATE: "/user/admin/create-user",
     IMPORT_USERS: "/import/users",
     IMPORT_USERS_LEGACY: "/import-users",

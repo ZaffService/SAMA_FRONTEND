@@ -9,7 +9,7 @@ export interface CourseCookieDraft {
   description: string;
   categoryId: string;
   level: string;
-  price: number;
+  price: string | number;
   modules: any[];
   quizzes?: any[];
   lastSaved: string; // Timestamp

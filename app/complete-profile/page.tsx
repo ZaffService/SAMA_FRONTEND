@@ -35,7 +35,6 @@ import {
   Home,
   Heart,
   Info,
-  AlertTriangle,
 } from "lucide-react";
 import { useProtectRoute } from "@/application/use-cases/useProtectRoute";
 import { getErrorMapping } from "@/shared/helpers/error-mapping";
@@ -139,6 +138,11 @@ export default function CompleteProfile() {
     [profileMetadata],
   );
   const metadataReady = Boolean(profileMetadata);
+
+  const displayName =
+    formData.firstName && formData.lastName
+      ? `${formData.firstName} ${formData.lastName}`
+      : "Mon Profil";
 
   // Helper to validate phone number
   const validatePhone = (phone: string, dialCode: string): string | null => {
@@ -359,7 +363,7 @@ export default function CompleteProfile() {
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#e9eff4] to-white">
         <Header />
         <main className="flex-1 flex items-center justify-center py-8 md:py-12 pt-20 sm:pt-24 lg:pt-28">
-          <div className="container mx-auto px-4 max-w-3xl text-center">
+          <div className="w-full max-w-[1600px] px-6 lg:px-12 xl:px-16 mx-auto text-center">
             <LoadingSpinner size="lg" />
             <p className="mt-4 text-muted-foreground">Vérification...</p>
           </div>
@@ -374,7 +378,7 @@ export default function CompleteProfile() {
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#e9eff4] to-white">
         <Header />
         <main className="flex-1 flex items-center justify-center py-8 md:py-12 pt-20 sm:pt-24 lg:pt-28">
-          <div className="container mx-auto px-4 max-w-3xl text-center">
+          <div className="w-full max-w-[1600px] px-6 lg:px-12 xl:px-16 mx-auto text-center">
             <LoadingSpinner size="lg" />
             <p className="mt-4 text-muted-foreground">
               Chargement de votre profil...
@@ -391,63 +395,57 @@ export default function CompleteProfile() {
       <Header />
 
       <main className="flex-1 py-8 md:py-12 pt-20 sm:pt-24 lg:pt-28">
-        <div className="container mx-auto px-4 max-w-4xl">
+        <div className="w-full max-w-[1600px] px-6 lg:px-12 xl:px-16 mx-auto">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-8 lg:mb-10">
             <Button
               variant="outline"
               size="icon"
               onClick={() => router.back()}
-              className="rounded-full"
+              className="rounded-full shrink-0 w-12 h-12 lg:w-14 lg:h-14"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5 lg:h-6 lg:w-6" />
             </Button>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900">
                 Compléter votre profil
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-base lg:text-lg">
                 Renseignez vos informations pour accéder à toutes les
                 fonctionnalités
               </p>
             </div>
           </div>
 
-          {/* Info Banner */}
-          {/* <Card className="mb-8 border-0 bg-gradient-to-r from-[#FFF7E6] via-white to-[#EEF4FF] shadow-md">
-            <CardContent className="relative p-5 sm:p-6">
-              <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#d93030]/10 blur-2xl" />
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 shadow-sm ring-1 ring-amber-200">
-                    <AlertTriangle className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700/80">
-                      Important
-                    </p>
-                    <p className="text-base font-semibold text-[#1D2939] sm:text-lg">
-                      Complétez votre profil pour continuer
-                    </p>
-                    <p className="max-w-2xl text-sm text-[#475467]">
-                      Certaines fonctionnalités nécessitent un profil complet.
-                      Les champs marqués d&apos;une étoile (*) sont obligatoires.
-                    </p>
-                  </div>
+          {/* Profile Header Card - same style as "Mon Profil" */}
+          <Card className="mb-6 lg:mb-8 overflow-hidden border-0 shadow-lg w-full">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 md:p-8 lg:p-12">
+              <div className="flex flex-col md:flex-row items-center gap-6 lg:gap-8">
+                <div className="w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-full border-4 border-white shadow-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <span className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+                    {formData.firstName?.[0]?.toUpperCase() ||
+                      formData.email?.[0]?.toUpperCase() ||
+                      "U"}
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-[#344054]">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 ring-1 ring-[#002c75]/10">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    Accès complet
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 ring-1 ring-[#002c75]/10">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
-                    Progression suivie
-                  </span>
+
+                <div className="text-center md:text-left text-white">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">
+                    {displayName}
+                  </h2>
+                  {formData.email && (
+                    <p className="text-blue-100 mt-1 text-base lg:text-lg">
+                      {formData.email}
+                    </p>
+                  )}
+                  <div className="inline-flex items-center gap-1 lg:gap-2 mt-2 lg:mt-3 bg-white/20 px-3 py-1 lg:px-4 lg:py-2 rounded-full text-sm lg:text-base">
+                    <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5" />
+                    Finalisez votre profil
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card> */}
+            </div>
+          </Card>
 
           {metadataError && (
             <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
@@ -456,36 +454,36 @@ export default function CompleteProfile() {
           )}
 
           {/* Form Card */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="border-b bg-gray-50/50 px-6 py-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <User className="h-5 w-5 text-blue-600" />
+          <Card className="border-0 shadow-lg w-full">
+            <CardHeader className="border-b bg-gray-50/50 px-6 py-5 lg:px-10 lg:py-7">
+              <div className="flex items-center gap-3 lg:gap-4">
+                <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <User className="h-5 w-5 lg:h-7 lg:w-7 text-blue-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg lg:text-2xl">
                     Informations personnelles
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm lg:text-base">
                     Ces informations nous permettront de mieux vous connaître
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent className="p-6 md:p-8">
-              <div className="space-y-8">
+            <CardContent className="p-6 md:p-8 lg:p-12">
+              <div className="space-y-8 lg:space-y-12">
                 {/* Section: Identité */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <User className="h-5 w-5 text-blue-600" />
+                <div className="space-y-4 lg:space-y-6">
+                  <h3 className="text-lg lg:text-2xl font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b-2 border-gray-200">
+                    <User className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
                     Identité
                   </h3>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                  <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-10">
+                    <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="firstName"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm lg:text-base font-medium text-gray-700"
                       >
                         Prénom
                       </Label>
@@ -493,13 +491,13 @@ export default function CompleteProfile() {
                         id="firstName"
                         value={formData.firstName}
                         readOnly
-                        className="h-12 px-4 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+                        className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="lastName"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm lg:text-base font-medium text-gray-700"
                       >
                         Nom
                       </Label>
@@ -507,26 +505,26 @@ export default function CompleteProfile() {
                         id="lastName"
                         value={formData.lastName}
                         readOnly
-                        className="h-12 px-4 border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+                        className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
                       />
                     </div>
                   </div>
                 </div>
 
-                <hr className="border-gray-200" />
+                <hr className="border-gray-200 my-8 lg:my-10" />
 
                 {/* Section: Préférences personnelles */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-blue-600" />
+                <div className="space-y-4 lg:space-y-6">
+                  <h3 className="text-lg lg:text-2xl font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b-2 border-gray-200">
+                    <Heart className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
                     Préférences personnelles
                   </h3>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                  <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-10">
+                    <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="ageRange"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm lg:text-base font-medium text-gray-700"
                       >
                         Tranche d&apos;âge <span className="text-red-500">*</span>
                       </Label>
@@ -545,7 +543,7 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="ageRange"
-                          className={`h-12 px-4 ${fieldErrors.ageRange ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.ageRange ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -564,10 +562,10 @@ export default function CompleteProfile() {
                       )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="currentStatus"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm lg:text-base font-medium text-gray-700"
                       >
                         Statut actuel <span className="text-red-500">*</span>
                       </Label>
@@ -586,7 +584,7 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="currentStatus"
-                          className={`h-12 px-4 ${fieldErrors.currentStatus ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.currentStatus ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -605,10 +603,10 @@ export default function CompleteProfile() {
                       )}
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    <div className="space-y-2 lg:space-y-3 md:col-span-2">
                       <Label
                         htmlFor="referralSource"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm lg:text-base font-medium text-gray-700"
                       >
                         Comment nous avez-vous connus ?{" "}
                         <span className="text-red-500">*</span>
@@ -628,7 +626,7 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="referralSource"
-                          className={`h-12 px-4 ${fieldErrors.referralSource ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.referralSource ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -648,11 +646,11 @@ export default function CompleteProfile() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                  <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-10">
+                    <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="sexe"
-                        className="text-sm font-medium text-gray-700"
+                        className="text-sm lg:text-base font-medium text-gray-700"
                       >
                         Genre <span className="text-red-500">*</span>
                       </Label>
@@ -668,7 +666,7 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="sexe"
-                          className={`h-12 px-4 ${fieldErrors.sexe ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.sexe ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -687,12 +685,12 @@ export default function CompleteProfile() {
                       )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 lg:space-y-3">
                       <Label
                         htmlFor="region"
-                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                        className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2"
                       >
-                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
                         Région <span className="text-red-500">*</span>
                       </Label>
                       <Select
@@ -707,7 +705,7 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="region"
-                          className={`h-12 px-4 ${fieldErrors.region ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.region ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                         >
                           <SelectValue placeholder="Sélectionnez votre région" />
                         </SelectTrigger>
@@ -730,8 +728,8 @@ export default function CompleteProfile() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <Home className="h-4 w-4 text-gray-400" />
+                    <Label className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2">
+                      <Home className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
                       Type de résidence <span className="text-red-500">*</span>
                     </Label>
                     <div className="flex gap-2">
@@ -753,7 +751,7 @@ export default function CompleteProfile() {
                               }
                             }}
                             disabled={isSaving}
-                            className={`flex-1 px-3 py-2 text-sm rounded-lg border-2 transition-all duration-200 ${
+                          className={`flex-1 px-3 py-2 lg:px-4 lg:py-3 text-sm lg:text-base rounded-lg border-2 transition-all duration-200 ${
                               formData.residenceType === value
                                 ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
                                 : fieldErrors.residenceType
@@ -777,9 +775,9 @@ export default function CompleteProfile() {
                   {originalPhone ? (
                     <div className="space-y-2">
                       <Label
-                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                        className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2"
                       >
-                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
                         Téléphone
                       </Label>
                       <div className="flex gap-2">
@@ -787,12 +785,15 @@ export default function CompleteProfile() {
                           value={formData.indicatif}
                           disabled={isSaving}
                         >
-                          <SelectTrigger className="w-24 h-12 bg-gray-50">
+                          <SelectTrigger className="w-24 lg:w-28 h-12 lg:h-16 bg-gray-50 text-base lg:text-lg">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {COUNTRIES.map((country) => (
-                              <SelectItem key={country.indicatif} value={country.indicatif}>
+                              <SelectItem
+                                key={country.indicatif}
+                                value={country.indicatif}
+                              >
                                 {country.indicatif}
                               </SelectItem>
                             ))}
@@ -803,7 +804,7 @@ export default function CompleteProfile() {
                           type="tel"
                           value={`${formData.indicatif} ${formData.telephone}`}
                           disabled
-                          className="flex-1 h-12 bg-gray-50 text-gray-600 cursor-not-allowed"
+                          className="flex-1 h-12 lg:h-16 bg-gray-50 text-gray-600 cursor-not-allowed text-base lg:text-lg"
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -814,9 +815,9 @@ export default function CompleteProfile() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="phone"
-                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                        className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2"
                       >
-                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
                         Téléphone <span className="text-red-500">*</span>
                       </Label>
                       <div className="flex gap-2">
@@ -830,12 +831,15 @@ export default function CompleteProfile() {
                           }}
                           disabled={isSaving}
                         >
-                          <SelectTrigger className="w-24 h-12">
+                          <SelectTrigger className="w-24 lg:w-28 h-12 lg:h-16 text-base lg:text-lg">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {COUNTRIES.map((country) => (
-                              <SelectItem key={country.indicatif} value={country.indicatif}>
+                              <SelectItem
+                                key={country.indicatif}
+                                value={country.indicatif}
+                              >
                                 {country.indicatif}
                               </SelectItem>
                             ))}
@@ -863,7 +867,7 @@ export default function CompleteProfile() {
                             }
                           }}
                           disabled={isSaving}
-                          className={`flex-1 h-12 ${fieldErrors.telephone || phoneConflictError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`flex-1 h-12 lg:h-16 text-base lg:text-lg ${fieldErrors.telephone || phoneConflictError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                           maxLength={COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength || 15}
                         />
                       </div>
@@ -886,16 +890,16 @@ export default function CompleteProfile() {
                   )}
                 </div>
 
-                <hr className="border-gray-200" />
+                <hr className="border-gray-200 my-8 lg:my-10" />
 
                 {/* Section: Accessibilité */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Info className="h-5 w-5 text-blue-600" />
+                <div className="space-y-4 lg:space-y-6">
+                  <h3 className="text-lg lg:text-2xl font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b-2 border-gray-200">
+                    <Info className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
                     Accessibilité
                   </h3>
 
-                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3 lg:space-x-4 p-4 lg:p-6 bg-gray-50 rounded-xl border border-gray-200">
                     <Checkbox
                       id="disability"
                       checked={formData.disability}
@@ -903,21 +907,22 @@ export default function CompleteProfile() {
                         handleChange("disability", checked === true)
                       }
                       disabled={isSaving}
+                      className="h-5 w-5 lg:h-6 lg:w-6"
                     />
                     <Label
                       htmlFor="disability"
-                      className="text-sm font-medium cursor-pointer"
+                      className="text-sm lg:text-base font-medium cursor-pointer"
                     >
                       Je suis en situation de handicap
                     </Label>
                   </div>
 
                   {formData.disability && (
-                    <div className="space-y-4 pl-4 border-l-2 border-blue-200 ml-2">
-                      <div className="space-y-2">
+                    <div className="space-y-4 lg:space-y-6 pl-4 lg:pl-8 border-l-2 lg:border-l-4 border-blue-200 ml-2">
+                      <div className="space-y-2 lg:space-y-3">
                         <Label
                           htmlFor="disabilityType"
-                          className="text-sm font-medium text-gray-700"
+                          className="text-sm lg:text-base font-medium text-gray-700"
                         >
                           Type de handicap{" "}
                           <span className="text-red-500">*</span>
@@ -940,7 +945,7 @@ export default function CompleteProfile() {
                         >
                           <SelectTrigger
                             id="disabilityType"
-                            className={`h-12 px-4 ${fieldErrors.disabilityType ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                            className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.disabilityType ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
                           >
                             <SelectValue placeholder="Sélectionnez le type de handicap" />
                           </SelectTrigger>
@@ -961,10 +966,10 @@ export default function CompleteProfile() {
                         )}
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-2 lg:space-y-3">
                         <Label
                           htmlFor="disabilityDetails"
-                          className="text-sm font-medium text-gray-700"
+                          className="text-sm lg:text-base font-medium text-gray-700"
                         >
                           Détails supplémentaires (optionnel)
                         </Label>
@@ -976,23 +981,29 @@ export default function CompleteProfile() {
                           }
                           disabled={isSaving}
                           placeholder="Précisez si besoin..."
-                          className="w-full min-h-[100px] px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-blue-500 resize-none"
+                          className="w-full min-h-[100px] lg:min-h-[120px] px-4 lg:px-5 py-3 lg:py-4 text-base lg:text-lg border border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 resize-none"
                         />
                       </div>
                     </div>
                   )}
                 </div>
 
-                <hr className="border-gray-200" />
+                <hr className="border-gray-200 my-8 lg:my-10" />
 
                 {/* Section: Consentement */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                <div className="space-y-4 lg:space-y-6">
+                  <h3 className="text-lg lg:text-2xl font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b-2 border-gray-200">
+                    <CheckCircle2 className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
                     Consentement
                   </h3>
 
-                  <div className={`flex items-start space-x-3 p-4 bg-gray-50 rounded-lg ${fieldErrors.consentGiven ? "border border-red-500 bg-red-50" : ""}`}>
+                  <div
+                    className={`flex items-start space-x-3 lg:space-x-4 p-4 lg:p-6 bg-gray-50 rounded-xl border ${
+                      fieldErrors.consentGiven
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-200"
+                    }`}
+                  >
                     <Checkbox
                       id="consentGiven"
                       checked={formData.consentGiven}
@@ -1000,10 +1011,13 @@ export default function CompleteProfile() {
                         handleChange("consentGiven", checked === true)
                       }
                       disabled={isSaving}
+                      className="h-5 w-5 lg:h-6 lg:w-6 mt-0.5"
                     />
                     <Label
                       htmlFor="consentGiven"
-                      className={`text-sm font-medium cursor-pointer leading-relaxed ${fieldErrors.consentGiven ? "text-red-700" : ""}`}
+                      className={`text-sm lg:text-base font-medium cursor-pointer leading-relaxed ${
+                        fieldErrors.consentGiven ? "text-red-700" : ""
+                      }`}
                     >
                       J'accepte que mes données soient utilisées pour
                       améliorer mon expérience sur la plateforme. Je peux
@@ -1019,19 +1033,19 @@ export default function CompleteProfile() {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 lg:gap-4 pt-6 lg:pt-10 border-t-2 border-gray-200 mt-8 lg:mt-10">
                   <Button
                     variant="outline"
                     onClick={() => router.back()}
                     disabled={isSaving}
-                    className="flex-1 sm:flex-none h-12 px-6"
+                    className="flex-1 sm:flex-none h-12 lg:h-16 px-6 lg:px-10 text-base lg:text-lg"
                   >
                     Annuler
                   </Button>
                   <Button
                     onClick={handleSave}
                     disabled={isSaving || !metadataReady}
-                    className="flex-1 sm:flex-none h-12 px-8 bg-blue-600 hover:bg-blue-700"
+                    className="flex-1 sm:flex-none h-12 lg:h-16 px-8 lg:px-12 text-base lg:text-lg bg-blue-600 hover:bg-blue-700"
                   >
                     {isSaving ? (
                       <>

@@ -18,7 +18,7 @@ interface CourseFormData {
   categoryId: string;
   category?: { id: string; name: string };
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  price: number;
+  price: string;
   modules: Module[];
   thumbnailUrl?: string;
 }
@@ -46,6 +46,7 @@ export function CoursePreview({
   thumbnailUrl,
   instructorName = "Votre nom",
 }: CoursePreviewProps) {
+  const parsedPrice = Number.parseInt(courseData.price || "0", 10) || 0;
   const totalLessons = courseData.modules.reduce(
     (acc, module) => acc + module.lessons.length,
     0,
@@ -118,7 +119,7 @@ export function CoursePreview({
               {levelLabels[courseData.level]}
             </Badge>
           </div>
-          {courseData.price === 0 && (
+          {parsedPrice === 0 && (
             <div className="absolute top-4 right-4">
               <Badge className="bg-green-500 text-white">Gratuit</Badge>
             </div>
@@ -198,9 +199,9 @@ export function CoursePreview({
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Prix du cours</span>
               <span className="text-2xl font-bold text-gray-900">
-                {courseData.price === 0
+                {parsedPrice === 0
                   ? "Gratuit"
-                  : `${courseData.price.toLocaleString()} XOF`}
+                  : `${parsedPrice.toLocaleString()} XOF`}
               </span>
             </div>
           </div>

@@ -40,7 +40,7 @@ interface CourseFormData {
   description: string;
   categoryId: string;
   level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-  price: number;
+  price: string;
   instructorId: string;
   modules: Module[];
 }
@@ -73,7 +73,10 @@ export function CourseCreationForm({
     description: initialData?.description || "",
     categoryId: initialData?.categoryId || "",
     level: initialData?.level || "BEGINNER",
-    price: initialData?.price || 0,
+    price:
+      initialData?.price !== undefined && initialData?.price !== null
+        ? String(initialData.price)
+        : "",
     instructorId: initialData?.instructorId || user?.id?.toString() || "",
     modules: initialData?.modules || [],
   });
@@ -105,7 +108,7 @@ export function CourseCreationForm({
           description: formData.description,
           categoryId: formData.categoryId,
           level: formData.level,
-          price: formData.price,
+          price: Number.parseInt(formData.price || "0", 10) || 0,
           modules: formData.modules,
         });
       }
@@ -166,7 +169,8 @@ export function CourseCreationForm({
     if (!formData.description.trim())
       return "La description du cours est requise";
     if (!formData.categoryId) return "La catégorie est requise";
-    if (formData.price < 0) return "Le prix ne peut pas être négatif";
+    const parsedPrice = Number.parseInt(formData.price || "0", 10) || 0;
+    if (parsedPrice < 0) return "Le prix ne peut pas être négatif";
     if (formData.modules.length === 0) return "Au moins un module est requis";
 
     for (const module of formData.modules) {
@@ -190,6 +194,7 @@ export function CourseCreationForm({
   const prepareCourseData = () => {
     return {
       ...formData,
+      price: Number.parseInt(formData.price || "0", 10) || 0,
       instructorId: formData.instructorId || user?.id?.toString() || "",
       thumbnail: thumbnailFile || undefined,
       attachments: attachmentFile || undefined,
@@ -423,14 +428,12 @@ export function CourseCreationForm({
                     </label>
                     <Input
                       type="text"
-                      inputMode="numeric"
+                      inputMode="text"
                       pattern="[0-9]*"
                       value={formData.price}
                       onChange={(e) =>
                         updateFormData({
-                          price:
-                            parseInt(e.target.value.replace(/[^\d]/g, ""), 10) ||
-                            0,
+                          price: e.target.value.replace(/[^\d]/g, ""),
                         })
                       }
                       placeholder="0"

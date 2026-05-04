@@ -93,24 +93,10 @@ export class AuthApi {
       logger.log("🔍 [AuthApi] Réponse reçue:", res.status, res.statusText);
 
       if (res.status === 401) {
-        logger.log(
-          "🔄 [AuthApi] Session invalide (401), tentative de refresh token...",
-        );
-        const refreshed = await this.refreshToken();
-        if (!refreshed) {
-          logger.log("❌ [AuthApi] Refresh impossible, session expirée");
-          return null;
-        }
-
-        res = await fetch(buildApiUrl(API_ENDPOINTS.USER.PROFILE), {
-          method: "GET",
-          credentials: "include",
-        });
-        logger.log(
-          "🔍 [AuthApi] Réponse après refresh:",
-          res.status,
-          res.statusText,
-        );
+        // Le refresh est déjà géré de manière centralisée par fetch-auth-interceptor.
+        // Ici on évite de relancer un second cycle refresh/retry qui spamme le réseau.
+        logger.log("❌ [AuthApi] Session invalide (401), aucun refresh local");
+        return null;
       }
 
       if (!res.ok) {

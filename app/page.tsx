@@ -61,9 +61,9 @@ const Index = () => {
     refresh,
     setFilterCategories,
     hasCoursesInDatabase,
-  } = useCourses(1, 8, { fetchAll: true });
+  } = useCourses(1, 8);
 
-  const { enrolledCourses } = useEnrolledCourses();
+  const { enrolledCourses } = useEnrolledCourses({ enabled: isAuthenticated });
   const { categories, loading: categoriesLoading } = useCategories();
 
   // Pre-fill search query and category from URL params
@@ -290,8 +290,8 @@ const Index = () => {
                   <div className="hidden sm:block h-[1px] bg-[#2B3E91] flex-1 max-w-[400px]" />
                 </div>
                 
-                {/* Chevron */}
-                <ChevronDown className="w-6 h-6 text-[#2B3E91] mt-2" />
+                {/* Chevron animé pour inciter à scroller vers les formations */}
+                <ChevronDown className="w-6 h-6 text-[#2B3E91] mt-2 animate-bounce" />
               </div>
 
               {/* Skeleton Loading - affiché pendant le chargement */}
