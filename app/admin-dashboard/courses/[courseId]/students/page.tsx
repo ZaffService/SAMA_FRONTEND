@@ -10,9 +10,11 @@ import {
   BookOpenCheck,
   CalendarDays,
   LineChart as LineChartIcon,
+  Search,
   RefreshCw,
   TrendingUp,
   Users,
+  X,
 } from "lucide-react";
 import {
   Area,
@@ -30,6 +32,7 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -79,6 +82,15 @@ type CourseOverviewData = {
   createdAt: string;
   stats: DashboardStat;
   monthlyData: MonthlyPoint[];
+};
+
+type StudentsPagination = {
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 };
 
 const normalizeText = (value: unknown): string => {
@@ -159,11 +171,16 @@ const mapOverviewPayload = (payload: any, courseFallbackTitle: string): CourseOv
   };
 };
 
-const mapStudentsPayload = (payload: any): StudentRow[] => {
+const mapStudentsPayload = (payload: any): {
+  students: StudentRow[];
+  pagination: StudentsPagination;
+} => {
   const data = payload?.data ?? payload ?? {};
   const students = Array.isArray(data?.students) ? data.students : [];
+  const pagination = data?.pagination ?? {};
 
-  return students.map((item: any, index: number) => {
+  return {
+    students: students.map((item: any, index: number) => {
     const user = item?.user ?? {};
     const firstName = normalizeText(user?.firstName);
     const lastName = normalizeText(user?.lastName);
@@ -187,7 +204,16 @@ const mapStudentsPayload = (payload: any): StudentRow[] => {
       progress,
       status,
     };
-  });
+    }),
+    pagination: {
+      currentPage: Number(pagination.currentPage) || 1,
+      pageSize: Number(pagination.pageSize) || 20,
+      totalItems: Number(pagination.totalItems) || students.length,
+      totalPages: Math.max(1, Number(pagination.totalPages) || 1),
+      hasNextPage: Boolean(pagination.hasNextPage),
+      hasPreviousPage: Boolean(pagination.hasPreviousPage),
+    },
+  };
 };
 
 function CourseStudentsPageContent() {
@@ -201,8 +227,21 @@ function CourseStudentsPageContent() {
   const [courseTitle, setCourseTitle] = useState("Cours");
   const [overview, setOverview] = useState<CourseOverviewData | null>(null);
   const [students, setStudents] = useState<StudentRow[]>([]);
+  const [studentsPagination, setStudentsPagination] = useState<StudentsPagination>({
+    currentPage: 1,
+    pageSize: 20,
+    totalItems: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const pageSize = 20;
 
-  const loadData = useCallback(async () => {
+  const loadOverview = useCallback(async () => {
     if (!courseId) {
       setError("Identifiant de cours introuvable");
       setLoading(false);
@@ -218,34 +257,21 @@ function CourseStudentsPageContent() {
       setCourseTitle(fallbackTitle);
 
       const currentYear = new Date().getFullYear();
-      const [overviewPayload, studentsPayload] = await Promise.all([
-        fetch(buildApiUrl(`/course/${courseId}/overview?year=${currentYear}`), {
-          method: "GET",
-          credentials: "include",
-        }).then(async (response) => {
-          const json = await response.json().catch(() => null);
-          if (!response.ok || !json?.success) {
-            throw new Error(json?.error?.message || `Erreur overview: ${response.status}`);
-          }
-          return json;
-        }),
-        fetch(buildApiUrl(`/course/${courseId}/students?page=1&limit=20`), {
-          method: "GET",
-          credentials: "include",
-        }).then(async (response) => {
-          const json = await response.json().catch(() => null);
-          if (!response.ok || !json?.success) {
-            throw new Error(json?.error?.message || `Erreur students: ${response.status}`);
-          }
-          return json;
-        }),
-      ]);
+      const overviewPayload = await fetch(buildApiUrl(`/course/${courseId}/overview?year=${currentYear}`), {
+        method: "GET",
+        credentials: "include",
+      }).then(async (response) => {
+        const json = await response.json().catch(() => null);
+        if (!response.ok || !json?.success) {
+          throw new Error(json?.error?.message || `Erreur overview: ${response.status}`);
+        }
+        return json;
+      });
 
       setOverview(mapOverviewPayload(overviewPayload, fallbackTitle));
-      setStudents(mapStudentsPayload(studentsPayload));
     } catch (requestError) {
       logger.error(
-        "❌ [CourseStudentsPage] Erreur chargement des étudiants:",
+        "❌ [CourseStudentsPage] Erreur chargement des analytics:",
         requestError,
       );
       setError(
@@ -258,9 +284,92 @@ function CourseStudentsPageContent() {
     }
   }, [courseId]);
 
+  const loadStudents = useCallback(async () => {
+    if (!courseId) return;
+
+    setStudentsLoading(true);
+    setError(null);
+
+    try {
+      const studentsUrl = new URL(
+        buildApiUrl(`/course/${courseId}/students`),
+        window.location.origin,
+      );
+      studentsUrl.searchParams.set("page", String(currentPage));
+      studentsUrl.searchParams.set("limit", String(pageSize));
+      if (searchQuery) {
+        studentsUrl.searchParams.set("q", searchQuery);
+      }
+
+      const studentsPayload = await fetch(studentsUrl.toString(), {
+        method: "GET",
+        credentials: "include",
+      }).then(async (response) => {
+        const json = await response.json().catch(() => null);
+        if (!response.ok || !json?.success) {
+          throw new Error(json?.error?.message || `Erreur students: ${response.status}`);
+        }
+        return json;
+      });
+
+      const mappedStudents = mapStudentsPayload(studentsPayload);
+      setStudents(mappedStudents.students);
+      setStudentsPagination(mappedStudents.pagination);
+    } catch (requestError) {
+      logger.error(
+        "❌ [CourseStudentsPage] Erreur chargement des étudiants:",
+        requestError,
+      );
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Impossible de charger les étudiants de ce cours",
+      );
+    } finally {
+      setStudentsLoading(false);
+    }
+  }, [courseId, currentPage, pageSize, searchQuery]);
+
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    void loadOverview();
+  }, [loadOverview]);
+
+  useEffect(() => {
+    if (!courseId) return;
+    void loadStudents();
+  }, [courseId, loadStudents]);
+
+  const loadData = useCallback(async () => {
+    await Promise.all([loadOverview(), loadStudents()]);
+  }, [loadOverview, loadStudents]);
+
+  const applySearch = useCallback(() => {
+    const nextQuery = searchInput.trim();
+    setCurrentPage(1);
+    setSearchQuery(nextQuery);
+  }, [searchInput]);
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setSearchQuery("");
+    setCurrentPage(1);
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const normalizedSearch = searchInput.trim();
+      if (normalizedSearch !== searchQuery) {
+        setCurrentPage(1);
+        setSearchQuery(normalizedSearch);
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput, searchQuery]);
+
+  const isFiltering = Boolean(searchQuery);
+  const hasStudents = students.length > 0;
+  const paginationText = `Page ${studentsPagination.currentPage} / ${studentsPagination.totalPages}`;
 
   const renderLoading = () => (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
@@ -289,7 +398,7 @@ function CourseStudentsPageContent() {
 
   const currentStats = overview?.stats ?? {
     totalRevenue: 0,
-    totalEnrollments: students.length,
+    totalEnrollments: studentsPagination.totalItems,
     currentMonthRevenue: 0,
     currentMonthEnrollments: 0,
     completionRate: 0,
@@ -334,10 +443,10 @@ function CourseStudentsPageContent() {
                 <Button
                   variant="outline"
                   onClick={() => void loadData()}
-                  disabled={loading}
+                  disabled={loading || studentsLoading}
                   className="gap-2 rounded-full border-[#3B3754] bg-[#1F1D2B] px-4 text-white hover:bg-[#26233A]"
                 >
-                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-4 w-4 ${(loading || studentsLoading) ? "animate-spin" : ""}`} />
                   Rafraîchir
                 </Button>
               </div>
@@ -396,7 +505,6 @@ function CourseStudentsPageContent() {
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
-
                 <Card className="border border-[#302D47] bg-[#1F1D2B] text-white shadow-sm">
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -499,53 +607,113 @@ function CourseStudentsPageContent() {
                   <CardDescription className="text-white/60">
                     Nom, email, téléphone, progression et statut
                   </CardDescription>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                      <Input
+                        value={searchInput}
+                        onChange={(event) => setSearchInput(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            applySearch();
+                          }
+                        }}
+                        placeholder="Rechercher par prénom, nom, email ou téléphone"
+                        className="h-10 border-[#3B3754] bg-[#1F1D2B] pl-9 text-white placeholder:text-white/45"
+                      />
+                    </div>
+                    {isFiltering && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={clearSearch}
+                        className="gap-2 border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
+                      >
+                        <X className="h-4 w-4" />
+                        Effacer
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                  {students.length === 0 ? (
+                  {studentsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Spinner className="size-6 text-[#80B5FF]" />
+                    </div>
+                  ) : !hasStudents ? (
                     <div className="p-6">{renderEmptyState()}</div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table className="text-white">
-                        <TableHeader>
-                          <TableRow className="border-b border-[#302D47] hover:bg-transparent">
-                            <TableHead className="text-white/75">Nom & prénom</TableHead>
-                            <TableHead className="text-white/75">Email</TableHead>
-                            <TableHead className="text-white/75">Téléphone</TableHead>
-                            <TableHead className="min-w-[220px] text-white/75">Progression</TableHead>
-                            <TableHead className="text-white/75">Statut</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {students.map((student) => (
-                            <TableRow key={student.enrollmentId} className="border-b border-[#2A273D] hover:bg-[#26233A]/60">
-                              <TableCell className="font-semibold text-white">
-                                {student.fullName}
-                              </TableCell>
-                              <TableCell className="text-white/70">{student.email}</TableCell>
-                              <TableCell className="text-white/70">{student.telephone}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-3">
-                                  <Progress
-                                    value={student.progress}
-                                    className="h-2 flex-1 bg-[#3B3754]"
-                                  />
-                                  <span className="min-w-12 text-sm font-semibold text-white">
-                                    {student.progress}%
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <span
-                                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${resolveStatusClassName(student.status)}`}
-                                >
-                                  {resolveStatusLabel(student.status)}
-                                </span>
-                              </TableCell>
+                    <>
+                      <div className="overflow-x-auto">
+                        <Table className="text-white">
+                          <TableHeader>
+                            <TableRow className="border-b border-[#302D47] hover:bg-transparent">
+                              <TableHead className="text-white/75">Nom & prénom</TableHead>
+                              <TableHead className="text-white/75">Email</TableHead>
+                              <TableHead className="text-white/75">Téléphone</TableHead>
+                              <TableHead className="min-w-[220px] text-white/75">Progression</TableHead>
+                              <TableHead className="text-white/75">Statut</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                          </TableHeader>
+                          <TableBody>
+                            {students.map((student) => (
+                              <TableRow key={student.enrollmentId} className="border-b border-[#2A273D] hover:bg-[#26233A]/60">
+                                <TableCell className="font-semibold text-white">
+                                  {student.fullName}
+                                </TableCell>
+                                <TableCell className="text-white/70">{student.email}</TableCell>
+                                <TableCell className="text-white/70">{student.telephone}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    <Progress
+                                      value={student.progress}
+                                      className="h-2 flex-1 bg-[#3B3754]"
+                                    />
+                                    <span className="min-w-12 text-sm font-semibold text-white">
+                                      {student.progress}%
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span
+                                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${resolveStatusClassName(student.status)}`}
+                                  >
+                                    {resolveStatusLabel(student.status)}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div className="flex flex-col gap-3 border-t border-[#302D47] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-white/65">
+                          {studentsPagination.totalItems} résultat(s) {isFiltering ? `pour "${searchQuery}"` : ""}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!studentsPagination.hasPreviousPage || studentsLoading}
+                            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                            className="h-9 border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
+                          >
+                            Précédent
+                          </Button>
+                          <span className="text-sm text-white/80">{paginationText}</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!studentsPagination.hasNextPage || studentsLoading}
+                            onClick={() => setCurrentPage((prev) => prev + 1)}
+                            className="h-9 border-[#3B3754] bg-[#1F1D2B] text-white hover:bg-[#26233A]"
+                          >
+                            Suivant
+                          </Button>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>

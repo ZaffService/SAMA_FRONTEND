@@ -28,6 +28,7 @@ import {
   ArrowLeft,
   ChevronDown,
   AlertTriangle,
+  RefreshCw,
   X,
   Lock,
   Clock,
@@ -241,6 +242,7 @@ function VideoWithLoading({
   onEnded?: () => void;
 }) {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasPlaybackIssue, setHasPlaybackIssue] = useState(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<any>(null);
   const trackingIntervalRef = useRef<number | null>(null);
@@ -278,6 +280,7 @@ function VideoWithLoading({
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
+    setHasPlaybackIssue(false);
     lastTrackedTimeRef.current = 0;
 
     const initPlayer = async () => {
@@ -300,6 +303,11 @@ function VideoWithLoading({
           onReady: (event: any) => {
             setIsLoading(false);
             lastTrackedTimeRef.current = Number(event.target.getCurrentTime()) || 0;
+          },
+          onError: () => {
+            setIsLoading(false);
+            setHasPlaybackIssue(true);
+            stopTracking();
           },
           onStateChange: (event: any) => {
             const state = event.data;
@@ -333,8 +341,33 @@ function VideoWithLoading({
     };
   }, [videoId, flushTrackedWindow, onEnded, startTracking, stopTracking]);
 
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setHasPlaybackIssue(true);
+      setIsLoading(false);
+      stopTracking();
+    }, 12000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isLoading, stopTracking]);
+
   return (
     <div className="absolute inset-0 h-full w-full bg-black">
+      {hasPlaybackIssue && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black px-4">
+          <div className="text-center text-white">
+            <PlayCircle className="mx-auto mb-4 h-12 w-12 text-white/45" />
+            <p className="text-base font-medium text-white/90">
+              Vidéo indisponible pour le moment
+            </p>
+            <p className="mt-1 text-sm text-white/60">
+              Veuillez réessayer un peu plus tard.
+            </p>
+          </div>
+        </div>
+      )}
       {isLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900">
           <div className="text-center text-white">
@@ -347,7 +380,7 @@ function VideoWithLoading({
         ref={hostRef}
         title={title || "Vidéo YouTube"}
         className={`h-full w-full transition-opacity duration-300 ${
-          isLoading ? "opacity-0" : "opacity-100"
+          isLoading || hasPlaybackIssue ? "opacity-0" : "opacity-100"
         }`}
       />
     </div>
@@ -2234,7 +2267,47 @@ function CourseDetailsPageComponent() {
 
   const hasVideo = !!selectedLesson?.hasVideo;
   const hasVideoContent = lessonsWithVideos.length > 0;
+  const safeSelectedLesson = selectedLesson ?? lessonsWithVideos[0] ?? null;
+  const selectedLessonVideoUrl =
+    typeof safeSelectedLesson?.videoUrl === "string"
+      ? safeSelectedLesson.videoUrl.trim()
+      : "";
+  const hasVideoFileExtension = /\.(mp4|m3u8|webm|ogg|mov)(\?|#|$)/i.test(
+    selectedLessonVideoUrl,
+  );
+  const isKnownVideoProvider =
+    selectedLessonVideoUrl.includes("mediadelivery.net") ||
+    selectedLessonVideoUrl.includes("youtube.com") ||
+    selectedLessonVideoUrl.includes("youtu.be") ||
+    selectedLessonVideoUrl.includes("vimeo.com") ||
+    selectedLessonVideoUrl.includes("cloudinary.com");
+  const isSameOriginAppUrl = (() => {
+    if (!selectedLessonVideoUrl || typeof window === "undefined") return false;
+    if (selectedLessonVideoUrl.startsWith("/")) return true;
 
+    try {
+      const parsed = new URL(selectedLessonVideoUrl);
+      return parsed.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  })();
+  const isCoursePageLikeUrl =
+    isSameOriginAppUrl &&
+    !hasVideoFileExtension &&
+    !isKnownVideoProvider;
+  const isMaintenanceLikeUrl =
+    selectedLessonVideoUrl.toLowerCase().includes("maintenance") ||
+    selectedLessonVideoUrl.toLowerCase().includes("/courses") ||
+    selectedLessonVideoUrl.toLowerCase().includes("/course-details") ||
+    selectedLessonVideoUrl.toLowerCase().includes("/admin");
+  const shouldShowVideoUnavailableState =
+    !safeSelectedLesson ||
+    !hasVideo ||
+    !selectedLessonVideoUrl ||
+    isCoursePageLikeUrl ||
+    isMaintenanceLikeUrl;
+                                                      
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;
   };
@@ -2599,6 +2672,40 @@ function CourseDetailsPageComponent() {
       : []),
   ];
 
+  const renderVideoUnavailableState = () => (
+    <div className="flex h-full w-full items-center justify-center bg-black px-4">
+      <div className="text-center text-white">
+        <PlayCircle className="mx-auto mb-4 h-12 w-12 text-white/45" />
+        <p className="text-base font-medium text-white/90">
+          Vidéo indisponible pour le moment
+        </p>
+        <p className="mt-1 text-sm text-white/60">
+          Réessayez plus tard ou passez à la leçon suivante.
+        </p>
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Réessayer
+          </button>
+          {currentLessonIndex < lessonsWithVideos.length - 1 && (
+            <button
+              type="button"
+              onClick={() => handleNextLesson()}
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              Suivant
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#F7F9FA]">
       {/* Fullscreen Video Modal - Mobile */}
@@ -2613,28 +2720,28 @@ function CourseDetailsPageComponent() {
             </button>
 
             <div className="flex flex-1 items-center justify-center bg-black">
-              {selectedLesson?.hasVideo ? (
+              {!shouldShowVideoUnavailableState ? (
                 (() => {
-                  const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
+                  const videoId = getYouTubeVideoId(safeSelectedLesson?.videoUrl);
                   return videoId ? (
                     <VideoWithLoading
-                      lessonId={selectedLesson.id}
+                      lessonId={safeSelectedLesson?.id || selectedLessonId}
                       videoId={videoId}
-                      title={selectedLesson.title || course.title}
+                      title={safeSelectedLesson?.title || course.title}
                       onTrackProgress={handleVideoTrackingProgress}
                       onEnded={handleLessonVideoEnded}
                     />
                   ) : (
                     <SecureVideoPlayer
-                      url={selectedLesson.videoUrl}
-                      key={selectedLesson?.id}
-                      lessonId={selectedLesson.id}
-                      durationHintSeconds={(selectedLesson.duration || 0) * 60}
-                      title={selectedLesson.title || course.title}
+                      url={safeSelectedLesson?.videoUrl}
+                      key={safeSelectedLesson?.id}
+                      lessonId={safeSelectedLesson?.id || selectedLessonId}
+                      durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
+                      title={safeSelectedLesson?.title || course.title}
                       className="h-full w-full"
                       onProgressWindow={(fromTime, toTime, duration) =>
                         handleVideoTrackingProgress({
-                          lessonId: selectedLesson.id,
+                          lessonId: safeSelectedLesson?.id || selectedLessonId,
                           fromTime,
                           toTime,
                           duration,
@@ -2645,14 +2752,7 @@ function CourseDetailsPageComponent() {
                   );
                 })()
               ) : (
-                <div className="px-4 text-center text-white">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gray-800">
-                    <PlayCircle className="h-10 w-10 text-gray-400" />
-                  </div>
-                  <p className="text-sm text-gray-400 sm:text-base">
-                    Aucune vidéo disponible
-                  </p>
-                </div>
+                renderVideoUnavailableState()
               )}
             </div>
           </div>
@@ -2758,30 +2858,32 @@ function CourseDetailsPageComponent() {
               <section className="min-h-0 flex-1 overflow-y-auto">
                 <section className="border-b border-[#D1D7DC] bg-white">
                   <div className="flex flex-col bg-white">
-                    {hasVideo && hasVideoContent ? (
+                    {hasVideoContent ? (
                       <div className="relative w-full aspect-video max-h-[600px] bg-white">
-                        {selectedLesson?.videoUrl ? (
+                        {!shouldShowVideoUnavailableState ? (
                           (() => {
-                            const videoId = getYouTubeVideoId(selectedLesson.videoUrl);
+                            const videoId = getYouTubeVideoId(
+                              safeSelectedLesson?.videoUrl,
+                            );
                             return videoId ? (
                               <VideoWithLoading
-                                lessonId={selectedLesson.id}
+                                lessonId={safeSelectedLesson?.id || selectedLessonId}
                                 videoId={videoId}
-                                title={selectedLesson.title || course.title}
+                                title={safeSelectedLesson?.title || course.title}
                                 onTrackProgress={handleVideoTrackingProgress}
                                 onEnded={handleLessonVideoEnded}
                               />
                             ) : (
                               <SecureVideoPlayer
-                                url={selectedLesson.videoUrl}
-                                key={selectedLesson?.id}
-                                lessonId={selectedLesson.id}
-                                durationHintSeconds={(selectedLesson.duration || 0) * 60}
-                                title={selectedLesson.title || course.title}
+                                url={safeSelectedLesson?.videoUrl}
+                                key={safeSelectedLesson?.id}
+                                lessonId={safeSelectedLesson?.id || selectedLessonId}
+                                durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
+                                title={safeSelectedLesson?.title || course.title}
                                 className="h-full w-full"
                                 onProgressWindow={(fromTime, toTime, duration) =>
                                   handleVideoTrackingProgress({
-                                    lessonId: selectedLesson.id,
+                                    lessonId: safeSelectedLesson?.id || selectedLessonId,
                                     fromTime,
                                     toTime,
                                     duration,
@@ -2792,29 +2894,11 @@ function CourseDetailsPageComponent() {
                             );
                           })()
                         ) : (
-                          <SecureVideoPlayer
-                            url={selectedLesson.videoUrl}
-                            key={selectedLesson?.id}
-                            lessonId={selectedLesson.id}
-                            durationHintSeconds={(selectedLesson.duration || 0) * 60}
-                            title={selectedLesson.title || course.title}
-                            className="h-full w-full"
-                            onProgressWindow={(fromTime, toTime, duration) =>
-                              handleVideoTrackingProgress({
-                                lessonId: selectedLesson.id,
-                                fromTime,
-                                toTime,
-                                duration,
-                              })
-                            }
-                            onEnded={handleLessonVideoEnded}
-                          />
+                          <div className="w-full aspect-video">{renderVideoUnavailableState()}</div>
                         )}
                       </div>
                     ) : (
-                      <div className="flex w-full aspect-video items-center justify-center text-sm text-gray-400">
-                        Aucune vidéo disponible
-                      </div>
+                      <div className="w-full aspect-video">{renderVideoUnavailableState()}</div>
                     )}
 
                     {hasVideoContent && (

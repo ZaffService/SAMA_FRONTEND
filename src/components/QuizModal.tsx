@@ -14,10 +14,17 @@ import {
   RefreshCcw,
   Play,
   Pause,
+  Info,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
 import logger from "@/shared/helpers/logger";
+import {
+  hasCertificationPassedEver,
+  markCertificationPassedEver,
+  persistCertificationSuccessSnapshot,
+  readCertificationSuccessSnapshot,
+} from "@/shared/helpers/certification-session";
 
 interface QuizData {
   quiz: {
@@ -241,8 +248,31 @@ interface QuizModalProps {
   courseId?: string;
 }
 
+/** Charte Bibocom Digital — quiz & certification (blanc + #002d76 + #ef4444). */
+const QZ = {
+  shell:
+    "flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-lg shadow-slate-200/50 ring-1 ring-slate-100",
+  shellModal:
+    "mx-auto flex w-full max-h-[95vh] max-w-sm flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-2xl shadow-slate-300/40 ring-1 ring-slate-100 sm:max-w-md lg:max-w-3xl",
+  header: "border-b border-slate-200 bg-white",
+  footer: "border-t border-slate-100 bg-slate-50/90",
+  muted: "text-slate-500",
+  label: "text-slate-600",
+  btnBack:
+    "inline-flex items-center gap-2 rounded-full border-2 border-[#002d76]/20 bg-white px-4 py-2 text-sm font-semibold text-[#002d76] transition-colors hover:border-[#002d76]/45 hover:bg-[#002d76]/[0.06]",
+  btnGhost:
+    "rounded-full border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#002d76] transition-colors hover:border-[#002d76]/35 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white",
+  btnPrimary:
+    "inline-flex min-w-[120px] items-center justify-center gap-2 rounded-full bg-[#ef4444] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#dc2626] disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:py-2.5",
+  progressTrack: "h-2.5 w-full overflow-hidden rounded-full bg-slate-200/90",
+  progressFill: "h-full rounded-full bg-[#002d76] transition-all duration-300",
+} as const;
+
 const PENDING_CERTIFICATE_CLAIM_TTL_MS = 24 * 60 * 60 * 1000;
 const QUIZ_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Tarif affiché pour l’achat de la certification (information côté client). */
+const CERTIFICATION_FEE_FCFA = 1000;
 
 const pendingCertificateClaimKey = (courseId: string) =>
   `pendingCertificationClaim:${courseId}`;
@@ -347,31 +377,6 @@ const readBooleanCandidate = (...values: unknown[]): boolean | null => {
   }
   return null;
 };
-
-/** Clé distincte de la session quiz : survit à « Recommencer » (clearStoredSession). */
-const certificationPassedEverStorageKey = (courseId: string) =>
-  `certificationPassedEver:${courseId}`;
-
-function markCertificationPassedEver(courseId: string | undefined): void {
-  if (!courseId || typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(certificationPassedEverStorageKey(courseId), "1");
-  } catch {
-    /* quota / navigation privée */
-  }
-}
-
-function hasCertificationPassedEver(courseId: string | undefined): boolean {
-  if (!courseId || typeof window === "undefined") return false;
-  try {
-    return (
-      window.sessionStorage.getItem(certificationPassedEverStorageKey(courseId)) ===
-      "1"
-    );
-  } catch {
-    return false;
-  }
-}
 
 type StoredQuizSession = {
   timestamp: number;
@@ -528,6 +533,14 @@ export function QuizModal({
   } | null>(null);
   const [resultVisible, setResultVisible] = useState(false);
   const storageKey = quizSessionStorageKey({ mode, courseId, quizId });
+  /** Évite de réafficher l’écran « succès » pendant une reprise après « Recommencer ». */
+  const suppressCertificationAutoSuccessRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      suppressCertificationAutoSuccessRef.current = false;
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (
@@ -551,6 +564,7 @@ export function QuizModal({
 
     if (mode === "module" && !quizId) return;
 
+    suppressCertificationAutoSuccessRef.current = false;
     setLoading(true);
     setStorageHydrated(false);
     setError(null);
@@ -653,7 +667,59 @@ export function QuizModal({
     setStartTime(parsed.startTime ? new Date(parsed.startTime) : new Date());
     setTimeLeft(parsed.timeLeft);
     setStorageHydrated(true);
-  }, [isOpen, quizData, storageKey]);
+  }, [isOpen, quizData, storageKey, mode, courseId]);
+
+  /** Certification déjà réussie (sessionStorage) : afficher directement l’écran succès / certificat si pas de tentative en cours. */
+  useEffect(() => {
+    if (!isOpen || !quizData || mode !== "certification" || !courseId) return;
+    if (!storageHydrated) return;
+    if (suppressCertificationAutoSuccessRef.current) return;
+    if (!hasCertificationPassedEver(courseId)) return;
+
+    const raw =
+      storageKey && typeof window !== "undefined"
+        ? window.sessionStorage.getItem(storageKey)
+        : null;
+    const parsed = raw ? parseStoredQuizSession(raw) : null;
+
+    if (parsed?.showResults && parsed.quizResult) {
+      return;
+    }
+
+    const inProgress =
+      parsed &&
+      !parsed.showResults &&
+      (Object.keys(parsed.answers).length > 0 || parsed.currentQuestionIndex > 0);
+
+    if (inProgress) {
+      return;
+    }
+
+    const n = Math.max(1, quizData.questions.length);
+    const snapshot = readCertificationSuccessSnapshot(courseId);
+    const totalQuestions = snapshot?.totalQuestions ?? n;
+    const correctAnswers = snapshot?.correctAnswers ?? totalQuestions;
+    const score = snapshot?.score ?? 100;
+
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setQuizResult({
+      score,
+      passed: true,
+      correctAnswers,
+      totalQuestions,
+      eligibleForCertificate:
+        snapshot?.eligibleForCertificate !== undefined
+          ? snapshot.eligibleForCertificate
+          : true,
+      isPaidEnrollment: snapshot?.isPaidEnrollment,
+      isCourseFree: snapshot?.isCourseFree,
+    });
+    setShowResults(true);
+    setIsSubmitting(false);
+    setStartTime(new Date());
+    setTimeLeft(null);
+  }, [isOpen, quizData, mode, courseId, storageHydrated, storageKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -866,25 +932,46 @@ export function QuizModal({
             )
           : null;
 
-      if (mode === "certification" && courseId && result.passed) {
+      if (
+        mode === "certification" &&
+        courseId &&
+        (result.passed || certificationEligibleFromApi === true)
+      ) {
         markCertificationPassedEver(courseId);
       }
+
+      const eligibleForCertificate =
+        mode === "certification"
+          ? (certificationEligibleFromApi !== null
+              ? certificationEligibleFromApi
+              : result.passed) || hasCertificationPassedEver(courseId)
+          : undefined;
 
       setQuizResult({
         score: normalizedScore,
         passed: result.passed,
         correctAnswers: normalizedCorrectAnswers,
         totalQuestions: normalizedTotalQuestions,
-        eligibleForCertificate:
-          mode === "certification"
-            ? (certificationEligibleFromApi !== null
-                ? certificationEligibleFromApi
-                : result.passed) || hasCertificationPassedEver(courseId)
-            : undefined,
+        eligibleForCertificate,
         isPaidEnrollment:
           mode === "certification" ? (isPaidEnrollment ?? undefined) : undefined,
         isCourseFree: mode === "certification" ? (isCourseFree ?? undefined) : undefined,
       });
+
+      if (
+        mode === "certification" &&
+        courseId &&
+        (result.passed || certificationEligibleFromApi === true)
+      ) {
+        persistCertificationSuccessSnapshot(courseId, {
+          score: normalizedScore,
+          correctAnswers: normalizedCorrectAnswers,
+          totalQuestions: normalizedTotalQuestions,
+          eligibleForCertificate: Boolean(eligibleForCertificate),
+          isPaidEnrollment: isPaidEnrollment ?? undefined,
+          isCourseFree: isCourseFree ?? undefined,
+        });
+      }
 
       if (result.passed && mode !== "certification") {
         await Swal.fire({
@@ -931,6 +1018,9 @@ export function QuizModal({
   };
 
   const handleRestart = () => {
+    if (mode === "certification") {
+      suppressCertificationAutoSuccessRef.current = true;
+    }
     clearStoredSession();
     setCurrentQuestionIndex(0);
     setAnswers({});
@@ -955,16 +1045,14 @@ export function QuizModal({
   if (error) {
     const errorContent = (
       <div
-        className={`bg-white overflow-hidden ${
-          isInline || isPage
-            ? "w-full rounded-xl border border-[#D1D7DC] shadow-sm"
-            : "w-full max-w-md mx-4 rounded-2xl shadow-2xl"
+        className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl ${
+          isInline || isPage ? "w-full" : "mx-4 w-full max-w-md"
         }`}
       >
         <div className="p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-[#ef4444]/25 bg-[#ef4444]/10">
             <svg
-              className="w-8 h-8 text-red-600"
+              className="h-8 w-8 text-[#ef4444]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -977,13 +1065,14 @@ export function QuizModal({
               />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          <h3 className="mb-2 text-xl font-semibold text-[#002d76]">
             Erreur de chargement
           </h3>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <p className="mb-6 text-slate-600">{error}</p>
           <button
+            type="button"
             onClick={handleClose}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="rounded-full bg-[#ef4444] px-8 py-2.5 font-semibold text-white transition-colors hover:bg-[#dc2626]"
           >
             Fermer
           </button>
@@ -996,7 +1085,7 @@ export function QuizModal({
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#002d76]/25 p-4 backdrop-blur-[2px]">
         {errorContent}
       </div>
     );
@@ -1011,59 +1100,79 @@ export function QuizModal({
 
   const quizContent = (
     <div
-      className={`bg-white overflow-hidden flex flex-col ${
-        isInline || isPage
-          ? "w-full rounded-xl border border-[#D1D7DC] shadow-sm"
-          : "w-full max-w-sm sm:max-w-md lg:max-w-3xl mx-auto rounded-2xl shadow-2xl max-h-[95vh]"
+      className={`flex flex-col overflow-hidden ${
+        isInline || isPage ? QZ.shell : QZ.shellModal
       }`}
     >
       {/* Header */}
       {isPage ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D1D7DC] bg-[#F5F5F5] px-4 py-3">
-          <div className="flex items-start gap-3">
-            <button
-              onClick={handleClose}
-              className="inline-flex items-center gap-2 rounded border border-[#D1D7DC] bg-white px-3 py-2 text-sm font-semibold text-[#0056D2] hover:bg-[#F7F9FA]"
-            >
-              <ArrowLeft className="h-4 w-4" />
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 ${QZ.header}`}
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <button type="button" onClick={handleClose} className={QZ.btnBack}>
+              <ArrowLeft className="h-4 w-4 shrink-0" />
               <span>Retour</span>
             </button>
-            <div>
-              <h2 className="text-base font-semibold text-[#1F2937] sm:text-lg">
+            <div className="min-w-0 pt-0.5">
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    mode === "certification"
+                      ? "bg-[#ef4444] text-white shadow-sm"
+                      : "border border-[#002d76]/25 bg-[#002d76]/10 text-[#002d76]"
+                  }`}
+                >
+                  {mode === "certification" ? "Certification" : "Quiz"}
+                </span>
+              </div>
+              <h2 className="text-base font-bold leading-snug text-[#002d76] sm:text-lg">
                 {pageTitlePrefix} : {quizData.quiz.title}
               </h2>
-              <p className="text-xs text-[#6B7280]">{pageSubtitle}</p>
+              <p className={`mt-1 text-xs sm:text-sm ${QZ.muted}`}>{pageSubtitle}</p>
             </div>
           </div>
           {deadlineLabel && (
-            <div className="flex items-center gap-2 text-sm text-[#374151]">
-              <Clock className="h-4 w-4" />
-              <span>Date {deadlineLabel}</span>
+            <div className={`flex items-center gap-2 text-sm ${QZ.label}`}>
+              <Clock className="h-4 w-4 text-[#002d76]" />
+              <span>Échéance : {deadlineLabel}</span>
             </div>
           )}
         </div>
       ) : (
-        <div className="flex items-start justify-between border-b border-gray-100 p-4 sm:p-6">
+        <div className={`flex items-start justify-between p-4 sm:p-6 ${QZ.header}`}>
           <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 sm:h-12 sm:w-12">
-              <Award className="h-5 w-5 text-blue-600 sm:h-6 sm:w-6" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#002d76]/15 bg-[#002d76]/[0.07] sm:h-12 sm:w-12">
+              <Award className="h-5 w-5 text-[#002d76] sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 leading-tight">
-                Quiz - {quizData.quiz.title}
+              <div className="mb-1 flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                    mode === "certification"
+                      ? "bg-[#ef4444] text-white shadow-sm"
+                      : "border border-[#002d76]/25 bg-[#002d76]/10 text-[#002d76]"
+                  }`}
+                >
+                  {mode === "certification" ? "Certification" : "Quiz"}
+                </span>
+              </div>
+              <h2 className="text-lg font-bold leading-tight text-[#002d76] sm:text-xl">
+                {quizData.quiz.title}
               </h2>
               {quizData.quiz.description && (
-                <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">
+                <p className={`mt-1 line-clamp-2 text-xs sm:text-sm ${QZ.muted}`}>
                   {quizData.quiz.description}
                 </p>
               )}
             </div>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="ml-2 flex-shrink-0 rounded-full p-1.5 transition-colors hover:bg-gray-100 sm:p-1"
+            className="ml-2 shrink-0 rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
           >
-            <X className="h-4 w-4 text-gray-500 sm:h-5 sm:w-5" />
+            <X className="h-5 w-5 sm:h-5 sm:w-5" />
           </button>
         </div>
       )}
@@ -1093,9 +1202,9 @@ export function QuizModal({
                   />
                 </div>
               ) : (
-                <div className="text-center py-8 sm:py-12">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="mt-4 text-sm sm:text-base text-gray-600">
+                <div className="py-8 text-center sm:py-12">
+                  <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-[#002d76] sm:h-12 sm:w-12" />
+                  <p className={`mt-4 text-sm sm:text-base ${QZ.muted}`}>
                     Chargement des résultats...
                   </p>
                 </div>
@@ -1104,12 +1213,12 @@ export function QuizModal({
               <>
                 {/* Progress Bar */}
                 <div className="mb-6 sm:mb-8">
-                  <div className="flex items-center justify-between text-xs sm:text-sm mb-3">
-                    <span className="text-gray-600">
+                  <div className="mb-3 flex items-center justify-between text-xs sm:text-sm">
+                    <span className={`font-medium ${QZ.label}`}>
                       Question {currentQuestionIndex + 1} sur{" "}
                       {quizData.questions.length}
                     </span>
-                    <span className="text-blue-600 font-medium">
+                    <span className="font-semibold text-[#002d76]">
                       {Math.round(
                         ((currentQuestionIndex + 1) /
                           quizData.questions.length) *
@@ -1118,9 +1227,9 @@ export function QuizModal({
                       %
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className={QZ.progressTrack}>
                     <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      className={QZ.progressFill}
                       style={{
                         width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%`,
                       }}
@@ -1150,10 +1259,10 @@ export function QuizModal({
 
       {/* Footer */}
       {!showResults && (
-        <div className="border-t border-gray-100 bg-white">
+        <div className={QZ.footer}>
           {/* Progress counter - Mobile */}
           <div className="px-4 py-2 sm:hidden">
-            <div className="text-xs text-gray-500 text-center">
+            <div className={`text-center text-xs ${QZ.muted}`}>
               {Object.keys(answers).length} / {quizData.questions.length}{" "}
               répondues
             </div>
@@ -1161,62 +1270,59 @@ export function QuizModal({
 
           {/* Footer buttons */}
           <div
-            className={`flex items-center justify-between px-4 py-4 sm:px-6 sm:py-6 ${
+            className={`flex items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5 ${
               isPage ? "mx-auto w-full max-w-4xl lg:px-8" : ""
             }`}
           >
             <button
+              type="button"
               onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 text-gray-600 hover:text-gray-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base ${
-                isPage ? "rounded border border-[#D1D7DC] bg-white hover:bg-[#F7F9FA]" : ""
-              }`}
+              className={`${QZ.btnGhost} px-4 py-2.5 text-sm sm:px-5 sm:text-base`}
             >
               ← Précédent
             </button>
 
-              {/* Progress counter - Desktop */}
-              <div className="hidden sm:block text-xs sm:text-sm text-gray-500">
-                {Object.keys(answers).length} / {quizData.questions.length}{" "}
-                répondues
-              </div>
-
-              {isLastQuestion ? (
-                <button
-                  onClick={handleSubmitQuiz}
-                  disabled={!allQuestionsAnswered || isSubmitting}
-                  className={`px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base ${
-                    isPage ? "min-w-[140px] justify-center" : ""
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span className="hidden sm:inline">Soumission...</span>
-                      <span className="sm:hidden">...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline">Voir résultats</span>
-                      <span className="sm:hidden">Résultats</span>
-                      <span>→</span>
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className={`px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium text-sm sm:text-base ${
-                    isPage ? "min-w-[140px]" : ""
-                  }`}
-                >
-                  <span className="hidden sm:inline">Suivant</span>
-                  <span className="sm:hidden">→</span>
-                </button>
-              )}
+            {/* Progress counter - Desktop */}
+            <div className={`hidden text-xs sm:block sm:text-sm ${QZ.muted}`}>
+              {Object.keys(answers).length} / {quizData.questions.length}{" "}
+              répondues
             </div>
+
+            {isLastQuestion ? (
+              <button
+                type="button"
+                onClick={handleSubmitQuiz}
+                disabled={!allQuestionsAnswered || isSubmitting}
+                className={`${QZ.btnPrimary} ${isPage ? "min-w-[140px]" : ""}`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span className="hidden sm:inline">Soumission...</span>
+                    <span className="sm:hidden">...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Voir résultats</span>
+                    <span className="sm:hidden">Résultats</span>
+                    <span aria-hidden>→</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                className={`${QZ.btnPrimary} ${isPage ? "min-w-[140px]" : ""}`}
+              >
+                <span className="hidden sm:inline">Suivant</span>
+                <span className="sm:hidden">→</span>
+              </button>
+            )}
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 
@@ -1225,11 +1331,18 @@ export function QuizModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#002d76]/20 p-2 backdrop-blur-[2px] sm:p-4">
       {quizContent}
     </div>
   );
 }
+
+const optionRowBase =
+  "group flex cursor-pointer items-center gap-4 rounded-2xl border-2 px-4 py-4 transition-all duration-200 active:scale-[0.995]";
+const optionRowIdle =
+  "border-slate-200 bg-white hover:border-[#002d76]/30 hover:bg-[#002d76]/5 hover:shadow-sm";
+const optionRowSelected =
+  "border-[#002d76] bg-[#002d76]/10 shadow-md ring-2 ring-[#002d76]/15";
 
 function QuestionCard({
   question,
@@ -1250,57 +1363,57 @@ function QuestionCard({
   variant?: "modal" | "page";
 }) {
   const isPage = variant === "page";
+  const titleClass = isPage
+    ? "text-lg font-bold leading-relaxed text-[#002d76] sm:text-xl"
+    : "text-base font-bold leading-relaxed text-[#002d76] sm:text-lg lg:text-xl";
+  const bodyText = isPage ? "text-[15px] leading-relaxed" : "text-sm leading-relaxed sm:text-base";
+
+  const OptionIndicator = ({
+    index,
+    selected,
+  }: {
+    index: number;
+    selected: boolean;
+  }) => (
+    <div
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors ${
+        selected
+          ? "border-[#002d76] bg-[#002d76] text-white"
+          : "border-slate-200 bg-slate-50 text-slate-500 group-hover:border-[#002d76]/35 group-hover:text-[#002d76]"
+      }`}
+    >
+      {selected ? (
+        <Check className="h-4 w-4" strokeWidth={2.5} />
+      ) : (
+        <span>{index + 1}</span>
+      )}
+    </div>
+  );
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3
-          className={`font-semibold text-gray-900 leading-relaxed ${
-            isPage ? "text-lg sm:text-xl" : "text-base sm:text-lg lg:text-xl"
-          }`}
-        >
-          {question.question}
-        </h3>
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h3 className={titleClass}>{question.question}</h3>
         {question.questionAudioUrl && (
-          <InlineAudioPlayer src={question.questionAudioUrl} size="question" />
+          <div className="shrink-0 sm:pt-1">
+            <InlineAudioPlayer src={question.questionAudioUrl} size="question" />
+          </div>
         )}
       </div>
 
       {question.type === "MULTIPLE_CHOICE" && question.options && (
-        <div className={isPage ? "space-y-3" : "space-y-2 sm:space-y-3"}>
+        <div className="space-y-3">
           {question.options.map((option, index: number) => {
             const isSelected = answer === index;
             return (
               <label
                 key={`${option.label}-${index}`}
                 htmlFor={`option-${question.id}-${index}`}
-                className={`flex items-center gap-3 cursor-pointer transition-all group ${
-                  isPage
-                    ? `rounded-xl border-2 px-3 py-3 sm:px-4 sm:py-4 ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
-                      }`
-                    : `p-3 sm:p-4 border-2 rounded-xl ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
-                      }`
+                className={`${optionRowBase} ${
+                  isSelected ? optionRowSelected : optionRowIdle
                 }`}
               >
-                <div
-                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border-2 text-xs font-medium transition-colors ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-500 text-white"
-                      : "border-gray-300 bg-white text-gray-500 group-hover:border-emerald-400"
-                  }`}
-                >
-                  {isPage ? (
-                    isSelected ? <Check className="h-3.5 w-3.5" /> : null
-                  ) : (
-                    String.fromCharCode(65 + index)
-                  )}
-                </div>
+                <OptionIndicator index={index} selected={isSelected} />
                 <input
                   type="radio"
                   id={`option-${question.id}-${index}`}
@@ -1311,17 +1424,25 @@ function QuestionCard({
                   className="sr-only"
                 />
                 <span
-                  className={`flex-1 leading-relaxed ${
-                    isSelected ? "text-emerald-900 font-semibold" : "text-gray-800"
-                  } ${isPage ? "text-[15px]" : "text-sm sm:text-base"}`}
+                  className={`min-w-0 flex-1 font-medium ${bodyText} ${
+                    isSelected ? "text-[#002d76]" : "text-slate-800"
+                  }`}
                 >
                   {option.label}
                 </span>
                 {option.audioUrl && (
-                  <InlineAudioPlayer src={option.audioUrl} size="option" />
+                  <div
+                    className="shrink-0"
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <InlineAudioPlayer src={option.audioUrl} size="option" />
+                  </div>
                 )}
-                {!isPage && isSelected && (
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 flex-shrink-0" />
+                {isSelected && (
+                  <CheckCircle
+                    className="h-5 w-5 shrink-0 text-[#ef4444]"
+                    aria-hidden
+                  />
                 )}
               </label>
             );
@@ -1330,40 +1451,18 @@ function QuestionCard({
       )}
 
       {question.type === "TRUE_FALSE" && (
-        <div className={isPage ? "space-y-3" : "space-y-2 sm:space-y-3"}>
+        <div className="space-y-3">
           {["Vrai", "Faux"].map((option, index) => {
             const isSelected = answer === index;
             return (
               <label
                 key={option}
                 htmlFor={`option-${question.id}-${index}`}
-                className={`flex items-center gap-3 cursor-pointer transition-all group ${
-                  isPage
-                    ? `rounded-xl border-2 px-3 py-3 sm:px-4 sm:py-4 ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
-                      }`
-                    : `p-3 sm:p-4 border-2 rounded-xl ${
-                        isSelected
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30"
-                      }`
+                className={`${optionRowBase} ${
+                  isSelected ? optionRowSelected : optionRowIdle
                 }`}
               >
-                <div
-                  className={`flex h-6 w-6 items-center justify-center flex-shrink-0 rounded-full border-2 text-xs font-medium transition-colors ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-500 text-white"
-                      : "border-gray-300 bg-white text-gray-500 group-hover:border-emerald-400"
-                  }`}
-                >
-                  {isPage ? (
-                    isSelected ? <Check className="h-3.5 w-3.5" /> : null
-                  ) : (
-                    String.fromCharCode(65 + index)
-                  )}
-                </div>
+                <OptionIndicator index={index} selected={isSelected} />
                 <input
                   type="radio"
                   id={`option-${question.id}-${index}`}
@@ -1374,14 +1473,14 @@ function QuestionCard({
                   className="sr-only"
                 />
                 <span
-                  className={`flex-1 ${
-                    isSelected ? "text-emerald-900 font-semibold" : "text-gray-800"
-                  } ${isPage ? "text-[15px]" : "text-sm sm:text-base"}`}
+                  className={`min-w-0 flex-1 font-semibold ${bodyText} ${
+                    isSelected ? "text-[#002d76]" : "text-slate-800"
+                  }`}
                 >
                   {option}
                 </span>
-                {!isPage && isSelected && (
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 flex-shrink-0" />
+                {isSelected && (
+                  <CheckCircle className="h-5 w-5 shrink-0 text-[#ef4444]" aria-hidden />
                 )}
               </label>
             );
@@ -1394,7 +1493,7 @@ function QuestionCard({
           value={answer}
           onChange={(e) => onAnswerChange(Number(e.target.value))}
           placeholder="Votre réponse..."
-          className="w-full p-3 sm:p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm sm:text-base"
+          className="w-full rounded-2xl border-2 border-slate-200 bg-white p-4 text-sm text-slate-900 placeholder:text-slate-400 transition-all focus:border-[#002d76] focus:outline-none focus:ring-2 focus:ring-[#002d76]/20 sm:text-base"
           rows={4}
         />
       )}
@@ -1465,10 +1564,10 @@ function InlineAudioPlayer({
       <button
         type="button"
         onClick={handleTogglePlay}
-        className={`flex items-center justify-center rounded-full border transition ${buttonSizeClass} ${
+        className={`flex items-center justify-center rounded-full border-2 transition ${buttonSizeClass} ${
           isPlaying
-            ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-            : "border-emerald-300 bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+            ? "border-[#002d76] bg-[#002d76] text-white hover:bg-[#001f52]"
+            : "border-[#002d76]/25 bg-[#002d76]/8 text-[#002d76] hover:border-[#002d76]/45 hover:bg-[#002d76]/12"
         }`}
         aria-label={isPlaying ? "Mettre en pause" : "Lire l'audio"}
       >
@@ -1718,15 +1817,15 @@ function QuizResults({
 
   const certificationPanel = isCertificationMode ? (
     showCertificationFailure ? (
-      <div className="mx-auto mb-8 w-full max-w-xl rounded-xl border border-red-200 bg-red-50 p-6 text-left sm:text-center">
-        <p className="text-lg font-semibold text-red-700">
+      <div className="mx-auto mb-8 w-full max-w-xl rounded-2xl border-2 border-[#ef4444]/25 bg-[#fef2f2] p-6 text-left sm:text-center">
+        <p className="text-lg font-semibold text-[#b91c1c]">
           Certification non réussie
         </p>
       </div>
     ) : showCertificationClaimAction ? (
-      <div className="mx-auto mb-8 w-full max-w-xl rounded-xl border border-dashed border-[#E9C46A] bg-[#FFFBED] p-6 text-left sm:text-center">
-        <p className="flex items-center justify-start gap-2 text-xl font-semibold text-[#111827] sm:justify-center">
-          <GraduationCap className="h-5 w-5 text-[#111827]" />
+      <div className="mx-auto mb-8 w-full max-w-xl rounded-2xl border-2 border-dashed border-[#002d76]/25 bg-gradient-to-br from-[#002d76]/5 to-white p-6 text-left shadow-inner sm:text-center">
+        <p className="flex items-center justify-start gap-2 text-xl font-bold text-[#002d76] sm:justify-center">
+          <GraduationCap className="h-6 w-6 text-[#ef4444]" />
           {claimState.isIssued
             ? "Votre certificat est prêt"
             : passed
@@ -1735,7 +1834,7 @@ function QuizResults({
         </p>
 
         {!claimState.isIssued && (
-          <p className="mt-2 text-sm text-[#667085]">
+          <p className="mt-2 text-sm text-slate-600">
             {isPollingClaim
               ? "Vérification du paiement en cours..."
               : claimState.paymentRequired
@@ -1746,11 +1845,31 @@ function QuizResults({
           </p>
         )}
 
+        {!claimState.isIssued && (
+          <div className="mt-4 flex gap-3 rounded-xl border border-[#002d76]/20 bg-[#002d76]/5 px-4 py-3 text-left sm:items-start sm:justify-center sm:text-center">
+            <Info
+              className="mt-0.5 h-5 w-5 shrink-0 text-[#002d76]"
+              aria-hidden
+            />
+            <div className="min-w-0 text-sm text-slate-700">
+              <p className="font-semibold text-[#002d76]">
+                Tarif de la certification :{" "}
+                {CERTIFICATION_FEE_FCFA.toLocaleString("fr-FR")} F CFA
+              </p>
+              <p className="mt-1.5 leading-relaxed text-slate-600">
+                Le bouton « Récupérer mon certificat » lance l’achat de la
+                certification et vous redirige vers la page de paiement pour
+                régler ce montant.
+              </p>
+            </div>
+          </div>
+        )}
+
         {claimState.isIssued && claimState.certificateUrl ? (
           <button
             type="button"
             onClick={handleDownloadCertificate}
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#D7A928] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#C09117]"
+            className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#ef4444] px-8 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#dc2626]"
           >
             <Download className="h-4 w-4" />
             Télécharger certificat
@@ -1763,7 +1882,7 @@ function QuizResults({
                 void handleClaimCertificate(true);
               }}
               disabled={isClaimingCertificate || isPollingClaim}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#D7A928] px-6 py-3 font-semibold text-white transition-colors hover:bg-[#C09117] disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center gap-2 rounded-full bg-[#ef4444] px-8 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#dc2626] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isClaimingCertificate ? "Vérification..." : "Récupérer mon certificat"}
             </button>
@@ -1774,7 +1893,7 @@ function QuizResults({
                 <button
                   type="button"
                   onClick={handleResumePayment}
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#D7A928] bg-white px-6 py-3 font-semibold text-[#8A6A0F] transition-colors hover:bg-[#FFF6DA]"
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-[#002d76] bg-white px-6 py-3 font-semibold text-[#002d76] transition-colors hover:bg-[#002d76]/5"
                 >
                   Continuer le paiement
                 </button>
@@ -1782,33 +1901,33 @@ function QuizResults({
           </div>
         )}
 
-        {claimError && <p className="mt-3 text-sm text-red-600">{claimError}</p>}
+        {claimError && <p className="mt-3 text-sm font-medium text-[#ef4444]">{claimError}</p>}
       </div>
     ) : null
   ) : null;
 
-  const pageScoreRingBorder = isCertificationMode
+  const scoreRingBorder = isCertificationMode
     ? passed
-      ? "border-[#22B573]"
+      ? "border-[#002d76]"
       : eligibleForCertificate
         ? "border-amber-400"
-        : "border-red-400"
+        : "border-[#ef4444]"
     : passed
-      ? "border-[#22B573]"
-      : "border-red-400";
+      ? "border-[#002d76]"
+      : "border-[#ef4444]";
 
   if (isPage) {
     return (
-      <div className="mx-auto w-full max-w-2xl py-6 text-center sm:py-10">
+      <div className="mx-auto w-full max-w-2xl py-6 text-center text-slate-900 sm:py-10">
         <div
-          className={`mx-auto mb-7 flex h-28 w-28 items-center justify-center rounded-full border-[10px] bg-white sm:h-36 sm:w-36 ${pageScoreRingBorder}`}
+          className={`mx-auto mb-7 flex h-28 w-28 items-center justify-center rounded-full border-[10px] bg-white shadow-md sm:h-36 sm:w-36 ${scoreRingBorder}`}
         >
-          <span className="text-4xl font-bold text-[#111827] sm:text-5xl">
+          <span className="text-4xl font-bold text-[#002d76] sm:text-5xl">
             {percentage}%
           </span>
         </div>
 
-        <h3 className="mb-3 text-3xl font-semibold text-[#111827]">
+        <h3 className="mb-3 text-3xl font-bold text-[#002d76]">
           {isCertificationMode
             ? passed
               ? "Certification réussie"
@@ -1825,11 +1944,11 @@ function QuizResults({
             reste acquise. Vous pouvez récupérer votre certificat ci-dessous.
           </p>
         )}
-        <p className="mb-8 text-lg text-[#667085]">
+        <p className="mb-8 text-lg text-slate-600">
           Vous avez obtenu{" "}
-          <span className="font-semibold text-[#111827]">{correctAnswersCount}</span>{" "}
+          <span className="font-semibold text-[#002d76]">{correctAnswersCount}</span>{" "}
           {correctAnswersLabel} sur{" "}
-          <span className="font-semibold text-[#111827]">
+          <span className="font-semibold text-[#002d76]">
             {totalQuestionsCount}
           </span>
           {" "}
@@ -1840,15 +1959,17 @@ function QuizResults({
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
+            type="button"
             onClick={onRestart}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#D0D5DD] bg-white px-6 py-3 font-semibold text-[#101828] transition-colors hover:bg-[#F9FAFB]"
+            className={`${QZ.btnGhost} inline-flex items-center gap-2 px-6 py-3`}
           >
             <RefreshCcw className="h-4 w-4" />
             Recommencer
           </button>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg bg-[#101828] px-8 py-3 font-semibold text-white transition-colors hover:bg-[#1D2939]"
+            className={`${QZ.btnPrimary} px-8 py-3`}
           >
             Terminer
           </button>
@@ -1858,28 +1979,30 @@ function QuizResults({
   }
 
   return (
-    <div className="text-center space-y-6 sm:space-y-8 py-6 sm:py-8">
-      <div className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 mx-auto rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center shadow-lg">
-        <span className="text-2xl sm:text-3xl lg:text-5xl font-bold text-blue-600">
+    <div className="space-y-6 py-6 text-center text-slate-900 sm:space-y-8 sm:py-8">
+      <div
+        className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border-[8px] bg-white shadow-lg sm:h-32 sm:w-32 sm:border-[10px] lg:h-40 lg:w-40 ${scoreRingBorder}`}
+      >
+        <span className="text-2xl font-bold text-[#002d76] sm:text-3xl lg:text-5xl">
           {percentage}%
         </span>
       </div>
 
       <div>
-        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
+        <h3 className="mb-3 text-xl font-bold text-[#002d76] sm:text-2xl lg:text-3xl">
           {percentage >= 71
             ? "Excellent travail!"
             : percentage >= 41
               ? "Bon effort!"
               : "Continuez à apprendre!"}
         </h3>
-        <p className="text-sm sm:text-base lg:text-lg text-gray-600">
+        <p className="text-sm text-slate-600 sm:text-base lg:text-lg">
           Vous avez obtenu{" "}
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-[#002d76]">
             {correctAnswersCount}
           </span>{" "}
           {correctAnswersLabel} sur{" "}
-          <span className="font-semibold text-gray-900">
+          <span className="font-semibold text-[#002d76]">
             {totalQuestionsCount}
           </span>
           {" "}
@@ -1887,10 +2010,13 @@ function QuizResults({
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center pt-4">
+      {certificationPanel}
+
+      <div className="flex flex-col justify-center gap-3 pt-4 sm:flex-row sm:gap-4">
         <button
+          type="button"
           onClick={onRestart}
-          className="px-6 sm:px-8 py-2.5 sm:py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
+          className={`${QZ.btnGhost} flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-medium sm:px-8 sm:py-3 sm:text-base`}
         >
           <svg
             className="w-4 h-4 sm:w-5 sm:h-5"
@@ -1907,10 +2033,7 @@ function QuizResults({
           </svg>
           Recommencer
         </button>
-        <button
-          onClick={onClose}
-          className="px-6 sm:px-8 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium text-sm sm:text-base"
-        >
+        <button type="button" onClick={onClose} className={`${QZ.btnPrimary} px-8 py-2.5 sm:py-3`}>
           Terminer
         </button>
       </div>
