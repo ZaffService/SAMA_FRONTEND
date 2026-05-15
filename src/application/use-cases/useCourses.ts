@@ -52,7 +52,7 @@ interface UseCoursesOptions {
 
 export function useCourses(
   initialPage: number = 1,
-  initialPerPage: number = 8,
+  initialPerPage: number = 500,
   options?: UseCoursesOptions,
 ): UseCoursesState & UseCoursesActions {
   const MAX_FETCH_ALL_PAGES = 20;

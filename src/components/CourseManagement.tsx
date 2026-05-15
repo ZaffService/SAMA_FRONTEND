@@ -195,7 +195,7 @@ export function CourseManagement({
         searchOptions.status = statusFilter;
       }
 
-      const result = await CoursesApi.getCourses(1, 100, searchOptions);
+      const result = await CoursesApi.getAllCourses(searchOptions);
 
       const normalizedCourses = result.courses.map((course) => ({
         ...course,

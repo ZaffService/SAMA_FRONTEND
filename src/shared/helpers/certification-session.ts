@@ -1,5 +1,5 @@
 /**
- * État de certification côté client uniquement (sessionStorage).
+ * État de certification côté client uniquement (localStorage).
  * Ne remplace pas le backend ; sert à l’UX (réaffichage succès, certificat).
  */
 
@@ -21,7 +21,9 @@ export type CertificationSuccessSnapshot = {
 export function markCertificationPassedEver(courseId: string | undefined): void {
   if (!courseId || typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(certificationPassedEverStorageKey(courseId), "1");
+    window.localStorage.setItem(certificationPassedEverStorageKey(courseId), "1");
+    // Migration douce: on nettoie l'ancien stockage session.
+    window.sessionStorage.removeItem(certificationPassedEverStorageKey(courseId));
   } catch {
     /* quota / navigation privée */
   }
@@ -30,10 +32,19 @@ export function markCertificationPassedEver(courseId: string | undefined): void 
 export function hasCertificationPassedEver(courseId: string | undefined): boolean {
   if (!courseId || typeof window === "undefined") return false;
   try {
-    return (
-      window.sessionStorage.getItem(certificationPassedEverStorageKey(courseId)) ===
-      "1"
-    );
+    const key = certificationPassedEverStorageKey(courseId);
+    const localValue = window.localStorage.getItem(key);
+    if (localValue === "1") return true;
+
+    // Migration: on récupère l'ancienne valeur session si elle existe.
+    const legacySessionValue = window.sessionStorage.getItem(key);
+    if (legacySessionValue === "1") {
+      window.localStorage.setItem(key, "1");
+      window.sessionStorage.removeItem(key);
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }
@@ -45,9 +56,15 @@ export function persistCertificationSuccessSnapshot(
 ): void {
   if (!courseId || typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(
+    const key = certificationLastSuccessKey(courseId);
+    const payload = JSON.stringify(snapshot);
+    window.localStorage.setItem(
+      key,
+      payload,
+    );
+    // Migration douce: suppression de l'ancienne donnée session.
+    window.sessionStorage.removeItem(
       certificationLastSuccessKey(courseId),
-      JSON.stringify(snapshot),
     );
   } catch {
     /* ignore */
@@ -59,7 +76,19 @@ export function readCertificationSuccessSnapshot(
 ): CertificationSuccessSnapshot | null {
   if (!courseId || typeof window === "undefined") return null;
   try {
-    const raw = window.sessionStorage.getItem(certificationLastSuccessKey(courseId));
+    const key = certificationLastSuccessKey(courseId);
+    let raw = window.localStorage.getItem(key);
+
+    // Migration: fallback sessionStorage puis sauvegarde durable.
+    if (!raw) {
+      const legacySessionRaw = window.sessionStorage.getItem(key);
+      if (legacySessionRaw) {
+        raw = legacySessionRaw;
+        window.localStorage.setItem(key, legacySessionRaw);
+        window.sessionStorage.removeItem(key);
+      }
+    }
+
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
     if (typeof parsed !== "object" || parsed === null) return null;

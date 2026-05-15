@@ -437,6 +437,11 @@ function CourseDetailsPageComponent() {
   const [activeQuizMode, setActiveQuizMode] = useState<
     "module" | "certification"
   >(initialActiveQuizModuleId ? initialQuizMode : "module");
+  const [forceCertificationResultView, setForceCertificationResultView] =
+    useState(false);
+  const [forcedCertificateUrl, setForcedCertificateUrl] = useState<string | null>(
+    null,
+  );
 
   // Course access states
   const [isEnrolled, setIsEnrolled] = useState<boolean | undefined>(undefined);
@@ -1210,6 +1215,8 @@ function CourseDetailsPageComponent() {
     setContentMode("video");
     setActiveQuizModuleId(null);
     setActiveQuizMode("module");
+    setForceCertificationResultView(false);
+    setForcedCertificateUrl(null);
     setActiveTab("videos");
     if (isMobile) {
       setTimeout(() => {
@@ -1720,9 +1727,51 @@ function CourseDetailsPageComponent() {
 
     setActiveQuizModuleId(moduleId);
     setActiveQuizMode("module");
+    setForceCertificationResultView(false);
+    setForcedCertificateUrl(null);
     setContentMode("quiz");
     setActiveTab("videos");
     setQuizViewInUrl(moduleId, "module");
+    if (isMobile) {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    }
+  };
+
+  const handleStartCertificationQuiz = async (moduleId: string) => {
+    if (certificationQuizLoading) return;
+    if (!hasCertificationQuiz) {
+      Swal.fire({
+        title: "Quiz de certification indisponible",
+        text: "Aucun quiz de certification n'est encore configuré pour ce cours.",
+        icon: "info",
+        confirmButtonText: "Compris",
+        confirmButtonColor: "#6366f1",
+      });
+      return;
+    }
+
+    let hasIssuedCertificate = false;
+    let issuedCertificateUrl: string | null = null;
+    try {
+      const claim = await QuizApi.claimCertificationCertificate(courseId);
+      hasIssuedCertificate = Boolean(claim.isIssued && claim.certificateUrl);
+      issuedCertificateUrl = claim.certificateUrl ?? null;
+    } catch (error) {
+      logger.warn(
+        "⚠️ Impossible de vérifier immédiatement le statut du certificat, fallback quiz",
+        error,
+      );
+    }
+
+    setForceCertificationResultView(hasIssuedCertificate);
+    setForcedCertificateUrl(hasIssuedCertificate ? issuedCertificateUrl : null);
+    setActiveQuizModuleId(moduleId);
+    setActiveQuizMode("certification");
+    setContentMode("quiz");
+    setActiveTab("videos");
+    setQuizViewInUrl(moduleId, "certification");
     if (isMobile) {
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2307,7 +2356,7 @@ function CourseDetailsPageComponent() {
     !selectedLessonVideoUrl ||
     isCoursePageLikeUrl ||
     isMaintenanceLikeUrl;
-                                                      
+
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;
   };
@@ -2522,27 +2571,7 @@ function CourseDetailsPageComponent() {
                     >
                       <button
                         onClick={() => {
-                          if (certificationQuizLoading) return;
-                          if (!hasCertificationQuiz) {
-                            Swal.fire({
-                              title: "Quiz de certification indisponible",
-                              text: "Aucun quiz de certification n'est encore configuré pour ce cours.",
-                              icon: "info",
-                              confirmButtonText: "Compris",
-                              confirmButtonColor: "#6366f1",
-                            });
-                            return;
-                          }
-                          setActiveQuizModuleId(module.id);
-                          setActiveQuizMode("certification");
-                          setContentMode("quiz");
-                          setActiveTab("videos");
-                          setQuizViewInUrl(module.id, "certification");
-                          if (isMobile) {
-                            setTimeout(() => {
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }, 100);
-                          }
+                          void handleStartCertificationQuiz(module.id);
                         }}
                         className="flex w-full items-start gap-3 px-4 py-3 text-left"
                       >
@@ -2849,6 +2878,8 @@ function CourseDetailsPageComponent() {
                   mode={activeQuizMode}
                   courseId={courseId}
                   lessonId={selectedLessonId}
+                  forceCertificationResultView={forceCertificationResultView}
+                  forcedCertificateUrl={forcedCertificateUrl}
                   onQuizCompleted={handleQuizCompleted}
                 />
               </div>

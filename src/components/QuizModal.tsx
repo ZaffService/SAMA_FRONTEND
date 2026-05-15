@@ -246,6 +246,8 @@ interface QuizModalProps {
   variant?: "modal" | "inline" | "page";
   mode?: "module" | "certification";
   courseId?: string;
+  forceCertificationResultView?: boolean;
+  forcedCertificateUrl?: string | null;
 }
 
 /** Charte Bibocom Digital — quiz & certification (blanc + #002d76 + #ef4444). */
@@ -511,6 +513,8 @@ export function QuizModal({
   variant = "modal",
   mode = "module",
   courseId,
+  forceCertificationResultView = false,
+  forcedCertificateUrl = null,
 }: QuizModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -668,6 +672,33 @@ export function QuizModal({
     setTimeLeft(parsed.timeLeft);
     setStorageHydrated(true);
   }, [isOpen, quizData, storageKey, mode, courseId]);
+
+  useEffect(() => {
+    if (!isOpen || !quizData || mode !== "certification" || !courseId) return;
+    if (!forceCertificationResultView) return;
+
+    const totalQuestions = Math.max(1, quizData.questions.length);
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setQuizResult({
+      score: 100,
+      passed: true,
+      correctAnswers: totalQuestions,
+      totalQuestions,
+      eligibleForCertificate: true,
+    });
+    setShowResults(true);
+    setIsSubmitting(false);
+    setStartTime(new Date());
+    setTimeLeft(null);
+  }, [
+    courseId,
+    forceCertificationResultView,
+    forcedCertificateUrl,
+    isOpen,
+    mode,
+    quizData,
+  ]);
 
   /** Certification déjà réussie (sessionStorage) : afficher directement l’écran succès / certificat si pas de tentative en cours. */
   useEffect(() => {
@@ -1109,28 +1140,17 @@ export function QuizModal({
         <div
           className={`flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 ${QZ.header}`}
         >
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <button type="button" onClick={handleClose} className={QZ.btnBack}>
-              <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span>Retour</span>
-            </button>
-            <div className="min-w-0 pt-0.5">
-              <div className="mb-1 flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                    mode === "certification"
-                      ? "bg-[#ef4444] text-white shadow-sm"
-                      : "border border-[#002d76]/25 bg-[#002d76]/10 text-[#002d76]"
-                  }`}
-                >
-                  {mode === "certification" ? "Certification" : "Quiz"}
-                </span>
-              </div>
-              <h2 className="text-base font-bold leading-snug text-[#002d76] sm:text-lg">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-3">
+              <button type="button" onClick={handleClose} className={QZ.btnBack}>
+                <ArrowLeft className="h-4 w-4 shrink-0" />
+                <span>Retour</span>
+              </button>
+              <h2 className="min-w-0 text-base font-bold leading-snug text-[#002d76] sm:text-lg">
                 {pageTitlePrefix} : {quizData.quiz.title}
               </h2>
-              <p className={`mt-1 text-xs sm:text-sm ${QZ.muted}`}>{pageSubtitle}</p>
             </div>
+            <p className={`mt-1 text-xs sm:text-sm ${QZ.muted}`}>{pageSubtitle}</p>
           </div>
           {deadlineLabel && (
             <div className={`flex items-center gap-2 text-sm ${QZ.label}`}>
@@ -1198,6 +1218,7 @@ export function QuizModal({
                     onRestart={handleRestart}
                     mode={mode}
                     courseId={courseId}
+                  forcedCertificateUrl={forcedCertificateUrl}
                     variant={isPage ? "page" : "modal"}
                   />
                 </div>
@@ -1588,6 +1609,7 @@ function QuizResults({
   onRestart,
   mode,
   courseId,
+  forcedCertificateUrl,
   variant = "modal",
 }: {
   quizData: QuizData;
@@ -1604,6 +1626,7 @@ function QuizResults({
   onRestart: () => void;
   mode?: "module" | "certification";
   courseId?: string;
+  forcedCertificateUrl?: string | null;
   variant?: "modal" | "page";
 }) {
   const [isClaimingCertificate, setIsClaimingCertificate] = useState(false);
@@ -1746,6 +1769,22 @@ function QuizResults({
   }, [courseId]);
 
   useEffect(() => {
+    if (!forcedCertificateUrl) return;
+    setClaimState({
+      isIssued: true,
+      certificateUrl: forcedCertificateUrl,
+      paymentRequired: false,
+      paymentStatus: null,
+      paymentUrl: null,
+      checked: true,
+    });
+    setClaimError(null);
+    setIsClaimingCertificate(false);
+    setIsPollingClaim(false);
+    autoClaimStartedRef.current = true;
+  }, [forcedCertificateUrl]);
+
+  useEffect(() => {
     if (!showCertificationClaimAction || !courseId) return;
     if (claimState.isIssued) return;
     if (!hasPendingCertificateClaim(courseId)) return;
@@ -1815,6 +1854,19 @@ function QuizResults({
     };
   }, [showCertificationClaimAction, courseId, claimState.isIssued]);
 
+  useEffect(() => {
+    if (!showCertificationClaimAction || !courseId) return;
+    if (claimState.checked || claimState.isIssued || isClaimingCertificate) return;
+    // Toujours se baser d'abord sur le backend pour savoir si paiement requis.
+    void handleClaimCertificate(false);
+  }, [
+    claimState.checked,
+    claimState.isIssued,
+    courseId,
+    isClaimingCertificate,
+    showCertificationClaimAction,
+  ]);
+
   const certificationPanel = isCertificationMode ? (
     showCertificationFailure ? (
       <div className="mx-auto mb-8 w-full max-w-xl rounded-2xl border-2 border-[#ef4444]/25 bg-[#fef2f2] p-6 text-left sm:text-center">
@@ -1845,7 +1897,7 @@ function QuizResults({
           </p>
         )}
 
-        {!claimState.isIssued && (
+        {!claimState.isIssued && claimState.paymentRequired && (
           <div className="mt-4 flex gap-3 rounded-xl border border-[#002d76]/20 bg-[#002d76]/5 px-4 py-3 text-left sm:items-start sm:justify-center sm:text-center">
             <Info
               className="mt-0.5 h-5 w-5 shrink-0 text-[#002d76]"
@@ -1863,6 +1915,13 @@ function QuizResults({
               </p>
             </div>
           </div>
+        )}
+
+        {!claimState.isIssued && claimState.checked && !claimState.paymentRequired && (
+          <p className="mt-3 text-sm text-slate-600">
+            Aucun paiement n'est requis pour ce certificat. Cliquez sur
+            « Récupérer mon certificat » pour finaliser le téléchargement.
+          </p>
         )}
 
         {claimState.isIssued && claimState.certificateUrl ? (
@@ -1884,7 +1943,11 @@ function QuizResults({
               disabled={isClaimingCertificate || isPollingClaim}
               className="inline-flex items-center gap-2 rounded-full bg-[#ef4444] px-8 py-3 font-semibold text-white shadow-sm transition-colors hover:bg-[#dc2626] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isClaimingCertificate ? "Vérification..." : "Récupérer mon certificat"}
+              {isClaimingCertificate
+                ? "Vérification..."
+                : claimState.paymentRequired
+                  ? "Récupérer mon certificat"
+                  : "Récupérer mon certificat"}
             </button>
 
             {claimState.paymentRequired &&

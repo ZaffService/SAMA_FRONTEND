@@ -210,9 +210,41 @@ export class CoursesApi {
   /**
    * Récupère la liste des cours pour l'affichage en grille avec pagination
    */
+  /**
+   * Charge tous les cours en enchaînant les pages API (sans pagination UI).
+   */
+  static async getAllCourses(searchOptions?: any): Promise<{
+    courses: BackendCourse[];
+    total: number;
+    hasCoursesInDatabase: boolean;
+  }> {
+    const perPage = 500;
+    let page = 1;
+    let totalPages = 1;
+    const allCourses: BackendCourse[] = [];
+    let hasCoursesInDatabase = false;
+    let total = 0;
+
+    do {
+      const result = await CoursesApi.getCourses(page, perPage, searchOptions);
+      allCourses.push(...result.courses);
+      total = result.total;
+      totalPages = result.pages;
+      hasCoursesInDatabase =
+        hasCoursesInDatabase || result.hasCoursesInDatabase;
+      page += 1;
+    } while (page <= totalPages);
+
+    return {
+      courses: allCourses,
+      total: total || allCourses.length,
+      hasCoursesInDatabase,
+    };
+  }
+
   static async getCourses(
     page: number = 1,
-    perPage: number = 8,
+    perPage: number = 500,
     searchOptions?: any,
   ): Promise<{
     courses: BackendCourse[];

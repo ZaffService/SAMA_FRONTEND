@@ -17,10 +17,19 @@ const heroStats: HeroStat[] = [
   { value: 92, label: "Taux de reussite", prefix: "+ ", suffix: "%" },
 ];
 
+const HERO_TITLES = [
+  "Apprenez dans votre langue.",
+  "Comprenez vraiment.",
+  "Réussissez pour de vrai.",
+];
+
 const HeroBanner = () => {
   const { isAuthenticated } = useLocalAuth();
   const [mobileImageLoaded, setMobileImageLoaded] = useState(false);
   const [desktopImageLoaded, setDesktopImageLoaded] = useState(false);
+  const [typedTitle, setTypedTitle] = useState("");
+  const [isDeletingTitle, setIsDeletingTitle] = useState(false);
+  const [activeTitleIndex, setActiveTitleIndex] = useState(0);
   const [animatedValues, setAnimatedValues] = useState<number[]>(
     () => heroStats.map(() => 0)
   );
@@ -63,6 +72,51 @@ const HeroBanner = () => {
   const formatStatValue = (stat: HeroStat, value: number) =>
     `${stat.prefix ?? ""}${value}${stat.suffix ?? ""}`;
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (prefersReducedMotion) {
+      setTypedTitle(HERO_TITLES[0]);
+      return;
+    }
+
+    const currentTargetTitle = HERO_TITLES[activeTitleIndex] ?? HERO_TITLES[0];
+    const atEnd = typedTitle === currentTargetTitle;
+    const atStart = typedTitle.length === 0;
+
+    let timeoutMs = isDeletingTitle ? 55 : 95;
+
+    if (atEnd && !isDeletingTitle) {
+      timeoutMs = 1600;
+    } else if (atStart && isDeletingTitle) {
+      timeoutMs = 500;
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (!isDeletingTitle) {
+        if (!atEnd) {
+          setTypedTitle(currentTargetTitle.slice(0, typedTitle.length + 1));
+        } else {
+          setIsDeletingTitle(true);
+        }
+        return;
+      }
+
+      if (!atStart) {
+        setTypedTitle(currentTargetTitle.slice(0, typedTitle.length - 1));
+      } else {
+        setIsDeletingTitle(false);
+        setActiveTitleIndex((prev) => (prev + 1) % HERO_TITLES.length);
+      }
+    }, timeoutMs);
+
+    return () => window.clearTimeout(timeout);
+  }, [activeTitleIndex, isDeletingTitle, typedTitle]);
+
   if (isAuthenticated) {
     return null;
   }
@@ -94,15 +148,16 @@ const HeroBanner = () => {
         <div className="absolute inset-0 flex items-start justify-center px-5 z-10 pt-16">
           <div className="w-full max-w-md space-y-5">
             <h1
-              className="text-3xl sm:text-4xl font-extrabold text-white leading-tight text-center"
+              className="text-3xl sm:text-4xl font-extrabold text-white leading-tight text-center whitespace-nowrap"
               style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
             >
-              Apprenez dans votre langue.
+              {typedTitle}
+              <span className="ml-1 inline-block animate-pulse text-white">|</span>
             </h1>
 
             <p
-              className="text-white/95 text-base sm:text-lg font-normal leading-relaxed text-center"
-              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.5)' }}
+              className="mx-auto max-w-xl px-0 py-0 text-center text-base font-bold leading-7 text-white sm:text-lg sm:leading-8"
+              style={{ textShadow: "0 2px 6px rgba(0,0,0,0.75), 0 1px 2px rgba(0,0,0,0.65)" }}
             >
               Formations Numériques et Créatives 100% pratiques,
               expliquées en langues locales, pour transformer
@@ -171,15 +226,16 @@ const HeroBanner = () => {
           <div className="max-w-3xl w-full">
 
             <h1
-              className="text-5xl xl:text-6xl 2xl:text-7xl font-extrabold text-white leading-[1.15] mb-8"
+              className="text-5xl xl:text-6xl 2xl:text-7xl font-extrabold text-white leading-[1.15] mb-8 whitespace-nowrap"
               style={{ textShadow: '0 6px 16px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.7)' }}
             >
-              Apprenez dans votre<br />langue.
+              {typedTitle}
+              <span className="ml-1 inline-block animate-pulse text-white">|</span>
             </h1>
 
             <p
-              className="text-white/95 text-lg xl:text-xl 2xl:text-2xl font-normal leading-relaxed mb-10 max-w-2xl"
-              style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
+              className="mb-10 max-w-2xl px-0 py-0 text-lg font-bold leading-8 text-white xl:text-xl 2xl:text-2xl"
+              style={{ textShadow: "0 2px 8px rgba(0,0,0,0.78), 0 1px 2px rgba(0,0,0,0.68)" }}
             >
               Formations Numériques et Créatives 100% pratiques,
               expliquées en langues locales, pour transformer
