@@ -49,7 +49,7 @@ const CoursesPage = () => {
     setSearchQuery,
     setFilterCategories,
     refresh,
-  } = useCourses(1, 500, { fetchAll: true });
+  } = useCourses(1, 8, { fetchAll: true });
 
   // ✅ État local uniquement pour l'input de recherche (UI)
   const [searchInputValue, setSearchInputValue] = useState("");
