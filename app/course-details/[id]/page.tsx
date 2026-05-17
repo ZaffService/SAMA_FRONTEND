@@ -2277,6 +2277,7 @@ function CourseDetailsPageComponent() {
   );
   const isKnownVideoProvider =
     selectedLessonVideoUrl.includes("mediadelivery.net") ||
+    selectedLessonVideoUrl.includes("bunnycdn.com") ||
     selectedLessonVideoUrl.includes("youtube.com") ||
     selectedLessonVideoUrl.includes("youtu.be") ||
     selectedLessonVideoUrl.includes("vimeo.com") ||
@@ -2292,22 +2293,26 @@ function CourseDetailsPageComponent() {
       return false;
     }
   })();
-  const isCoursePageLikeUrl =
-    isSameOriginAppUrl &&
-    !hasVideoFileExtension &&
-    !isKnownVideoProvider;
-  const isMaintenanceLikeUrl =
-    selectedLessonVideoUrl.toLowerCase().includes("maintenance") ||
-    selectedLessonVideoUrl.toLowerCase().includes("/courses") ||
-    selectedLessonVideoUrl.toLowerCase().includes("/course-details") ||
-    selectedLessonVideoUrl.toLowerCase().includes("/admin");
+  const isInvalidDirectVideoUrl = (() => {
+    if (!selectedLessonVideoUrl) return false;
+
+    const lowerUrl = selectedLessonVideoUrl.toLowerCase();
+    const isCoursePageLikeUrl =
+      isSameOriginAppUrl &&
+      !hasVideoFileExtension &&
+      !isKnownVideoProvider;
+    const isMaintenanceLikeUrl =
+      isSameOriginAppUrl &&
+      (lowerUrl.includes("maintenance") ||
+        lowerUrl.includes("/courses") ||
+        lowerUrl.includes("/course-details") ||
+        lowerUrl.includes("/admin"));
+
+    return isCoursePageLikeUrl || isMaintenanceLikeUrl;
+  })();
   const shouldShowVideoUnavailableState =
-    !safeSelectedLesson ||
-    !hasVideo ||
-    !selectedLessonVideoUrl ||
-    isCoursePageLikeUrl ||
-    isMaintenanceLikeUrl;
-                                                      
+    !safeSelectedLesson || !hasVideo || isInvalidDirectVideoUrl;
+
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;
   };
