@@ -239,7 +239,7 @@ function CourseStudentsPageContent() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [studentsLoading, setStudentsLoading] = useState(false);
-  const pageSize = 20;
+  const pageSize = 25;
 
   const loadOverview = useCallback(async () => {
     if (!courseId) {
