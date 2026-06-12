@@ -217,7 +217,7 @@ export function CourseCard({
                   : "bg-[#3B82F6] text-white text-center py-3 px-4 rounded-lg font-bold text-base shadow-lg"
               }
             >
-              Gratuit
+              Aperçu
             </div>
           ) : (
             <div
