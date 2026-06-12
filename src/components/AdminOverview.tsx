@@ -1,17 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import {
   Accessibility,
-  Banknote,
   BookUser,
   CircleUserRound,
+  GraduationCap,
   House,
   Landmark,
-  MapPinHouse,
   Shapes,
   UserRound,
 } from "lucide-react";
@@ -28,6 +28,7 @@ import {
   YAxis,
 } from "recharts";
 import { useDashboardAnalytics } from "@/application/use-cases/useDashboardAnalytics";
+import { API_ENDPOINTS, buildApiUrl } from "@/infrastructure/api/baseConfig";
 import { type DashboardView } from "./AdminLayout";
 
 interface AdminOverviewProps {
@@ -42,18 +43,46 @@ export function AdminOverview({
   void _onViewChange;
   void _onOpenCategoryDialog;
   const { dashboard, loading, error } = useDashboardAnalytics();
+  const [totalStudents, setTotalStudents] = useState(0);
+
+  useEffect(() => {
+    const fetchStudentCount = async () => {
+      try {
+        const url = new URL(buildApiUrl(API_ENDPOINTS.USER.BY_ROLE));
+        url.searchParams.set("role", "STUDENT");
+        url.searchParams.set("page", "1");
+        url.searchParams.set("limit", "1");
+
+        const response = await fetch(url.toString(), {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) return;
+
+        const payload = await response.json();
+        setTotalStudents(Number(payload?.total) || 0);
+      } catch {
+        setTotalStudents(0);
+      }
+    };
+
+    fetchStudentCount();
+  }, []);
+
   const stats = [
     {
-      title: "REVENU TOTAL",
-      value: `${dashboard.statistics.totalRevenue.toLocaleString("fr-FR")} CFA`,
-      subtitle: "Apercu financier global",
-      icon: Banknote,
+      title: "Total etudiants",
+      value: totalStudents.toLocaleString("fr-FR"),
+      subtitle: "Etudiants inscrits sur la plateforme",
+      icon: GraduationCap,
       accent: "text-[#A9F5E5]",
     },
     {
-      title: "INSCRITS",
+      title: "Apprenants actifs",
       value: dashboard.statistics.totalEnrollments.toLocaleString("fr-FR"),
-      subtitle: "Apprenants actifs",
+      subtitle: "En cours de formations",
       icon: BookUser,
       accent: "text-[#80B5FF]",
     },

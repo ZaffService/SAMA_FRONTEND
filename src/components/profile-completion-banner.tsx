@@ -76,14 +76,14 @@ export function ProfileCompletionBanner({
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
-              Action requise
+              Suggestion
             </p>
             <p className="text-sm leading-6 text-slate-700">
               <span className="font-semibold text-slate-900">
                 Profil incomplet.
               </span>{" "}
-              Finalisez votre profil pour débloquer l&apos;accès complet aux
-              cours, au suivi de progression et aux certificats.
+              Complétez votre profil à votre rythme pour personnaliser votre
+              expérience sur la plateforme.
             </p>
           </div>
 

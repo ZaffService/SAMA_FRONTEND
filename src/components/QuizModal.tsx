@@ -7,7 +7,6 @@ import {
   CheckCircle,
   Clock,
   Award,
-  ArrowLeft,
   Check,
   Download,
   GraduationCap,
@@ -260,8 +259,6 @@ const QZ = {
   footer: "border-t border-slate-100 bg-slate-50/90",
   muted: "text-slate-500",
   label: "text-slate-600",
-  btnBack:
-    "inline-flex items-center gap-2 rounded-full border-2 border-[#002d76]/20 bg-white px-4 py-2 text-sm font-semibold text-[#002d76] transition-colors hover:border-[#002d76]/45 hover:bg-[#002d76]/[0.06]",
   btnGhost:
     "rounded-full border-2 border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#002d76] transition-colors hover:border-[#002d76]/35 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white",
   btnPrimary:
@@ -1138,22 +1135,16 @@ export function QuizModal({
       {/* Header */}
       {isPage ? (
         <div
-          className={`flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 ${QZ.header}`}
+          className={`flex flex-wrap items-start justify-between gap-3 px-4 py-4 sm:px-6 ${QZ.header}`}
         >
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-3">
-              <button type="button" onClick={handleClose} className={QZ.btnBack}>
-                <ArrowLeft className="h-4 w-4 shrink-0" />
-                <span>Retour</span>
-              </button>
-              <h2 className="min-w-0 text-base font-bold leading-snug text-[#002d76] sm:text-lg">
-                {pageTitlePrefix} : {quizData.quiz.title}
-              </h2>
-            </div>
+            <h2 className="text-base font-bold leading-snug text-[#002d76] sm:text-lg">
+              {pageTitlePrefix} : {quizData.quiz.title}
+            </h2>
             <p className={`mt-1 text-xs sm:text-sm ${QZ.muted}`}>{pageSubtitle}</p>
           </div>
           {deadlineLabel && (
-            <div className={`flex items-center gap-2 text-sm ${QZ.label}`}>
+            <div className={`flex shrink-0 items-center gap-2 text-sm ${QZ.label}`}>
               <Clock className="h-4 w-4 text-[#002d76]" />
               <span>Échéance : {deadlineLabel}</span>
             </div>

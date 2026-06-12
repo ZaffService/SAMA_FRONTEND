@@ -81,6 +81,28 @@ const extractIndicatif = (fullPhone: string, defaultIndicatif: string): string =
   return country ? country.indicatif : defaultIndicatif;
 };
 
+const getPhonePlaceholder = (indicatif: string): string => {
+  const country = COUNTRIES.find((c) => c.indicatif === indicatif);
+  if (country?.localLength === 9) return "7XXXXXXXX";
+  if (country) return "X".repeat(country.localLength);
+  return "XXXXXXXX";
+};
+
+// Bordure rouge en bas : champ incomplet (indication visuelle) ou erreur de validation
+const fieldStateClass = (showRedBorder: boolean) =>
+  showRedBorder
+    ? "!border-0 !border-b-2 !border-b-red-500 !rounded-none focus:!border-0 focus:!border-b-2 focus:!border-b-red-500 focus:!ring-0 shadow-none"
+    : "border-gray-200";
+
+const navigateToDashboard = (
+  router: ReturnType<typeof useRouter>,
+  role?: string,
+) => {
+  if (role === "ADMIN") router.push("/admin-dashboard");
+  else if (role === "INSTRUCTOR") router.push("/instructor-dashboard");
+  else router.push("/student-dashboard");
+};
+
 // Initial form data pre-filled with user info
 const getInitialFormData = (user: any): ProfileFormData => ({
   firstName: user?.firstName || user?.first_name || "",
@@ -139,39 +161,78 @@ export default function CompleteProfile() {
   );
   const metadataReady = Boolean(profileMetadata);
 
+  const incompleteFields = useMemo(
+    () => ({
+      firstName: !formData.firstName.trim(),
+      lastName: !formData.lastName.trim(),
+      ageRange: !formData.ageRange,
+      currentStatus: !formData.currentStatus,
+      referralSource: !formData.referralSource,
+      sexe: !formData.sexe,
+      region: !formData.region,
+      residenceType: !formData.residenceType,
+      telephone: !originalPhone && !formData.telephone.trim(),
+      disabilityType: formData.disability && !formData.disabilityType,
+      consentGiven: !formData.consentGiven,
+    }),
+    [formData, originalPhone],
+  );
+
   const displayName =
     formData.firstName && formData.lastName
       ? `${formData.firstName} ${formData.lastName}`
       : "Mon Profil";
 
-  // Helper to validate phone number
+  // Valide le téléphone uniquement s'il est renseigné (champ optionnel côté backend)
   const validatePhone = (phone: string, dialCode: string): string | null => {
-    if (!phone.trim()) return "Le numéro de téléphone est obligatoire";
-    
+    if (!phone.trim()) return null;
+
     const country = COUNTRIES.find((c) => c.indicatif === dialCode);
     if (!country) return "Indicatif invalide";
-    
+
     if (!/^\d+$/.test(phone)) {
       return "Le numéro doit contenir uniquement des chiffres";
     }
-    
+
     if (phone.length !== country.localLength) {
       return `Le numéro doit contenir ${country.localLength} chiffres pour ${country.name}`;
     }
-    
+
     return null;
+  };
+
+  const buildProfilePayload = () => {
+    const payload: Record<string, unknown> = {};
+
+    if (formData.firstName.trim()) payload.firstName = formData.firstName.trim();
+    if (formData.lastName.trim()) payload.lastName = formData.lastName.trim();
+    if (formData.ageRange) payload.ageRangeId = formData.ageRange;
+    if (formData.currentStatus) payload.currentStatusId = formData.currentStatus;
+    if (formData.referralSource) payload.referralSourceId = formData.referralSource;
+    if (formData.sexe) payload.sexe = formData.sexe;
+    if (formData.region) payload.region = formData.region;
+    if (formData.residenceType) payload.residenceType = formData.residenceType;
+    if (formData.disability) {
+      payload.disability = true;
+      if (formData.disabilityType) payload.disabilityType = formData.disabilityType;
+      if (formData.disabilityDetails.trim()) {
+        payload.disabilityDetails = formData.disabilityDetails.trim();
+      }
+    }
+    if (formData.consentGiven) payload.consentGiven = true;
+
+    if (!originalPhone && formData.telephone.trim()) {
+      payload.telephone = formData.telephone;
+      payload.indicatif = formData.indicatif;
+    }
+
+    return payload;
   };
 
   // Redirect if profile is already complete
   useEffect(() => {
     if (!protectLoading && isComplete === true) {
-      if (user?.role === "ADMIN") {
-        router.push("/admin-dashboard");
-      } else if (user?.role === "INSTRUCTOR") {
-        router.push("/instructor-dashboard");
-      } else {
-        router.push("/student-dashboard");
-      }
+      navigateToDashboard(router, user?.role);
     }
   }, [protectLoading, isComplete, user, router]);
 
@@ -234,40 +295,21 @@ export default function CompleteProfile() {
     [],
   );
 
-  // Handle form submission
+  const handleSkip = () => {
+    navigateToDashboard(router, user?.role);
+  };
+
+  // Handle form submission — tous les champs sont optionnels (aligné sur CompleteProfileDto)
   const handleSave = async () => {
     const errors: Record<string, string> = {};
 
-    if (!formData.sexe) {
-      errors.sexe = "Le genre est obligatoire";
-    }
-    if (!formData.ageRange) {
-      errors.ageRange = "La tranche d'âge est obligatoire";
-    }
-    if (!formData.currentStatus) {
-      errors.currentStatus = "Le statut actuel est obligatoire";
-    }
-    if (!formData.referralSource) {
-      errors.referralSource = "La source de découverte est obligatoire";
-    }
-    if (!formData.region) {
-      errors.region = "La région est obligatoire";
-    }
-    if (!formData.residenceType) {
-      errors.residenceType = "Le type de résidence est obligatoire";
-    }
-    if (!formData.consentGiven) {
-      errors.consentGiven = "Vous devez accepter les conditions pour continuer";
-    }
-
-    // Validate phone number - only required if not already in profile
-    const phoneError = validatePhone(formData.telephone, formData.indicatif);
-    if (phoneError && !originalPhone) {
-      errors.telephone = phoneError;
-    }
-
     if (formData.disability && !formData.disabilityType) {
       errors.disabilityType = "Veuillez sélectionner un type de handicap";
+    }
+
+    if (!originalPhone && formData.telephone.trim()) {
+      const phoneError = validatePhone(formData.telephone, formData.indicatif);
+      if (phoneError) errors.telephone = phoneError;
     }
 
     setFieldErrors(errors);
@@ -276,52 +318,29 @@ export default function CompleteProfile() {
       return;
     }
 
+    const profilePayload = buildProfilePayload();
+
+    if (Object.keys(profilePayload).length === 0) {
+      toast.info("Aucune information à enregistrer.");
+      handleSkip();
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Construire le payload - ne pas envoyer le téléphone s'il existe déjà
-      const profilePayload: any = {
-        userId: user?.id,
-        telephone: formData.telephone,
-        indicatif: formData.indicatif,
-        ageRangeId: formData.ageRange,
-        currentStatusId: formData.currentStatus,
-        referralSourceId: formData.referralSource,
-        sexe: formData.sexe as SexeType,
-        region: formData.region as RegionType,
-        residenceType: formData.residenceType as ResidenceType,
-        disability: formData.disability,
-        disabilityType: formData.disabilityType || undefined,
-        disabilityDetails: formData.disabilityDetails || undefined,
-        consentGiven: formData.consentGiven,
-      };
-
-      // Si le téléphone existait déjà, ne pas l'envoyer
-      if (originalPhone) {
-        delete profilePayload.telephone;
-        delete profilePayload.indicatif;
-      }
-
       const result = await completeProfile(profilePayload);
 
       if (result) {
-        toast.success(
-          "Félicitations ! Votre profil a été complété avec succès !",
-        );
+        const message = result.isProfileComplete
+          ? "Félicitations ! Votre profil a été complété avec succès !"
+          : "Vos informations ont été enregistrées.";
+        toast.success(message);
 
-        // Effacer le cache local pour forcer le rechargement
         localStorage.removeItem("user_profile_cache");
-
-        // Rafraîchir le profil pour mettre à jour l'état isComplete
         await checkProfile();
 
         setTimeout(() => {
-          if (user?.role === "ADMIN") {
-            router.push("/admin-dashboard");
-          } else if (user?.role === "INSTRUCTOR") {
-            router.push("/instructor-dashboard");
-          } else {
-            router.push("/student-dashboard");
-          }
+          navigateToDashboard(router, user?.role);
         }, 1500);
       }
     } catch (error) {
@@ -411,8 +430,8 @@ export default function CompleteProfile() {
                 Compléter votre profil
               </h1>
               <p className="text-muted-foreground text-base lg:text-lg">
-                Renseignez vos informations pour accéder à toutes les
-                fonctionnalités
+                Complétez votre profil à votre rythme pour personnaliser votre
+                expérience. Tous les champs sont optionnels.
               </p>
             </div>
           </div>
@@ -440,7 +459,7 @@ export default function CompleteProfile() {
                   )}
                   <div className="inline-flex items-center gap-1 lg:gap-2 mt-2 lg:mt-3 bg-white/20 px-3 py-1 lg:px-4 lg:py-2 rounded-full text-sm lg:text-base">
                     <CheckCircle2 className="h-4 w-4 lg:h-5 lg:w-5" />
-                    Finalisez votre profil
+                    Profil optionnel
                   </div>
                 </div>
               </div>
@@ -465,7 +484,9 @@ export default function CompleteProfile() {
                     Informations personnelles
                   </CardTitle>
                   <CardDescription className="text-sm lg:text-base">
-                    Ces informations nous permettront de mieux vous connaître
+                    Ces informations nous permettront de mieux vous connaître.
+                    Les champs non remplis sont soulignés en rouge pour vous
+                    rappeler de les compléter plus tard.
                   </CardDescription>
                 </div>
               </div>
@@ -490,9 +511,20 @@ export default function CompleteProfile() {
                       <Input
                         id="firstName"
                         value={formData.firstName}
-                        readOnly
-                        className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+                        onChange={(e) => {
+                          handleChange("firstName", e.target.value);
+                          if (fieldErrors.firstName) {
+                            setFieldErrors((prev) => ({ ...prev, firstName: "" }));
+                          }
+                        }}
+                        disabled={isSaving}
+                        aria-invalid={Boolean(fieldErrors.firstName)}
+                        placeholder="Votre prénom"
+                        className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg bg-white ${fieldStateClass(incompleteFields.firstName || Boolean(fieldErrors.firstName))}`}
                       />
+                      {fieldErrors.firstName && (
+                        <p className="text-sm text-red-600">{fieldErrors.firstName}</p>
+                      )}
                     </div>
                     <div className="space-y-2 lg:space-y-3">
                       <Label
@@ -504,9 +536,20 @@ export default function CompleteProfile() {
                       <Input
                         id="lastName"
                         value={formData.lastName}
-                        readOnly
-                        className="h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed"
+                        onChange={(e) => {
+                          handleChange("lastName", e.target.value);
+                          if (fieldErrors.lastName) {
+                            setFieldErrors((prev) => ({ ...prev, lastName: "" }));
+                          }
+                        }}
+                        disabled={isSaving}
+                        aria-invalid={Boolean(fieldErrors.lastName)}
+                        placeholder="Votre nom"
+                        className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg bg-white ${fieldStateClass(incompleteFields.lastName || Boolean(fieldErrors.lastName))}`}
                       />
+                      {fieldErrors.lastName && (
+                        <p className="text-sm text-red-600">{fieldErrors.lastName}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -526,7 +569,7 @@ export default function CompleteProfile() {
                         htmlFor="ageRange"
                         className="text-sm lg:text-base font-medium text-gray-700"
                       >
-                        Tranche d&apos;âge <span className="text-red-500">*</span>
+                        Tranche d&apos;âge
                       </Label>
                       <Select
                         value={formData.ageRange}
@@ -543,7 +586,8 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="ageRange"
-                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.ageRange ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          aria-invalid={Boolean(fieldErrors.ageRange)}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg w-full ${fieldStateClass(incompleteFields.ageRange || Boolean(fieldErrors.ageRange))}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -567,7 +611,7 @@ export default function CompleteProfile() {
                         htmlFor="currentStatus"
                         className="text-sm lg:text-base font-medium text-gray-700"
                       >
-                        Statut actuel <span className="text-red-500">*</span>
+                        Statut actuel
                       </Label>
                       <Select
                         value={formData.currentStatus}
@@ -584,7 +628,8 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="currentStatus"
-                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.currentStatus ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          aria-invalid={Boolean(fieldErrors.currentStatus)}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg w-full ${fieldStateClass(incompleteFields.currentStatus || Boolean(fieldErrors.currentStatus))}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -608,8 +653,7 @@ export default function CompleteProfile() {
                         htmlFor="referralSource"
                         className="text-sm lg:text-base font-medium text-gray-700"
                       >
-                        Comment nous avez-vous connus ?{" "}
-                        <span className="text-red-500">*</span>
+                        Comment nous avez-vous connus ?
                       </Label>
                       <Select
                         value={formData.referralSource}
@@ -626,7 +670,8 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="referralSource"
-                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.referralSource ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          aria-invalid={Boolean(fieldErrors.referralSource)}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg w-full ${fieldStateClass(incompleteFields.referralSource || Boolean(fieldErrors.referralSource))}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -652,7 +697,7 @@ export default function CompleteProfile() {
                         htmlFor="sexe"
                         className="text-sm lg:text-base font-medium text-gray-700"
                       >
-                        Genre <span className="text-red-500">*</span>
+                        Genre
                       </Label>
                       <Select
                         value={formData.sexe}
@@ -666,7 +711,8 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="sexe"
-                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.sexe ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          aria-invalid={Boolean(fieldErrors.sexe)}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg w-full ${fieldStateClass(incompleteFields.sexe || Boolean(fieldErrors.sexe))}`}
                         >
                           <SelectValue placeholder="Sélectionnez..." />
                         </SelectTrigger>
@@ -691,7 +737,7 @@ export default function CompleteProfile() {
                         className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2"
                       >
                         <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
-                        Région <span className="text-red-500">*</span>
+                        Région
                       </Label>
                       <Select
                         value={formData.region}
@@ -705,7 +751,8 @@ export default function CompleteProfile() {
                       >
                         <SelectTrigger
                           id="region"
-                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.region ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          aria-invalid={Boolean(fieldErrors.region)}
+                          className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg w-full ${fieldStateClass(incompleteFields.region || Boolean(fieldErrors.region))}`}
                         >
                           <SelectValue placeholder="Sélectionnez votre région" />
                         </SelectTrigger>
@@ -730,7 +777,7 @@ export default function CompleteProfile() {
                   <div className="space-y-3">
                     <Label className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2">
                       <Home className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
-                      Type de résidence <span className="text-red-500">*</span>
+                      Type de résidence
                     </Label>
                     <div className="flex gap-2">
                       {Object.entries(RESIDENCE_LABELS).map(
@@ -751,12 +798,12 @@ export default function CompleteProfile() {
                               }
                             }}
                             disabled={isSaving}
-                          className={`flex-1 px-3 py-2 lg:px-4 lg:py-3 text-sm lg:text-base rounded-lg border-2 transition-all duration-200 ${
+                          className={`flex-1 px-3 py-2 lg:px-4 lg:py-3 text-sm lg:text-base rounded-lg transition-all duration-200 ${
                               formData.residenceType === value
-                                ? "border-blue-600 bg-blue-50 text-blue-700 font-medium"
-                                : fieldErrors.residenceType
-                                  ? "border-red-500 bg-red-50 text-red-700"
-                                  : "border-gray-200 bg-white text-gray-700 hover:border-blue-300"
+                                ? "border border-blue-600 bg-blue-50 text-blue-700 font-medium"
+                                : incompleteFields.residenceType || fieldErrors.residenceType
+                                  ? "border-0 border-b-2 border-b-red-500 bg-white text-gray-700"
+                                  : "border border-gray-200 bg-white text-gray-700 hover:border-blue-300"
                             } ${isSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                           >
                             {label}
@@ -818,7 +865,7 @@ export default function CompleteProfile() {
                         className="text-sm lg:text-base font-medium text-gray-700 flex items-center gap-2"
                       >
                         <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
-                        Téléphone <span className="text-red-500">*</span>
+                        Téléphone
                       </Label>
                       <div className="flex gap-2">
                         <Select
@@ -848,7 +895,8 @@ export default function CompleteProfile() {
                         <Input
                           id="phone"
                           type="tel"
-                          placeholder={`${COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength === 9 ? "701234567" : "12345678"}`}
+                          placeholder={getPhonePlaceholder(formData.indicatif)}
+                          aria-invalid={Boolean(fieldErrors.telephone || phoneConflictError)}
                           value={formData.telephone}
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, "");
@@ -867,7 +915,7 @@ export default function CompleteProfile() {
                             }
                           }}
                           disabled={isSaving}
-                          className={`flex-1 h-12 lg:h-16 text-base lg:text-lg ${fieldErrors.telephone || phoneConflictError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                          className={`flex-1 h-12 lg:h-16 text-base lg:text-lg ${fieldStateClass(incompleteFields.telephone || Boolean(fieldErrors.telephone || phoneConflictError))}`}
                           maxLength={COUNTRIES.find((c) => c.indicatif === formData.indicatif)?.localLength || 15}
                         />
                       </div>
@@ -924,8 +972,10 @@ export default function CompleteProfile() {
                           htmlFor="disabilityType"
                           className="text-sm lg:text-base font-medium text-gray-700"
                         >
-                          Type de handicap{" "}
-                          <span className="text-red-500">*</span>
+                          Type de handicap
+                          {formData.disability && (
+                            <span className="text-red-500"> *</span>
+                          )}
                         </Label>
                         <Select
                           value={formData.disabilityType}
@@ -945,7 +995,8 @@ export default function CompleteProfile() {
                         >
                           <SelectTrigger
                             id="disabilityType"
-                            className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg ${fieldErrors.disabilityType ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "border-gray-200"}`}
+                            aria-invalid={Boolean(fieldErrors.disabilityType)}
+                            className={`h-12 lg:h-16 px-4 lg:px-5 text-base lg:text-lg w-full ${fieldStateClass(incompleteFields.disabilityType || Boolean(fieldErrors.disabilityType))}`}
                           >
                             <SelectValue placeholder="Sélectionnez le type de handicap" />
                           </SelectTrigger>
@@ -998,31 +1049,34 @@ export default function CompleteProfile() {
                   </h3>
 
                   <div
-                    className={`flex items-start space-x-3 lg:space-x-4 p-4 lg:p-6 bg-gray-50 rounded-xl border ${
-                      fieldErrors.consentGiven
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-200"
+                    className={`flex items-start space-x-3 lg:space-x-4 p-4 lg:p-6 rounded-xl bg-gray-50 ${
+                      incompleteFields.consentGiven || fieldErrors.consentGiven
+                        ? "border-0 border-b-2 border-b-red-500"
+                        : "border border-gray-200"
                     }`}
                   >
                     <Checkbox
                       id="consentGiven"
                       checked={formData.consentGiven}
-                      onCheckedChange={(checked) =>
-                        handleChange("consentGiven", checked === true)
-                      }
+                      onCheckedChange={(checked) => {
+                        handleChange("consentGiven", checked === true);
+                        if (checked && fieldErrors.consentGiven) {
+                          setFieldErrors((prev) => ({
+                            ...prev,
+                            consentGiven: "",
+                          }));
+                        }
+                      }}
                       disabled={isSaving}
                       className="h-5 w-5 lg:h-6 lg:w-6 mt-0.5"
                     />
                     <Label
                       htmlFor="consentGiven"
-                      className={`text-sm lg:text-base font-medium cursor-pointer leading-relaxed ${
-                        fieldErrors.consentGiven ? "text-red-700" : ""
-                      }`}
+                      className="text-sm lg:text-base font-medium cursor-pointer leading-relaxed"
                     >
                       J'accepte que mes données soient utilisées pour
                       améliorer mon expérience sur la plateforme. Je peux
-                      retirer mon consentement à tout moment.{" "}
-                      <span className="text-red-500">*</span>
+                      retirer mon consentement à tout moment.
                     </Label>
                   </div>
                   {fieldErrors.consentGiven && (
@@ -1055,7 +1109,7 @@ export default function CompleteProfile() {
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-2" />
-                        Enregistrer et continuer
+                        Enregistrer
                       </>
                     )}
                   </Button>

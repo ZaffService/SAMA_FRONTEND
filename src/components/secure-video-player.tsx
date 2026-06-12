@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { VideoApi } from "@/infrastructure/api/video-api";
+import {
+  isDirectPlayableVideoUrl,
+  shouldFetchSignedVideoUrl,
+} from "@/lib/video-url-utils";
 import logger from "@/shared/helpers/logger";
 
 interface SecureVideoPlayerProps {
@@ -272,16 +276,27 @@ export function SecureVideoPlayer({
   }, [lessonId]);
 
   useEffect(() => {
-    if (url) {
-      // Utiliser directement l'URL fournie sans fetch
+    if (url && isDirectPlayableVideoUrl(url)) {
       setVideoUrl(url);
       setLoading(false);
-    } else {
-      // Récupérer l'URL signée via API si aucune URL n'est fournie
-      fetchSignedUrl();
+      return;
     }
-    // VideoApi gère le cache et l'expiration automatiquement
-  }, [url, fetchSignedUrl]);
+
+    if (shouldFetchSignedVideoUrl(url) && lessonId) {
+      fetchSignedUrl();
+      return;
+    }
+
+    if (url) {
+      setVideoUrl(url);
+      setLoading(false);
+      return;
+    }
+
+    setVideoUrl(undefined);
+    setLoading(false);
+    setError("Identifiant de leçon manquant pour charger la vidéo.");
+  }, [url, lessonId, fetchSignedUrl]);
 
   useEffect(() => {
     lastTrackedTimeRef.current = 0;

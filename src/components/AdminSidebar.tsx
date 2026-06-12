@@ -11,7 +11,7 @@ import {
   FolderOpen,
   Settings,
   LogOut,
-  CircleDot,
+  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { type DashboardView } from "./AdminLayout";
@@ -75,14 +75,14 @@ export function AdminSidebar({
       disabled: false,
       badge: null,
     },
-    // {
-    //   id: "stats" as const,
-    //   label: "Statistiques",
-    //   icon: CircleDot,
-    //   active: false,
-    //   disabled: true,
-    //   badge: "Bientôt",
-    // },
+    {
+      id: "manage-revenue" as const,
+      label: "Revenus",
+      icon: Banknote,
+      active: currentView === "manage-revenue",
+      disabled: false,
+      badge: null,
+    },
     {
       id: "settings" as const,
       label: "Parametre",
@@ -110,7 +110,8 @@ export function AdminSidebar({
       item.id === "create-course" ||
       item.id === "manage-courses" ||
       item.id === "manage-users" ||
-      item.id === "manage-categories"
+      item.id === "manage-categories" ||
+      item.id === "manage-revenue"
     ) {
       onViewChange(item.id);
     }

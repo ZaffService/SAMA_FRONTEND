@@ -1,19 +1,6 @@
 import logger from "@/shared/helpers/logger";
 import type { CourseDetailsData } from "@/types/course";
 
-// Constante pour l'URL de base Bunny CDN
-const BUNNY_CDN_URL = "https://video.bunnycdn.com";
-// Library ID pour Bunny (devrait venir des variables d'environnement en production)
-const BUNNY_LIBRARY_ID = process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID || "library-id";
-
-/**
- * Construit l'URL Bunny CDN pour une vidéo
- */
-function buildBunnyVideoUrl(videoAssetId: string): string {
-  if (!videoAssetId) return "";
-  return `${BUNNY_CDN_URL}/library/${BUNNY_LIBRARY_ID}/videos/${videoAssetId}`;
-}
-
 /**
  * Transforme les données d'une leçon en incluant l'URL vidéo
  */
@@ -110,12 +97,13 @@ function transformLesson(lesson: any) {
   // Construire l'URL vidéo
   let videoUrl = lesson?.videoUrl ?? lesson?._videoUrl;
   
-  // Si pas d'URL directe mais on a un assetId Bunny
+  // Pas d'URL Bunny « admin » : lecture via GET /course/lesson/:id/video/signed
   if (!videoUrl && videoAssetId && videoProvider === "BUNNY") {
-    videoUrl = buildBunnyVideoUrl(videoAssetId);
-    logger.log(`🎥 [Transformer] URL Bunny construite: ${videoUrl}`);
+    logger.log(
+      `🎥 [Transformer] Vidéo Bunny (asset ${videoAssetId}) — URL signée à la lecture`,
+    );
   }
-  
+
   // Si l'URL est toujours absente, vérifier si la leçon a un statut indiquant une vidéo
   if (!videoUrl && status === "VIDEO_UPLOADED" && (videoAssetId || videoProvider)) {
     logger.warn(`⚠️ [Transformer] Vidéo uploadée mais pas d'URL pour la leçon ${lessonId}`);

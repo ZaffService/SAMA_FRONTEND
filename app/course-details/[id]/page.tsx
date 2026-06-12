@@ -2353,9 +2353,8 @@ function CourseDetailsPageComponent() {
   const shouldShowVideoUnavailableState =
     !safeSelectedLesson ||
     !hasVideo ||
-    !selectedLessonVideoUrl ||
-    isCoursePageLikeUrl ||
-    isMaintenanceLikeUrl;
+    (selectedLessonVideoUrl &&
+      (isCoursePageLikeUrl || isMaintenanceLikeUrl));
 
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;
@@ -2838,6 +2837,7 @@ function CourseDetailsPageComponent() {
           <header className="z-40 flex-shrink-0 border-b border-[#3E4143] bg-[#1C1D1F] text-white">
             <div className="flex h-14 items-center justify-between px-4 lg:px-6">
               <button
+                type="button"
                 onClick={() => {
                   if (contentMode === "quiz" && activeQuizModuleId) {
                     exitQuizView();
@@ -2845,10 +2845,13 @@ function CourseDetailsPageComponent() {
                   }
                   router.push(isAdmin ? "/admin-dashboard?focus=courses" : "/");
                 }}
-                className="flex min-w-0 items-center gap-3 text-white/90 transition-colors duration-200 hover:text-white"
+                aria-label="Retour"
+                className="inline-flex shrink-0 items-center gap-3 text-white/90 transition-colors duration-200 hover:text-white"
               >
-                <ArrowLeft className="h-5 w-5 flex-shrink-0" />
-                <span className="truncate text-base font-medium">{course.title}</span>
+                <ArrowLeft className="h-5 w-5 shrink-0" />
+                {!(contentMode === "quiz" && activeQuizModuleId) && (
+                  <span className="truncate text-base font-medium">{course.title}</span>
+                )}
               </button>
 
               {!(contentMode === "quiz" && activeQuizModuleId) && (

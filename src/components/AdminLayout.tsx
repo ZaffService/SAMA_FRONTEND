@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminOverview } from "./AdminOverview";
+import { AdminRevenueManagement } from "./AdminRevenueManagement";
 import { CategoriesManagement } from "./CategoriesManagement";
 
 export type DashboardView =
@@ -11,6 +12,7 @@ export type DashboardView =
   | "manage-courses"
   | "manage-users"
   | "manage-categories"
+  | "manage-revenue"
   | "video-status";
 
 interface AdminLayoutProps {
@@ -72,6 +74,8 @@ export function AdminLayout({
             onCategoryUpdated={onCategoryUpdated}
           />
         );
+      case "manage-revenue":
+        return <AdminRevenueManagement />;
       case "video-status":
         return renderVideoStatus ? (
           renderVideoStatus()
