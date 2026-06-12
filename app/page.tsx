@@ -61,7 +61,7 @@ const Index = () => {
     refresh,
     setFilterCategories,
     hasCoursesInDatabase,
-  } = useCourses(1, 500, { fetchAll: true });
+  } = useCourses(1, 50);
 
   const { enrolledCourses } = useEnrolledCourses({ enabled: isAuthenticated });
   const { categories, loading: categoriesLoading } = useCategories();

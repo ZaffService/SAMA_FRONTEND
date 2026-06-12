@@ -36,7 +36,7 @@ const CoursesPage = () => {
     duration: [],
   });
 
-  // ✅ Hook unique avec gestion intégrée de la pagination et recherche
+  // ✅ Une seule requête (limit 50) — tous les cours affichés sans pagination
   const {
     courses,
     loading,
@@ -49,7 +49,7 @@ const CoursesPage = () => {
     setSearchQuery,
     setFilterCategories,
     refresh,
-  } = useCourses(1, 500, { fetchAll: true });
+  } = useCourses(1, 50);
 
   // ✅ État local uniquement pour l'input de recherche (UI)
   const [searchInputValue, setSearchInputValue] = useState("");
