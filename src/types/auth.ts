@@ -1,23 +1,49 @@
 import type { User, LastActivity } from "@/domain/entities/user";
 
+export type AuthPlatform = "web" | "mobile";
+
+export interface PhoneCredentials {
+  indicatif: string;
+  telephone: string;
+}
+
+export interface PhoneLoginData extends PhoneCredentials {
+  password: string;
+}
+
+/** POST /user/create-account — aligné sur createAccountSchema backend */
+export interface WebRegisterPayload extends PhoneCredentials {
+  platform: "web";
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface MobileRegisterPayload extends PhoneCredentials {
+  platform: "mobile";
+  password: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+export type RegisterPayload = WebRegisterPayload | MobileRegisterPayload;
+
+export interface VerifyPhonePayload extends PhoneCredentials {
+  otp: string;
+}
+
 export interface AuthLoginResult {
   success: boolean;
   redirectUrl?: string;
   lastActivity?: LastActivity;
 }
 
-export interface LoginData {
-  email: string;
-  password: string;
-}
-
 export interface RegisterData {
-  email: string;
   password: string;
   firstName: string;
   lastName: string;
-  telephone?: string;
-  indicatif?: string;
+  telephone: string;
+  indicatif: string;
   acceptTerms: boolean;
 }
 
@@ -26,10 +52,7 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isProfileComplete: boolean | null;
-  login: (
-    email: string,
-    password: string,
-  ) => Promise<AuthLoginResult>;
+  login: (credentials: PhoneLoginData) => Promise<AuthLoginResult>;
   register: (data: RegisterData) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<AuthLoginResult>;
   logout: () => Promise<void>;

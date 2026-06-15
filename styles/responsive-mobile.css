@@ -717,10 +717,22 @@ h6 {
 
 /* Body Text */
 body,
-p,
-span {
+p {
   font-size: clamp(0.875rem, 2vw, 1rem);
   line-height: 1.6;
+}
+
+/* Conserver la taille du titre dans les spans (ex. hero "langue.") */
+h1 span,
+h2 span,
+h3 span,
+h4 span,
+h5 span,
+h6 span {
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
 }
 
 /* Small text */

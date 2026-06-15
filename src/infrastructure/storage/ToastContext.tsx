@@ -20,7 +20,7 @@ interface ToastContextType {
   warning: (title: string, description?: string) => void;
   info: (title: string, description?: string) => void;
   loginSuccess: (userName: string) => void;
-  registerSuccess: (email: string) => void;
+  registerSuccess: (phone: string) => void;
   logoutSuccess: () => void;
   loginError: (message: string) => void;
   loading: (title?: string) => void;

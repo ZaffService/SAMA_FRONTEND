@@ -12,11 +12,24 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
-import { getAuthErrorMessage, getErrorMapping } from "@/shared/helpers/error-mapping";
+import { getErrorMapping } from "@/shared/helpers/error-mapping";
 import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { COUNTRIES } from "@/lib/countries";
+import {
+  getPhonePlaceholder,
+  sanitizePhoneInput,
+  validatePhone,
+} from "@/lib/phone-auth";
 import logger from "@/shared/helpers/logger";
 
 export default function ClientLogin() {
@@ -32,19 +45,31 @@ export default function ClientLogin() {
     setRedirectAfterLogin,
   } = useLocalAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [indicatif, setIndicatif] = useState("+221");
+  const [telephone, setTelephone] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [verifiedMessage, setVerifiedMessage] = useState("");
 
   useEffect(() => {
-    // Gérer le paramètre de redirection depuis l'URL
     const redirectParam =
       searchParams.get("redirect") || searchParams.get("returnTo");
     if (redirectParam) {
       setRedirectAfterLogin(redirectParam);
+    }
+
+    const phoneIndicatif = searchParams.get("indicatif");
+    const phoneNumber = searchParams.get("telephone");
+    if (phoneIndicatif) setIndicatif(phoneIndicatif);
+    if (phoneNumber) setTelephone(phoneNumber);
+
+    if (searchParams.get("verified") === "1") {
+      setVerifiedMessage(
+        "Votre numéro est vérifié. Connectez-vous avec votre mot de passe.",
+      );
     }
   }, [searchParams, setRedirectAfterLogin]);
 
@@ -59,48 +84,28 @@ export default function ClientLogin() {
     }
   }, [isAuthenticated, redirectAfterLogin, router]);
 
-  // Fonctions de validation personnalisées
-  const validateEmail = (email: string): string | null => {
-    if (!email.trim()) return "Email requis";
-    if (
-      !email.includes("@") ||
-      !email.includes(".") ||
-      email.indexOf("@") >= email.lastIndexOf(".")
-    ) {
-      return "Format email invalide";
-    }
-    return null;
-  };
-
-  const validatePassword = (password: string): string | null => {
-    if (!password.trim()) return "Mot de passe requis";
-    return null;
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Réinitialiser les erreurs
-    setEmailError("");
+    setPhoneError("");
     setPasswordError("");
+    setVerifiedMessage("");
 
-    // Validation personnalisée
-    const emailValidation = validateEmail(email);
-    if (emailValidation) {
-      setEmailError(emailValidation);
+    const phoneValidation = validatePhone(telephone, indicatif);
+    if (phoneValidation) {
+      setPhoneError(phoneValidation);
       return;
     }
 
-    const passwordValidation = validatePassword(password);
-    if (passwordValidation) {
-      setPasswordError(passwordValidation);
+    if (!password.trim()) {
+      setPasswordError("Mot de passe requis");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login({ indicatif, telephone, password });
 
       if (result.success) {
         if (result.lastActivity?.lessonTitle) {
@@ -130,21 +135,24 @@ export default function ClientLogin() {
       const message = err.message?.toLowerCase() || "";
       
       if (
-        code.includes("email") || 
-        code.includes("not found") || 
+        code.includes("phone") ||
+        code.includes("telephone") ||
+        code.includes("téléphone") ||
+        code.includes("not found") ||
         code.includes("not_verified") ||
-        (message.includes("email") && (message.includes("not found") || message.includes("not verified")))
+        message.includes("phone") ||
+        message.includes("telephone") ||
+        message.includes("téléphone")
       ) {
-        setEmailError(displayMessage);
+        setPhoneError(displayMessage);
       } else if (
-        code.includes("password") || 
+        code.includes("password") ||
         code.includes("incorrect") ||
         (message.includes("password") && message.includes("incorrect"))
       ) {
         setPasswordError(displayMessage);
       } else {
-        // Par défaut, afficher sur le champ email
-        setEmailError(displayMessage);
+        setPhoneError(displayMessage);
       }
     } finally {
       setIsLoading(false);
@@ -210,36 +218,73 @@ export default function ClientLogin() {
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-3 text-muted-foreground">ou avec votre email</span>
+                  <span className="bg-background px-3 text-muted-foreground">ou avec votre téléphone</span>
                 </div>
               </div>
             </div>
 
+            {verifiedMessage && (
+              <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                {verifiedMessage}
+              </div>
+            )}
+
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-4 lg:space-y-5">
+            <form onSubmit={handleLogin} className="space-y-4 lg:space-y-5" autoComplete="off">
               <div>
                 <Label
-                  htmlFor="email"
+                  htmlFor="phone"
                   className="text-sm lg:text-base mb-2 block"
                 >
-                  Adresse email <span className="text-red-500">*</span>
+                  Téléphone <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="email"
-                  type="text"
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailError) setEmailError("");
-                  }}
-                  className={`mt-1.5 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
-                    emailError ? "border-red-500" : ""
-                  }`}
-                />
-                {emailError && (
+                <div className="flex gap-2 mt-1.5">
+                  <Select
+                    value={indicatif}
+                    onValueChange={(value) => {
+                      setIndicatif(value);
+                      setTelephone("");
+                      if (phoneError) setPhoneError("");
+                    }}
+                  >
+                    <SelectTrigger className="w-[100px] lg:w-[120px] h-10 lg:h-12 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRIES.map((country) => (
+                        <SelectItem
+                          key={country.indicatif}
+                          value={country.indicatif}
+                        >
+                          {country.indicatif}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="phone"
+                    name="telephone"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    placeholder={getPhonePlaceholder(indicatif)}
+                    value={telephone}
+                    onChange={(e) => {
+                      setTelephone(sanitizePhoneInput(e.target.value, indicatif));
+                      if (phoneError) setPhoneError("");
+                    }}
+                    className={`flex-1 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
+                      phoneError ? "border-red-500" : ""
+                    }`}
+                    maxLength={
+                      COUNTRIES.find((c) => c.indicatif === indicatif)
+                        ?.localLength || 15
+                    }
+                  />
+                </div>
+                {phoneError && (
                   <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
-                    {emailError}
+                    {phoneError}
                   </p>
                 )}
               </div>

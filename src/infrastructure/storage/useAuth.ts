@@ -11,8 +11,9 @@ import {
 } from "@/infrastructure/storage/auth-client-state";
 import { UserApi } from "@/infrastructure/api/user-api";
 import { clearTokens } from "@/shared/helpers/auth";
-import type { AuthContextType, RegisterData } from "@/types/auth";
+import type { AuthContextType, RegisterData, PhoneLoginData } from "@/types/auth";
 import type { User } from "@/domain/entities/user";
+import { buildRegisterPayload, WEB_REGISTRATION_PLATFORM } from "@/lib/phone-auth";
 import logger from "@/shared/helpers/logger";
 
 // Fonction utilitaire pour forcer la suppression des cookies d'authentification
@@ -276,7 +277,7 @@ export function useProvideAuth(): AuthContextType {
         const currentUser = await AuthApi.validateSession();
         logger.log("🔄 [useAuth] Résultat validateSession:", currentUser);
 
-        if (currentUser && currentUser.id && currentUser.email) {
+        if (currentUser && currentUser.id && (currentUser.email || currentUser.telephone)) {
           logger.log(
             "✅ [useAuth] User trouvé:",
             currentUser.email,
@@ -329,7 +330,7 @@ export function useProvideAuth(): AuthContextType {
 
     const validateCurrentSession = async () => {
       const currentUser = await AuthApi.validateSession();
-      if (!currentUser || !currentUser.id || !currentUser.email) {
+      if (!currentUser || !currentUser.id || (!currentUser.email && !currentUser.telephone)) {
         logger.warn(
           "🚪 [useAuth] Session devenue invalide lors de la revalidation",
         );
@@ -361,11 +362,15 @@ export function useProvideAuth(): AuthContextType {
     };
   }, [isAuthenticated, handleSessionExpired]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (credentials: PhoneLoginData) => {
     setIsLoading(true);
 
     try {
-      const response = await AuthApi.login({ email, password });
+      const response = await AuthApi.login({
+        indicatif: credentials.indicatif,
+        telephone: credentials.telephone,
+        password: credentials.password,
+      });
       logger.log("🔐 [useAuth] Login response:", response);
       logger.log("🔐 [useAuth] Login response.user:", response.user);
 
@@ -428,7 +433,15 @@ export function useProvideAuth(): AuthContextType {
     setIsLoading(true);
 
     try {
-      await AuthApi.register(data);
+      await AuthApi.register(
+        buildRegisterPayload(WEB_REGISTRATION_PLATFORM, {
+          indicatif: data.indicatif,
+          telephone: data.telephone,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          password: data.password,
+        }),
+      );
     } catch (error) {
       throw error;
     } finally {

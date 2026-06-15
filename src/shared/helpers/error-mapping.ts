@@ -124,6 +124,37 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
     action: "RETRY",
   },
 
+  EXTERNAL_SERVICE_ERROR: {
+    title: "Service SMS indisponible",
+    message:
+      "L'envoi du SMS est temporairement indisponible. Réessayez dans quelques instants.",
+    action: "RETRY",
+  },
+
+  OTP_INVALID: {
+    title: "Code invalide",
+    message: "Le code de vérification est incorrect. Vérifiez le code reçu par SMS.",
+    action: "RETRY",
+  },
+
+  OTP_EXPIRED: {
+    title: "Code expiré",
+    message: "Le code a expiré. Demandez un nouveau code.",
+    action: "RETRY",
+  },
+
+  PHONE_NOT_VERIFIED: {
+    title: "Téléphone non vérifié",
+    message: "Veuillez vérifier votre numéro de téléphone avant de vous connecter.",
+    action: "RETRY",
+  },
+
+  TELEPHONE_ALREADY_VERIFIED: {
+    title: "Téléphone déjà vérifié",
+    message: "Ce numéro est déjà vérifié. Vous pouvez vous connecter.",
+    action: "NONE",
+  },
+
   INDICATEUR_INVALIDE: {
     title: "Indicatif invalide",
     message: "L'indicatif téléphonique n'est pas valide.",
@@ -415,6 +446,22 @@ export function getErrorMapping(error: unknown): ErrorMapping {
     return ERROR_UI_MAPPING[parsed.code];
   }
 
+  // Message patterns (before generic 5xx fallback)
+  const message = parsed.message.toLowerCase();
+  if (
+    message.includes("orange") ||
+    message.includes("token orange") ||
+    (message.includes("sms") && message.includes("token"))
+  ) {
+    return ERROR_UI_MAPPING.EXTERNAL_SERVICE_ERROR;
+  }
+  if (message.includes("otp") && message.includes("expir")) {
+    return ERROR_UI_MAPPING.OTP_EXPIRED;
+  }
+  if (message.includes("otp") && message.includes("invalid")) {
+    return ERROR_UI_MAPPING.OTP_INVALID;
+  }
+
   // Handle status-based errors without specific code
   if (parsed.status) {
     if (parsed.status === 401) {
@@ -431,8 +478,6 @@ export function getErrorMapping(error: unknown): ErrorMapping {
     }
   }
 
-  // Check for common error patterns in message
-  const message = parsed.message.toLowerCase();
   if (message.includes("enroll") || message.includes("inscription")) {
     return ERROR_UI_MAPPING.COURSE_NOT_ENROLLED;
   }
@@ -450,6 +495,24 @@ export function getErrorMapping(error: unknown): ErrorMapping {
 
   // Return fallback for unknown errors
   return FALLBACK_ERROR;
+}
+
+/**
+ * Erreur d'envoi SMS (ex. token Orange) — le compte peut déjà exister côté backend.
+ */
+export function isSmsDeliveryError(error: unknown): boolean {
+  const parsed = parseApiError(error);
+  if (parsed.code === "EXTERNAL_SERVICE_ERROR") {
+    return true;
+  }
+
+  const message = parsed.message.toLowerCase();
+  return (
+    message.includes("orange") ||
+    message.includes("token orange") ||
+    (message.includes("sms") && message.includes("token")) ||
+    message.includes("impossible d'obtenir le token")
+  );
 }
 
 /**

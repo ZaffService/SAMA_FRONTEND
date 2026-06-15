@@ -65,11 +65,11 @@ export function showLoginSuccess(userName: string) {
   });
 }
 
-export function showRegisterSuccess(email: string) {
+export function showRegisterSuccess(phone: string) {
   Swal.fire({
     icon: "success",
     title: "Inscription réussie",
-    text: `Un email de vérification a été envoyé à ${email}`,
+    text: `Un code de vérification a été envoyé au ${phone}`,
     toast: true,
     position: "top-end",
     showConfirmButton: false,

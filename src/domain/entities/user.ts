@@ -32,6 +32,8 @@ export interface LastActivity {
 export interface LoginData {
   username?: string;
   email?: string;
+  telephone?: string;
+  indicatif?: string;
   password: string;
 }
 

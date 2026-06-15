@@ -1,11 +1,39 @@
 import type { User, LoginData, AuthResponse } from "@/domain/entities/user";
-import type { RegisterData } from "@/types/auth";
+import type {
+  PhoneCredentials,
+  RegisterPayload,
+  VerifyPhonePayload,
+} from "@/types/auth";
 import { buildApiUrl, API_ENDPOINTS, API_BASE_URL } from "./baseConfig";
 import logger from "@/shared/helpers/logger";
 
+function throwApiError(responseData: any, fallback: string): never {
+  if (responseData?.error) {
+    const errorObj = new Error(responseData.error.message || fallback);
+    (errorObj as any).code = responseData.error.code;
+    (errorObj as any).timestamp = responseData.error.timestamp;
+    (errorObj as any).path = responseData.error.path;
+    (errorObj as any).status =
+      responseData.statusCode ?? responseData.status;
+    (errorObj as any).statusCode =
+      responseData.statusCode ?? responseData.status;
+    throw errorObj;
+  }
+  const errorObj = new Error(responseData?.message || fallback);
+  (errorObj as any).status =
+    responseData?.statusCode ?? responseData?.status;
+  (errorObj as any).statusCode =
+    responseData?.statusCode ?? responseData?.status;
+  throw errorObj;
+}
+
 export class AuthApi {
   static async login(credentials: LoginData): Promise<AuthResponse> {
-    logger.log("🔐 [AuthApi] Login pour:", credentials.email);
+    const identifier =
+      credentials.telephone && credentials.indicatif
+        ? `${credentials.indicatif}${credentials.telephone}`
+        : credentials.email;
+    logger.log("🔐 [AuthApi] Login pour:", identifier);
     const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.LOGIN), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,27 +58,56 @@ export class AuthApi {
     return data;
   }
 
-  static async register(data: RegisterData): Promise<User> {
-    const { acceptTerms, ...payload } = data;
+  static async register(data: RegisterPayload): Promise<User> {
     const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.CREATE_ACCOUNT), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
 
     const responseData = await res.json();
 
     if (!res.ok) {
-      if (responseData?.error) {
-        // Propager l'erreur avec code pour permettre le mapping
-        const errorObj = new Error(responseData.error.message || "Échec de l'inscription");
-        (errorObj as any).code = responseData.error.code;
-        (errorObj as any).timestamp = responseData.error.timestamp;
-        (errorObj as any).path = responseData.error.path;
-        throw errorObj;
-      }
-      throw new Error(responseData.message || "Échec de l'inscription");
+      throwApiError(responseData, "Échec de l'inscription");
+    }
+
+    return responseData;
+  }
+
+  static async verifyPhone(
+    data: VerifyPhonePayload,
+  ): Promise<{ message: string }> {
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.VERIFY_PHONE), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      throwApiError(responseData, "Échec de la vérification du téléphone");
+    }
+
+    return responseData;
+  }
+
+  static async sendPhoneOtp(
+    data: PhoneCredentials,
+  ): Promise<{ message: string }> {
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.SEND_PHONE_OTP), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      throwApiError(responseData, "Échec de l'envoi du code");
     }
 
     return responseData;

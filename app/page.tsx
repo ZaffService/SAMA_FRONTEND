@@ -14,8 +14,6 @@ import {
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
-import Swal from "sweetalert2";
-
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import HeroBanner from "@/components/hero-banner";
@@ -39,7 +37,7 @@ import logger from "@/shared/helpers/logger";
 
 const Index = () => {
   const searchParams = useSearchParams();
-  const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
+  const { isAuthenticated } = useLocalAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showFreeTutorials, setShowFreeTutorials] = useState(false);
@@ -63,7 +61,8 @@ const Index = () => {
     hasCoursesInDatabase,
   } = useCourses(1, 50);
 
-  const { enrolledCourses } = useEnrolledCourses({ enabled: isAuthenticated });
+  const { enrolledCourses, refetch: refetchEnrolledCourses } =
+    useEnrolledCourses({ enabled: isAuthenticated });
   const { categories, loading: categoriesLoading } = useCategories();
 
   // Pre-fill search query and category from URL params
@@ -161,24 +160,6 @@ const Index = () => {
         course.description?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }
-
-  const handleEnrollClick = (course: BackendCourse) => {
-    Swal.fire({
-      title: "Inscription",
-      text: `Inscription au cours "${course.title}"`,
-      icon: "info",
-      confirmButtonText: "OK",
-    });
-  };
-
-  const handleVideoClick = (course: BackendCourse) => {
-    if (!isAuthenticated) {
-      setRedirectAfterLogin(`/course-details/${course.id}`);
-      window.location.href = "/login";
-      return;
-    }
-    window.location.href = `/course-details/${course.id}`;
-  };
 
   // Fonction helper pour vérifier si un cours est acheté
   const isCourseEnrolled = (courseId: string) => {
@@ -333,10 +314,9 @@ const Index = () => {
                       <CourseCard
                         key={course.id}
                         course={course}
-                        onEnrollClick={handleEnrollClick}
-                        onVideoClick={handleVideoClick}
                         isEnrolled={isEnrolled}
                         progress={progress}
+                        onEnrolled={refetchEnrolledCourses}
                       />
                     );
                   })}

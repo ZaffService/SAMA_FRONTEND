@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import Link from "next/link";
 
@@ -21,44 +21,6 @@ const HeroBanner = () => {
   const { isAuthenticated } = useLocalAuth();
   const [mobileImageLoaded, setMobileImageLoaded] = useState(false);
   const [desktopImageLoaded, setDesktopImageLoaded] = useState(false);
-  const [animatedValues, setAnimatedValues] = useState<number[]>(
-    () => heroStats.map(() => 0)
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    if (prefersReducedMotion) {
-      setAnimatedValues(heroStats.map((stat) => stat.value));
-      return;
-    }
-
-    const durationMs = 1400;
-    let startTime: number | null = null;
-    let rafId = 0;
-
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-    const step = (timestamp: number) => {
-      if (startTime === null) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / durationMs, 1);
-      const eased = easeOutCubic(progress);
-      setAnimatedValues(
-        heroStats.map((stat) => Math.round(stat.value * eased))
-      );
-
-      if (progress < 1) {
-        rafId = requestAnimationFrame(step);
-      }
-    };
-
-    rafId = requestAnimationFrame(step);
-
-    return () => cancelAnimationFrame(rafId);
-  }, []);
 
   const formatStatValue = (stat: HeroStat, value: number) =>
     `${stat.prefix ?? ""}${value}${stat.suffix ?? ""}`;
@@ -94,10 +56,12 @@ const HeroBanner = () => {
         <div className="absolute inset-0 flex items-start justify-center px-5 z-10 pt-16">
           <div className="w-full max-w-md space-y-5">
             <h1
-              className="text-3xl sm:text-4xl font-extrabold text-white leading-tight text-center"
+              className="hero-title text-3xl sm:text-4xl md:text-5xl text-white text-center"
               style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)' }}
             >
-              Apprenez dans votre langue.
+              Apprenez dans votre
+              <br />
+              <span className="hero-title-accent">langue.</span>
             </h1>
 
             <p
@@ -133,7 +97,7 @@ const HeroBanner = () => {
                     }`}
                   >
                     <div className="text-lg sm:text-xl font-extrabold tracking-tight">
-                      {formatStatValue(stat, animatedValues[index] ?? 0)}
+                      {formatStatValue(stat, stat.value)}
                     </div>
                     <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-white/90">
                       {stat.label}
@@ -171,10 +135,12 @@ const HeroBanner = () => {
           <div className="max-w-3xl w-full">
 
             <h1
-              className="text-5xl xl:text-6xl 2xl:text-7xl font-extrabold text-white leading-[1.15] mb-8"
+              className="hero-title text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white mb-8"
               style={{ textShadow: '0 6px 16px rgba(0,0,0,0.9), 0 3px 6px rgba(0,0,0,0.7)' }}
             >
-              Apprenez dans votre<br />langue.
+              Apprenez dans votre
+              <br />
+              <span className="hero-title-accent">langue.</span>
             </h1>
 
             <p
@@ -215,7 +181,7 @@ const HeroBanner = () => {
                     }`}
                   >
                     <div className="text-2xl lg:text-3xl font-extrabold tracking-tight">
-                      {formatStatValue(stat, animatedValues[index] ?? 0)}
+                      {formatStatValue(stat, stat.value)}
                     </div>
                     <div className="text-xs lg:text-sm font-semibold uppercase tracking-wide text-white/90">
                       {stat.label}

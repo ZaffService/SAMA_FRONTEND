@@ -61,6 +61,8 @@ export const API_ENDPOINTS = {
     COMPLETE_PROFILE: "/user/complete-profile",
     CREATE_ACCOUNT: "/user/create-account",
     VERIFY_EMAIL: "/user/verify-email",
+    VERIFY_PHONE: "/user/verify-phone",
+    SEND_PHONE_OTP: "/user/send-phone-otp",
     BY_ROLE: "/user/by-role",
     REQUEST_PASSWORD_RESET: "/user/request-password-reset",
     RESET_PASSWORD: "/user/forgot-password",

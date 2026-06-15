@@ -686,6 +686,23 @@
   }
 }
 
+/* Hero headline typography */
+.hero-title {
+  font-family: var(--font-hero), "Segoe UI", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+.hero-title-accent {
+  color: #dbeafe;
+  font-size: 1em;
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
 /* Added font-pacifico utility class */
 .font-pacifico {
   font-family: var(--font-pacifico);

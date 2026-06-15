@@ -2313,8 +2313,7 @@ function CourseDetailsPageComponent() {
   const shouldShowVideoUnavailableState =
     !safeSelectedLesson ||
     !hasVideo ||
-    (selectedLessonVideoUrl &&
-      (isCoursePageLikeUrl || isMaintenanceLikeUrl));
+    (selectedLessonVideoUrl && isInvalidDirectVideoUrl);
 
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;

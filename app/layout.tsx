@@ -3,6 +3,7 @@ import "./globals.css";
 import "../styles/responsive-mobile.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { plusJakartaSans } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "Bibocom digital - Plateforme E-Learning",
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={plusJakartaSans.variable}>
       <body
         className="font-sans antialiased"
         style={{

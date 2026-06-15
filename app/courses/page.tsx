@@ -10,8 +10,8 @@ import {
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner";
-import Swal from "sweetalert2";
 import { useCourses } from "@/application/use-cases/useCourses";
+import { useEnrolledCourses } from "@/application/use-cases/useEnrolledCourses";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CourseCard } from "@/components/course-card";
 import MaintenancePage from "@/components/MaintenancePage";
@@ -20,7 +20,7 @@ import type { BackendCourse } from "@/infrastructure/api/courses-api";
 import logger from "@/shared/helpers/logger";
 
 const CoursesPage = () => {
-  const { isAuthenticated, setRedirectAfterLogin } = useLocalAuth();
+  const { isAuthenticated } = useLocalAuth();
   const [showFilters, setShowFilters] = useState(false);
   interface CourseFilters {
     categories: string[];
@@ -50,6 +50,9 @@ const CoursesPage = () => {
     setFilterCategories,
     refresh,
   } = useCourses(1, 50);
+
+  const { enrolledCourses, refetch: refetchEnrolledCourses } =
+    useEnrolledCourses({ enabled: isAuthenticated });
 
   // ✅ État local uniquement pour l'input de recherche (UI)
   const [searchInputValue, setSearchInputValue] = useState("");
@@ -131,31 +134,16 @@ const CoursesPage = () => {
 
   const filteredCourses = applyFilters(courses);
 
-  // Handlers pour les actions des cours
-  const handleEnrollClick = useCallback((course: BackendCourse) => {
-    logger.log("Inscription au cours:", course.title);
-    Swal.fire({
-      title: "<strong>Inscription</strong>",
-      text: `Inscription au cours "${course.title}"`,
-      icon: "info",
-      confirmButtonText: "OK",
-    });
-  }, []);
-
-  const handleVideoClick = useCallback(
-    (course: BackendCourse) => {
-      logger.log("Lecture vidéo du cours:", course.title);
-
-      if (!isAuthenticated) {
-        setRedirectAfterLogin(`/course-details/${course.id}`);
-        window.location.href = "/login";
-        return;
-      }
-
-      // ✅ Redirection toujours vers la page de détails
-      window.location.href = `/course-details/${course.id}`;
-    },
-    [isAuthenticated, setRedirectAfterLogin],
+  const isCourseEnrolled = useCallback(
+    (courseId: string) =>
+      enrolledCourses.some((enrollment) => {
+        const enrolledId =
+          enrollment.id ||
+          (enrollment as { _id?: string; course_id?: string })._id ||
+          enrollment.course_id;
+        return enrolledId === courseId;
+      }),
+    [enrolledCourses],
   );
 
   // Gestion du loading
@@ -551,8 +539,8 @@ const CoursesPage = () => {
                 <CourseCard
                   key={course.id}
                   course={course}
-                  onEnrollClick={handleEnrollClick}
-                  onVideoClick={handleVideoClick}
+                  isEnrolled={isCourseEnrolled(course.id)}
+                  onEnrolled={refetchEnrolledCourses}
                 />
               ))}
             </div>

@@ -7,6 +7,7 @@ import {
 import type { LoginData, AuthResponse } from "@/domain/entities/user";
 import type { RegisterData } from "@/types/auth";
 import type { User } from "@/domain/entities/user";
+import { buildRegisterPayload, WEB_REGISTRATION_PLATFORM } from "@/lib/phone-auth";
 
 export class AuthUseCases {
   static async login(credentials: LoginData): Promise<AuthResponse> {
@@ -14,7 +15,15 @@ export class AuthUseCases {
   }
 
   static async register(userData: RegisterData): Promise<User> {
-    return AuthApi.register(userData);
+    return AuthApi.register(
+      buildRegisterPayload(WEB_REGISTRATION_PLATFORM, {
+        indicatif: userData.indicatif,
+        telephone: userData.telephone,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        password: userData.password,
+      }),
+    );
   }
 
   static async logout(): Promise<void> {

@@ -20,6 +20,7 @@ export function middleware(request: NextRequest) {
     "/register",
     "/forgot-password",
     "/verify-email",
+    "/verify-phone",
     "/",
   ];
   const isPublicRoute = publicRoutes.some(
