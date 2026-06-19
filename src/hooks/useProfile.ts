@@ -21,6 +21,7 @@ export function useProfile() {
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [isComplete, setIsComplete] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
   const { setProfileComplete } = useLocalAuth();
 
   // Load cached profile on mount
@@ -34,6 +35,7 @@ export function useProfile() {
           setProfile(cache.data);
           setIsComplete(cache.data.isProfileComplete ?? false);
           setProfileComplete(cache.data.isProfileComplete ?? false);
+          setHasCheckedProfile(true);
         } else {
           localStorage.removeItem(PROFILE_CACHE_KEY);
         }
@@ -78,6 +80,7 @@ export function useProfile() {
         return null;
       } finally {
         setIsLoading(false);
+        setHasCheckedProfile(true);
       }
     }, [setProfileComplete, saveToCache]);
 
@@ -120,6 +123,7 @@ export function useProfile() {
     profile,
     isComplete,
     isLoading,
+    hasCheckedProfile,
     checkProfile,
     completeProfile,
   };

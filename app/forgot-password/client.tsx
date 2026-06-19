@@ -12,12 +12,16 @@ import { useRouter } from "next/navigation";
 import { AuthApi } from "@/infrastructure/api/auth-api";
 import {
   getPhonePlaceholder,
+  getVerifyPhoneUrl,
   sanitizePhoneInput,
   validatePhone,
 } from "@/lib/phone-auth";
 import { COUNTRIES } from "@/lib/countries";
 import logger from "@/shared/helpers/logger";
-import { getErrorMapping } from "@/shared/helpers/error-mapping";
+import {
+  getErrorMapping,
+  parseApiError,
+} from "@/shared/helpers/error-mapping";
 
 type ResetTab = "email" | "phone";
 
@@ -77,6 +81,18 @@ export default function ForgotPassword() {
       router.push(`/reset-password-phone?${params.toString()}`);
     } catch (err: unknown) {
       logger.error("Erreur demande reset phone:", err);
+      const code = parseApiError(err).code?.toUpperCase() || "";
+
+      if (
+        code === "TELEPHONE_NOT_VERIFIED" ||
+        code === "PHONE_NOT_VERIFIED"
+      ) {
+        router.push(
+          getVerifyPhoneUrl(indicatif, telephone, { fromForgotPassword: true }),
+        );
+        return;
+      }
+
       setPhoneError(getErrorMapping(err).message);
     } finally {
       setPhoneLoading(false);

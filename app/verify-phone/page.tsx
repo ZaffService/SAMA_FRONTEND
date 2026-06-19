@@ -39,7 +39,9 @@ function VerifyPhoneContent() {
   const { login } = useLocalAuth();
   const indicatif = searchParams.get("indicatif") || "+221";
   const telephone = searchParams.get("telephone") || "";
-  const fromLogin = searchParams.get("from") === "login";
+  const fromParam = searchParams.get("from");
+  const fromLogin = fromParam === "login";
+  const fromForgotPassword = fromParam === "forgot-password";
 
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -62,8 +64,10 @@ function VerifyPhoneContent() {
     }
     if (fromLogin) {
       setMessage(AUTH_PHONE_FLOW.otpSentOnLogin);
+    } else if (fromForgotPassword) {
+      setMessage(AUTH_PHONE_FLOW.otpSentOnForgotPassword);
     }
-  }, [telephone, fromLogin]);
+  }, [telephone, fromLogin, fromForgotPassword]);
 
   const completeRegistrationFlow = async () => {
     const pending = getPendingPhoneAuth();
@@ -105,7 +109,7 @@ function VerifyPhoneContent() {
       });
 
       clearPendingPhoneAuth();
-      router.push(result.redirectUrl || "/student-dashboard");
+      router.push(result.redirectUrl || "/complete-profile");
     } catch (loginErr) {
       logger.error("Erreur connexion auto après OTP:", loginErr);
       clearPendingPhoneAuth();
@@ -141,6 +145,16 @@ function VerifyPhoneContent() {
         telephone,
         otp: cleanOtp,
       });
+
+      if (fromForgotPassword) {
+        setStatus("loading");
+        setMessage(AUTH_PHONE_FLOW.verifiedForgotPasswordRedirect);
+
+        await AuthApi.requestPasswordResetPhone(indicatif, telephone);
+        const params = new URLSearchParams({ indicatif, telephone });
+        router.push(`/reset-password-phone?${params.toString()}`);
+        return;
+      }
 
       await completeRegistrationFlow();
     } catch (err) {
@@ -234,10 +248,14 @@ function VerifyPhoneContent() {
                 </p>
               </div>
 
-              {fromLogin && (
+              {(fromLogin || fromForgotPassword) && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
                   <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span>{AUTH_PHONE_FLOW.unverifiedLoginMessage}</span>
+                  <span>
+                    {fromForgotPassword
+                      ? AUTH_PHONE_FLOW.otpSentOnForgotPassword
+                      : AUTH_PHONE_FLOW.unverifiedLoginMessage}
+                  </span>
                 </div>
               )}
 
@@ -334,12 +352,20 @@ function VerifyPhoneContent() {
                 </p>
                 <p>
                   <Link
-                    href={fromLogin ? "/login" : "/register"}
+                    href={
+                      fromForgotPassword
+                        ? "/forgot-password"
+                        : fromLogin
+                          ? "/login"
+                          : "/register"
+                    }
                     className="text-muted-foreground hover:underline"
                   >
-                    {fromLogin
-                      ? "Retour à la connexion"
-                      : "Retour à l'inscription"}
+                    {fromForgotPassword
+                      ? "Retour à la réinitialisation"
+                      : fromLogin
+                        ? "Retour à la connexion"
+                        : "Retour à l'inscription"}
                   </Link>
                 </p>
               </div>

@@ -71,6 +71,10 @@ export const AUTH_PHONE_FLOW = {
     "Votre numéro de téléphone n'a pas encore été vérifié.",
   otpSentOnLogin:
     "Un code de vérification vient d'être envoyé par SMS. Saisissez-le ci-dessous pour activer votre compte.",
+  otpSentOnForgotPassword:
+    "Votre numéro doit être vérifié avant la réinitialisation. Un code SMS vient d'être envoyé — saisissez-le ci-dessous.",
+  verifiedForgotPasswordRedirect:
+    "Numéro vérifié. Envoi du code de réinitialisation du mot de passe...",
   otpExpiredMessage: "Votre code de vérification a expiré.",
   passwordResetLogin:
     "Mot de passe réinitialisé. Connexion en cours…",
@@ -123,11 +127,13 @@ export function matchesPendingPhoneAuth(
 export function getVerifyPhoneUrl(
   indicatif: string,
   telephone: string,
-  options?: { fromLogin?: boolean },
+  options?: { fromLogin?: boolean; fromForgotPassword?: boolean },
 ): string {
   const params = new URLSearchParams({ indicatif, telephone });
   if (options?.fromLogin) {
     params.set("from", "login");
+  } else if (options?.fromForgotPassword) {
+    params.set("from", "forgot-password");
   }
   return `/verify-phone?${params.toString()}`;
 }

@@ -7,6 +7,8 @@ import { LoadingProvider } from "@/components/loading-provider";
 import { QueryProvider } from "@/shared/helpers/query-client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
+import { ProfileCompletionGuard } from "@/components/profile-completion-guard";
+
 interface ProvidersProps {
   children: React.ReactNode;
 }
@@ -20,7 +22,9 @@ export function Providers({ children }: ProvidersProps) {
         <ToastProvider>
           <LocalAuthProvider>
             <AvatarProvider>
-              <LoadingProvider>{children}</LoadingProvider>
+              <LoadingProvider>
+                <ProfileCompletionGuard>{children}</ProfileCompletionGuard>
+              </LoadingProvider>
             </AvatarProvider>
           </LocalAuthProvider>
         </ToastProvider>
