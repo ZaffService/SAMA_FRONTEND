@@ -1,14 +1,12 @@
 "use client";
 
-import type React from "react";
-
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Phone } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useToast } from "@/infrastructure/storage/ToastContext";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
@@ -26,11 +24,42 @@ import {
 } from "@/components/ui/select";
 import { COUNTRIES } from "@/lib/countries";
 import {
+  clearPendingPhoneAuth,
+  getPendingPhoneAuth,
   getPhonePlaceholder,
+  matchesPendingPhoneAuth,
   sanitizePhoneInput,
+  storePendingPhoneAuth,
   validatePhone,
+  AUTH_PHONE_FLOW,
 } from "@/lib/phone-auth";
+import {
+  storePendingEmailAuth,
+} from "@/lib/account-auth";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { validateEmail } from "@/shared/helpers/safeFetch";
 import logger from "@/shared/helpers/logger";
+
+type LoginMode = "email" | "phone";
+
+function resolveInitialLoginMode(searchParams: URLSearchParams): LoginMode {
+  const redirect = searchParams.get("redirect") || searchParams.get("returnTo");
+  if (redirect?.includes("admin")) {
+    return "email";
+  }
+  if (searchParams.get("email")) {
+    return "email";
+  }
+  if (searchParams.get("telephone") || searchParams.get("indicatif")) {
+    return "phone";
+  }
+  return "phone";
+}
 
 export default function ClientLogin() {
   const router = useRouter();
@@ -45,14 +74,18 @@ export default function ClientLogin() {
     setRedirectAfterLogin,
   } = useLocalAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginMode, setLoginMode] = useState<LoginMode>("phone");
+  const [email, setEmail] = useState("");
   const [indicatif, setIndicatif] = useState("+221");
   const [telephone, setTelephone] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [verifiedMessage, setVerifiedMessage] = useState("");
+  const autoLoginAfterResetRef = useRef(false);
 
   useEffect(() => {
     const redirectParam =
@@ -61,17 +94,81 @@ export default function ClientLogin() {
       setRedirectAfterLogin(redirectParam);
     }
 
+    setLoginMode(resolveInitialLoginMode(searchParams));
+
+    const emailParam = searchParams.get("email");
     const phoneIndicatif = searchParams.get("indicatif");
     const phoneNumber = searchParams.get("telephone");
+    if (emailParam) setEmail(emailParam);
     if (phoneIndicatif) setIndicatif(phoneIndicatif);
     if (phoneNumber) setTelephone(phoneNumber);
 
-    if (searchParams.get("verified") === "1") {
+    const pending = getPendingPhoneAuth();
+    const isPasswordReset = searchParams.get("reset") === "1";
+
+    if (
+      isPasswordReset &&
+      pending &&
+      phoneIndicatif &&
+      phoneNumber &&
+      matchesPendingPhoneAuth(pending, phoneIndicatif, phoneNumber)
+    ) {
+      setPassword(pending.password);
+      setLoginMode("phone");
+      setVerifiedMessage(AUTH_PHONE_FLOW.passwordResetLogin);
+    } else if (searchParams.get("verified") === "1") {
       setVerifiedMessage(
         "Votre numéro est vérifié. Connectez-vous avec votre mot de passe.",
       );
     }
   }, [searchParams, setRedirectAfterLogin]);
+
+  useEffect(() => {
+    if (autoLoginAfterResetRef.current || authLoading) {
+      return;
+    }
+    if (searchParams.get("reset") !== "1") {
+      return;
+    }
+
+    const phoneIndicatif = searchParams.get("indicatif");
+    const phoneNumber = searchParams.get("telephone");
+    const pending = getPendingPhoneAuth();
+
+    if (
+      !phoneIndicatif ||
+      !phoneNumber ||
+      !matchesPendingPhoneAuth(pending, phoneIndicatif, phoneNumber)
+    ) {
+      return;
+    }
+
+    autoLoginAfterResetRef.current = true;
+
+    const runAutoLogin = async () => {
+      setIsLoading(true);
+      try {
+        const result = await login({
+          indicatif: phoneIndicatif,
+          telephone: phoneNumber,
+          password: pending!.password,
+        });
+        clearPendingPhoneAuth();
+        router.replace(result.redirectUrl || "/student-dashboard");
+      } catch (err) {
+        logger.error("Auto-login après reset mot de passe:", err);
+        setVerifiedMessage(AUTH_PHONE_FLOW.passwordResetPrefill);
+        setPassword(pending!.password);
+        setIndicatif(phoneIndicatif);
+        setTelephone(phoneNumber);
+        setLoginMode("phone");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void runAutoLogin();
+  }, [searchParams, login, router, authLoading]);
 
   useEffect(() => {
     // Si l'utilisateur est déjà authentifié et qu'il y a une redirection sauvegardée, rediriger
@@ -84,17 +181,30 @@ export default function ClientLogin() {
     }
   }, [isAuthenticated, redirectAfterLogin, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
 
+    setEmailError("");
     setPhoneError("");
     setPasswordError("");
     setVerifiedMessage("");
 
-    const phoneValidation = validatePhone(telephone, indicatif);
-    if (phoneValidation) {
-      setPhoneError(phoneValidation);
-      return;
+    if (loginMode === "email") {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail) {
+        setEmailError("Adresse email requise");
+        return;
+      }
+      if (!validateEmail(normalizedEmail)) {
+        setEmailError("Adresse email invalide");
+        return;
+      }
+    } else {
+      const phoneValidation = validatePhone(telephone, indicatif);
+      if (phoneValidation) {
+        setPhoneError(phoneValidation);
+        return;
+      }
     }
 
     if (!password.trim()) {
@@ -105,7 +215,11 @@ export default function ClientLogin() {
     setIsLoading(true);
 
     try {
-      const result = await login({ indicatif, telephone, password });
+      const result = await login(
+        loginMode === "email"
+          ? { email: email.trim().toLowerCase(), password }
+          : { indicatif, telephone, password },
+      );
 
       if (result.success) {
         if (result.lastActivity?.lessonTitle) {
@@ -120,43 +234,89 @@ export default function ClientLogin() {
     } catch (err: any) {
       logger.error("Erreur login:", err);
 
-      // Utiliser le système de mapping d'erreurs pour traduire en français
       const errorMapping = getErrorMapping(err);
       const errorMessage = errorMapping.message;
+      const displayMessage =
+        err?.code && errorMapping
+          ? errorMessage
+          : err?.message || errorMessage;
 
-      // Si l'erreur a un code connu, utiliser le message du mapping
-      // Sinon, utiliser le message original du backend
-      const displayMessage = err?.code && errorMapping 
-        ? errorMessage 
-        : err?.message || errorMessage;
-
-      // Déterminer si l'erreur concerne l'email ou le mot de passe
-      const code = err?.code?.toLowerCase() || "";
+      const code = err?.code?.toUpperCase() || "";
       const message = err.message?.toLowerCase() || "";
-      
+
       if (
-        code.includes("phone") ||
-        code.includes("telephone") ||
-        code.includes("téléphone") ||
-        code.includes("not found") ||
-        code.includes("not_verified") ||
+        code === "TELEPHONE_NOT_VERIFIED" ||
+        code === "PHONE_NOT_VERIFIED"
+      ) {
+        storePendingPhoneAuth({
+          indicatif,
+          telephone,
+          password,
+        });
+        const params = new URLSearchParams({
+          indicatif,
+          telephone,
+          from: "login",
+        });
+        router.push(`/verify-phone?${params.toString()}`);
+        return;
+      }
+
+      if (code === "EMAIL_NOT_VERIFIED") {
+        storePendingEmailAuth({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        const params = new URLSearchParams({
+          email: email.trim().toLowerCase(),
+          from: "login",
+        });
+        router.push(`/verify-email-pending?${params.toString()}`);
+        return;
+      }
+
+      const codeLower = code.toLowerCase();
+
+      if (
+        codeLower.includes("password") ||
+        codeLower.includes("incorrect") ||
+        (message.includes("password") && message.includes("incorrect"))
+      ) {
+        setPasswordError(displayMessage);
+      } else if (
+        loginMode === "email" ||
+        codeLower.includes("email") ||
+        message.includes("email")
+      ) {
+        setEmailError(displayMessage);
+      } else if (
+        codeLower.includes("phone") ||
+        codeLower.includes("telephone") ||
+        codeLower.includes("téléphone") ||
+        codeLower.includes("not_verified") ||
         message.includes("phone") ||
         message.includes("telephone") ||
         message.includes("téléphone")
       ) {
         setPhoneError(displayMessage);
-      } else if (
-        code.includes("password") ||
-        code.includes("incorrect") ||
-        (message.includes("password") && message.includes("incorrect"))
-      ) {
-        setPasswordError(displayMessage);
       } else {
-        setPhoneError(displayMessage);
+        if (loginMode === "email") {
+          setEmailError(displayMessage);
+        } else {
+          setPhoneError(displayMessage);
+        }
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLoginModeChange = (value: string) => {
+    const mode = value as LoginMode;
+    setLoginMode(mode);
+    setEmailError("");
+    setPhoneError("");
+    setPasswordError("");
   };
 
   const handleGoogleSignIn = async (idToken: string) => {
@@ -218,7 +378,7 @@ export default function ClientLogin() {
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-background px-3 text-muted-foreground">ou avec votre téléphone</span>
+                  <span className="bg-background px-3 text-muted-foreground">ou avec email ou téléphone</span>
                 </div>
               </div>
             </div>
@@ -229,65 +389,117 @@ export default function ClientLogin() {
               </div>
             )}
 
-            {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4 lg:space-y-5" autoComplete="off">
-              <div>
-                <Label
-                  htmlFor="phone"
-                  className="text-sm lg:text-base mb-2 block"
-                >
-                  Téléphone <span className="text-red-500">*</span>
-                </Label>
-                <div className="flex gap-2 mt-1.5">
-                  <Select
-                    value={indicatif}
-                    onValueChange={(value) => {
-                      setIndicatif(value);
-                      setTelephone("");
-                      if (phoneError) setPhoneError("");
-                    }}
+              <Tabs
+                value={loginMode}
+                onValueChange={handleLoginModeChange}
+                className="w-full"
+              >
+                <TabsList className="grid h-11 w-full grid-cols-2 bg-muted/60 p-1">
+                  <TabsTrigger
+                    value="email"
+                    className="gap-2 text-sm data-[state=active]:bg-white data-[state=active]:text-[#002c75]"
                   >
-                    <SelectTrigger className="w-[100px] lg:w-[120px] h-10 lg:h-12 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES.map((country) => (
-                        <SelectItem
-                          key={country.indicatif}
-                          value={country.indicatif}
-                        >
-                          {country.indicatif}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="phone"
+                    className="gap-2 text-sm data-[state=active]:bg-white data-[state=active]:text-[#002c75]"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Téléphone
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="email" className="mt-4 space-y-1">
+                  <Label htmlFor="email" className="text-sm lg:text-base">
+                    Adresse email <span className="text-red-500">*</span>
+                  </Label>
                   <Input
-                    id="phone"
-                    name="telephone"
-                    type="tel"
-                    inputMode="numeric"
-                    autoComplete="tel-national"
-                    placeholder={getPhonePlaceholder(indicatif)}
-                    value={telephone}
+                    id="email"
+                    name="email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="admin@example.com"
+                    value={email}
                     onChange={(e) => {
-                      setTelephone(sanitizePhoneInput(e.target.value, indicatif));
-                      if (phoneError) setPhoneError("");
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
                     }}
-                    className={`flex-1 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
-                      phoneError ? "border-red-500" : ""
+                    className={`mt-1.5 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
+                      emailError ? "border-red-500" : ""
                     }`}
-                    maxLength={
-                      COUNTRIES.find((c) => c.indicatif === indicatif)
-                        ?.localLength || 15
-                    }
                   />
-                </div>
-                {phoneError && (
-                  <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
-                    {phoneError}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Recommandé pour les administrateurs et formateurs.
                   </p>
-                )}
-              </div>
+                  {emailError && (
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {emailError}
+                    </p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="phone" className="mt-4 space-y-1">
+                  <Label htmlFor="phone" className="text-sm lg:text-base">
+                    Téléphone <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex gap-2 mt-1.5">
+                    <Select
+                      value={indicatif}
+                      onValueChange={(value) => {
+                        setIndicatif(value);
+                        setTelephone("");
+                        if (phoneError) setPhoneError("");
+                      }}
+                    >
+                      <SelectTrigger className="w-[100px] lg:w-[120px] h-10 lg:h-12 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map((country) => (
+                          <SelectItem
+                            key={country.indicatif}
+                            value={country.indicatif}
+                          >
+                            {country.indicatif}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="phone"
+                      name="telephone"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      placeholder={getPhonePlaceholder(indicatif)}
+                      value={telephone}
+                      onChange={(e) => {
+                        setTelephone(sanitizePhoneInput(e.target.value, indicatif));
+                        if (phoneError) setPhoneError("");
+                      }}
+                      className={`flex-1 h-10 lg:h-12 text-sm lg:text-base transition-colors ${
+                        phoneError ? "border-red-500" : ""
+                      }`}
+                      maxLength={
+                        COUNTRIES.find((c) => c.indicatif === indicatif)
+                          ?.localLength || 15
+                      }
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Pour les apprenants inscrits avec leur numéro mobile.
+                  </p>
+                  {phoneError && (
+                    <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
+                      {phoneError}
+                    </p>
+                  )}
+                </TabsContent>
+              </Tabs>
 
               <div>
                 <Label

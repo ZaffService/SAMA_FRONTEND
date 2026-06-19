@@ -50,9 +50,14 @@ export class AuthApi {
         (errorObj as any).code = data.error.code;
         (errorObj as any).timestamp = data.error.timestamp;
         (errorObj as any).path = data.error.path;
+        (errorObj as any).status = res.status;
+        (errorObj as any).statusCode = res.status;
         throw errorObj;
       }
-      throw new Error(data.message || "Échec de la connexion");
+      const errorObj = new Error(data.message || "Échec de la connexion");
+      (errorObj as any).status = res.status;
+      (errorObj as any).statusCode = res.status;
+      throw errorObj;
     }
 
     return data;
@@ -303,6 +308,28 @@ export class AuthApi {
     return data;
   }
 
+  static async sendEmailVerification(
+    email: string,
+  ): Promise<{ message: string }> {
+    const res = await fetch(
+      buildApiUrl(API_ENDPOINTS.USER.SEND_EMAIL_VERIFICATION),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throwApiError(data, "Échec de l'envoi du lien de vérification");
+    }
+
+    return data;
+  }
+
   static async refreshToken(): Promise<boolean> {
     try {
       const response = await fetch(buildApiUrl("/user/refresh-token"), {
@@ -371,6 +398,139 @@ export class AuthApi {
     }
 
     return data;
+  }
+
+  /**
+   * Vérifie que le numéro existe et est vérifié (via send-phone-otp existant),
+   * puis demande le code de réinitialisation.
+   */
+  static async requestPasswordResetPhoneValidated(
+    indicatif: string,
+    telephone: string,
+  ): Promise<{ message: string }> {
+    try {
+      await AuthApi.sendPhoneOtp({ indicatif, telephone });
+      const errorObj = new Error(
+        "Ce numéro n'est pas encore vérifié. Vérifiez votre compte avant de réinitialiser le mot de passe.",
+      );
+      (errorObj as any).code = "TELEPHONE_NOT_VERIFIED";
+      throw errorObj;
+    } catch (err) {
+      const code =
+        err instanceof Error ? (err as { code?: string }).code : undefined;
+
+      if (code === "TELEPHONE_ALREADY_VERIFIED") {
+        return AuthApi.requestPasswordResetPhone(indicatif, telephone);
+      }
+
+      if (code === "USER_NOT_FOUND") {
+        const errorObj = new Error(
+          "Aucun compte n'est associé à ce numéro. Vérifiez que vous avez saisi le bon indicatif et le bon numéro.",
+        );
+        (errorObj as any).code = "USER_NOT_FOUND";
+        throw errorObj;
+      }
+
+      throw err;
+    }
+  }
+
+  static async requestPasswordResetPhone(
+    indicatif: string,
+    telephone: string,
+  ): Promise<{ message: string }> {
+    const res = await fetch(
+      buildApiUrl(API_ENDPOINTS.USER.REQUEST_PASSWORD_RESET_PHONE),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ indicatif, telephone }),
+      },
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data?.error) {
+        const errorObj = new Error(
+          data.error.message || "Échec de la demande de réinitialisation",
+        );
+        (errorObj as any).code = data.error.code;
+        throw errorObj;
+      }
+      throw new Error(
+        data.message || "Échec de la demande de réinitialisation",
+      );
+    }
+
+    return data;
+  }
+
+  static async resetPasswordPhone(data: {
+    indicatif: string;
+    telephone: string;
+    otp: string;
+    password: string;
+    confirmPassword: string;
+  }): Promise<{ message: string }> {
+    const res = await fetch(
+      buildApiUrl(API_ENDPOINTS.USER.RESET_PASSWORD_PHONE),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      },
+    );
+
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      if (responseData?.error) {
+        const errorObj = new Error(
+          responseData.error.message ||
+            "Échec de la réinitialisation du mot de passe",
+        );
+        (errorObj as any).code = responseData.error.code;
+        throw errorObj;
+      }
+      throw new Error(
+        responseData.message ||
+          "Échec de la réinitialisation du mot de passe",
+      );
+    }
+
+    return responseData;
+  }
+
+  static async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<{ message: string }> {
+    const res = await fetch(buildApiUrl(API_ENDPOINTS.USER.CHANGE_PASSWORD), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await res.json();
+
+    if (!res.ok) {
+      if (responseData?.error) {
+        const errorObj = new Error(
+          responseData.error.message ||
+            "Échec du changement de mot de passe",
+        );
+        (errorObj as any).code = responseData.error.code;
+        throw errorObj;
+      }
+      throw new Error(
+        responseData.message || "Échec du changement de mot de passe",
+      );
+    }
+
+    return responseData;
   }
 
   static async adminCreateAccount(data: {

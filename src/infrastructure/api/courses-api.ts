@@ -2,30 +2,6 @@ import type { Course, CourseDetails } from "@/domain/entities/course";
 import type { Module, Lesson } from "@/domain/entities/module";
 import Cookies from "js-cookie";
 
-// {
-//     "courses": [
-//         {
-//             "id": "9c27de41-9ca3-4a0c-8098-69c5f48c06d3",
-//             "title": "Architecture Backend et APIs",
-//             "description": "Construisez des backends scalables avec Node.js/Express ou Python/Django. Maîtrisez les APIs REST/GraphQL, les bases de données SQL/NoSQL, les microservices, Docker, Kubernetes et la sécurité backend.",
-//             "thumbnailUrl": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=600&h=400&fit=crop",
-//             "price": 200,
-//             "level": "ADVANCED",
-//             "status": "DRAFT",
-//             "instructorName": "Alice Johnson",
-//             "categoryName": "Développement web",
-//             "previewAvailable": true,
-//             "enrollmentCount": 0
-//         },
-//       ]
-//     "total": 26,
-//     "page": 3,
-//     "limit": 8,
-//     "totalPages": 4,
-//     "hasCoursesInDatabase": true
-// }
-
-// Lesson status enum
 export enum LessonStatus {
   PENDING_VIDEO = "PENDING_VIDEO",
   VIDEO_UPLOADED = "VIDEO_UPLOADED",

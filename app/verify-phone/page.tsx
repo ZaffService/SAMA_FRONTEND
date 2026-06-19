@@ -6,9 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, Loader2, Info } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
-import { getErrorMapping, isSmsDeliveryError } from "@/shared/helpers/error-mapping";
+import {
+  getErrorMapping,
+  isSmsDeliveryError,
+  parseApiError,
+} from "@/shared/helpers/error-mapping";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import {
   AUTH_PHONE_FLOW,
@@ -26,7 +30,8 @@ type VerifyStatus =
   | "loading"
   | "success"
   | "connecting"
-  | "error";
+  | "error"
+  | "otp_expired";
 
 function VerifyPhoneContent() {
   const searchParams = useSearchParams();
@@ -34,6 +39,7 @@ function VerifyPhoneContent() {
   const { login } = useLocalAuth();
   const indicatif = searchParams.get("indicatif") || "+221";
   const telephone = searchParams.get("telephone") || "";
+  const fromLogin = searchParams.get("from") === "login";
 
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -41,12 +47,23 @@ function VerifyPhoneContent() {
   const [message, setMessage] = useState("");
   const [isResending, setIsResending] = useState(false);
 
+  const pendingAuth = getPendingPhoneAuth();
+  const hasPendingAutoLogin = matchesPendingPhoneAuth(
+    pendingAuth,
+    indicatif,
+    telephone,
+  );
+
   useEffect(() => {
     if (!telephone) {
       setStatus("error");
       setMessage(AUTH_PHONE_FLOW.missingPhone);
+      return;
     }
-  }, [telephone]);
+    if (fromLogin) {
+      setMessage(AUTH_PHONE_FLOW.otpSentOnLogin);
+    }
+  }, [telephone, fromLogin]);
 
   const completeRegistrationFlow = async () => {
     const pending = getPendingPhoneAuth();
@@ -54,7 +71,9 @@ function VerifyPhoneContent() {
     if (!matchesPendingPhoneAuth(pending, indicatif, telephone)) {
       setStatus("success");
       setMessage(
-        "Votre numéro a été vérifié. Vous pouvez vous connecter.",
+        fromLogin
+          ? AUTH_PHONE_FLOW.verifiedLoginFallback
+          : "Votre numéro a été vérifié. Vous pouvez vous connecter.",
       );
       setTimeout(() => {
         const params = new URLSearchParams({
@@ -68,7 +87,13 @@ function VerifyPhoneContent() {
     }
 
     setStatus("success");
-    setMessage(AUTH_PHONE_FLOW.accountCreated);
+    setMessage(
+      hasPendingAutoLogin
+        ? fromLogin
+          ? "Numéro vérifié. Connexion en cours..."
+          : AUTH_PHONE_FLOW.accountCreated
+        : "Votre numéro a été vérifié.",
+    );
 
     setTimeout(() => setStatus("connecting"), 600);
 
@@ -120,18 +145,25 @@ function VerifyPhoneContent() {
       await completeRegistrationFlow();
     } catch (err) {
       logger.error("Erreur vérification téléphone:", err);
+      const parsed = parseApiError(err);
+      if (parsed.code === "OTP_EXPIRED") {
+        setStatus("otp_expired");
+        setMessage(AUTH_PHONE_FLOW.otpExpiredMessage);
+        return;
+      }
       setStatus("error");
-      const errorMapping = getErrorMapping(err);
-      setMessage(errorMapping.message);
+      setMessage(getErrorMapping(err).message);
     }
   };
 
-  const handleResend = async () => {
-    if (!telephone) return;
+  const handleResend = async (silent = false) => {
+    if (!telephone || isResending) return;
 
     setIsResending(true);
     setOtpError("");
-    setMessage("");
+    if (!silent) {
+      setMessage("");
+    }
 
     try {
       const data = await AuthApi.sendPhoneOtp({ indicatif, telephone });
@@ -151,6 +183,8 @@ function VerifyPhoneContent() {
   };
 
   const showSuccessScreen = status === "success" || status === "connecting";
+  const isFormDisabled =
+    !telephone || status === "loading" || isResending;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-indigo-50">
@@ -170,7 +204,9 @@ function VerifyPhoneContent() {
               <h1 className="text-2xl font-bold mb-2">
                 {status === "connecting"
                   ? "Presque terminé !"
-                  : "Compte créé avec succès !"}
+                  : fromLogin
+                    ? "Numéro vérifié"
+                    : "Compte créé avec succès !"}
               </h1>
               <p className="text-muted-foreground mb-3">{message}</p>
               {status === "connecting" ? (
@@ -187,7 +223,9 @@ function VerifyPhoneContent() {
           ) : (
             <>
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-bold mb-2">Vérification du téléphone</h1>
+                <h1 className="text-2xl font-bold mb-2">
+                  Vérification du téléphone
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   {AUTH_PHONE_FLOW.verifyIntro}
                 </p>
@@ -195,6 +233,38 @@ function VerifyPhoneContent() {
                   {formatFullPhone(indicatif, telephone)}
                 </p>
               </div>
+
+              {fromLogin && (
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{AUTH_PHONE_FLOW.unverifiedLoginMessage}</span>
+                </div>
+              )}
+
+              {status === "otp_expired" && message && (
+                <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{message}</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-amber-300 bg-white hover:bg-amber-100"
+                    onClick={() => handleResend()}
+                    disabled={isResending || !telephone}
+                  >
+                    {isResending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      "Renvoyer le code"
+                    )}
+                  </Button>
+                </div>
+              )}
 
               {status === "error" && message && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -222,11 +292,12 @@ function VerifyPhoneContent() {
                     onChange={(e) => {
                       setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
                       if (otpError) setOtpError("");
+                      if (status === "otp_expired") setStatus("idle");
                     }}
                     className={`mt-1.5 h-12 text-center text-lg tracking-[0.4em] ${
                       otpError ? "border-red-500" : ""
                     }`}
-                    disabled={!telephone || status === "loading"}
+                    disabled={isFormDisabled}
                   />
                   {otpError && (
                     <p className="text-red-600 text-xs mt-1">{otpError}</p>
@@ -236,7 +307,7 @@ function VerifyPhoneContent() {
                 <Button
                   type="submit"
                   className="w-full bg-[#002c75] hover:bg-[#001a4d]"
-                  disabled={!telephone || status === "loading"}
+                  disabled={isFormDisabled}
                 >
                   {status === "loading" ? (
                     <>
@@ -252,8 +323,8 @@ function VerifyPhoneContent() {
               <div className="mt-4 space-y-2 text-center text-sm">
                 <button
                   type="button"
-                  onClick={handleResend}
-                  disabled={!telephone || isResending}
+                  onClick={() => handleResend()}
+                  disabled={!telephone || isResending || status === "loading"}
                   className="text-[#002c75] hover:underline disabled:opacity-50"
                 >
                   {isResending ? "Envoi en cours..." : "Renvoyer le code"}
@@ -262,8 +333,13 @@ function VerifyPhoneContent() {
                   Vous n&apos;avez pas reçu le code ? Utilisez le bouton ci-dessus.
                 </p>
                 <p>
-                  <Link href="/register" className="text-muted-foreground hover:underline">
-                    Retour à l&apos;inscription
+                  <Link
+                    href={fromLogin ? "/login" : "/register"}
+                    className="text-muted-foreground hover:underline"
+                  >
+                    {fromLogin
+                      ? "Retour à la connexion"
+                      : "Retour à l'inscription"}
                   </Link>
                 </p>
               </div>

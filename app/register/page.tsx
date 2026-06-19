@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { AnimatedMascot } from "@/components/animated-mascot";
 import { BackButton } from "@/components/back-button";
@@ -59,7 +58,6 @@ export default function Register() {
     telephone: "",
     indicatif: "+221",
     confirmPassword: "",
-    acceptTerms: false,
   });
 
   // États d'erreur pour chaque champ
@@ -68,7 +66,6 @@ export default function Register() {
   const [phoneError, setPhoneError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [termsError, setTermsError] = useState("");
 
   useEffect(() => {
     if (formData.telephone && /\D/.test(formData.telephone)) {
@@ -116,7 +113,6 @@ export default function Register() {
     setPhoneError("");
     setPasswordError("");
     setConfirmPasswordError("");
-    setTermsError("");
 
     let hasErrors = false;
 
@@ -149,11 +145,6 @@ export default function Register() {
 
     if (formData.password !== formData.confirmPassword) {
       setConfirmPasswordError("Les mots de passe ne correspondent pas");
-      hasErrors = true;
-    }
-
-    if (!formData.acceptTerms) {
-      setTermsError("Vous devez accepter les conditions d'utilisation");
       hasErrors = true;
     }
 
@@ -512,36 +503,6 @@ export default function Register() {
                 {confirmPasswordError && (
                   <p className="text-red-600 text-xs mt-1 animate-in slide-in-from-top-1 duration-200">
                     {confirmPasswordError}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1 py-0.5 lg:py-1.5">
-                <div className="flex items-start gap-2 lg:gap-2.5">
-                  <Checkbox
-                    id="terms"
-                    checked={formData.acceptTerms}
-                    onCheckedChange={(checked) => {
-                      setFormData({
-                        ...formData,
-                        acceptTerms: checked as boolean,
-                      });
-                      if (termsError) setTermsError("");
-                    }}
-                    className={`mt-0.5 h-3.5 w-3.5 lg:h-5 lg:w-5 ${
-                      termsError ? "border-red-500" : ""
-                    }`}
-                  />
-                  <label
-                    htmlFor="terms"
-                    className="text-[11px] lg:text-base cursor-pointer leading-tight hover:text-foreground transition-colors"
-                  >
-                    J'accepte les conditions d'utilisation
-                  </label>
-                </div>
-                {termsError && (
-                  <p className="text-red-600 text-xs ml-6 animate-in slide-in-from-top-1 duration-200">
-                    {termsError}
                   </p>
                 )}
               </div>

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  API_ENDPOINTS,
-  buildApiUrl,
-} from "@/infrastructure/api/baseConfig";
+import { DashboardApi } from "@/infrastructure/api/dashboard-api";
+import { API_BASE_URL } from "@/infrastructure/api/baseConfig";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import {
+  type DashboardPeriodParams,
+  getCurrentYearPeriod,
+} from "@/shared/helpers/dashboard-period";
 import logger from "@/shared/helpers/logger";
 
 export interface CourseRevenueItem {
@@ -17,19 +19,19 @@ export interface CourseRevenueItem {
 
 export interface RevenueOverviewData {
   totalRevenue: number;
+  completedPaymentsCount: number;
+  period: {
+    startDate: string;
+    endDate: string;
+  };
   courses: CourseRevenueItem[];
 }
 
 interface RevenueOverviewState {
-  data: RevenueOverviewData;
+  data: RevenueOverviewData | null;
   loading: boolean;
   error: string | null;
 }
-
-const EMPTY_REVENUE: RevenueOverviewData = {
-  totalRevenue: 0,
-  courses: [],
-};
 
 const fetchCourseOverviewStats = async (
   courseId: string,
@@ -38,7 +40,7 @@ const fetchCourseOverviewStats = async (
 ): Promise<CourseRevenueItem> => {
   try {
     const response = await fetch(
-      buildApiUrl(`/course/${courseId}/overview?year=${year}`),
+      `${API_BASE_URL}/course/${courseId}/overview?year=${year}`,
       {
         method: "GET",
         credentials: "include",
@@ -72,68 +74,72 @@ const fetchCourseOverviewStats = async (
   }
 };
 
-export function useRevenueOverview(): RevenueOverviewState {
+export function useRevenueOverview(
+  period: DashboardPeriodParams = getCurrentYearPeriod(),
+): RevenueOverviewState {
   const [state, setState] = useState<RevenueOverviewState>({
-    data: EMPTY_REVENUE,
+    data: null,
     loading: true,
     error: null,
   });
 
+  const startDate = period.startDate ?? "";
+  const endDate = period.endDate ?? "";
+
   useEffect(() => {
+    let cancelled = false;
+
     const fetchRevenue = async () => {
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }));
 
-        const analyticsResponse = await fetch(
-          buildApiUrl(API_ENDPOINTS.DASHBOARD.ANALYTICS),
-          {
-            method: "GET",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-          },
-        );
+        const kpisPayload = await DashboardApi.getKpis(period);
+        const totalRevenue = kpisPayload.kpis.revenue.totalFcfa;
+        const completedPaymentsCount =
+          kpisPayload.kpis.revenue.completedPaymentsCount;
+        const resolvedPeriod = kpisPayload.period;
 
-        if (!analyticsResponse.ok) {
-          throw new Error(
-            `Erreur ${analyticsResponse.status}: analytics indisponibles`,
-          );
-        }
-
-        const analyticsPayload = await analyticsResponse.json();
-        const totalRevenue =
-          Number(analyticsPayload?.dashboard?.statistics?.totalRevenue) || 0;
-
-        const { courses } = await CoursesApi.getAllCourses({
-          userRole: "ADMIN",
-        });
-        const currentYear = new Date().getFullYear();
+        const { courses } = await CoursesApi.getAdminCourses(1, 500);
+        const overviewYear = new Date(resolvedPeriod.endDate).getUTCFullYear();
 
         const courseStats = await Promise.all(
-          courses.map((course) =>
-            fetchCourseOverviewStats(course.id, course.title, currentYear),
+          courses.map((course: { id: string; title: string }) =>
+            fetchCourseOverviewStats(course.id, course.title, overviewYear),
           ),
         );
 
-        setState({
-          data: {
-            totalRevenue,
-            courses: courseStats.sort((a, b) => a.title.localeCompare(b.title, "fr")),
-          },
-          loading: false,
-          error: null,
-        });
+        if (!cancelled) {
+          setState({
+            data: {
+              totalRevenue,
+              completedPaymentsCount,
+              period: resolvedPeriod,
+              courses: courseStats.sort((a, b) =>
+                a.title.localeCompare(b.title, "fr"),
+              ),
+            },
+            loading: false,
+            error: null,
+          });
+        }
       } catch (error) {
         logger.error("Erreur revenue overview:", error);
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : "Erreur inconnue",
-        }));
+        if (!cancelled) {
+          setState({
+            data: null,
+            loading: false,
+            error: error instanceof Error ? error.message : "Erreur inconnue",
+          });
+        }
       }
     };
 
     fetchRevenue();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [startDate, endDate]);
 
   return state;
 }

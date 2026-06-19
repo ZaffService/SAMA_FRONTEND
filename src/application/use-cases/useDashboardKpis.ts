@@ -3,42 +3,30 @@
 import { useEffect, useState } from "react";
 import {
   DashboardApi,
-  type DashboardAnalyticsBlock,
-  type DashboardAnalyticsResponse,
-  type DashboardMonthlyStat,
+  type DashboardKpisResponse,
 } from "@/infrastructure/api/dashboard-api";
 import {
-  type DashboardPeriod,
   type DashboardPeriodParams,
   getCurrentYearPeriod,
 } from "@/shared/helpers/dashboard-period";
 import logger from "@/shared/helpers/logger";
 
-export type { DashboardMonthlyStat };
+export type {
+  DashboardKpisResponse,
+  DashboardLearnerKpis,
+  DashboardUserKpis,
+} from "@/infrastructure/api/dashboard-api";
 
-export interface DashboardAnalyticsData extends DashboardAnalyticsBlock {
-  period: DashboardPeriod;
-}
-
-interface DashboardAnalyticsState {
-  data: DashboardAnalyticsData | null;
+interface DashboardKpisState {
+  data: DashboardKpisResponse | null;
   loading: boolean;
   error: string | null;
 }
 
-function mapAnalyticsResponse(
-  response: DashboardAnalyticsResponse,
-): DashboardAnalyticsData {
-  return {
-    period: response.period,
-    ...response.dashboard,
-  };
-}
-
-export function useDashboardAnalytics(
+export function useDashboardKpis(
   period: DashboardPeriodParams = getCurrentYearPeriod(),
-): DashboardAnalyticsState {
-  const [state, setState] = useState<DashboardAnalyticsState>({
+): DashboardKpisState {
+  const [state, setState] = useState<DashboardKpisState>({
     data: null,
     loading: true,
     error: null,
@@ -50,21 +38,17 @@ export function useDashboardAnalytics(
   useEffect(() => {
     let cancelled = false;
 
-    const fetchAnalytics = async () => {
+    const fetchKpis = async () => {
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }));
 
-        const response = await DashboardApi.getAnalytics(period);
+        const data = await DashboardApi.getKpis(period);
 
         if (!cancelled) {
-          setState({
-            data: mapAnalyticsResponse(response),
-            loading: false,
-            error: null,
-          });
+          setState({ data, loading: false, error: null });
         }
       } catch (error) {
-        logger.error("Erreur dashboard analytics:", error);
+        logger.error("Erreur dashboard KPIs:", error);
         if (!cancelled) {
           setState({
             data: null,
@@ -75,7 +59,7 @@ export function useDashboardAnalytics(
       }
     };
 
-    fetchAnalytics();
+    fetchKpis();
 
     return () => {
       cancelled = true;

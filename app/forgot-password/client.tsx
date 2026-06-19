@@ -1,51 +1,98 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  ArrowLeft,
+  CheckCircle,
+  Smartphone,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import {
+  getPhonePlaceholder,
+  sanitizePhoneInput,
+  validatePhone,
+} from "@/lib/phone-auth";
+import { COUNTRIES } from "@/lib/countries";
 import logger from "@/shared/helpers/logger";
+import { getErrorMapping } from "@/shared/helpers/error-mapping";
+
+type ResetTab = "email" | "phone";
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<ResetTab>("email");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [email, setEmail] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [emailError, setEmailError] = useState("");
+
+  const [indicatif, setIndicatif] = useState("+221");
+  const [telephone, setTelephone] = useState("");
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setEmailError("");
 
     if (!email) {
-      setError("Veuillez entrer votre adresse email");
+      setEmailError("Veuillez entrer votre adresse email");
       return;
     }
 
-    setIsLoading(true);
-
+    setEmailLoading(true);
     try {
       await AuthApi.requestPasswordReset(email);
-      setIsSuccess(true);
-    } catch (err: any) {
-      logger.error("Erreur lors de la demande de réinitialisation:", err);
-      setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
+      setEmailSuccess(true);
+    } catch (err: unknown) {
+      logger.error("Erreur demande reset email:", err);
+      setEmailError(
+        err instanceof Error
+          ? err.message
+          : "Une erreur est survenue. Veuillez réessayer.",
+      );
     } finally {
-      setIsLoading(false);
+      setEmailLoading(false);
     }
   };
 
-  if (isSuccess) {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhoneError("");
+
+    const phoneValidation = validatePhone(telephone, indicatif);
+    if (phoneValidation) {
+      setPhoneError(phoneValidation);
+      return;
+    }
+
+    setPhoneLoading(true);
+    try {
+      await AuthApi.requestPasswordResetPhoneValidated(indicatif, telephone);
+      const params = new URLSearchParams({ indicatif, telephone });
+      router.push(`/reset-password-phone?${params.toString()}`);
+    } catch (err: unknown) {
+      logger.error("Erreur demande reset phone:", err);
+      setPhoneError(getErrorMapping(err).message);
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  if (emailSuccess) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center relative overflow-hidden p-4">
-        {/* Subtle background pattern */}
         <div className="absolute inset-0 overflow-hidden opacity-5">
           <div className="absolute top-20 left-20 w-64 h-64 bg-blue-600 rounded-full blur-3xl"></div>
           <div className="absolute bottom-20 right-20 w-64 h-64 bg-red-500 rounded-full blur-3xl"></div>
         </div>
 
         <div className="relative z-10 w-full max-w-md">
-          {/* Success Card */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
-            {/* Success Icon */}
             <div className="mb-6 flex justify-center">
               <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
                 <CheckCircle className="h-10 w-10 text-green-600" />
@@ -77,9 +124,9 @@ export default function ForgotPassword() {
             </button>
 
             <p className="text-sm text-gray-500 mt-6">
-              Vous n'avez pas reçu l'email ?{" "}
+              Vous n&apos;avez pas reçu l&apos;email ?{" "}
               <button
-                onClick={() => setIsSuccess(false)}
+                onClick={() => setEmailSuccess(false)}
                 className="text-blue-600 hover:underline font-semibold"
               >
                 Renvoyer
@@ -93,7 +140,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col lg:flex-row overflow-hidden">
-      {/* Back Button Mobile */}
       <div className="lg:hidden flex items-center justify-start px-4 py-3 border-b bg-white sticky top-0 z-20">
         <button
           onClick={() => (window.location.href = "/login")}
@@ -104,7 +150,6 @@ export default function ForgotPassword() {
         </button>
       </div>
 
-      {/* Back Button Desktop */}
       <div className="hidden lg:block absolute top-4 left-4 z-10">
         <button
           onClick={() => (window.location.href = "/login")}
@@ -115,10 +160,8 @@ export default function ForgotPassword() {
         </button>
       </div>
 
-      {/* Left Side - Form */}
       <div className="flex-1 flex items-center justify-center p-4 lg:p-6">
         <div className="w-full max-w-md">
-          {/* BIBOCOM Logo Mobile */}
           <div className="lg:hidden text-center mb-6">
             <div className="flex items-center justify-center gap-2">
               <span className="text-2xl font-bold text-blue-600">BIBOCOM</span>
@@ -133,56 +176,148 @@ export default function ForgotPassword() {
               Mot de passe oublié ?
             </h1>
             <p className="text-gray-600 text-sm">
-              Pas de problème. Entrez votre adresse email et nous vous enverrons
-              un lien pour réinitialiser votre mot de passe.
+              Choisissez comment réinitialiser votre mot de passe.
             </p>
           </div>
 
-          {/* Form */}
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-              >
-                Adresse email <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError("");
-                  }}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                    error ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
-              </div>
-              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-            </div>
-
+          <div className="flex rounded-lg border border-gray-200 p-1 mb-6 bg-gray-50">
             <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              type="button"
+              onClick={() => setActiveTab("email")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold transition-colors ${
+                activeTab === "email"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Envoi en cours...
-                </>
-              ) : (
-                "Envoyer le lien de réinitialisation"
-              )}
+              <Mail className="w-4 h-4" />
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("phone")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold transition-colors ${
+                activeTab === "phone"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <Smartphone className="w-4 h-4" />
+              Téléphone
             </button>
           </div>
+
+          {activeTab === "email" ? (
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1.5"
+                >
+                  Adresse email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="votre@email.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailError("");
+                    }}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                      emailError ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                </div>
+                {emailError && (
+                  <p className="text-xs text-red-500 mt-1">{emailError}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={emailLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {emailLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Envoi en cours...
+                  </>
+                ) : (
+                  "Envoyer le lien de réinitialisation"
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handlePhoneSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Numéro de téléphone <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={indicatif}
+                    onChange={(e) => {
+                      setIndicatif(e.target.value);
+                      setTelephone("");
+                      setPhoneError("");
+                    }}
+                    className="w-28 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {COUNTRIES.map((country) => (
+                      <option key={country.indicatif} value={country.indicatif}>
+                        {country.indicatif}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder={getPhonePlaceholder(indicatif)}
+                    value={telephone}
+                    onChange={(e) => {
+                      setTelephone(
+                        sanitizePhoneInput(e.target.value, indicatif),
+                      );
+                      setPhoneError("");
+                    }}
+                    className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      phoneError ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                </div>
+                {phoneError && (
+                  <p className="text-xs text-red-500 mt-1">{phoneError}</p>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Un code SMS sera envoyé si un compte vérifié est associé à ce
+                numéro.
+              </p>
+
+              <button
+                type="submit"
+                disabled={phoneLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {phoneLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Envoi du code...
+                  </>
+                ) : (
+                  "Recevoir un code par SMS"
+                )}
+              </button>
+            </form>
+          )}
 
           <p className="text-center text-sm text-gray-600 mt-6">
             Vous vous souvenez de votre mot de passe ?{" "}
@@ -196,86 +331,27 @@ export default function ForgotPassword() {
         </div>
       </div>
 
-      {/* Right Side - Info (Hidden on mobile) */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-6 items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
-          <div className="absolute bottom-40 right-10 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-red-500/10 rounded-full blur-3xl" />
-        </div>
-
-        <div className="max-w-md text-white relative z-10">
-          <div className="text-center mb-8">
-            <div className="mb-6 flex justify-center">
-              <div className="w-24 h-24 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+        <div className="max-w-md text-white relative z-10 text-center">
+          <div className="mb-6 flex justify-center">
+            <div className="w-24 h-24 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20">
+              {activeTab === "email" ? (
                 <Mail className="w-12 h-12 text-white" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold mb-2">
-              Réinitialisation sécurisée
-            </h2>
-            <p className="text-white/80 text-sm">
-              Nous vous enverrons un lien sécurisé pour réinitialiser votre mot
-              de passe
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white font-bold text-sm">1</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">
-                    Recevez le lien
-                  </h4>
-                  <p className="text-xs text-white/70">
-                    Un email avec un lien sécurisé vous sera envoyé
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white font-bold text-sm">2</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">
-                    Cliquez sur le lien
-                  </h4>
-                  <p className="text-xs text-white/70">
-                    Accédez à la page de réinitialisation sécurisée
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white font-bold text-sm">3</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-sm mb-1">
-                    Créez un nouveau mot de passe
-                  </h4>
-                  <p className="text-xs text-white/70">
-                    Choisissez un mot de passe fort et sécurisé
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <Smartphone className="w-12 h-12 text-white" />
+              )}
             </div>
           </div>
-
-          <div className="mt-8 p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/20">
-            <p className="text-xs text-white/70 text-center">
-              Le lien de réinitialisation expire après 1 heure pour votre
-              sécurité
-            </p>
-          </div>
+          <h2 className="text-2xl font-bold mb-2">
+            {activeTab === "email"
+              ? "Réinitialisation par email"
+              : "Réinitialisation par SMS"}
+          </h2>
+          <p className="text-white/80 text-sm">
+            {activeTab === "email"
+              ? "Nous vous enverrons un lien sécurisé pour réinitialiser votre mot de passe."
+              : "Recevez un code à 6 chiffres par SMS pour définir un nouveau mot de passe."}
+          </p>
         </div>
       </div>
     </div>

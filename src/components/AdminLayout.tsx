@@ -3,16 +3,20 @@
 import { ReactNode } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminOverview } from "./AdminOverview";
-import { AdminRevenueManagement } from "./AdminRevenueManagement";
+import { AdminKpisView } from "./AdminKpisView";
+// Onglet Revenus désactivé : le backend n'expose pas GET /course/admin/all (404).
+// Les KPIs revenus restent visibles sur le Dashboard via GET /api/dashboard/kpis.
+// import { AdminRevenueManagement } from "./AdminRevenueManagement";
 import { CategoriesManagement } from "./CategoriesManagement";
 
 export type DashboardView =
   | "overview"
+  | "kpis"
   | "create-course"
   | "manage-courses"
   | "manage-users"
   | "manage-categories"
-  | "manage-revenue"
+  // | "manage-revenue" — désactivé tant que /course/admin/all n'existe pas côté API
   | "video-status";
 
 interface AdminLayoutProps {
@@ -49,6 +53,8 @@ export function AdminLayout({
             onOpenCategoryDialog={onOpenCategoryDialog}
           />
         );
+      case "kpis":
+        return <AdminKpisView />;
       case "manage-courses":
         return renderManageCourses ? (
           renderManageCourses()
@@ -74,8 +80,8 @@ export function AdminLayout({
             onCategoryUpdated={onCategoryUpdated}
           />
         );
-      case "manage-revenue":
-        return <AdminRevenueManagement />;
+      // case "manage-revenue":
+      //   return <AdminRevenueManagement />;
       case "video-status":
         return renderVideoStatus ? (
           renderVideoStatus()

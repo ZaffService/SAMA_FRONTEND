@@ -12,6 +12,7 @@ import {
   LogOut,
   LayoutDashboard,
   User,
+  Settings,
   Search,
   BookOpen,
 } from "lucide-react";
@@ -534,6 +535,19 @@ export function Header() {
                               <User className="h-4 w-4" />
                             </span>
                             <span className="truncate leading-none">Profil</span>
+                          </span>
+                        </Link>
+
+                        <Link
+                          href="/parametres"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        >
+                          <span className="flex w-full items-center gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-600 transition-colors group-hover:bg-slate-100">
+                              <Settings className="h-4 w-4" />
+                            </span>
+                            <span className="truncate leading-none">Paramètres</span>
                           </span>
                         </Link>
                       </div>

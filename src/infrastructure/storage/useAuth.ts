@@ -11,7 +11,8 @@ import {
 } from "@/infrastructure/storage/auth-client-state";
 import { UserApi } from "@/infrastructure/api/user-api";
 import { clearTokens } from "@/shared/helpers/auth";
-import type { AuthContextType, RegisterData, PhoneLoginData } from "@/types/auth";
+import type { AuthContextType, RegisterData } from "@/types/auth";
+import type { LoginData } from "@/domain/entities/user";
 import type { User } from "@/domain/entities/user";
 import { buildRegisterPayload, WEB_REGISTRATION_PLATFORM } from "@/lib/phone-auth";
 import logger from "@/shared/helpers/logger";
@@ -362,15 +363,11 @@ export function useProvideAuth(): AuthContextType {
     };
   }, [isAuthenticated, handleSessionExpired]);
 
-  const login = async (credentials: PhoneLoginData) => {
+  const login = async (credentials: LoginData) => {
     setIsLoading(true);
 
     try {
-      const response = await AuthApi.login({
-        indicatif: credentials.indicatif,
-        telephone: credentials.telephone,
-        password: credentials.password,
-      });
+      const response = await AuthApi.login(credentials);
       logger.log("🔐 [useAuth] Login response:", response);
       logger.log("🔐 [useAuth] Login response.user:", response.user);
 

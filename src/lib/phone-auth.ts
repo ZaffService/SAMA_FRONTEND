@@ -67,6 +67,15 @@ export const AUTH_PHONE_FLOW = {
   redirectDashboard: "Redirection vers votre tableau de bord...",
   verifiedLoginFallback:
     "Votre numéro est vérifié. Connectez-vous avec votre mot de passe.",
+  unverifiedLoginMessage:
+    "Votre numéro de téléphone n'a pas encore été vérifié.",
+  otpSentOnLogin:
+    "Un code de vérification vient d'être envoyé par SMS. Saisissez-le ci-dessous pour activer votre compte.",
+  otpExpiredMessage: "Votre code de vérification a expiré.",
+  passwordResetLogin:
+    "Mot de passe réinitialisé. Connexion en cours…",
+  passwordResetPrefill:
+    "Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.",
 } as const;
 
 const PENDING_PHONE_AUTH_KEY = "bibocom_pending_phone_auth";
@@ -111,8 +120,15 @@ export function matchesPendingPhoneAuth(
   );
 }
 
-export function getVerifyPhoneUrl(indicatif: string, telephone: string): string {
+export function getVerifyPhoneUrl(
+  indicatif: string,
+  telephone: string,
+  options?: { fromLogin?: boolean },
+): string {
   const params = new URLSearchParams({ indicatif, telephone });
+  if (options?.fromLogin) {
+    params.set("from", "login");
+  }
   return `/verify-phone?${params.toString()}`;
 }
 

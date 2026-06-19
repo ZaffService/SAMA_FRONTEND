@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
+  BarChart3,
   GraduationCap,
   Plus,
   Users,
   FolderOpen,
   Settings,
   LogOut,
-  Banknote,
+  // Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { type DashboardView } from "./AdminLayout";
@@ -40,6 +41,12 @@ export function AdminSidebar({
       label: "Dashboard",
       icon: LayoutDashboard,
       active: currentView === "overview",
+    },
+    {
+      id: "kpis" as const,
+      label: "KPIs",
+      icon: BarChart3,
+      active: currentView === "kpis",
     },
     {
       id: "manage-courses" as const,
@@ -75,14 +82,16 @@ export function AdminSidebar({
       disabled: false,
       badge: null,
     },
-    {
-      id: "manage-revenue" as const,
-      label: "Revenus",
-      icon: Banknote,
-      active: currentView === "manage-revenue",
-      disabled: false,
-      badge: null,
-    },
+    // Revenus par cours : nécessite GET /course/admin/all (non disponible sur l'API).
+    // Les totaux revenus sont sur le Dashboard (GET /api/dashboard/kpis).
+    // {
+    //   id: "manage-revenue" as const,
+    //   label: "Revenus",
+    //   icon: Banknote,
+    //   active: currentView === "manage-revenue",
+    //   disabled: false,
+    //   badge: null,
+    // },
     {
       id: "settings" as const,
       label: "Parametre",
@@ -107,11 +116,12 @@ export function AdminSidebar({
     }
     if (
       item.id === "overview" ||
+      item.id === "kpis" ||
       item.id === "create-course" ||
       item.id === "manage-courses" ||
       item.id === "manage-users" ||
-      item.id === "manage-categories" ||
-      item.id === "manage-revenue"
+      item.id === "manage-categories"
+      // || item.id === "manage-revenue"
     ) {
       onViewChange(item.id);
     }

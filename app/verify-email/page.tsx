@@ -1,21 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { AuthApi } from "@/infrastructure/api/auth-api";
+import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import {
+  clearPendingEmailAuth,
+  getPendingEmailAuth,
+} from "@/lib/account-auth";
+import { getErrorMapping, parseApiError } from "@/shared/helpers/error-mapping";
 import logger from "@/shared/helpers/logger";
 
 export const dynamic = "force-dynamic";
 
-export default function VerifyEmail() {
+type VerifyStatus = "loading" | "success" | "error" | "already" | "connecting";
+
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [status, setStatus] = useState<"loading" | "success" | "error" | "already">(
-    "loading",
-  );
+  const { login } = useLocalAuth();
+  const [status, setStatus] = useState<VerifyStatus>("loading");
   const [message, setMessage] = useState("");
   const token = searchParams.get("token");
 
@@ -28,81 +35,104 @@ export default function VerifyEmail() {
       return;
     }
 
-    // Appeler l'endpoint backend pour vérifier l'email
     const verifyEmail = async () => {
       try {
-        logger.log("🔍 Vérification de l'email avec le token:", token);
-
         const data = await AuthApi.verifyEmail(token);
-        logger.log("📊 Réponse de vérification:", data);
-
-        // ✅ Email vérifié avec succès!
-        // Afficher le message de succès
         setStatus("success");
         setMessage(
           data.message ||
-            "Votre email a été vérifié avec succès! Vous pouvez maintenant vous connecter.",
+            "Votre email a été vérifié avec succès. Connexion en cours…",
         );
 
-        // Redirection vers LOGIN après 2 secondes
+        const pending = getPendingEmailAuth();
+        if (pending?.email && pending.password) {
+          setStatus("connecting");
+          try {
+            const result = await login({
+              email: pending.email,
+              password: pending.password,
+            });
+            clearPendingEmailAuth();
+            router.replace(result.redirectUrl || "/student-dashboard");
+            return;
+          } catch (loginErr) {
+            logger.error("Auto-login après vérification email:", loginErr);
+            const emailForLogin = pending.email;
+            clearPendingEmailAuth();
+            setStatus("success");
+            setMessage(
+              "Votre email est vérifié. Connectez-vous avec votre mot de passe.",
+            );
+            setTimeout(() => {
+              router.push(
+                `/login?${new URLSearchParams({
+                  email: emailForLogin,
+                  verified: "1",
+                }).toString()}`,
+              );
+            }, 2000);
+            return;
+          }
+        }
+
         setTimeout(() => {
-          router.push("/");
+          router.push("/login?verified=1");
         }, 2000);
-      }catch (err: any) {
-  logger.error("Erreur de vérification:", err);
+      } catch (err) {
+        logger.error("Erreur de vérification:", err);
+        const parsed = parseApiError(err);
+        const errorCode = parsed.code;
 
-  setStatus("already");
+        if (errorCode === "EMAIL_ALREADY_VERIFIED") {
+          setStatus("already");
+          setMessage(
+            "Votre email a déjà été vérifié. Vous pouvez vous connecter à votre compte.",
+          );
+          return;
+        }
 
-  const errorCode = err?.error?.code;
-  const errorMessage = err?.error?.message;
-
-  logger.log("code error ", errorCode);
-  
-
-  if (errorCode === "EMAIL_ALREADY_VERIFIED") {
-    setMessage(
-      "Votre email a déjà été vérifié. Vous pouvez vous connecter à votre compte."
-    );
-  } else if (errorCode === "TOKEN_INVALID") {
-    setMessage(
-      "Le lien de vérification est invalide. Veuillez demander un nouveau lien."
-    );
-  } else if (errorCode === "TOKEN_EXPIRED") {
-    setMessage(
-      "Le lien de vérification a expiré. Veuillez demander un nouveau lien."
-    );
-  } else {
-    setMessage(
-      errorMessage || "Erreur lors de la vérification. Veuillez réessayer."
-    );
-  }
-}
-
+        setStatus("error");
+        if (errorCode === "TOKEN_INVALID") {
+          setMessage(
+            "Le lien de vérification est invalide. Veuillez demander un nouveau lien.",
+          );
+        } else if (errorCode === "TOKEN_EXPIRED") {
+          setMessage(
+            "Le lien de vérification a expiré. Veuillez demander un nouveau lien.",
+          );
+        } else {
+          setMessage(getErrorMapping(err).message);
+        }
+      }
     };
 
-    verifyEmail();
-  }, [token, router]);
+    void verifyEmail();
+  }, [token, router, login]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-indigo-50">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          {/* Loading State */}
-          {status === "loading" && (
+          {(status === "loading" || status === "connecting") && (
             <>
               <div className="mb-6 flex justify-center">
-                <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center animate-spin">
-                  <Loader2 className="h-8 w-8 text-blue-600" />
+                <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
                 </div>
               </div>
               <h1 className="text-2xl font-bold mb-2">
-                Vérification en cours...
+                {status === "connecting"
+                  ? "Connexion en cours…"
+                  : "Vérification en cours..."}
               </h1>
-              <p className="text-gray-600">Patientez quelques secondes</p>
+              <p className="text-gray-600">
+                {status === "connecting"
+                  ? "Préparation de votre espace"
+                  : "Patientez quelques secondes"}
+              </p>
             </>
           )}
 
-          {/* Success State */}
           {status === "success" && (
             <>
               <div className="mb-6 flex justify-center">
@@ -123,7 +153,6 @@ export default function VerifyEmail() {
             </>
           )}
 
-          {/* Error State */}
           {status === "error" && (
             <>
               <div className="mb-6 flex justify-center">
@@ -145,55 +174,59 @@ export default function VerifyEmail() {
                   Se connecter
                 </Button>
                 <Button
-                  onClick={() => router.push("/register")}
+                  onClick={() => router.push("/verify-email-pending")}
                   variant="outline"
                   className="w-full"
                 >
-                  S'inscrire à nouveau
+                  Renvoyer un lien
                 </Button>
               </div>
             </>
           )}
 
-          {/* Error State */}
           {status === "already" && (
             <>
               <div className="mb-6 flex justify-center">
-                <div className="h-16 w-16 rounded-full bg-red-100 flex items-center justify-center">
-                  <AlertCircle className="h-8 w-8 text-green-600" />
+                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
                 </div>
               </div>
               <h1 className="text-2xl font-bold mb-2 text-green-600">
-                Votre mail est déjà vérifié !
+                Email déjà vérifié
               </h1>
               <p className="text-gray-600 mb-6 whitespace-pre-wrap">
                 {message}
               </p>
-              <div className="space-y-3">
-                <Button
-                  onClick={() => router.push("/login")}
-                  className="w-full"
-                >
-                  Se connecter
-                </Button>
-                <Button
-                  onClick={() => router.push("/register")}
-                  variant="outline"
-                  className="w-full"
-                >
-                  S'inscrire à nouveau
-                </Button>
-              </div>
+              <Button
+                onClick={() => router.push("/login")}
+                className="w-full"
+              >
+                Se connecter
+              </Button>
             </>
           )}
 
           <p className="text-sm text-gray-500 mt-6">
             <Link href="/" className="text-blue-600 hover:underline">
-              Retour à l'accueil
+              Retour à l&apos;accueil
             </Link>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#002c75]" />
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

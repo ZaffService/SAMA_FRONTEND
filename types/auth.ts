@@ -19,7 +19,6 @@ export interface AuthContextType {
     password: string;
     firstName: string;
     lastName: string;
-    acceptTerms: boolean;
   }) => Promise<void>;
   canAccessCourse: (courseId: number, isPaid: boolean) => boolean;
   redirectAfterLogin: string | null;

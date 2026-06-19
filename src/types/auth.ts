@@ -1,4 +1,4 @@
-import type { User, LastActivity } from "@/domain/entities/user";
+import type { User, LastActivity, LoginData } from "@/domain/entities/user";
 
 export type AuthPlatform = "web" | "mobile";
 
@@ -44,7 +44,6 @@ export interface RegisterData {
   lastName: string;
   telephone: string;
   indicatif: string;
-  acceptTerms: boolean;
 }
 
 export interface AuthContextType {
@@ -52,7 +51,7 @@ export interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isProfileComplete: boolean | null;
-  login: (credentials: PhoneLoginData) => Promise<AuthLoginResult>;
+  login: (credentials: LoginData) => Promise<AuthLoginResult>;
   register: (data: RegisterData) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<AuthLoginResult>;
   logout: () => Promise<void>;

@@ -30,6 +30,7 @@ export interface CourseSearchOptions {
 export const API_ENDPOINTS = {
   DASHBOARD: {
     ANALYTICS: "/api/dashboard/analytics",
+    KPIS: "/api/dashboard/kpis",
   },
   COURSES: {
     SEARCH: "/course/search",
@@ -61,11 +62,15 @@ export const API_ENDPOINTS = {
     COMPLETE_PROFILE: "/user/complete-profile",
     CREATE_ACCOUNT: "/user/create-account",
     VERIFY_EMAIL: "/user/verify-email",
+    SEND_EMAIL_VERIFICATION: "/user/send-email-verification",
     VERIFY_PHONE: "/user/verify-phone",
     SEND_PHONE_OTP: "/user/send-phone-otp",
     BY_ROLE: "/user/by-role",
     REQUEST_PASSWORD_RESET: "/user/request-password-reset",
+    REQUEST_PASSWORD_RESET_PHONE: "/user/request-password-reset-phone",
     RESET_PASSWORD: "/user/forgot-password",
+    RESET_PASSWORD_PHONE: "/user/reset-password-phone",
+    CHANGE_PASSWORD: "/user/change-password",
     ADMIN_CREATE: "/user/admin/create-user",
     IMPORT_USERS: "/import/users",
     IMPORT_USERS_LEGACY: "/import-users",

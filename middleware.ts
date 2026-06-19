@@ -19,7 +19,9 @@ export function middleware(request: NextRequest) {
     "/login",
     "/register",
     "/forgot-password",
+    "/reset-password-phone",
     "/verify-email",
+    "/verify-email-pending",
     "/verify-phone",
     "/",
   ];

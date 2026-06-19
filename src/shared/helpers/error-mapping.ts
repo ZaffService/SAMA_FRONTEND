@@ -45,6 +45,13 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
     action: "NONE",
   },
 
+  USER_NOT_FOUND: {
+    title: "Numéro introuvable",
+    message:
+      "Aucun compte n'est associé à ce numéro. Vérifiez votre indicatif et votre numéro.",
+    action: "NONE",
+  },
+
   INCORRECT_PASSWORD: {
     title: "Mot de passe incorrect",
     message: "Mot de passe incorrect",
@@ -53,8 +60,9 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
 
   EMAIL_NOT_VERIFIED: {
     title: "Email non vérifié",
-    message: "Veuillez vérifier votre email avant de vous connecter",
-    action: "NONE",
+    message:
+      "Votre adresse email n'a pas encore été vérifiée.",
+    action: "RETRY",
   },
 
   INVALID_CREDENTIALS: {
@@ -139,13 +147,20 @@ export const ERROR_UI_MAPPING: Record<string, ErrorMapping> = {
 
   OTP_EXPIRED: {
     title: "Code expiré",
-    message: "Le code a expiré. Demandez un nouveau code.",
+    message: "Votre code de vérification a expiré.",
     action: "RETRY",
   },
 
   PHONE_NOT_VERIFIED: {
     title: "Téléphone non vérifié",
     message: "Veuillez vérifier votre numéro de téléphone avant de vous connecter.",
+    action: "RETRY",
+  },
+
+  TELEPHONE_NOT_VERIFIED: {
+    title: "Téléphone non vérifié",
+    message:
+      "Votre numéro de téléphone n'a pas encore été vérifié.",
     action: "RETRY",
   },
 
@@ -461,10 +476,22 @@ export function getErrorMapping(error: unknown): ErrorMapping {
   if (message.includes("otp") && message.includes("invalid")) {
     return ERROR_UI_MAPPING.OTP_INVALID;
   }
+  if (
+    message.includes("vérifier") &&
+    (message.includes("téléphone") || message.includes("telephone"))
+  ) {
+    return ERROR_UI_MAPPING.TELEPHONE_NOT_VERIFIED;
+  }
 
   // Handle status-based errors without specific code
   if (parsed.status) {
     if (parsed.status === 401) {
+      if (
+        parsed.code === "TELEPHONE_NOT_VERIFIED" ||
+        parsed.code === "PHONE_NOT_VERIFIED"
+      ) {
+        return ERROR_UI_MAPPING.TELEPHONE_NOT_VERIFIED;
+      }
       return ERROR_UI_MAPPING.UNAUTHORIZED;
     }
     if (parsed.status === 403) {

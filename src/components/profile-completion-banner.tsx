@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight } from "lucide-react";
-import { Alert } from "@/components/ui/alert";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
@@ -24,10 +23,9 @@ export function ProfileCompletionBanner({
   const { isComplete, checkProfile } = useProfile();
   const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
 
-  // Check profile status on mount and when user changes
   useEffect(() => {
     if (isAuthenticated && user) {
-      logger.log("🔔 [ProfileCompletionBanner] Checking profile status...");
+      logger.log(" [ProfileCompletionBanner] Checking profile status...");
       checkProfile().then(() => {
         setHasCheckedProfile(true);
       });
@@ -36,9 +34,8 @@ export function ProfileCompletionBanner({
     }
   }, [isAuthenticated, user, checkProfile]);
 
-  // Debug logging
   useEffect(() => {
-    logger.log("🔔 [ProfileCompletionBanner] Auth state:", {
+    logger.log(" [ProfileCompletionBanner] Auth state:", {
       isAuthenticated,
       isComplete,
       userRole: user?.role,
@@ -47,7 +44,6 @@ export function ProfileCompletionBanner({
     });
   }, [isAuthenticated, isComplete, user, hasCheckedProfile]);
 
-  // Only show for authenticated STUDENT or INSTRUCTOR (not ADMIN) and profile not complete
   const shouldShow =
     isAuthenticated &&
     hasCheckedProfile &&
@@ -70,33 +66,37 @@ export function ProfileCompletionBanner({
         className,
       )}
     >
-      <Alert className="border-l-4 border-l-amber-400 border-amber-200 bg-amber-50/90 px-4 py-3 shadow-sm">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
-              Suggestion
-            </p>
-            <p className="text-sm leading-6 text-slate-700">
-              <span className="font-semibold text-slate-900">
-                Profil incomplet.
-              </span>{" "}
-              Complétez votre profil à votre rythme pour personnaliser votre
-              expérience sur la plateforme.
-            </p>
+      <div className="overflow-hidden rounded-2xl border border-gray-200/90 bg-white px-4 py-4 shadow-[0_2px_12px_-4px_rgba(15,23,42,0.12)] sm:px-5 sm:py-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3 sm:items-center">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+              <Sparkles
+                className="h-5 w-5 text-slate-600"
+                strokeWidth={1.75}
+              />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">
+                Suggestion
+              </p>
+              <p className="text-sm leading-relaxed text-gray-600">
+                <span className="font-semibold text-gray-900">
+                  Profil incomplet.
+                </span>{" "}
+                Complétez votre profil pour personnaliser votre expérience.
+              </p>
+            </div>
           </div>
 
           <Button
             onClick={() => router.push("/complete-profile")}
-            size="sm"
-            className="group h-8 shrink-0  bg-[#002c75] px-3 text-xs font-semibold text-white shadow-none transition-colors hover:bg-[#001f54] sm:text-sm"
+            className="group h-10 w-full shrink-0 rounded-full bg-[#0f2847] px-5 text-sm font-medium text-white shadow-none transition-colors hover:bg-[#0a1d33] sm:w-auto"
           >
             Compléter mon profil
-            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Button>
         </div>
-      </Alert>
+      </div>
     </div>
   );
 }

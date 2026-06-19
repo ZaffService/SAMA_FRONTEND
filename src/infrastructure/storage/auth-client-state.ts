@@ -14,6 +14,7 @@ const PROTECTED_ROUTE_PREFIXES = [
   "/course-details",
   "/mes-apprentissages",
   "/user-profile",
+  "/parametres",
   "/quiz",
   "/quiz-assessment",
 ];
