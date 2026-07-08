@@ -8,9 +8,11 @@ import {
 } from "react";
 import {
   useSearchParams,
+  usePathname,
 } from "next/navigation";
 import {
   ChevronDown,
+  SearchX,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
@@ -31,12 +33,13 @@ import { useEnrolledCourses } from "@/application/use-cases/useEnrolledCourses";
 import { useCategories } from "@/application/use-cases/useCategories";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { CategoryFilter } from "@/components/category-filter";
-import { EmptyContent } from "@/components/ui/empty";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
 import logger from "@/shared/helpers/logger";
+import { scrollToFormationsSection } from "@/lib/smooth-scroll";
 
 const Index = () => {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { isAuthenticated } = useLocalAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +88,19 @@ const Index = () => {
       }, 300);
     }
   }, [searchParams, setFilterCategories]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#formations") return;
+
+    const scrollWhenReady = () => {
+      if (scrollToFormationsSection()) return;
+      window.setTimeout(scrollWhenReady, 50);
+    };
+
+    const timer = window.setTimeout(scrollWhenReady, 80);
+    return () => window.clearTimeout(timer);
+  }, [pathname, loading, categoriesLoading]);
 
   /**  Ref pour la section des formations */
   const courseSectionRef = useRef<HTMLDivElement>(null);
@@ -160,6 +176,30 @@ const Index = () => {
         course.description?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }
+
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    selectedCategoryId !== null ||
+    filters.categories.length > 0 ||
+    filters.levels.length > 0 ||
+    filters.priceRange.length > 0;
+
+  const selectedCategoryName =
+    categories.find((c) => c.id === selectedCategoryId)?.name ?? null;
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedCategoryId(null);
+    setFilterCategories([]);
+    setShowFreeTutorials(false);
+    setFilters({
+      categories: [],
+      levels: [],
+      priceRange: [],
+      duration: [],
+      rating: [],
+    });
+  };
 
   // Fonction helper pour vérifier si un cours est acheté
   const isCourseEnrolled = (courseId: string) => {
@@ -245,11 +285,13 @@ const Index = () => {
             <ProfileCompletionBanner />
 
             {/* 🎯 Filtre par catégories */}
-            <section className="mb-12 py-8 border-b border-slate-200">
+            <section className="py-6 mb-2">
               <CategoryFilter
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
                 onSelectCategory={handleCategorySelect}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
                 loading={categoriesLoading}
               />
             </section>
@@ -258,10 +300,10 @@ const Index = () => {
             <div
               ref={courseSectionRef}
               id="formations-section"
-              className="pt-12"
+              className="pt-2"
             >
               {/* Titre "Formations Populaires" avec lignes décoratives */}
-              <div className="flex flex-col items-center mb-12">
+              <div className="flex flex-col items-center mb-6">
                 {/* Titre avec lignes */}
                 <div className="flex items-center justify-center gap-6 w-full max-w-6xl">
                   <div className="hidden sm:block h-[1px] bg-[#2B3E91] flex-1 max-w-[400px]" />
@@ -322,21 +364,71 @@ const Index = () => {
                   })}
                 </div>
               ) : (
-                <EmptyContent />
-              )}
-
-              {/* Message si aucun tuto gratuit */}
-              {showFreeTutorials && filteredCourses.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-lg text-slate-600">
-                    Aucun tuto gratuit disponible pour le moment.
-                  </p>
-                  <p className="text-sm text-slate-500 mt-2">
-                    Revenez bientôt pour découvrir nos nouvelles formations
-                    gratuites !
-                  </p>
+                <div className="text-center py-8 px-4 mb-8">
+                  <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-slate-50 px-6 py-10">
+                    <SearchX className="mx-auto mb-4 h-12 w-12 text-[var(--bibocom-red)]" />
+                    {showFreeTutorials ? (
+                      <>
+                        <p className="text-xl font-bold text-[var(--bibocom-blue)]">
+                          Aucun tuto gratuit disponible
+                        </p>
+                        <p className="mt-2 text-base text-slate-600">
+                          Revenez bientôt pour découvrir nos nouvelles formations
+                          gratuites.
+                        </p>
+                      </>
+                    ) : searchQuery.trim() ? (
+                      <>
+                        <p className="text-xl font-bold text-[var(--bibocom-blue)]">
+                          Aucune formation trouvée
+                        </p>
+                        <p className="mt-2 text-base text-slate-600">
+                          Aucun résultat pour «{" "}
+                          <span className="font-semibold text-slate-800">
+                            {searchQuery.trim()}
+                          </span>
+                          ». Essayez un autre mot-clé ou parcourez les
+                          catégories.
+                        </p>
+                      </>
+                    ) : selectedCategoryName ? (
+                      <>
+                        <p className="text-xl font-bold text-[var(--bibocom-blue)]">
+                          Aucune formation dans cette catégorie
+                        </p>
+                        <p className="mt-2 text-base text-slate-600">
+                          Aucune formation disponible pour le moment dans «{" "}
+                          <span className="font-semibold text-slate-800">
+                            {selectedCategoryName}
+                          </span>
+                          ».
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xl font-bold text-[var(--bibocom-blue)]">
+                          Aucune formation disponible
+                        </p>
+                        <p className="mt-2 text-base text-slate-600">
+                          Aucune formation ne correspond à vos critères pour le
+                          moment.
+                        </p>
+                      </>
+                    )}
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="mt-6 rounded-full bg-[var(--bibocom-red)] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                      >
+                        Réinitialiser les filtres
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
+
+              {/* Message si aucun tuto gratuit — géré dans l'état vide ci-dessus */}
 
             </div>
           </>

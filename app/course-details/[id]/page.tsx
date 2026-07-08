@@ -2679,6 +2679,74 @@ function CourseDetailsPageComponent() {
       : []),
   ];
 
+  const enrollCtaLabel = enrolling
+    ? "Inscription..."
+    : isFree
+      ? "Commencer ce parcours"
+      : "Acheter et démarrer";
+  const priceLabel = course.price ? `${course.price} FCFA` : "Gratuit";
+  const paymentBadgeLabel = isFree ? "Inscription immédiate" : "Paiement sécurisé";
+
+  const renderPurchaseCard = ({
+    showThumbnail = true,
+    showCta = true,
+    className = "",
+  }: {
+    showThumbnail?: boolean;
+    showCta?: boolean;
+    className?: string;
+  } = {}) => (
+    <div
+      className={`overflow-hidden rounded-2xl border border-[#DCE4EE] bg-white shadow-xl ${className}`}
+    >
+      {showThumbnail && (
+        <div className="relative h-36 w-full overflow-hidden bg-[#0D1F3A] sm:h-44 lg:h-52">
+          {course.thumbnailUrl ? (
+            <img
+              src={course.thumbnailUrl}
+              alt={course.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm text-white/70">
+              Aperçu du cours
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/65 to-transparent" />
+        </div>
+      )}
+
+      <div className="p-5 sm:p-6">
+        <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5">
+          <p className="text-3xl font-bold text-[#101828] sm:text-4xl">{priceLabel}</p>
+          <span className="rounded-full bg-[#EAF2FF] px-3 py-1 text-xs font-semibold text-[#002c75]">
+            {paymentBadgeLabel}
+          </span>
+        </div>
+
+        <button
+          onClick={handleEnrollClick}
+          disabled={enrolling}
+          className={`w-full rounded-lg bg-[#002c75] px-4 py-3 text-sm font-bold text-white shadow-md transition-colors duration-200 hover:bg-[#001f54] disabled:cursor-not-allowed disabled:opacity-60 ${
+            showCta ? "mb-5 sm:mb-6" : "hidden"
+          }`}
+        >
+          {enrollCtaLabel}
+        </button>
+
+        <h4 className="mb-3 text-lg font-bold text-[#101828]">Ce cours comprend</h4>
+        <ul className="space-y-2 text-sm text-[#2D2F31]">
+          {courseIncludes.map((item) => (
+            <li key={item.key} className="flex items-center gap-2.5">
+              {item.icon}
+              <span>{item.label}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+
   const renderVideoUnavailableState = () => (
     <div className="flex h-full w-full items-center justify-center bg-black px-4">
       <div className="text-center text-white">
@@ -3145,16 +3213,20 @@ function CourseDetailsPageComponent() {
             </div>
           </header>
 
-          <main className="bg-[#F3F7FB]">
+          <main className="bg-[#F3F7FB] pb-28 lg:pb-14">
+            <div className="border-b border-[#DCE4EE] bg-white px-4 py-4 sm:px-6 lg:hidden">
+              {renderPurchaseCard({ showThumbnail: false, showCta: false })}
+            </div>
+
             <section className="relative overflow-hidden bg-gradient-to-br from-[#001945] via-[#002c75] to-[#0A4AA8] text-white">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[#28C7E0]/20 blur-3xl" />
                 <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-[#7E78FF]/20 blur-3xl" />
               </div>
 
-              <div className="relative mx-auto max-w-[1240px] px-4 pb-24 pt-10 sm:px-6 lg:pb-28 lg:pt-14">
+              <div className="relative mx-auto max-w-[1240px] px-4 pb-8 pt-6 sm:px-6 sm:pb-12 sm:pt-8 lg:pb-28 lg:pt-14">
                 <div className="max-w-4xl">
-                  <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-[#D6E6FF] sm:text-sm">
+                  <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[#D6E6FF] sm:mb-6 sm:text-sm">
                     <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 font-medium backdrop-blur">
                       Catalogue
                     </span>
@@ -3166,40 +3238,46 @@ function CourseDetailsPageComponent() {
                     <span className="truncate text-white">{course.title}</span>
                   </div>
 
-                  <h1 className="mb-5 text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+                  <h1 className="mb-3 text-2xl font-bold leading-tight tracking-tight sm:mb-5 sm:text-3xl lg:text-5xl">
                     {course.title}
                   </h1>
-                  <p className="max-w-3xl text-base leading-7 text-[#D8E6F8] sm:text-lg">
+                  <p className="max-w-3xl text-sm leading-6 text-[#D8E6F8] line-clamp-3 sm:text-base sm:leading-7 sm:line-clamp-none lg:text-lg">
                     {course.description ||
                       "Un parcours premium, structuré et orienté résultats pour développer des compétences immédiatement applicables."}
                   </p>
 
-                  <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                      <p className="text-xs uppercase tracking-wide text-[#A8C8ED]">
+                  <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-8 sm:gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
+                      <p className="text-[10px] uppercase tracking-wide text-[#A8C8ED] sm:text-xs">
                         Leçons vidéo
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-white">{totalLessons}</p>
+                      <p className="mt-0.5 text-xl font-bold text-white sm:mt-1 sm:text-2xl">
+                        {totalLessons}
+                      </p>
                     </div>
-                    <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                      <p className="text-xs uppercase tracking-wide text-[#A8C8ED]">
+                    <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
+                      <p className="text-[10px] uppercase tracking-wide text-[#A8C8ED] sm:text-xs">
                         Durée totale
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-white">
+                      <p className="mt-0.5 text-xl font-bold text-white sm:mt-1 sm:text-2xl">
                         {formatDuration(totalCourseDuration)}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                      <p className="text-xs uppercase tracking-wide text-[#A8C8ED]">
+                    <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
+                      <p className="text-[10px] uppercase tracking-wide text-[#A8C8ED] sm:text-xs">
                         Modules
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-white">{modules.length}</p>
+                      <p className="mt-0.5 text-xl font-bold text-white sm:mt-1 sm:text-2xl">
+                        {modules.length}
+                      </p>
                     </div>
-                    <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                      <p className="text-xs uppercase tracking-wide text-[#A8C8ED]">
+                    <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 backdrop-blur sm:px-4 sm:py-3">
+                      <p className="text-[10px] uppercase tracking-wide text-[#A8C8ED] sm:text-xs">
                         Quiz
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-white">{totalQuizCount}</p>
+                      <p className="mt-0.5 text-xl font-bold text-white sm:mt-1 sm:text-2xl">
+                        {totalQuizCount}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -3207,8 +3285,8 @@ function CourseDetailsPageComponent() {
             </section>
 
             <section className="relative mx-auto max-w-[1240px] px-4 pb-14 sm:px-6">
-              <div className="-mt-16 grid grid-cols-1 gap-8 lg:grid-cols-12">
-                <div className="order-2 space-y-7 lg:order-1 lg:col-span-8 lg:pt-16">
+              <div className="-mt-8 grid grid-cols-1 gap-8 lg:-mt-16 lg:grid-cols-12 lg:items-start">
+                <div className="space-y-7 lg:col-span-8 lg:pt-16">
                   <div className="rounded-2xl border border-[#DCE4EE] bg-white p-6 shadow-sm lg:p-8">
                     <h2 className="mb-6 text-2xl font-bold text-[#101828]">
                       Ce que vous apprendrez
@@ -3242,90 +3320,52 @@ function CourseDetailsPageComponent() {
                     <div className="space-y-3">
                       {[...modules]
                         .sort((a, b) => a.orderIndex - b.orderIndex)
-                        .map((module, index) => {
-                          const moduleLessons = module.lessons.filter((l) => l.hasVideo);
-                          const moduleDuration = moduleLessons.reduce(
-                            (sum, lesson) => sum + (lesson.duration || 0),
-                            0,
-                          );
-
-                          return (
-                            <div
-                              key={module.id}
-                              className="flex flex-col justify-between gap-2 rounded-xl border border-[#E2E8F0] px-4 py-3 sm:flex-row sm:items-center"
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold text-[#1C1D1F]">
-                                  Module {index + 1}: {module.title}
-                                </p>
-                                <p className="text-xs text-[#6A6F73]">
-                                  {module.description || "Module orienté pratique"}
-                                </p>
-                              </div>
-                              
-                            </div> 
-                          );
-                        })}
+                        .map((module, index) => (
+                          <div
+                            key={module.id}
+                            className="flex flex-col justify-between gap-2 rounded-xl border border-[#E2E8F0] px-4 py-3 sm:flex-row sm:items-center"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-[#1C1D1F]">
+                                Module {index + 1}: {module.title}
+                              </p>
+                              <p className="text-xs text-[#6A6F73]">
+                                {module.description || "Module orienté pratique"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="order-1 lg:order-2 lg:col-span-4">
-                  <div className="overflow-hidden rounded-2xl border border-[#DCE4EE] bg-white shadow-xl lg:sticky lg:top-24">
-                    <div className="relative h-52 w-full overflow-hidden bg-[#0D1F3A]">
-                      {course.thumbnailUrl ? (
-                        <img
-                          src={course.thumbnailUrl}
-                          alt={course.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-sm text-white/70">
-                          Aperçu du cours
-                        </div>
-                      )}
-                      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/65 to-transparent" />
-                    </div>
-
-                    <div className="p-6">
-                      <div className="mb-5 flex items-end justify-between gap-3">
-                        <p className="text-4xl font-bold text-[#101828]">
-                          {course.price ? `${course.price} FCFA` : "Gratuit"}
-                        </p>
-                        <span className="rounded-full bg-[#EAF2FF] px-3 py-1 text-xs font-semibold text-[#002c75]">
-                          {isFree ? "Inscription immédiate" : "Paiement sécurisé"}
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={handleEnrollClick}
-                        disabled={enrolling}
-                        className="mb-6 w-full rounded-lg bg-[#002c75] px-4 py-3 text-sm font-bold text-white shadow-md transition-colors duration-200 hover:bg-[#001f54] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {enrolling
-                          ? "Inscription..."
-                          : isFree
-                            ? "Commencer ce parcours"
-                            : "Acheter et démarrer"}
-                      </button>
-
-                      <h4 className="mb-3 text-lg font-bold text-[#101828]">
-                        Ce cours comprend
-                      </h4>
-                      <ul className="space-y-2 text-sm text-[#2D2F31]">
-                        {courseIncludes.map((item) => (
-                          <li key={item.key} className="flex items-center gap-2.5">
-                            {item.icon}
-                            <span>{item.label}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                <div className="hidden lg:col-span-4 lg:block">
+                  {renderPurchaseCard({
+                    className:
+                      "lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100vh-5.5rem)] lg:self-start lg:overflow-y-auto",
+                  })}
                 </div>
               </div>
             </section>
           </main>
+
+          <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#DCE4EE] bg-white/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-sm lg:hidden pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto flex max-w-[1240px] items-center gap-3">
+              <div className="min-w-0 shrink-0">
+                <p className="text-xl font-bold leading-tight text-[#101828]">{priceLabel}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#002c75]">
+                  {paymentBadgeLabel}
+                </p>
+              </div>
+              <button
+                onClick={handleEnrollClick}
+                disabled={enrolling}
+                className="min-w-0 flex-1 rounded-lg bg-[#002c75] px-4 py-3 text-sm font-bold text-white shadow-md transition-colors duration-200 hover:bg-[#001f54] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {enrollCtaLabel}
+              </button>
+            </div>
+          </div>
         </>
       )}
 

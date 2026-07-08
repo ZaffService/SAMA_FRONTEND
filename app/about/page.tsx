@@ -34,19 +34,41 @@ export default function AboutPage() {
       <Header />
 
       {/* Hero Section */}
-      <div className="bg-[var(--bibocom-blue)] text-white mt-2">
-        <div className="container mx-auto px-6 py-14 lg:py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-5">
-              À Propos de BIBOCOM Digital
-            </h2>
-            <p className="text-xl text-blue-100 leading-relaxed text-justify">
-              BIBOCOM DIGITAL est une entreprise EdTech africaine spécialisée dans la formation aux métiers du numérique, de la création et de l'entrepreneuriat.
-              Nous développons des programmes hybrides (en ligne et en présentiel) accessibles en langues locales pour aider les jeunes, les femmes et les professionnels à acquérir des compétences pratiques et à accéder à des opportunités d'emploi ou d'auto-emploi.
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#001945] via-[#002c75] to-[#0A4AA8] text-white pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-24">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[#28C7E0]/20 blur-3xl" />
+          <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-[#7E78FF]/20 blur-3xl" />
+        </div>
+
+        <div className="relative container mx-auto px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="mb-6 flex items-center justify-center gap-3 sm:mb-8 sm:gap-6">
+              <div className="hidden h-[2px] max-w-[100px] flex-1 bg-white/25 sm:block lg:max-w-[140px]" />
+              <span className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#D6E6FF] backdrop-blur sm:text-sm">
+                Qui sommes-nous
+              </span>
+              <div className="hidden h-[2px] max-w-[100px] flex-1 bg-white/25 sm:block lg:max-w-[140px]" />
+            </div>
+
+            <h1 className="mb-6 text-3xl font-bold leading-[1.2] tracking-tight sm:mb-8 sm:text-4xl lg:text-5xl">
+              À Propos de{" "}
+              <span className="text-[var(--bibocom-red)]">BIBOCOM</span> Digital
+            </h1>
+
+            <p className="text-base leading-7 text-[#E8F2FC] sm:text-lg sm:leading-8 lg:text-xl">
+              BIBOCOM DIGITAL est une entreprise EdTech africaine spécialisée dans la
+              formation aux métiers du numérique, de la création et de
+              l&apos;entrepreneuriat.
+            </p>
+            <p className="mt-4 text-base leading-7 text-[#B8D4F0] sm:mt-5 sm:text-lg sm:leading-8">
+              Nous développons des programmes hybrides (en ligne et en présentiel)
+              accessibles en langues locales pour aider les jeunes, les femmes et les
+              professionnels à acquérir des compétences pratiques et à accéder à des
+              opportunités d&apos;emploi ou d&apos;auto-emploi.
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Mission / Vision / Ambition — 3 cards côte à côte */}
       <section className="py-12 lg:py-16 bg-gray-50">

@@ -15,47 +15,8 @@ import type { AuthContextType, RegisterData } from "@/types/auth";
 import type { LoginData } from "@/domain/entities/user";
 import type { User } from "@/domain/entities/user";
 import { buildRegisterPayload, WEB_REGISTRATION_PLATFORM } from "@/lib/phone-auth";
-import {
-  getRoleDashboard,
-  mustCompleteProfile,
-} from "@/lib/post-auth-redirect";
+import { resolveLoginRedirectUrl } from "@/lib/post-auth-redirect";
 import logger from "@/shared/helpers/logger";
-
-async function resolveLoginRedirectUrl(
-  mappedUser: User,
-  isCompleteFromResponse: boolean | null | undefined,
-  lastActivityRedirect?: string | null,
-  explicitRedirect?: string | null,
-): Promise<string> {
-  let redirectUrl = getRoleDashboard(mappedUser.role);
-
-  if (mappedUser.role === "STUDENT" && lastActivityRedirect) {
-    redirectUrl = lastActivityRedirect;
-  }
-
-  if (explicitRedirect) {
-    redirectUrl = explicitRedirect;
-  }
-
-  if (!mustCompleteProfile(mappedUser.role)) {
-    return redirectUrl;
-  }
-
-  if (isCompleteFromResponse === true) {
-    return redirectUrl;
-  }
-
-  try {
-    const profile = await UserApi.getUserProfile();
-    if (profile?.isProfileComplete === true) {
-      return redirectUrl;
-    }
-  } catch {
-    // Profil inaccessible → forcer la complétion.
-  }
-
-  return "/complete-profile";
-}
 
 // Fonction utilitaire pour forcer la suppression des cookies d'authentification
 function clearAuthCookies(): void {

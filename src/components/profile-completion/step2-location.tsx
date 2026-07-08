@@ -27,7 +27,6 @@ interface Step2LocationProps {
   originalPhone?: string;
   phonePlaceholder: string;
   errors?: Partial<Record<keyof Step2Data, string>>;
-  phoneConflictError?: string | null;
   disabled?: boolean;
 }
 
@@ -42,7 +41,6 @@ export function Step2Location({
   originalPhone,
   phonePlaceholder,
   errors,
-  phoneConflictError,
   disabled,
 }: Step2LocationProps) {
   const set = <K extends keyof Step2Data>(field: K, value: Step2Data[K]) =>
@@ -231,7 +229,7 @@ export function Step2Location({
               }}
               className={[
                 "h-12 flex-1 rounded-xl border bg-white px-4 text-sm outline-none transition-colors focus:border-[oklch(0.46_0.24_268)] focus:ring-2 focus:ring-[oklch(0.46_0.24_268)]/20",
-                errors?.telephone || phoneConflictError
+                errors?.telephone
                   ? "border-red-400"
                   : "border-slate-200",
               ].join(" ")}
@@ -245,9 +243,6 @@ export function Step2Location({
         )}
         {errors?.telephone && (
           <p className="mt-1 text-xs text-red-600">{errors.telephone}</p>
-        )}
-        {phoneConflictError && (
-          <p className="mt-1 text-xs text-red-600">{phoneConflictError}</p>
         )}
       </motion.div>
     </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +17,6 @@ import { Step2Location } from "@/components/profile-completion/step2-location";
 import { Step3Finalize } from "@/components/profile-completion/step3-finalize";
 import { stepTransition } from "@/components/profile-completion/animations";
 import { useProtectRoute } from "@/application/use-cases/useProtectRoute";
-import { getErrorMapping } from "@/shared/helpers/error-mapping";
 import {
   UserApi,
   ProfileFormData,
@@ -29,6 +28,11 @@ import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { COUNTRIES } from "@/lib/countries";
 import logger from "@/shared/helpers/logger";
+import { resolvePostProfileRedirect } from "@/lib/post-auth-redirect";
+import {
+  getProfileErrorMessage,
+  resolveProfilePhoneError,
+} from "@/lib/profile-form-errors";
 
 const extractLocalNumber = (fullPhone: string, indicatif: string): string => {
   if (!fullPhone) return "";
@@ -58,15 +62,6 @@ const getPhonePlaceholder = (indicatif: string): string => {
   return "XXXXXXXX";
 };
 
-const navigateToDashboard = (
-  router: ReturnType<typeof useRouter>,
-  role?: string,
-) => {
-  if (role === "ADMIN") router.push("/admin-dashboard");
-  else if (role === "INSTRUCTOR") router.push("/instructor-dashboard");
-  else router.push("/student-dashboard");
-};
-
 const getInitialFormData = (user: any): ProfileFormData => ({
   firstName: user?.firstName || user?.first_name || "",
   lastName: user?.lastName || user?.last_name || "",
@@ -82,7 +77,7 @@ const getInitialFormData = (user: any): ProfileFormData => ({
   disability: false,
   disabilityType: "",
   disabilityDetails: "",
-  consentGiven: false,
+  consentGiven: true,
 });
 
 const TOTAL_STEPS = 3;
@@ -109,9 +104,9 @@ export default function CompleteProfile() {
     getInitialFormData(user),
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [phoneConflictError, setPhoneConflictError] = useState<string | null>(
-    null,
-  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isStepValidating, setIsStepValidating] = useState(false);
+  const hasInitializedForm = useRef(false);
   const [originalPhone, setOriginalPhone] = useState<string>("");
   const [profileMetadata, setProfileMetadata] =
     useState<ProfileMetadataResponse | null>(null);
@@ -133,6 +128,17 @@ export default function CompleteProfile() {
 
   const firstName =
     formData.firstName || user?.firstName || user?.first_name || "";
+
+  const applyPhoneFieldError = useCallback((error: unknown) => {
+    const phoneError = resolveProfilePhoneError(error);
+    if (!phoneError) {
+      return false;
+    }
+
+    setFieldErrors((prev) => ({ ...prev, telephone: phoneError.message }));
+    setCurrentStep(1);
+    return true;
+  }, []);
 
   const validatePhone = (phone: string, dialCode: string): string | null => {
     if (!phone.trim()) return "Le numéro de téléphone est obligatoire";
@@ -214,8 +220,37 @@ export default function CompleteProfile() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (!validateStep(currentStep)) return;
+
+    if (currentStep === 1 && !originalPhone && formData.telephone.trim()) {
+      setIsStepValidating(true);
+      setSubmitError(null);
+
+      try {
+        await UserApi.validateProfilePhone(
+          formData.telephone,
+          formData.indicatif,
+        );
+        setOriginalPhone(formData.telephone);
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.telephone;
+          return next;
+        });
+      } catch (error) {
+        if (applyPhoneFieldError(error)) {
+          return;
+        }
+        setSubmitError(getProfileErrorMessage(error));
+        toast.error(getProfileErrorMessage(error));
+        return;
+      } finally {
+        setIsStepValidating(false);
+      }
+    }
+
+    setSubmitError(null);
     setCurrentStep((prev) => Math.min(prev + 1, TOTAL_STEPS - 1));
   };
 
@@ -225,7 +260,9 @@ export default function CompleteProfile() {
 
   useEffect(() => {
     if (!protectLoading && isComplete === true) {
-      navigateToDashboard(router, user?.role);
+      void resolvePostProfileRedirect(user?.role).then((path) =>
+        router.replace(path),
+      );
     }
   }, [protectLoading, isComplete, user, router]);
 
@@ -254,10 +291,11 @@ export default function CompleteProfile() {
 
       try {
         const profileData = await UserApi.getUserProfile();
-        if (!cancelled && profileData) {
+        if (!cancelled && profileData && !hasInitializedForm.current) {
           const form = toProfileFormData(profileData, metadata);
           setFormData(form);
           if (form.telephone) setOriginalPhone(form.telephone);
+          hasInitializedForm.current = true;
         }
       } catch (error) {
         logger.error("Erreur lors de la récupération du profil:", error);
@@ -273,9 +311,14 @@ export default function CompleteProfile() {
   }, [canAccess]);
 
   const handleSave = async () => {
+    setSubmitError(null);
+
     for (let step = 0; step < TOTAL_STEPS; step += 1) {
       if (!validateStep(step)) {
         setCurrentStep(step);
+        setSubmitError(
+          "Certaines informations sont manquantes ou incorrectes. Corrigez les champs signalés ci-dessous.",
+        );
         return;
       }
     }
@@ -285,44 +328,34 @@ export default function CompleteProfile() {
       const result = await completeProfile(buildProfilePayload());
 
       if (result) {
+        setSubmitError(null);
         toast.success("Félicitations ! Votre profil a été complété avec succès !");
         localStorage.removeItem("user_profile_cache");
         await checkProfile();
         setShowSuccess(true);
 
         setTimeout(() => {
-          navigateToDashboard(router, user?.role);
+          void resolvePostProfileRedirect(user?.role).then((path) =>
+            router.push(path),
+          );
         }, 2800);
       }
     } catch (error) {
       logger.error("Erreur lors de la completion du profil:", error);
-      const errorMapping = getErrorMapping(error);
-      const displayMessage =
-        (error as any)?.code && errorMapping
-          ? errorMapping.message
-          : (error as Error)?.message || errorMapping.message;
 
-      const code = (error as any)?.code?.toLowerCase() || "";
-      const errorMsg = (error as Error)?.message?.toLowerCase() || "";
-
-      if (
-        code.includes("telephone") ||
-        code.includes("phone") ||
-        errorMsg.includes("téléphone") ||
-        errorMsg.includes("telephone") ||
-        errorMsg.includes("phone")
-      ) {
-        setPhoneConflictError(displayMessage);
-        setCurrentStep(1);
-        setTimeout(() => setPhoneConflictError(null), 5000);
-      } else {
-        toast.error(`Erreur: ${displayMessage}`);
+      if (applyPhoneFieldError(error)) {
+        return;
       }
+
+      const displayMessage = getProfileErrorMessage(error);
+      setSubmitError(displayMessage);
+      toast.error(displayMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
+  const isBusy = isSaving || isStepValidating;
   const pageLoading = protectLoading || showAuthModal || isLoading;
 
   const stepActions = (
@@ -331,7 +364,7 @@ export default function CompleteProfile() {
         <button
           type="button"
           onClick={handlePrevStep}
-          disabled={isSaving}
+          disabled={isBusy}
           className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -346,18 +379,27 @@ export default function CompleteProfile() {
           type="button"
           whileTap={{ scale: 0.98 }}
           onClick={handleNextStep}
-          disabled={isSaving || !metadataReady}
+          disabled={isBusy || !metadataReady}
           className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[oklch(0.50_0.24_268)] to-[oklch(0.58_0.22_285)] px-8 text-sm font-semibold text-white shadow-lg shadow-[oklch(0.50_0.24_268)]/25 transition-opacity disabled:opacity-50 sm:ml-auto sm:w-auto"
         >
-          Continuer
-          <ArrowRight className="h-4 w-4" />
+          {isStepValidating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Vérification…
+            </>
+          ) : (
+            <>
+              Continuer
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </motion.button>
       ) : (
         <motion.button
           type="button"
           whileTap={{ scale: 0.98 }}
           onClick={handleSave}
-          disabled={isSaving || !metadataReady}
+          disabled={isBusy || !metadataReady}
           className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#DA1712] to-[#e11d48] px-8 text-sm font-semibold text-white shadow-lg shadow-[#DA1712]/25 transition-opacity disabled:opacity-50 sm:ml-auto sm:w-auto"
         >
           {isSaving ? (
@@ -398,6 +440,15 @@ export default function CompleteProfile() {
             </div>
           )}
 
+          {submitError && currentStep !== 1 && (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+              {submitError}
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             <motion.div key={currentStep} {...stepTransition}>
               {currentStep === 0 && (
@@ -418,7 +469,7 @@ export default function CompleteProfile() {
                     currentStatus: fieldErrors.currentStatus,
                     referralSource: fieldErrors.referralSource,
                   }}
-                  disabled={isSaving}
+                  disabled={isBusy}
                   metadataReady={metadataReady}
                 />
               )}
@@ -432,9 +483,20 @@ export default function CompleteProfile() {
                     indicatif: formData.indicatif,
                     telephone: formData.telephone,
                   }}
-                  onChange={(d) =>
-                    setFormData((prev) => ({ ...prev, ...d }))
-                  }
+                  onChange={(d) => {
+                    setFormData((prev) => ({ ...prev, ...d }));
+                    if (
+                      d.telephone !== undefined ||
+                      d.indicatif !== undefined
+                    ) {
+                      setSubmitError(null);
+                      setFieldErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.telephone;
+                        return next;
+                      });
+                    }
+                  }}
                   originalPhone={originalPhone}
                   phonePlaceholder={getPhonePlaceholder(formData.indicatif)}
                   errors={{
@@ -443,8 +505,7 @@ export default function CompleteProfile() {
                     residenceType: fieldErrors.residenceType,
                     telephone: fieldErrors.telephone,
                   }}
-                  phoneConflictError={phoneConflictError}
-                  disabled={isSaving}
+                  disabled={isBusy}
                 />
               )}
 
@@ -469,7 +530,7 @@ export default function CompleteProfile() {
                     disabilityType: fieldErrors.disabilityType,
                     consent: fieldErrors.consentGiven,
                   }}
-                  disabled={isSaving}
+                  disabled={isBusy}
                 />
               )}
             </motion.div>

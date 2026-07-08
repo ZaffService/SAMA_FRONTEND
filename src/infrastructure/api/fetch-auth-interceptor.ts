@@ -6,6 +6,7 @@ import {
   getAuthClientStatus,
   setAuthClientStatus,
 } from "@/infrastructure/storage/auth-client-state";
+import { BUSINESS_401_ERROR_CODES } from "@/lib/profile-form-errors";
 
 const REFRESH_TOKEN_ENDPOINT = buildApiUrl("/user/refresh-token");
 const INTERCEPTOR_FLAG = "__SAMA_AUTH_FETCH_INTERCEPTOR_INSTALLED__";
@@ -130,6 +131,21 @@ function emitSessionExpiredOnce(requestUrl: string): void {
   notifySessionExpired(requestUrl);
 }
 
+async function isBusiness401Response(response: Response): Promise<boolean> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return false;
+  }
+
+  try {
+    const data = await response.clone().json();
+    const code = data?.error?.code ?? data?.errorCode;
+    return typeof code === "string" && BUSINESS_401_ERROR_CODES.has(code);
+  } catch {
+    return false;
+  }
+}
+
 export function setupAuthFetchInterceptor(): void {
   if (typeof window === "undefined") {
     return;
@@ -161,6 +177,11 @@ export function setupAuthFetchInterceptor(): void {
       return response;
     }
 
+    // Erreurs métier (ex. TELEPHONE_ALREADY_EXIST) renvoyées en 401 : ne pas déconnecter.
+    if (await isBusiness401Response(response)) {
+      return response;
+    }
+
     // User is already anonymous (voluntary logout or already expired): ignore 401 globally.
     if (getAuthClientStatus() !== "authenticated") {
       return response;
@@ -188,7 +209,9 @@ export function setupAuthFetchInterceptor(): void {
     }
 
     if (retriedResponse.status === 401) {
-      emitSessionExpiredOnce(requestUrl);
+      if (!(await isBusiness401Response(retriedResponse))) {
+        emitSessionExpiredOnce(requestUrl);
+      }
     }
 
     return retriedResponse;

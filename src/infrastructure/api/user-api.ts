@@ -69,6 +69,46 @@ const buildAuthHeaders = (): Record<string, string> => {
   };
 };
 
+function throwUserProfileApiError(
+  errorData: Record<string, unknown>,
+  status: number,
+): never {
+  const nestedError = errorData?.error as
+    | { code?: string; message?: string; timestamp?: string; path?: string }
+    | undefined;
+  const code =
+    nestedError?.code ||
+    (errorData?.errorCode as string | undefined) ||
+    "UNKNOWN_ERROR";
+  const message =
+    nestedError?.message ||
+    (errorData?.message as string | undefined) ||
+    "Erreur de mise à jour du profil";
+
+  const errorObj = new Error(message);
+  (errorObj as Error & { code?: string; status?: number }).code = code;
+  (errorObj as Error & { code?: string; status?: number }).status = status;
+  if (nestedError?.timestamp) {
+    (errorObj as Error & { timestamp?: string }).timestamp =
+      nestedError.timestamp;
+  }
+  if (nestedError?.path) {
+    (errorObj as Error & { path?: string }).path = nestedError.path;
+  }
+  throw errorObj;
+}
+
+async function postCompleteProfile(
+  payload: Record<string, unknown>,
+): Promise<Response> {
+  return fetch(buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+}
+
 // Types for complete profile
 export type SexeType = "M" | "F" | "O" | "NOT_SPECIFIED";
 
@@ -497,7 +537,7 @@ export function toProfileFormData(
     disability: false,
     disabilityType: "",
     disabilityDetails: "",
-    consentGiven: false,
+    consentGiven: true,
   };
 
   if (profile?.sexe) {
@@ -794,6 +834,28 @@ export class UserApi {
   /**
    * Compléter/mettre à jour le profil utilisateur
    */
+  /**
+   * Vérifie la disponibilité du téléphone via l'API complete-profile.
+   * Lance une erreur avec `code` (ex. TELEPHONE_ALREADY_EXIST) si le numéro est invalide ou déjà pris.
+   */
+  static async validateProfilePhone(
+    telephone: string,
+    indicatif: string,
+  ): Promise<void> {
+    const response = await postCompleteProfile({ telephone, indicatif });
+
+    if (!response.ok) {
+      const errorData = (await response
+        .json()
+        .catch(() => ({ message: "Erreur inconnue" }))) as Record<
+        string,
+        unknown
+      >;
+      logger.error(`❌ API: Erreur validation téléphone ${response.status}:`, errorData);
+      throwUserProfileApiError(errorData, response.status);
+    }
+  }
+
   static async completeProfile(
     data: CompleteProfileData,
   ): Promise<UserProfileData> {
@@ -830,37 +892,19 @@ export class UserApi {
 
       logger.log(`📡 API: Payload envoyé:`, payload);
 
-      const response = await fetch(
-        buildApiUrl(API_ENDPOINTS.USER.COMPLETE_PROFILE),
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...buildAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        },
-      );
+      const response = await postCompleteProfile(payload);
 
       logger.log(`📡 API: Réponse reçue - Status: ${response.status}`);
 
       if (!response.ok) {
-        const errorData = await response
+        const errorData = (await response
           .json()
-          .catch(() => ({ message: "Erreur inconnue" }));
+          .catch(() => ({ message: "Erreur inconnue" }))) as Record<
+          string,
+          unknown
+        >;
         logger.error(`❌ API: Erreur ${response.status}:`, errorData);
-        
-        // Propager l'erreur avec code pour permettre le mapping
-        if (errorData?.error) {
-          const errorObj = new Error(errorData.error.message || "Erreur de mise à jour du profil");
-          (errorObj as any).code = errorData.error.code;
-          (errorObj as any).timestamp = errorData.error.timestamp;
-          (errorObj as any).path = errorData.error.path;
-          throw errorObj;
-        }
-        
-        throw new Error(
-          errorData.message ||
-            `Erreur ${response.status}: Impossible de mettre à jour le profil`,
-        );
+        throwUserProfileApiError(errorData, response.status);
       }
 
       const result = await response.json();

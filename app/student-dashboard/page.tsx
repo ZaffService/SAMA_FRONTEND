@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { BookOpen } from "lucide-react";
 
 import { Header } from "@/components/header";
@@ -11,6 +12,7 @@ import { CourseCard } from "@/components/course-card";
 
 import { useStudentDashboard } from "@/application/use-cases/useStudentDashboard";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { APP_ROUTES } from "@/lib/app-routes";
 import { UserApi } from "@/infrastructure/api/user-api";
 import logger from "@/shared/helpers/logger";
 import type { BackendCourse } from "@/infrastructure/api/courses-api";
@@ -237,10 +239,16 @@ const StudentDashboard = () => {
                 <p className="text-slate-600 text-base sm:text-lg font-medium mb-2">
                   Aucun cours inscrit
                 </p>
-                <p className="text-xs sm:text-sm text-slate-500 px-4">
+                <p className="text-xs sm:text-sm text-slate-500 px-4 mb-6">
                   Inscrivez-vous à un cours pour le retrouver ici avec son
                   aperçu complet.
                 </p>
+                <Link
+                  href={APP_ROUTES.studentDiscoveryHome}
+                  className="inline-flex items-center justify-center rounded-xl bg-[#002976] px-6 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-[#001a4d]"
+                >
+                  Découvrir les formations
+                </Link>
               </div>
             )}
           </CardContent>
