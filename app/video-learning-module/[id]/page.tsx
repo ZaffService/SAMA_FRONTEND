@@ -11,17 +11,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
-  MessageCircle,
   CheckCircle2,
   Circle,
   Clock,
-  Send,
   Lock,
   BookOpen,
   LayoutList,
-  ThumbsUp,
-  Share2,
-  Bookmark,
   CheckCircle,
   PlayCircle,
 } from "lucide-react";
@@ -51,11 +46,7 @@ export default function VideoLearningModule() {
   const isIdValid = isValidResourceId(id);
 
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState<any[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "overview" | "notes" | "resources"
   >("overview");
@@ -63,8 +54,13 @@ export default function VideoLearningModule() {
     new Set(),
   );
   const [hasAttemptedQuiz, setHasAttemptedQuiz] = useState(false);
+  /** Adapt container to video format — avoids letterbox / pillarbox black bars */
+  const [videoOrientation, setVideoOrientation] = useState<
+    "landscape" | "portrait"
+  >("landscape");
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const courseContentRef = useRef<HTMLElement>(null);
   const {
     course,
     contents,
@@ -128,6 +124,76 @@ export default function VideoLearningModule() {
         window.removeEventListener("beforeunload", handleBeforeUnload);
     }
   }, [isIdValid, id, currentLessonIndex, currentTime, completedLessons]);
+
+  // Detect portrait vs landscape so the player frame matches the media (no black bars)
+  useEffect(() => {
+    let cancelled = false;
+    const lesson = allLessons?.[currentLessonIndex] || null;
+
+    const isShortsUrl = (content?: string | null) =>
+      typeof content === "string" && /youtube\.com\/shorts\//i.test(content);
+
+    const extractId = (content?: string | null) => {
+      if (!content || typeof content !== "string") return null;
+      const shortsMatch = content.match(
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/i,
+      );
+      if (shortsMatch?.[1]) return shortsMatch[1];
+      const match = content.match(
+        /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i,
+      );
+      return match?.[1] ?? null;
+    };
+
+    const applyOrientation = (isPortrait: boolean) => {
+      if (!cancelled) {
+        setVideoOrientation(isPortrait ? "portrait" : "landscape");
+      }
+    };
+
+    if (!lesson) {
+      applyOrientation(false);
+      return;
+    }
+
+    const candidates = [
+      lesson.videoUrl,
+      lesson.video?.source_youtube,
+      lesson.video?.source_embedded,
+      lesson.post_content,
+      course?.post_content,
+    ].filter((v): v is string => typeof v === "string" && v.length > 0);
+
+    if (candidates.some(isShortsUrl)) {
+      applyOrientation(true);
+      return;
+    }
+
+    const ytId = candidates.map(extractId).find(Boolean);
+    if (!ytId) {
+      applyOrientation(false);
+      return;
+    }
+
+    const probe = async () => {
+      try {
+        const res = await fetch(
+          `https://www.youtube.com/oembed?url=${encodeURIComponent(
+            `https://www.youtube.com/shorts/${ytId}`,
+          )}&format=json`,
+        );
+        applyOrientation(res.ok);
+      } catch {
+        applyOrientation(false);
+      }
+    };
+
+    void probe();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allLessons, currentLessonIndex, course?.post_content]);
 
   // Protection: Auth modal
   if (showAuthModal) {
@@ -209,7 +275,6 @@ export default function VideoLearningModule() {
     if (currentLessonIndex > 0) {
       setCurrentLessonIndex((i) => i - 1);
       setCurrentTime(0);
-      setIsPlaying(false);
     }
   };
 
@@ -220,7 +285,6 @@ export default function VideoLearningModule() {
     if (currentLessonIndex < (allLessons?.length || 0) - 1) {
       setCurrentLessonIndex((i) => i + 1);
       setCurrentTime(0);
-      setIsPlaying(false);
     }
   };
 
@@ -228,7 +292,6 @@ export default function VideoLearningModule() {
     e?.stopPropagation();
     setCurrentLessonIndex(index);
     setCurrentTime(0);
-    setIsPlaying(false);
   };
 
   const toggleLessonComplete = (index: number, e: React.MouseEvent) => {
@@ -244,26 +307,16 @@ export default function VideoLearningModule() {
     });
   };
 
-  const handleSendComment = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (newComment.trim()) {
-      const comment = {
-        id: Date.now(),
-        user: user?.display_name || "Étudiant",
-        avatar: "/placeholder.svg",
-        time: "À l'instant",
-        comment: newComment.trim(),
-        likes: 0,
-        replies: 0,
-      };
-      setComments((c) => [comment, ...c]);
-      setNewComment("");
-    }
-  };
+  // YouTube helpers
+  const isYouTubeShortsUrl = (content?: string | null) =>
+    typeof content === "string" && /youtube\.com\/shorts\//i.test(content);
 
-  // YouTube helper
   const getYouTubeVideoId = (content?: string | null) => {
     if (!content || typeof content !== "string") return null;
+    const shortsMatch = content.match(
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/i,
+    );
+    if (shortsMatch?.[1]) return shortsMatch[1];
     const iframeRegex =
       /<iframe[^>]*src=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/embed\/|youtu\.be\/)([^"']{11})[^"']*["'][^>]*>/gi;
     const iframeMatch = iframeRegex.exec(content);
@@ -279,17 +332,24 @@ export default function VideoLearningModule() {
     return null;
   };
 
-  const resolveVideoSource = () => {
+  type VideoSource =
+    | { type: "youtube"; id: string; hintPortrait?: boolean }
+    | { type: "mp4"; src: string; hintPortrait?: boolean };
+
+  const resolveVideoSource = (): VideoSource | null => {
     const lesson = currentLesson;
     if (!lesson) return null;
 
-    // Vérifier d'abord videoUrl (structure depuis mock data)
     if (lesson.videoUrl) {
       const id = getYouTubeVideoId(lesson.videoUrl);
-      if (id) return { type: "youtube", id };
+      if (id)
+        return {
+          type: "youtube",
+          id,
+          hintPortrait: isYouTubeShortsUrl(lesson.videoUrl),
+        };
     }
 
-    // Fallback vers la structure video object
     if (
       lesson.video &&
       typeof lesson.video === "object" &&
@@ -298,28 +358,46 @@ export default function VideoLearningModule() {
       const video = lesson.video;
       if (video.source_youtube) {
         const id = getYouTubeVideoId(video.source_youtube);
-        if (id) return { type: "youtube", id };
+        if (id)
+          return {
+            type: "youtube",
+            id,
+            hintPortrait: isYouTubeShortsUrl(video.source_youtube),
+          };
       }
       if (video.source_embedded) {
         const id = getYouTubeVideoId(video.source_embedded);
-        if (id) return { type: "youtube", id };
+        if (id)
+          return {
+            type: "youtube",
+            id,
+            hintPortrait: isYouTubeShortsUrl(video.source_embedded),
+          };
       }
       if (video.source_mp4 && typeof video.source_mp4 === "string") {
         return { type: "mp4", src: video.source_mp4 };
       }
     }
 
-    // Fallback vers post_content
     if (lesson.post_content) {
       const contentId = getYouTubeVideoId(lesson.post_content);
-      if (contentId) return { type: "youtube", id: contentId };
+      if (contentId)
+        return {
+          type: "youtube",
+          id: contentId,
+          hintPortrait: isYouTubeShortsUrl(lesson.post_content),
+        };
     }
     if (course?.post_content) {
       const courseContentId = getYouTubeVideoId(course.post_content);
-      if (courseContentId) return { type: "youtube", id: courseContentId };
+      if (courseContentId)
+        return {
+          type: "youtube",
+          id: courseContentId,
+          hintPortrait: isYouTubeShortsUrl(course.post_content),
+        };
     }
 
-    // Vidéo par défaut si rien trouvé
     return { type: "youtube", id: "dQw4w9WgXcQ" };
   };
 
@@ -341,56 +419,41 @@ export default function VideoLearningModule() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col lg:flex-row">
-          {/* Video skeleton */}
-          <div className="flex-1 flex flex-col">
-            <div
-              className="relative bg-gray-900 w-full"
-              style={{ aspectRatio: "16/9", maxHeight: "70vh" }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <div className="inline-flex h-16 w-16 rounded-full bg-gray-800 mb-4 items-center justify-center animate-pulse">
-                    <PlayCircle className="h-8 w-8 text-gray-600" />
-                  </div>
-                  <p className="text-base text-gray-400">
-                    Chargement du cours...
-                  </p>
+        <div className="flex-1 flex flex-col">
+          <div
+            className="relative bg-gray-900 w-full max-w-5xl mx-auto"
+            style={{ aspectRatio: "16/9", maxHeight: "70vh" }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center text-white">
+                <div className="inline-flex h-16 w-16 rounded-full bg-gray-800 mb-4 items-center justify-center animate-pulse">
+                  <PlayCircle className="h-8 w-8 text-gray-600" />
                 </div>
-              </div>
-            </div>
-
-            {/* Info skeleton */}
-            <div className="bg-white border-b px-4 md:px-8 py-6">
-              <div className="h-8 w-3/4 bg-gray-200 animate-pulse rounded mb-3" />
-              <div className="h-4 w-1/2 bg-gray-200 animate-pulse rounded mb-4" />
-              <div className="flex gap-4">
-                <div className="h-10 w-32 bg-gray-200 animate-pulse rounded" />
-                <div className="h-10 w-32 bg-gray-200 animate-pulse rounded" />
+                <p className="text-base text-gray-400">
+                  Chargement du cours...
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Sidebar skeleton */}
-          <div className="hidden lg:block w-96 border-l bg-white">
-            <div className="p-4 border-b">
-              <div className="h-6 w-48 bg-gray-200 animate-pulse rounded mb-2" />
-              <div className="h-4 w-32 bg-gray-200 animate-pulse rounded" />
-            </div>
-            <div className="p-4 space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"
-                >
-                  <div className="h-8 w-8 bg-gray-200 animate-pulse rounded-full" />
-                  <div className="flex-1">
-                    <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded mb-2" />
-                    <div className="h-3 w-1/2 bg-gray-200 animate-pulse rounded" />
-                  </div>
+          <div className="bg-white border-b px-4 md:px-8 py-6">
+            <div className="h-8 w-3/4 bg-gray-200 animate-pulse rounded mb-3" />
+            <div className="h-4 w-1/2 bg-gray-200 animate-pulse rounded mb-4" />
+          </div>
+
+          <div className="bg-white p-4 space-y-3 max-w-3xl mx-auto w-full">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 p-3 rounded-lg bg-gray-50"
+              >
+                <div className="h-8 w-8 bg-gray-200 animate-pulse rounded-full" />
+                <div className="flex-1">
+                  <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded mb-2" />
+                  <div className="h-3 w-1/2 bg-gray-200 animate-pulse rounded" />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -440,82 +503,88 @@ export default function VideoLearningModule() {
   }
 
   const videoSource = resolveVideoSource();
+  const isPortrait = videoOrientation === "portrait";
+  const sectionTitle =
+    course?.modules?.[0]?.title ||
+    course?.modules?.[0]?.post_title ||
+    course?.post_title ||
+    "Section 1";
 
   return (
     <div
-      className="min-h-screen bg-white flex flex-col"
+      className="min-h-screen bg-[#f7f4ef] flex flex-col"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Top Header Bar - Dark theme like Udemy */}
+      {/* Top Header */}
       <header className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <Link href="/student-dashboard">
             <Button
               variant="ghost"
               size="sm"
-              className="text-white hover:bg-gray-800 gap-2"
+              className="text-white hover:bg-gray-800 gap-2 shrink-0"
             >
               <ChevronLeft className="h-5 w-5" />
               <span className="hidden sm:inline text-base">Retour</span>
             </Button>
           </Link>
+          <div className="min-w-0 hidden sm:block">
+            <p className="text-sm font-medium truncate uppercase tracking-wide">
+              {course?.post_title}
+            </p>
+          </div>
+        </div>
 
-          {/* Progress indicator */}
-          <div className="hidden md:flex items-center gap-3">
-            <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="hidden md:flex items-center gap-2">
+            <span className="text-xs text-gray-400">Votre progression</span>
+            <div className="w-28 h-1.5 bg-gray-700 rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <span className="text-sm text-gray-400">
-              {progressPercent}% terminé
-            </span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
-            className="text-white hover:bg-gray-800 hidden sm:flex gap-2"
-          >
-            <Share2 className="h-4 w-4" />
-            <span className="text-base">Partager</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-white hover:bg-gray-800 hidden sm:flex gap-2"
-          >
-            <Bookmark className="h-4 w-4" />
-            <span className="text-base">Favoris</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="lg:hidden text-white hover:bg-gray-800"
+            className="text-white hover:bg-gray-800 gap-1"
             onClick={(e) => {
               e.stopPropagation();
-              setSidebarOpen(!sidebarOpen);
+              courseContentRef.current?.scrollIntoView({ behavior: "smooth" });
             }}
           >
             <LayoutList className="h-5 w-5" />
-            <span className="ml-1 text-sm">Leçons</span>
+            <span className="text-sm">Leçons</span>
           </Button>
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Video Player - Full width, responsive height */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Adaptive centered video — portrait = tall phone frame, landscape = 16:9 */}
+        <div className="w-full bg-black flex justify-center items-center">
           <div
-            className="relative bg-black w-full"
-            style={{ aspectRatio: "16/9", maxHeight: "70vh" }}
+            className={
+              isPortrait
+                ? "relative bg-black overflow-hidden w-full max-w-[420px] mx-auto"
+                : "relative bg-black overflow-hidden w-full max-w-5xl mx-auto"
+            }
+            style={
+              isPortrait
+                ? {
+                    aspectRatio: "9 / 16",
+                    maxHeight: "85dvh",
+                    width: "min(100%, calc(85dvh * 9 / 16))",
+                  }
+                : {
+                    aspectRatio: "16 / 9",
+                    maxHeight: "70vh",
+                    width: "100%",
+                  }
+            }
           >
             {isLessonsLoading ? (
-              <div className="w-full h-full flex items-center justify-center bg-gray-900">
+              <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
                 <div className="text-center text-white">
                   <div className="inline-flex h-16 w-16 rounded-full bg-gray-800 mb-4 items-center justify-center">
                     <PlayCircle className="h-8 w-8 text-gray-600 animate-pulse" />
@@ -524,303 +593,40 @@ export default function VideoLearningModule() {
                 </div>
               </div>
             ) : videoSource ? (
-              <>
-                {videoSource.type === "youtube" ? (
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    src={`https://www.youtube.com/embed/${videoSource.id}?controls=1&modestbranding=1&rel=0&autoplay=0`}
-                    title={currentLesson?.post_title || "Vidéo"}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full"
-                  />
-                ) : (
-                  <video
-                    ref={videoRef}
-                    src={videoSource.src}
-                    controls
-                    className="absolute inset-0 w-full h-full"
-                  />
-                )}
-              </>
+              videoSource.type === "youtube" ? (
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${videoSource.id}?controls=1&modestbranding=1&rel=0&autoplay=0`}
+                  title={currentLesson?.post_title || "Vidéo"}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full border-0"
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  src={videoSource.src}
+                  controls
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-contain bg-black"
+                  onLoadedMetadata={(e) => {
+                    const v = e.currentTarget;
+                    if (v.videoWidth && v.videoHeight) {
+                      setVideoOrientation(
+                        v.videoHeight > v.videoWidth ? "portrait" : "landscape",
+                      );
+                    }
+                  }}
+                />
+              )
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-900 text-center p-4">
+              <div className="absolute inset-0 flex items-center justify-center bg-neutral-900 text-center p-4">
                 <div>
                   <Play className="h-16 w-16 text-gray-600 mx-auto mb-4" />
                   <p className="text-white text-lg mb-2">
                     Aucune vidéo disponible
-                  </p>
-                  <p className="text-base text-gray-400">
-                    Veuillez réessayer ou contacter le support
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Lesson Info & Navigation - Below video */}
-          <div className="bg-white border-b">
-            {/* Lesson Title & Navigation */}
-            <div className="px-4 md:px-8 py-6">
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                <div className="flex-1">
-                  <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                    {currentLesson?.post_title || "Chargement..."}
-                  </h1>
-                  <div className="flex flex-wrap items-center gap-3 text-base text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="h-4 w-4" />
-                      {course?.post_title}
-                    </span>
-                    <span className="text-gray-300">|</span>
-                    <span className="flex items-center gap-1">
-                      <LayoutList className="h-4 w-4" />
-                      Leçon {currentLessonIndex + 1} sur {allLessons.length}
-                    </span>
-                    {currentLesson?.duration && (
-                      <>
-                        <span className="text-gray-300">|</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {currentLesson.duration}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Navigation Buttons */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={(e) => handlePreviousLesson(e)}
-                    disabled={currentLessonIndex === 0}
-                    className="gap-1 text-base"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Précédent
-                  </Button>
-
-                  {currentLessonIndex === allLessons.length - 1 ? (
-                    (() => {
-                      // Find the module with a quiz
-                      const moduleWithQuiz = course?.modules?.find((module: any) => module.quizzes && module.quizzes.length > 0);
-                      const moduleId = moduleWithQuiz?.id;
-                      return moduleId ? (
-                        <Link href={`/quiz-assessment/${moduleId}?courseId=${id}`}>
-                          <Button
-                            className="bg-green-600 hover:bg-green-700 text-white gap-1 text-base"
-                            onClick={() => {
-                              // Mark as attempted when clicking the button
-                              setHasAttemptedQuiz(true);
-                              // Save to sessionStorage immediately
-                              try {
-                                const saved = sessionStorage.getItem(
-                                  `lesson_state_${id}`,
-                                );
-                                const state = saved ? JSON.parse(saved) : {};
-                                state.hasAttemptedQuiz = true;
-                                state.timestamp = Date.now();
-                                sessionStorage.setItem(
-                                  `lesson_state_${id}`,
-                                  JSON.stringify(state),
-                                );
-                              } catch (e) {
-                                logger.warn(
-                                  "[VideoLearningModule] Failed to save quiz attempt state:",
-                                  e,
-                                );
-                              }
-                            }}
-                          >
-                            {hasAttemptedQuiz
-                              ? "Refaire le quizz"
-                              : "Passer aux quiz"}
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      ) : (
-                        <Button
-                          disabled
-                          className="bg-gray-400 text-white gap-1 text-base"
-                        >
-                          Aucun quiz disponible
-                        </Button>
-                      );
-                    })()
-                  ) : (
-                    <Button
-                      onClick={(e) => handleNextLesson(e)}
-                      disabled={currentLessonIndex === allLessons.length - 1}
-                      className="gap-1 text-base"
-                    >
-                      Suivant
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t">
-                <button
-                  onClick={(e) => toggleLessonComplete(currentLessonIndex, e)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-base ${
-                    completedLessons.has(currentLessonIndex)
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {completedLessons.has(currentLessonIndex) ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <Circle className="h-5 w-5" />
-                  )}
-                  {completedLessons.has(currentLessonIndex)
-                    ? "Terminé"
-                    : "Marquer comme terminé"}
-                </button>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="px-4 md:px-8 border-t">
-              <div className="flex gap-6">
-                {(["overview", "notes", "resources"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`py-4 text-base font-medium border-b-2 transition-colors ${
-                      activeTab === tab
-                        ? "border-primary text-primary"
-                        : "border-transparent text-gray-600 hover:text-gray-900"
-                    }`}
-                  >
-                    {tab === "overview" && "Aperçu"}
-                    {tab === "notes" && "Notes"}
-                    {tab === "resources" && "Ressources"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Tab Content */}
-          <div className="flex-1 px-4 md:px-8 py-6 overflow-y-auto bg-gray-50">
-            {activeTab === "overview" && (
-              <div className="max-w-3xl">
-                <h3 className="text-xl font-semibold mb-4">
-                  À propos de cette leçon
-                </h3>
-                <p className="text-gray-600 text-base leading-relaxed">
-                  {currentLesson?.post_excerpt ||
-                    "Dans cette leçon, vous allez découvrir les concepts fondamentaux et les meilleures pratiques pour maîtriser ce sujet. Suivez attentivement la vidéo et n'hésitez pas à prendre des notes."}
-                </p>
-
-                {/* Comments Section */}
-                <div className="mt-8">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5" />
-                    Questions et commentaires
-                  </h3>
-
-                  {/* Add Comment */}
-                  <div className="flex gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                      {user?.display_name?.charAt(0) || "E"}
-                    </div>
-                    <div className="flex-1">
-                      <Textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Posez une question ou laissez un commentaire..."
-                        className="min-h-[100px] resize-none bg-white text-base"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="flex justify-end mt-2">
-                        <Button
-                          onClick={(e) => handleSendComment(e)}
-                          disabled={!newComment.trim()}
-                          className="gap-2 text-base"
-                        >
-                          <Send className="h-4 w-4" />
-                          Envoyer
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Comments List */}
-                  <div className="space-y-4">
-                    {comments.length === 0 ? (
-                      <div className="text-center py-8 bg-white rounded-lg border">
-                        <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 text-base">
-                          Aucun commentaire pour le moment
-                        </p>
-                        <p className="text-gray-400 text-base">
-                          Soyez le premier à poser une question !
-                        </p>
-                      </div>
-                    ) : (
-                      comments.map((comment) => (
-                        <div
-                          key={comment.id}
-                          className="flex gap-3 bg-white p-4 rounded-lg border"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {comment.user.charAt(0)}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-base">
-                                {comment.user}
-                              </span>
-                              <span className="text-sm text-gray-500">
-                                {comment.time}
-                              </span>
-                            </div>
-                            <p className="text-gray-700 text-base">
-                              {comment.comment}
-                            </p>
-                            <div className="flex items-center gap-4 mt-2">
-                              <button className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary">
-                                <ThumbsUp className="h-4 w-4" />
-                                J'aime
-                              </button>
-                              <button className="text-sm text-gray-500 hover:text-primary">
-                                Répondre
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "notes" && (
-              <div className="max-w-3xl">
-                <h3 className="text-xl font-semibold mb-4">Vos notes</h3>
-                <Textarea
-                  placeholder="Prenez des notes pendant la leçon..."
-                  className="min-h-[300px] bg-white text-base"
-                />
-              </div>
-            )}
-
-            {activeTab === "resources" && (
-              <div className="max-w-3xl">
-                <h3 className="text-xl font-semibold mb-4">
-                  Ressources téléchargeables
-                </h3>
-                <div className="bg-white rounded-lg border p-6 text-center">
-                  <p className="text-gray-500 text-base">
-                    Aucune ressource disponible pour cette leçon
                   </p>
                 </div>
               </div>
@@ -828,68 +634,183 @@ export default function VideoLearningModule() {
           </div>
         </div>
 
-        {/* Sidebar - Course Content */}
+        {/* Lesson nav under video */}
+        <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => handlePreviousLesson(e)}
+            disabled={currentLessonIndex === 0}
+            className="text-white hover:bg-gray-800 gap-1 disabled:opacity-40"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Précédent
+          </Button>
+          <p className="text-sm text-gray-300 tabular-nums">
+            Leçon {currentLessonIndex + 1} / {allLessons.length || "—"}
+          </p>
+          {currentLessonIndex === allLessons.length - 1 ? (
+            (() => {
+              const moduleWithQuiz = course?.modules?.find(
+                (module: any) => module.quizzes && module.quizzes.length > 0,
+              );
+              const moduleId = moduleWithQuiz?.id;
+              return moduleId ? (
+                <Link href={`/quiz-assessment/${moduleId}?courseId=${id}`}>
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white gap-1"
+                    onClick={() => {
+                      setHasAttemptedQuiz(true);
+                      try {
+                        const saved = sessionStorage.getItem(
+                          `lesson_state_${id}`,
+                        );
+                        const state = saved ? JSON.parse(saved) : {};
+                        state.hasAttemptedQuiz = true;
+                        state.timestamp = Date.now();
+                        sessionStorage.setItem(
+                          `lesson_state_${id}`,
+                          JSON.stringify(state),
+                        );
+                      } catch (e) {
+                        logger.warn(
+                          "[VideoLearningModule] Failed to save quiz attempt state:",
+                          e,
+                        );
+                      }
+                    }}
+                  >
+                    {hasAttemptedQuiz ? "Refaire le quizz" : "Quiz"}
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button size="sm" disabled className="opacity-50">
+                  Fin
+                </Button>
+              );
+            })()
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => handleNextLesson(e)}
+              className="text-white hover:bg-gray-800 gap-1"
+            >
+              Suivant
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Lesson title + mark complete */}
+        <div className="bg-white border-b px-4 md:px-8 py-5">
+          <div className="max-w-3xl mx-auto">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+              {currentLesson?.post_title || "Chargement..."}
+            </h1>
+            <p className="text-sm text-gray-600 mb-4">
+              {currentLesson?.post_excerpt ||
+                "Les différentes étapes de l'apprentissage."}
+            </p>
+            <button
+              onClick={(e) => toggleLessonComplete(currentLessonIndex, e)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                completedLessons.has(currentLessonIndex)
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {completedLessons.has(currentLessonIndex) ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <Circle className="h-5 w-5" />
+              )}
+              {completedLessons.has(currentLessonIndex)
+                ? "Marqué comme terminé"
+                : "Marquer comme terminé"}
+            </button>
+
+            {/* Tabs */}
+            <div className="flex gap-6 mt-5 border-t">
+              {(["overview", "notes", "resources"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab
+                      ? "border-primary text-primary"
+                      : "border-transparent text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {tab === "overview" && "Aperçu"}
+                  {tab === "notes" && "Notes"}
+                  {tab === "resources" && "Ressources"}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "overview" && (
+              <div className="pt-4">
+                <p className="text-gray-600 text-base leading-relaxed">
+                  {currentLesson?.post_excerpt ||
+                    "Dans cette leçon, vous allez découvrir les concepts fondamentaux et les meilleures pratiques."}
+                </p>
+              </div>
+            )}
+            {activeTab === "notes" && (
+              <div className="pt-4">
+                <Textarea
+                  placeholder="Prenez des notes pendant la leçon..."
+                  className="min-h-[160px] bg-white text-base"
+                />
+              </div>
+            )}
+            {activeTab === "resources" && (
+              <div className="pt-4">
+                <p className="text-gray-500 text-base">
+                  Aucune ressource disponible pour cette leçon
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Contenu du cours — always below video (mobile-first) */}
         <aside
-          className={`bg-white border-l flex flex-col transition-all duration-300 ${
-            sidebarOpen
-              ? "fixed inset-0 z-40 lg:relative lg:z-auto w-full lg:w-96"
-              : "hidden lg:flex lg:w-96"
-          }`}
+          ref={courseContentRef}
+          className="bg-white border-t scroll-mt-16"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Sidebar Header */}
-          <div className="bg-gray-50 border-b px-4 py-4 flex items-center justify-between sticky top-0">
-            <div>
-              <h3 className="font-bold text-lg">Contenu du cours</h3>
-              <p className="text-sm text-gray-500">
-                {completedLessons.size}/{allLessons.length} leçons terminées
+          <div className="max-w-3xl mx-auto w-full">
+            <div className="px-4 md:px-8 py-4 border-b bg-gray-50 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-lg text-gray-900">
+                  Contenu du cours
+                </h3>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {sectionTitle}
+                </p>
+              </div>
+              <p className="text-sm font-medium text-gray-600 tabular-nums">
+                {completedLessons.size} / {allLessons.length}
+                <span className="text-gray-400 font-normal"> | </span>
+                {progressPercent}%
               </p>
             </div>
-            <button
-              className="lg:hidden p-2 hover:bg-gray-200 rounded-lg"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSidebarOpen(false);
-              }}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
 
-          {/* Sidebar Progress */}
-          <div className="px-4 py-3 border-b bg-white">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                Progression
-              </span>
-              <span className="text-sm font-bold text-primary">
-                {progressPercent}%
-              </span>
+            <div className="px-4 md:px-8 py-3 border-b">
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
 
-          {/* Lessons List */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="py-2">
-              {courseLoading ? (
-                <div className="p-4 space-y-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="flex gap-3 p-3 animate-pulse">
-                      <div className="w-5 h-5 bg-gray-200 rounded-full flex-shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-3/4" />
-                        <div className="h-3 bg-gray-200 rounded w-1/2" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : allLessons.length > 0 ? (
+            <div className="py-1">
+              {allLessons.length > 0 ? (
                 allLessons.map((lesson: any, index: number) => {
                   const isCurrent = index === currentLessonIndex;
                   const isCompleted = completedLessons.has(index);
@@ -898,14 +819,13 @@ export default function VideoLearningModule() {
                     <button
                       key={lesson.ID ?? index}
                       onClick={(e) => handleLessonSelect(index, e)}
-                      className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-l-4 ${
+                      className={`w-full flex items-start gap-3 px-4 md:px-8 py-3.5 hover:bg-gray-50 transition-colors text-left border-l-4 ${
                         isCurrent
                           ? "bg-primary/5 border-l-primary"
                           : "border-l-transparent"
                       }`}
                     >
-                      {/* Completion indicator */}
-                      <div className="mt-0.5 flex-shrink-0">
+                      <div className="mt-0.5 shrink-0">
                         {isCompleted ? (
                           <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
                             <CheckCircle2 className="h-4 w-4 text-white" />
@@ -919,7 +839,6 @@ export default function VideoLearningModule() {
                         )}
                       </div>
 
-                      {/* Lesson Info */}
                       <div className="flex-1 min-w-0">
                         <p
                           className={`text-base font-medium leading-snug ${
@@ -932,9 +851,17 @@ export default function VideoLearningModule() {
                         >
                           {index + 1}. {lesson.post_title}
                         </p>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{lesson.duration || "00:00"}</span>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {lesson.duration || "1min"}
+                          </span>
+                          {isCompleted && (
+                            <span className="inline-flex items-center gap-1 text-green-600 font-medium">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Marqué comme terminé
+                            </span>
+                          )}
                         </div>
                       </div>
                     </button>
@@ -954,3 +881,4 @@ export default function VideoLearningModule() {
     </div>
   );
 }
+

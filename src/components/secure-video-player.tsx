@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { VideoApi } from "@/infrastructure/api/video-api";
 import {
   isDirectPlayableVideoUrl,
@@ -14,6 +21,11 @@ interface SecureVideoPlayerProps {
   durationHintSeconds?: number;
   title?: string;
   className?: string;
+  orientation?: "portrait" | "landscape" | "auto";
+  aspectRatio?: number;
+  fitMode?: "contain" | "cover";
+  /** Called with width/height when HTML5 metadata is available (Bunny MP4, etc.) */
+  onMediaSize?: (size: { width: number; height: number }) => void;
   onProgressWindow?: (
     fromTime: number,
     toTime: number,
@@ -109,6 +121,10 @@ export function SecureVideoPlayer({
   durationHintSeconds,
   title = "Vidéo du cours",
   className = "",
+  orientation = "landscape",
+  aspectRatio,
+  fitMode = "contain",
+  onMediaSize,
   onProgressWindow,
   onEnded,
 }: SecureVideoPlayerProps) {
@@ -117,6 +133,8 @@ export function SecureVideoPlayer({
   const [isPlayerLoading, setIsPlayerLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [detectedRatio, setDetectedRatio] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const trackingIntervalRef = useRef<number | null>(null);
@@ -130,6 +148,16 @@ export function SecureVideoPlayer({
   useEffect(() => {
     onProgressWindowRef.current = onProgressWindow;
   }, [onProgressWindow]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mq = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const isIframeEmbedUrl = useCallback((input?: string) => {
     if (!input) return false;
@@ -667,28 +695,54 @@ export function SecureVideoPlayer({
   }, [stopTracking]);
 
   const normalizedClassName = className.trim();
-  const containerClassName = normalizedClassName
-    ? `relative w-full overflow-hidden bg-black ${normalizedClassName}`
-    : "relative w-full aspect-video overflow-hidden bg-black";
+  const ratio =
+    aspectRatio ??
+    detectedRatio ??
+    (orientation === "portrait" ? 9 / 16 : 16 / 9);
+  const isPortrait = ratio < 1;
+  const frameStyle = isPortrait
+    ? isMobile
+      ? { width: "100%", aspectRatio: `${ratio}` }
+      : { width: "min(100%, 380px)", aspectRatio: `${ratio}` }
+    : { width: "100%", aspectRatio: `${ratio}` };
+  const mediaClassName =
+    fitMode === "cover"
+      ? "absolute inset-0 h-full w-full border-0 object-cover object-center"
+      : "absolute inset-0 h-full w-full border-0 object-contain";
+
+  const shellClassName = normalizedClassName
+    ? `flex w-full justify-center ${normalizedClassName}`
+    : "flex w-full justify-center";
+
+  const renderShell = (content: ReactNode) => (
+    <div className={shellClassName}>
+      <div
+        className="relative overflow-hidden rounded-2xl bg-black shadow-lg"
+        style={frameStyle}
+      >
+        {content}
+      </div>
+    </div>
+  );
 
   if (loading) {
-    return (
-      <div className={`${containerClassName} flex items-center justify-center`}>
+    return renderShell(
+      <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <div className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" />
           <p className="text-sm">Chargement de la vidéo...</p>
         </div>
-      </div>
+      </div>,
     );
   }
 
   if (error) {
-    return (
-      <div className={`${containerClassName} flex items-center justify-center`}>
-        <div className="text-center text-white px-4">
-          <div className="w-12 h-12 mx-auto mb-4 bg-red-500 rounded-full flex items-center justify-center">
+    return renderShell(
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="px-4 text-center text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500">
             <svg
-              className="w-6 h-6"
+              className="h-6 w-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -701,20 +755,20 @@ export function SecureVideoPlayer({
               />
             </svg>
           </div>
-          <p className="text-sm mb-2">{error}</p>
+          <p className="mb-2 text-sm">{error}</p>
           <button
             onClick={fetchSignedUrl}
-            className="px-4 py-2 bg-[#002c75] text-white text-sm rounded hover:bg-[#001f54] transition-colors"
+            className="rounded bg-[#002c75] px-4 py-2 text-sm text-white transition-colors hover:bg-[#001f54]"
           >
             Réessayer
           </button>
         </div>
-      </div>
+      </div>,
     );
   }
 
-  return (
-    <div className={containerClassName}>
+  return renderShell(
+    <>
       {isPlayerLoading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="text-center text-white">
@@ -732,7 +786,7 @@ export function SecureVideoPlayer({
             title={title}
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
-            className="h-full w-full border-0"
+            className={mediaClassName}
             onLoad={() => {
               setIsPlayerLoading(false);
               logger.log("[BUNNY TRACKING] iframe chargé", {
@@ -752,16 +806,23 @@ export function SecureVideoPlayer({
             controls
             playsInline
             preload="metadata"
-            className="h-full w-full"
+            className={mediaClassName}
             title={title}
             onLoadStart={() => {
               setIsPlayerLoading(true);
             }}
             onLoadedMetadata={() => {
-              lastTrackedTimeRef.current = Number(videoRef.current?.currentTime) || 0;
+              lastTrackedTimeRef.current =
+                Number(videoRef.current?.currentTime) || 0;
               const duration = Number(videoRef.current?.duration) || 0;
               if (duration > 0) {
                 lastKnownDurationRef.current = duration;
+              }
+              const width = Number(videoRef.current?.videoWidth) || 0;
+              const height = Number(videoRef.current?.videoHeight) || 0;
+              if (width > 0 && height > 0) {
+                setDetectedRatio(width / height);
+                onMediaSize?.({ width, height });
               }
             }}
             onLoadedData={() => {
@@ -795,11 +856,11 @@ export function SecureVideoPlayer({
           />
         )
       ) : (
-        <div className="flex items-center justify-center h-full text-white">
+        <div className="absolute inset-0 flex items-center justify-center text-white">
           Vidéo indisponible
         </div>
       )}
-    </div>
+    </>,
   );
 }
 

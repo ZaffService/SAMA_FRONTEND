@@ -232,12 +232,14 @@ function VideoWithLoading({
   lessonId,
   videoId,
   title,
+  fitMode = "contain",
   onTrackProgress,
   onEnded,
 }: {
   lessonId: string;
   videoId: string;
   title?: string;
+  fitMode?: "contain" | "cover";
   onTrackProgress: (payload: VideoProgressWindow) => void;
   onEnded?: () => void;
 }) {
@@ -353,8 +355,13 @@ function VideoWithLoading({
     return () => window.clearTimeout(timeoutId);
   }, [isLoading, stopTracking]);
 
+  const playerFrameClassName =
+    fitMode === "cover"
+      ? "absolute inset-0 h-full w-full [&>iframe]:absolute [&>iframe]:left-1/2 [&>iframe]:top-1/2 [&>iframe]:h-[100%] [&>iframe]:w-auto [&>iframe]:min-h-full [&>iframe]:min-w-full [&>iframe]:max-w-none [&>iframe]:-translate-x-1/2 [&>iframe]:-translate-y-1/2 [&>iframe]:scale-[1.01]"
+      : "h-full w-full [&>iframe]:h-full [&>iframe]:w-full";
+
   return (
-    <div className="absolute inset-0 h-full w-full bg-black">
+    <div className="absolute inset-0 h-full w-full overflow-hidden bg-black">
       {hasPlaybackIssue && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black px-4">
           <div className="text-center text-white">
@@ -377,12 +384,12 @@ function VideoWithLoading({
         </div>
       )}
       <div
-        ref={hostRef}
-        title={title || "Vidéo YouTube"}
-        className={`h-full w-full transition-opacity duration-300 ${
+        className={`${playerFrameClassName} transition-opacity duration-300 ${
           isLoading || hasPlaybackIssue ? "opacity-0" : "opacity-100"
         }`}
-      />
+      >
+        <div ref={hostRef} title={title || "Vidéo YouTube"} className="h-full w-full" />
+      </div>
     </div>
   );
 }
@@ -413,8 +420,12 @@ function CourseDetailsPageComponent() {
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  /** Portrait vs landscape — player frame follows the media (no black bars) */
+  const [videoOrientation, setVideoOrientation] = useState<
+    "landscape" | "portrait"
+  >("landscape");
+  const courseContentRef = useRef<HTMLElement | null>(null);
   const initialViewParam = (searchParams.get("view") || "").toLowerCase();
   const initialQuizModuleIdParam = searchParams.get("moduleId");
   const initialQuizModeParam = (searchParams.get("quizMode") || "").toLowerCase();
@@ -501,6 +512,10 @@ function CourseDetailsPageComponent() {
   // Helper function to get YouTube video ID
   const getYouTubeVideoId = (url?: string | null): string | null => {
     if (!url || typeof url !== "string") return null;
+    const shortsMatch = url.match(
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/i,
+    );
+    if (shortsMatch?.[1]) return shortsMatch[1];
     const iframeRegex =
       /<iframe[^>]*src=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/embed\/|youtu\.be\/)([^"']{11})[^"']*["'][^>]*>/gi;
     const iframeMatch = iframeRegex.exec(url);
@@ -515,6 +530,9 @@ function CourseDetailsPageComponent() {
     if (simpleMatch && simpleMatch[1]) return simpleMatch[1];
     return null;
   };
+
+  const isYouTubeShortsUrl = (url?: string | null) =>
+    typeof url === "string" && /youtube\.com\/shorts\//i.test(url);
 
   // Enrollment check states
   // Popup d'inscription retiré - causait des boucles d'affichage
@@ -1553,6 +1571,81 @@ function CourseDetailsPageComponent() {
     return lessonsWithVideos[currentLessonIndex] || null;
   }, [lessonsWithVideos, currentLessonIndex]);
 
+  // Adapt player frame to video format (Shorts / portrait vs landscape)
+  useEffect(() => {
+    let cancelled = false;
+    const url =
+      typeof selectedLesson?.videoUrl === "string"
+        ? selectedLesson.videoUrl.trim()
+        : "";
+    const titleHint =
+      `${selectedLesson?.title || ""} ${courseData?.course?.title || ""}`.toLowerCase();
+
+    const apply = (isPortrait: boolean) => {
+      if (!cancelled) {
+        setVideoOrientation(isPortrait ? "portrait" : "landscape");
+      }
+    };
+
+    // Explicit portrait cues (course/lesson named Portrait, Shorts, vertical, etc.)
+    if (
+      /portrait|vertical|short|reel|tiktok|9\s*[:/x]\s*16/.test(titleHint)
+    ) {
+      apply(true);
+      return;
+    }
+
+    if (isYouTubeShortsUrl(url)) {
+      apply(true);
+      return;
+    }
+
+    const ytId = getYouTubeVideoId(url);
+    if (ytId) {
+      void (async () => {
+        try {
+          const res = await fetch(
+            `https://www.youtube.com/oembed?url=${encodeURIComponent(
+              `https://www.youtube.com/shorts/${ytId}`,
+            )}&format=json`,
+          );
+          apply(res.ok);
+        } catch {
+          apply(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Bunny / MP4: attendre onMediaSize ; ne pas forcer paysage
+    if (
+      selectedLesson?.videoProvider === "BUNNY" ||
+      selectedLesson?.videoAssetId
+    ) {
+      return;
+    }
+
+    if (!url) {
+      apply(false);
+      return;
+    }
+
+    apply(false);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedLesson?.id,
+    selectedLesson?.videoUrl,
+    selectedLesson?.title,
+    selectedLesson?.videoProvider,
+    selectedLesson?.videoAssetId,
+    courseData?.course?.title,
+  ]);
+
   const lessonIdParam = searchParams.get("lessonId") || searchParams.get("lesson");
 
   useEffect(() => {
@@ -2265,19 +2358,25 @@ function CourseDetailsPageComponent() {
     );
   }
 
-  const hasVideo = !!selectedLesson?.hasVideo;
-  const hasVideoContent = lessonsWithVideos.length > 0;
   const safeSelectedLesson = selectedLesson ?? lessonsWithVideos[0] ?? null;
   const selectedLessonVideoUrl =
     typeof safeSelectedLesson?.videoUrl === "string"
       ? safeSelectedLesson.videoUrl.trim()
       : "";
+  const hasVideo = Boolean(
+    safeSelectedLesson?.hasVideo ||
+      safeSelectedLesson?.videoAssetId ||
+      selectedLessonVideoUrl ||
+      safeSelectedLesson?.videoProvider === "BUNNY",
+  );
+  const hasVideoContent = lessonsWithVideos.length > 0;
   const hasVideoFileExtension = /\.(mp4|m3u8|webm|ogg|mov)(\?|#|$)/i.test(
     selectedLessonVideoUrl,
   );
   const isKnownVideoProvider =
     selectedLessonVideoUrl.includes("mediadelivery.net") ||
     selectedLessonVideoUrl.includes("bunnycdn.com") ||
+    selectedLessonVideoUrl.includes("b-cdn.net") ||
     selectedLessonVideoUrl.includes("youtube.com") ||
     selectedLessonVideoUrl.includes("youtu.be") ||
     selectedLessonVideoUrl.includes("vimeo.com") ||
@@ -2310,18 +2409,24 @@ function CourseDetailsPageComponent() {
 
     return isCoursePageLikeUrl || isMaintenanceLikeUrl;
   })();
-  const shouldShowVideoUnavailableState =
-    !safeSelectedLesson ||
-    !hasVideo ||
-    (selectedLessonVideoUrl && isInvalidDirectVideoUrl);
+  // Ne bloquer que s'il n'y a vraiment rien à lire (Bunny sans URL = fetch signed côté player)
+  const canAttemptPlayback = Boolean(
+    safeSelectedLesson &&
+      (getYouTubeVideoId(selectedLessonVideoUrl) ||
+        safeSelectedLesson.videoAssetId ||
+        safeSelectedLesson.videoProvider === "BUNNY" ||
+        (selectedLessonVideoUrl && !isInvalidDirectVideoUrl) ||
+        safeSelectedLesson.hasVideo),
+  );
+  const shouldShowVideoUnavailableState = !canAttemptPlayback;
 
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;
   };
 
-  // ✅ Composant Sidebar réutilisable
+  // ✅ Contenu du cours (sous la vidéo — mobile-first)
   const LessonsSidebar = ({ onClose }: { onClose?: () => void }) => (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-[#D1D7DC] bg-white shadow-sm">
+    <div className="flex max-h-[70vh] min-h-0 flex-col overflow-hidden border border-[#D1D7DC] bg-white shadow-sm lg:max-h-[min(70vh,640px)]">
       <div className="flex items-center justify-between border-b border-[#D1D7DC] px-4 py-4">
         <h3 className="text-xl font-bold leading-6 text-[#1C1D1F]">
           Contenu du cours
@@ -2748,20 +2853,20 @@ function CourseDetailsPageComponent() {
   );
 
   const renderVideoUnavailableState = () => (
-    <div className="flex h-full w-full items-center justify-center bg-black px-4">
-      <div className="text-center text-white">
-        <PlayCircle className="mx-auto mb-4 h-12 w-12 text-white/45" />
-        <p className="text-base font-medium text-white/90">
+    <div className="flex h-full w-full items-center justify-center bg-[#F7F9FA] px-4">
+      <div className="text-center text-[#1C1D1F]">
+        <PlayCircle className="mx-auto mb-4 h-12 w-12 text-[#6A6F73]" />
+        <p className="text-base font-medium">
           Vidéo indisponible pour le moment
         </p>
-        <p className="mt-1 text-sm text-white/60">
+        <p className="mt-1 text-sm text-[#6A6F73]">
           Réessayez plus tard ou passez à la leçon suivante.
         </p>
         <div className="mt-4 flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#D1D7DC] bg-white px-3 py-1.5 text-xs font-semibold text-[#002c75] transition-colors hover:bg-[#EEF4FF]"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Réessayer
@@ -2770,7 +2875,7 @@ function CourseDetailsPageComponent() {
             <button
               type="button"
               onClick={() => handleNextLesson()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#002c75] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#001f54]"
             >
               Suivant
               <ChevronRight className="h-3.5 w-3.5" />
@@ -2780,6 +2885,13 @@ function CourseDetailsPageComponent() {
       </div>
     </div>
   );
+
+  const isPortrait = videoOrientation === "portrait";
+  const handleMediaSize = (size: { width: number; height: number }) => {
+    if (size.width > 0 && size.height > 0) {
+      setVideoOrientation(size.height > size.width ? "portrait" : "landscape");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F9FA]">
@@ -2902,8 +3014,8 @@ function CourseDetailsPageComponent() {
               </button>
 
               {!(contentMode === "quiz" && activeQuizModuleId) && (
-                <div className="hidden items-center gap-3 sm:flex">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="hidden items-center gap-2 sm:flex">
                     <div className="h-1.5 w-28 rounded-full bg-[#4A4E62]">
                       <div
                         className="h-full rounded-full bg-[#002c75]"
@@ -2912,6 +3024,20 @@ function CourseDetailsPageComponent() {
                     </div>
                     <span className="text-sm text-white/80">Votre progression</span>
                   </div>
+                  {hasVideoContent && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        courseContentRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        })
+                      }
+                      className="rounded-md border border-white/20 px-3 py-1.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/10"
+                    >
+                      Leçons
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -2933,36 +3059,65 @@ function CourseDetailsPageComponent() {
               </div>
             </main>
           ) : (
-            <main className="relative flex min-h-0 flex-1 overflow-hidden">
+            <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
               <section className="min-h-0 flex-1 overflow-y-auto">
                 <section className="border-b border-[#D1D7DC] bg-white">
                   <div className="flex flex-col bg-white">
                     {hasVideoContent ? (
-                      <div className="relative w-full aspect-video max-h-[600px] bg-white">
+                      <div className="bg-[#F7F9FA] px-4 py-6 sm:px-6">
                         {!shouldShowVideoUnavailableState ? (
                           (() => {
                             const videoId = getYouTubeVideoId(
                               safeSelectedLesson?.videoUrl,
                             );
                             return videoId ? (
-                              <VideoWithLoading
-                                lessonId={safeSelectedLesson?.id || selectedLessonId}
-                                videoId={videoId}
-                                title={safeSelectedLesson?.title || course.title}
-                                onTrackProgress={handleVideoTrackingProgress}
-                                onEnded={handleLessonVideoEnded}
-                              />
+                              <div className="flex w-full justify-center">
+                                <div
+                                  className={
+                                    isPortrait
+                                      ? "relative w-full max-w-[380px] overflow-hidden rounded-2xl bg-black shadow-lg aspect-9/16"
+                                      : "relative w-full max-w-5xl overflow-hidden rounded-2xl bg-black shadow-lg aspect-video"
+                                  }
+                                >
+                                  <div className="absolute inset-0">
+                                    <VideoWithLoading
+                                      lessonId={
+                                        safeSelectedLesson?.id || selectedLessonId
+                                      }
+                                      videoId={videoId}
+                                      title={
+                                        safeSelectedLesson?.title || course.title
+                                      }
+                                      fitMode="contain"
+                                      onTrackProgress={
+                                        handleVideoTrackingProgress
+                                      }
+                                      onEnded={handleLessonVideoEnded}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             ) : (
                               <SecureVideoPlayer
                                 url={safeSelectedLesson?.videoUrl}
                                 key={safeSelectedLesson?.id}
-                                lessonId={safeSelectedLesson?.id || selectedLessonId}
-                                durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
+                                lessonId={
+                                  safeSelectedLesson?.id || selectedLessonId
+                                }
+                                durationHintSeconds={
+                                  (safeSelectedLesson?.duration || 0) * 60
+                                }
                                 title={safeSelectedLesson?.title || course.title}
-                                className="h-full w-full"
+                                className="mx-auto max-w-5xl"
+                                orientation={
+                                  isPortrait ? "portrait" : "landscape"
+                                }
+                                fitMode="contain"
+                                onMediaSize={handleMediaSize}
                                 onProgressWindow={(fromTime, toTime, duration) =>
                                   handleVideoTrackingProgress({
-                                    lessonId: safeSelectedLesson?.id || selectedLessonId,
+                                    lessonId:
+                                      safeSelectedLesson?.id || selectedLessonId,
                                     fromTime,
                                     toTime,
                                     duration,
@@ -2973,26 +3128,32 @@ function CourseDetailsPageComponent() {
                             );
                           })()
                         ) : (
-                          <div className="w-full aspect-video">{renderVideoUnavailableState()}</div>
+                          <div className="mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-2xl">
+                            {renderVideoUnavailableState()}
+                          </div>
                         )}
                       </div>
                     ) : (
-                      <div className="w-full aspect-video">{renderVideoUnavailableState()}</div>
+                      <div className="mx-auto w-full max-w-5xl px-4 pt-6">
+                        <div className="aspect-video overflow-hidden rounded-lg bg-[#F7F9FA]">
+                          {renderVideoUnavailableState()}
+                        </div>
+                      </div>
                     )}
 
                     {hasVideoContent && (
-                      <div className="flex items-center justify-between gap-3 border-t border-[#2F3137] bg-[#15171B] px-4 py-3 sm:px-6">
+                      <div className="flex items-center justify-between gap-3 border-t border-[#D1D7DC] bg-white px-4 py-3 sm:px-6">
                         <button
                           type="button"
                           onClick={handlePreviousLesson}
                           disabled={currentLessonIndex === 0}
-                          className="inline-flex items-center gap-2 rounded border border-[#3E4148] px-3 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#20232A] disabled:cursor-not-allowed disabled:opacity-40"
+                          className="inline-flex items-center gap-2 rounded border border-[#D1D7DC] px-3 py-2 text-sm font-semibold text-[#1C1D1F] transition-colors duration-200 hover:bg-[#F7F9FA] disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <ChevronLeft className="h-4 w-4" />
                           <span>Précédent</span>
                         </button>
 
-                        <span className="text-sm font-medium text-[#C0C4CC]">
+                        <span className="text-sm font-medium text-[#6A6F73]">
                           Leçon {Math.min(currentLessonIndex + 1, lessonsWithVideos.length)} /{" "}
                           {lessonsWithVideos.length}
                         </span>
@@ -3001,7 +3162,7 @@ function CourseDetailsPageComponent() {
                           type="button"
                           onClick={handleNextLesson}
                           disabled={currentLessonIndex >= lessonsWithVideos.length - 1}
-                          className="inline-flex items-center gap-2 rounded border border-[#3E4148] px-3 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#20232A] disabled:cursor-not-allowed disabled:opacity-40"
+                          className="inline-flex items-center gap-2 rounded bg-[#002c75] px-3 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#001f54] disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <span>Suivant</span>
                           <ChevronRight className="h-4 w-4" />
@@ -3010,6 +3171,18 @@ function CourseDetailsPageComponent() {
                     )}
                   </div>
                 </section>
+
+                {/* Contenu du cours — toujours sous la vidéo */}
+                {hasVideoContent && (
+                  <section
+                    ref={courseContentRef}
+                    className="scroll-mt-16 border-b border-[#D1D7DC] bg-white"
+                  >
+                    <div className="mx-auto w-full max-w-3xl px-0 sm:px-4 sm:py-4">
+                      <LessonsSidebar />
+                    </div>
+                  </section>
+                )}
 
                 <section className="border-b border-[#D1D7DC] bg-white">
                   <div className="mx-auto max-w-[1020px] overflow-x-auto px-4">
@@ -3044,12 +3217,6 @@ function CourseDetailsPageComponent() {
                 </section>
 
                 <div className="bg-[#F7F9FA]">
-                  {isMobile && hasVideoContent && (
-                    <section className="border-b border-[#D1D7DC] bg-white">
-                      <LessonsSidebar />
-                    </section>
-                  )}
-
                   {activeTab === "videos" && (
                     <section className="mx-auto max-w-[1020px] px-4 py-8 lg:px-8">
                       <h1 className="text-4xl font-bold leading-tight text-[#1C1D1F]">
@@ -3067,12 +3234,6 @@ function CourseDetailsPageComponent() {
                           <p className="text-sm text-[#6A6F73]">Niveau</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">{levelLabel}</p>
                         </div>
-                        {/* <div>
-                          <p className="text-sm text-[#6A6F73]">Étudiants</p>
-                          <p className="text-xl font-semibold text-[#1C1D1F]">
-                            {studentsCount}
-                          </p>
-                        </div> */}
                         <div>
                           <p className="text-sm text-[#6A6F73]">Durée totale</p>
                           <p className="text-xl font-semibold text-[#1C1D1F]">
@@ -3159,41 +3320,6 @@ function CourseDetailsPageComponent() {
                   )}
                 </div>
               </section>
-
-              {!isMobile && hasVideoContent && (
-                <>
-                  <aside
-                    className={`hidden flex-shrink-0 overflow-hidden transition-[width,min-width] duration-300 ease-in-out lg:flex lg:min-h-0 lg:flex-col lg:bg-white ${
-                      isDesktopSidebarOpen
-                        ? "w-[340px] min-w-[340px]"
-                        : "w-0 min-w-0"
-                    }`}
-                  >
-                    <div
-                      className={`h-full w-[340px] transform transition-transform duration-300 ease-in-out ${
-                        isDesktopSidebarOpen ? "translate-x-0" : "translate-x-full"
-                      }`}
-                    >
-                      <LessonsSidebar
-                        onClose={() => {
-                          setIsDesktopSidebarOpen(false);
-                        }}
-                      />
-                    </div>
-                  </aside>
-
-                  {!isDesktopSidebarOpen && (
-                    <button
-                      type="button"
-                      onClick={() => setIsDesktopSidebarOpen(true)}
-                      aria-label="Ouvrir le panneau contenu du cours"
-                      className="absolute right-0 top-1/2 z-30 hidden h-12 w-9 -translate-y-1/2 items-center justify-center rounded-l-md bg-[#002c75] text-white shadow-lg transition-all duration-200 hover:bg-[#001f54] lg:flex"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                  )}
-                </>
-              )}
             </main>
           )}
         </div>
