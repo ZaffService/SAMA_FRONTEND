@@ -389,7 +389,12 @@ export default function ClientLogin() {
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-4 lg:space-y-5" autoComplete="off">
+            <form
+              onSubmit={handleLogin}
+              noValidate
+              className="space-y-4 lg:space-y-5"
+              autoComplete="off"
+            >
               <Tabs
                 value={loginMode}
                 onValueChange={handleLoginModeChange}

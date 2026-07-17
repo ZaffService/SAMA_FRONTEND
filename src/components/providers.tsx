@@ -8,6 +8,7 @@ import { QueryProvider } from "@/shared/helpers/query-client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { ProfileCompletionGuard } from "@/components/profile-completion-guard";
+import { DisableHtmlValidation } from "@/components/disable-html-validation";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export function Providers({ children }: ProvidersProps) {
           <LocalAuthProvider>
             <AvatarProvider>
               <LoadingProvider>
+                <DisableHtmlValidation />
                 <ProfileCompletionGuard>{children}</ProfileCompletionGuard>
               </LoadingProvider>
             </AvatarProvider>
