@@ -59,6 +59,7 @@ import {
   Video,
   Eye,
   UserPlus,
+  Star,
 } from "lucide-react";
 import { CourseEditor } from "./CourseEditor";
 import { CourseBasicInfoEditor } from "./editors/CourseBasicInfoEditor";
@@ -197,10 +198,18 @@ export function CourseManagement({
 
       const result = await CoursesApi.getCourses(1, 100, searchOptions);
 
-      const normalizedCourses = result.courses.map((course) => ({
-        ...course,
-        enrollmentCount: resolveEnrollmentCount(course),
-      }));
+      const normalizedCourses = result.courses.map((course) => {
+        const raw = course as BackendCourse & {
+          is_recommended?: boolean;
+        };
+        return {
+          ...course,
+          enrollmentCount: resolveEnrollmentCount(course),
+          isRecommended: Boolean(
+            course.isRecommended ?? raw.is_recommended ?? false,
+          ),
+        };
+      });
       setCourses(normalizedCourses);
     } catch (error) {
       logger.error("Erreur lors de la récupération des cours:", error);
@@ -227,6 +236,23 @@ export function CourseManagement({
     } catch (error) {
       logger.error("Erreur lors de la mise à jour du statut:", error);
       toast.error("Erreur lors de la mise à jour du statut");
+    }
+  };
+
+  const handleToggleRecommend = async (course: BackendCourse) => {
+    const nextValue = !course.isRecommended;
+    try {
+      await CoursesApi.setCourseRecommended(course.id, nextValue);
+      toast.success(
+        nextValue
+          ? "Cours recommandé avec succès"
+          : "Recommandation retirée",
+      );
+      fetchCourses();
+      onCourseUpdated?.();
+    } catch (error) {
+      logger.error("Erreur lors de la mise à jour de la recommandation:", error);
+      toast.error("Erreur lors de la mise à jour de la recommandation");
     }
   };
 
@@ -386,7 +412,15 @@ export function CourseManagement({
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-white">{course.title}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-white">{course.title}</p>
+                            {course.isRecommended && (
+                              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                <Star className="w-3 h-3 mr-1 fill-current" />
+                                Recommandé
+                              </Badge>
+                            )}
+                          </div>
                           <p className="max-w-xs truncate text-sm text-white/55">
                             {course.description}
                           </p>
@@ -462,6 +496,23 @@ export function CourseManagement({
                                 >
                                   <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                                   Publier
+                                </DropdownMenuItem>
+                              )}
+                              {user?.role === "ADMIN" && (
+                                <DropdownMenuItem
+                                  onClick={() => handleToggleRecommend(course)}
+                                  className="cursor-pointer rounded-md px-2 py-2 text-sm text-white/85 outline-none transition-colors focus:bg-[#26233A] focus:text-white data-highlighted:bg-[#26233A] data-highlighted:text-white"
+                                >
+                                  <Star
+                                    className={`h-4 w-4 mr-2 ${
+                                      course.isRecommended
+                                        ? "text-amber-400 fill-amber-400"
+                                        : "text-amber-400"
+                                    }`}
+                                  />
+                                  {course.isRecommended
+                                    ? "Ne plus recommander"
+                                    : "Recommander"}
                                 </DropdownMenuItem>
                               )}
                               {course.status !== "DRAFT" && (

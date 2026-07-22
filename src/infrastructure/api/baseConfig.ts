@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
     UPDATE_SIMPLE: (courseId: string) => `/course/update-simple/${courseId}`,
     DELETE: (courseId: string) => `/course/delete/${courseId}`,
     UPDATE_STATUS: (courseId: string) => `/course/update-status/${courseId}`,
+    RECOMMEND: (courseId: string) => `/course/recommend/${courseId}`,
     ENROLL: "/course/enrollment",
     ENROLLMENT: "/course/enrollment",
     FOLLOW: (courseId: string) => `/course/follow/${courseId}`,

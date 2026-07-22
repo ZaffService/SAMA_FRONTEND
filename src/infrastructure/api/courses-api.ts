@@ -59,6 +59,7 @@ export interface BackendCourse {
   instructorName?: string;
   previewAvailable?: boolean;
   enrollmentCount?: number;
+  isRecommended?: boolean;
 }
 
 interface BackendResponse {
@@ -218,6 +219,12 @@ export class CoursesApi {
     }
     if (searchOptions?.status) {
       url.searchParams.append("status", searchOptions.status);
+    }
+    if (typeof searchOptions?.isRecommended === "boolean") {
+      url.searchParams.append(
+        "isRecommended",
+        String(searchOptions.isRecommended),
+      );
     }
 
     const response = await fetch(url.toString(), {
@@ -1520,6 +1527,44 @@ export class CoursesApi {
 
     const data = await response.json();
     logger.log("✅ Statut mis à jour:", data);
+    return data;
+  }
+
+  /**
+   * Recommande ou retire la recommandation d'un cours (ADMIN)
+   * Endpoint: POST /course/recommend/:courseId
+   */
+  static async setCourseRecommended(
+    courseId: string,
+    isRecommended: boolean,
+  ): Promise<any> {
+    logger.log(
+      `⭐ API: Recommandation du cours ${courseId} → ${isRecommended}`,
+    );
+
+    const response = await fetch(
+      buildApiUrl(API_ENDPOINTS.COURSES.RECOMMEND(courseId)),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ isRecommended }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          errorData.error?.message ||
+          `Erreur lors de la mise à jour de la recommandation: ${response.status}`,
+      );
+    }
+
+    const data = await response.json();
+    logger.log("✅ Recommandation mise à jour:", data);
     return data;
   }
 
