@@ -16,6 +16,10 @@ import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { usePayment } from "@/application/use-cases/usePayment";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
 import { SecureVideoPlayer } from "@/components/secure-video-player";
+import { CourseSidebar } from "@/components/course/CourseSidebar";
+import { CourseSheet } from "@/components/course/CourseSheet";
+import { LessonNav } from "@/components/course/LessonNav";
+import { LessonOverview } from "@/components/course/LessonOverview";
 import { transformCourseDetails } from "@/lib/transformers/course-transformer";
 import { VideoApi } from "@/infrastructure/api/video-api";
 import Swal from "sweetalert2";
@@ -39,7 +43,6 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  Search,
   Download,
 } from "lucide-react";
 import Cookies from "js-cookie";
@@ -232,12 +235,14 @@ function VideoWithLoading({
   lessonId,
   videoId,
   title,
+  fitMode = "contain",
   onTrackProgress,
   onEnded,
 }: {
   lessonId: string;
   videoId: string;
   title?: string;
+  fitMode?: "contain" | "cover";
   onTrackProgress: (payload: VideoProgressWindow) => void;
   onEnded?: () => void;
 }) {
@@ -353,8 +358,13 @@ function VideoWithLoading({
     return () => window.clearTimeout(timeoutId);
   }, [isLoading, stopTracking]);
 
+  const playerFrameClassName =
+    fitMode === "cover"
+      ? "absolute inset-0 h-full w-full [&>iframe]:absolute [&>iframe]:left-1/2 [&>iframe]:top-1/2 [&>iframe]:h-[100%] [&>iframe]:w-auto [&>iframe]:min-h-full [&>iframe]:min-w-full [&>iframe]:max-w-none [&>iframe]:-translate-x-1/2 [&>iframe]:-translate-y-1/2 [&>iframe]:scale-[1.01]"
+      : "h-full w-full [&>iframe]:h-full [&>iframe]:w-full";
+
   return (
-    <div className="absolute inset-0 h-full w-full bg-black">
+    <div className="absolute inset-0 h-full w-full overflow-hidden bg-black">
       {hasPlaybackIssue && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black px-4">
           <div className="text-center text-white">
@@ -377,12 +387,12 @@ function VideoWithLoading({
         </div>
       )}
       <div
-        ref={hostRef}
-        title={title || "Vidéo YouTube"}
-        className={`h-full w-full transition-opacity duration-300 ${
+        className={`${playerFrameClassName} transition-opacity duration-300 ${
           isLoading || hasPlaybackIssue ? "opacity-0" : "opacity-100"
         }`}
-      />
+      >
+        <div ref={hostRef} title={title || "Vidéo YouTube"} className="h-full w-full" />
+      </div>
     </div>
   );
 }
@@ -413,8 +423,12 @@ function CourseDetailsPageComponent() {
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  /** Portrait vs landscape — player frame follows the media (no black bars) */
+  const [videoOrientation, setVideoOrientation] = useState<
+    "landscape" | "portrait"
+  >("landscape");
+  const courseContentRef = useRef<HTMLElement | null>(null);
   const initialViewParam = (searchParams.get("view") || "").toLowerCase();
   const initialQuizModuleIdParam = searchParams.get("moduleId");
   const initialQuizModeParam = (searchParams.get("quizMode") || "").toLowerCase();
@@ -501,6 +515,10 @@ function CourseDetailsPageComponent() {
   // Helper function to get YouTube video ID
   const getYouTubeVideoId = (url?: string | null): string | null => {
     if (!url || typeof url !== "string") return null;
+    const shortsMatch = url.match(
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/i,
+    );
+    if (shortsMatch?.[1]) return shortsMatch[1];
     const iframeRegex =
       /<iframe[^>]*src=["'](?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/embed\/|youtu\.be\/)([^"']{11})[^"']*["'][^>]*>/gi;
     const iframeMatch = iframeRegex.exec(url);
@@ -515,6 +533,9 @@ function CourseDetailsPageComponent() {
     if (simpleMatch && simpleMatch[1]) return simpleMatch[1];
     return null;
   };
+
+  const isYouTubeShortsUrl = (url?: string | null) =>
+    typeof url === "string" && /youtube\.com\/shorts\//i.test(url);
 
   // Enrollment check states
   // Popup d'inscription retiré - causait des boucles d'affichage
@@ -1553,6 +1574,81 @@ function CourseDetailsPageComponent() {
     return lessonsWithVideos[currentLessonIndex] || null;
   }, [lessonsWithVideos, currentLessonIndex]);
 
+  // Adapt player frame to video format (Shorts / portrait vs landscape)
+  useEffect(() => {
+    let cancelled = false;
+    const url =
+      typeof selectedLesson?.videoUrl === "string"
+        ? selectedLesson.videoUrl.trim()
+        : "";
+    const titleHint =
+      `${selectedLesson?.title || ""} ${courseData?.course?.title || ""}`.toLowerCase();
+
+    const apply = (isPortrait: boolean) => {
+      if (!cancelled) {
+        setVideoOrientation(isPortrait ? "portrait" : "landscape");
+      }
+    };
+
+    // Explicit portrait cues (course/lesson named Portrait, Shorts, vertical, etc.)
+    if (
+      /portrait|vertical|short|reel|tiktok|9\s*[:/x]\s*16/.test(titleHint)
+    ) {
+      apply(true);
+      return;
+    }
+
+    if (isYouTubeShortsUrl(url)) {
+      apply(true);
+      return;
+    }
+
+    const ytId = getYouTubeVideoId(url);
+    if (ytId) {
+      void (async () => {
+        try {
+          const res = await fetch(
+            `https://www.youtube.com/oembed?url=${encodeURIComponent(
+              `https://www.youtube.com/shorts/${ytId}`,
+            )}&format=json`,
+          );
+          apply(res.ok);
+        } catch {
+          apply(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Bunny / MP4: attendre onMediaSize ; ne pas forcer paysage
+    if (
+      selectedLesson?.videoProvider === "BUNNY" ||
+      selectedLesson?.videoAssetId
+    ) {
+      return;
+    }
+
+    if (!url) {
+      apply(false);
+      return;
+    }
+
+    apply(false);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selectedLesson?.id,
+    selectedLesson?.videoUrl,
+    selectedLesson?.title,
+    selectedLesson?.videoProvider,
+    selectedLesson?.videoAssetId,
+    courseData?.course?.title,
+  ]);
+
   const lessonIdParam = searchParams.get("lessonId") || searchParams.get("lesson");
 
   useEffect(() => {
@@ -2265,19 +2361,25 @@ function CourseDetailsPageComponent() {
     );
   }
 
-  const hasVideo = !!selectedLesson?.hasVideo;
-  const hasVideoContent = lessonsWithVideos.length > 0;
   const safeSelectedLesson = selectedLesson ?? lessonsWithVideos[0] ?? null;
   const selectedLessonVideoUrl =
     typeof safeSelectedLesson?.videoUrl === "string"
       ? safeSelectedLesson.videoUrl.trim()
       : "";
+  const hasVideo = Boolean(
+    safeSelectedLesson?.hasVideo ||
+      safeSelectedLesson?.videoAssetId ||
+      selectedLessonVideoUrl ||
+      safeSelectedLesson?.videoProvider === "BUNNY",
+  );
+  const hasVideoContent = lessonsWithVideos.length > 0;
   const hasVideoFileExtension = /\.(mp4|m3u8|webm|ogg|mov)(\?|#|$)/i.test(
     selectedLessonVideoUrl,
   );
   const isKnownVideoProvider =
     selectedLessonVideoUrl.includes("mediadelivery.net") ||
     selectedLessonVideoUrl.includes("bunnycdn.com") ||
+    selectedLessonVideoUrl.includes("b-cdn.net") ||
     selectedLessonVideoUrl.includes("youtube.com") ||
     selectedLessonVideoUrl.includes("youtu.be") ||
     selectedLessonVideoUrl.includes("vimeo.com") ||
@@ -2310,35 +2412,49 @@ function CourseDetailsPageComponent() {
 
     return isCoursePageLikeUrl || isMaintenanceLikeUrl;
   })();
-  const shouldShowVideoUnavailableState =
-    !safeSelectedLesson ||
-    !hasVideo ||
-    (selectedLessonVideoUrl && isInvalidDirectVideoUrl);
+  // Ne bloquer que s'il n'y a vraiment rien à lire (Bunny sans URL = fetch signed côté player)
+  const canAttemptPlayback = Boolean(
+    safeSelectedLesson &&
+      (getYouTubeVideoId(selectedLessonVideoUrl) ||
+        safeSelectedLesson.videoAssetId ||
+        safeSelectedLesson.videoProvider === "BUNNY" ||
+        (selectedLessonVideoUrl && !isInvalidDirectVideoUrl) ||
+        safeSelectedLesson.hasVideo),
+  );
+  const shouldShowVideoUnavailableState = !canAttemptPlayback;
 
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress[lessonId] || false;
   };
 
-  // ✅ Composant Sidebar réutilisable
-  const LessonsSidebar = ({ onClose }: { onClose?: () => void }) => (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-[#D1D7DC] bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-[#D1D7DC] px-4 py-4">
-        <h3 className="text-xl font-bold leading-6 text-[#1C1D1F]">
-          Contenu du cours
-        </h3>
-        {onClose ? (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer le panneau contenu du cours"
-            className="rounded-sm p-1 text-[#6A6F73] transition-colors duration-200 hover:bg-[#F7F9FA] hover:text-[#1C1D1F]"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        ) : (
-          <div className="h-7 w-7" />
-        )}
-      </div>
+  // ✅ Contenu du cours (accordéon partagé — sidebar / sheet / portrait)
+  const LessonsSidebar = ({
+    onClose,
+    showHeader = true,
+  }: {
+    onClose?: () => void;
+    showHeader?: boolean;
+  }) => (
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
+      {showHeader ? (
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 className="text-base font-semibold text-foreground">
+            Contenu du cours
+          </h3>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fermer le panneau contenu du cours"
+              className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : (
+            <div className="h-7 w-7" />
+          )}
+        </div>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto">
         {sortedModules.map((module, moduleIndex) => {
@@ -2359,28 +2475,29 @@ function CourseDetailsPageComponent() {
             0,
           );
 
-            return (
-            <div key={module.id} className="border-b border-[#D1D7DC] last:border-b-0">
+          return (
+            <div
+              key={module.id}
+              className="border-b border-border last:border-b-0"
+            >
               <button
                 onClick={() => handleModuleClick(module.id)}
-                className={`w-full px-4 py-4 text-left transition-colors duration-150 ${
-                  isExpanded ? "bg-[#F7F9FA]" : "bg-[#F7F9FA] hover:bg-[#EEF1F3]"
-                }`}
+                className="w-full min-h-10 bg-muted/40 px-4 py-3 text-left transition-colors hover:bg-muted/70"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold leading-6 text-[#1C1D1F]">
+                    <p className="truncate text-sm font-semibold text-foreground">
                       Section {moduleIndex + 1}: {module.title}
                     </p>
-                    <p className="mt-1 text-xs text-[#6A6F73]">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {completedLessonsCount} / {moduleLessons.length}
                       {totalModuleDuration > 0
-                        ? ` | ${formatDuration(totalModuleDuration)}`
+                        ? ` · ${formatDuration(totalModuleDuration)}`
                         : ""}
                     </p>
                   </div>
                   <ChevronDown
-                    className={`mt-2 h-5 w-5 flex-shrink-0 text-[#6A6F73] transition-transform duration-200 ${
+                    className={`mt-1 h-5 w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${
                       isExpanded ? "rotate-180" : ""
                     }`}
                   />
@@ -2388,21 +2505,22 @@ function CourseDetailsPageComponent() {
               </button>
 
               {isExpanded && (
-                <div className="bg-white">
+                <div className="bg-background">
                   {moduleLessons.map((lesson, lessonIndex) => {
                     const completed = isLessonCompleted(lesson.id);
                     const canManuallyComplete = hasCourseAccess && !completed;
+                    const isActive = selectedLessonId === lesson.id;
 
                     return (
                       <div
                         key={lesson.id}
-                        className={`border-t border-[#D1D7DC] transition-colors ${
-                          selectedLessonId === lesson.id
-                            ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
-                            : "bg-white hover:bg-[#F7F9FA]"
+                        className={`border-t border-border transition-colors ${
+                          isActive
+                            ? "border-l-4 border-l-primary bg-primary/10"
+                            : "border-l-4 border-l-transparent hover:bg-muted/50"
                         }`}
                       >
-                        <div className="flex flex-col gap-2 px-4 py-3">
+                        <div className="flex flex-col gap-2 px-3 py-2.5">
                           <button
                             onClick={() => {
                               const lessonIndex = lessonsWithVideos.findIndex(
@@ -2415,24 +2533,40 @@ function CourseDetailsPageComponent() {
                                 setActiveQuizMode("module");
                                 setActiveTab("videos");
                               }
-                              if (isMobile) {
-                                window.scrollTo({
-                                  top: 0,
-                                  behavior: "smooth",
-                                });
-                              }
+                              window.scrollTo({
+                                top: 0,
+                                behavior: "smooth",
+                              });
+                              onClose?.();
                             }}
-                            className="flex items-start gap-3 text-left"
+                            className="flex min-h-10 items-start gap-3 text-left"
                           >
+                            <span
+                              className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ${
+                                completed
+                                  ? "bg-emerald-500/15 text-emerald-600"
+                                  : isActive
+                                    ? "bg-primary/15 text-primary"
+                                    : "text-muted-foreground"
+                              }`}
+                            >
+                              {completed ? (
+                                <Check className="size-3.5" strokeWidth={2.5} />
+                              ) : isActive ? (
+                                <Play className="size-3.5 fill-current" />
+                              ) : (
+                                <span className="size-3 rounded-full border border-muted-foreground/40" />
+                              )}
+                            </span>
                             <div className="min-w-0 flex-1">
-                              <p className="line-clamp-2 text-sm leading-5 text-[#1C1D1F]">
+                              <p className="line-clamp-2 text-sm leading-5 text-foreground">
                                 {lessonIndex + 1}. {lesson.title}
                               </p>
-                              <div className="mt-1 flex items-center gap-1 text-xs text-[#6A6F73]">
+                              <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                                 {isEnrolled ? (
-                                  <PlayCircle className="h-4 w-4 flex-shrink-0" />
+                                  <PlayCircle className="h-3.5 w-3.5 flex-shrink-0" />
                                 ) : (
-                                  <Lock className="h-4 w-4 flex-shrink-0" />
+                                  <Lock className="h-3.5 w-3.5 flex-shrink-0" />
                                 )}
                                 <span>
                                   {lesson.duration > 0
@@ -2457,25 +2591,25 @@ function CourseDetailsPageComponent() {
                                 ? "Leçon terminée"
                                 : "Marquer comme terminée"
                             }
-                            className={`inline-flex items-center gap-2 text-xs font-medium transition-colors ${
+                            className={`inline-flex min-h-10 items-center gap-2 text-xs font-medium transition-colors ${
                               completed
-                                ? "text-[#6A6F73]"
-                                : "text-[#002c75] hover:text-[#001f52]"
+                                ? "text-muted-foreground"
+                                : "text-primary hover:text-primary/80"
                             } ${canManuallyComplete ? "cursor-pointer" : "cursor-not-allowed"}`}
                           >
                             <span
                               className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
                                 completed
-                                  ? "border-[#3ECF8E] bg-[#3ECF8E]"
+                                  ? "border-emerald-500 bg-emerald-500"
                                   : canManuallyComplete
-                                    ? "border-[#6A6F73] bg-white hover:border-[#002c75] hover:bg-[#EAF2FF]"
-                                    : "border-[#D1D7DC] bg-[#F7F9FA]"
+                                    ? "border-muted-foreground bg-background hover:border-primary"
+                                    : "border-border bg-muted"
                               }`}
                             >
                               {completed ? (
                                 <Check className="h-3 w-3 text-white" />
                               ) : (
-                                <span className="h-2 w-2 rounded-full border border-[#D1D7DC]" />
+                                <span className="h-2 w-2 rounded-full border border-border" />
                               )}
                             </span>
                             <span>
@@ -2491,25 +2625,28 @@ function CourseDetailsPageComponent() {
 
                   {moduleHasQuiz && (
                     <div
-                      className={`border-t border-[#D1D7DC] transition-colors ${
+                      className={`border-t border-border transition-colors ${
                         contentMode === "quiz" &&
                         activeQuizModuleId === module.id &&
                         activeQuizMode === "module"
-                          ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
-                          : "bg-white hover:bg-[#F7F9FA]"
+                          ? "border-l-4 border-l-primary bg-primary/10"
+                          : "border-l-4 border-l-transparent hover:bg-muted/50"
                       }`}
                     >
                       <button
-                        onClick={() => handleStartQuiz(module.id)}
-                        className="flex w-full items-start gap-3 px-4 py-3 text-left"
+                        onClick={() => {
+                          handleStartQuiz(module.id);
+                          onClose?.();
+                        }}
+                        className="flex w-full min-h-10 items-start gap-3 px-4 py-3 text-left"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#1C1D1F]">
+                          <p className="truncate text-sm font-semibold text-foreground">
                             {moduleQuiz?.title
                               ? `Quiz noté : ${moduleQuiz.title}`
                               : "Défi du module : passez le quiz"}
                           </p>
-                          <p className="text-xs text-[#6A6F73]">
+                          <p className="text-xs text-muted-foreground">
                             Obligatoire pour valider et continuer
                           </p>
                         </div>
@@ -2519,12 +2656,12 @@ function CourseDetailsPageComponent() {
 
                   {showCertificationQuiz && (
                     <div
-                      className={`border-t border-[#D1D7DC] transition-colors ${
+                      className={`border-t border-border transition-colors ${
                         contentMode === "quiz" &&
                         activeQuizModuleId === module.id &&
                         activeQuizMode === "certification"
-                          ? "border-l-4 border-l-[#002c75] bg-[#EAF2FF]"
-                          : "bg-white hover:bg-[#F7F9FA]"
+                          ? "border-l-4 border-l-primary bg-primary/10"
+                          : "border-l-4 border-l-transparent hover:bg-muted/50"
                       }`}
                     >
                       <button
@@ -2545,21 +2682,18 @@ function CourseDetailsPageComponent() {
                           setContentMode("quiz");
                           setActiveTab("videos");
                           setQuizViewInUrl(module.id, "certification");
-                          if (isMobile) {
-                            setTimeout(() => {
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }, 100);
-                          }
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                          onClose?.();
                         }}
-                        className="flex w-full items-start gap-3 px-4 py-3 text-left"
+                        className="flex w-full min-h-10 items-start gap-3 px-4 py-3 text-left"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-[#1C1D1F]">
+                          <p className="truncate text-sm font-semibold text-foreground">
                             {certificationQuiz?.title
                               ? `Quiz de certification : ${certificationQuiz.title}`
                               : "Quiz de certification"}
                           </p>
-                          <p className="text-xs text-[#6A6F73]">
+                          <p className="text-xs text-muted-foreground">
                             Obligatoire pour obtenir la certification
                           </p>
                         </div>
@@ -2569,8 +2703,8 @@ function CourseDetailsPageComponent() {
                 </div>
               )}
             </div>
-            );
-          })}
+          );
+        })}
       </div>
     </div>
   );
@@ -2748,20 +2882,20 @@ function CourseDetailsPageComponent() {
   );
 
   const renderVideoUnavailableState = () => (
-    <div className="flex h-full w-full items-center justify-center bg-black px-4">
-      <div className="text-center text-white">
-        <PlayCircle className="mx-auto mb-4 h-12 w-12 text-white/45" />
-        <p className="text-base font-medium text-white/90">
+    <div className="flex h-full w-full items-center justify-center bg-[#F7F9FA] px-4">
+      <div className="text-center text-[#1C1D1F]">
+        <PlayCircle className="mx-auto mb-4 h-12 w-12 text-[#6A6F73]" />
+        <p className="text-base font-medium">
           Vidéo indisponible pour le moment
         </p>
-        <p className="mt-1 text-sm text-white/60">
+        <p className="mt-1 text-sm text-[#6A6F73]">
           Réessayez plus tard ou passez à la leçon suivante.
         </p>
         <div className="mt-4 flex items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#D1D7DC] bg-white px-3 py-1.5 text-xs font-semibold text-[#002c75] transition-colors hover:bg-[#EEF4FF]"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Réessayer
@@ -2770,7 +2904,7 @@ function CourseDetailsPageComponent() {
             <button
               type="button"
               onClick={() => handleNextLesson()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#002c75] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#001f54]"
             >
               Suivant
               <ChevronRight className="h-3.5 w-3.5" />
@@ -2781,8 +2915,191 @@ function CourseDetailsPageComponent() {
     </div>
   );
 
+  const isPortrait = videoOrientation === "portrait";
+  const handleMediaSize = (size: { width: number; height: number }) => {
+    if (size.width > 0 && size.height > 0) {
+      setVideoOrientation(size.height > size.width ? "portrait" : "landscape");
+    }
+  };
+
+  const activeSectionTitle =
+    sortedModules.find((module) =>
+      module.lessons.some((lesson) => lesson.id === selectedLessonId),
+    )?.title || undefined;
+
+  const overviewDescription =
+    selectedLesson?.content ||
+    course.description ||
+    "Ce module vous guide pas à pas avec une approche pratique, des exemples concrets et des exercices progressifs.";
+
+  const lessonDurationLabel =
+    safeSelectedLesson && safeSelectedLesson.duration > 0
+      ? formatDuration(safeSelectedLesson.duration)
+      : formatDuration(totalCourseDuration);
+
+  const renderLessonPlayer = () => {
+    if (!hasVideoContent) {
+      return (
+        <div
+          className={
+            isPortrait
+              ? "mx-auto aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-2xl bg-muted/30"
+              : "mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-2xl bg-muted/30"
+          }
+        >
+          {renderVideoUnavailableState()}
+        </div>
+      );
+    }
+
+    if (shouldShowVideoUnavailableState) {
+      return (
+        <div
+          className={
+            isPortrait
+              ? "mx-auto aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-2xl bg-muted/30"
+              : "mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-2xl bg-muted/30"
+          }
+        >
+          {renderVideoUnavailableState()}
+        </div>
+      );
+    }
+
+    const videoId = getYouTubeVideoId(safeSelectedLesson?.videoUrl);
+    if (videoId) {
+      return (
+        <div className="flex w-full justify-center">
+          <div
+            className={
+              isPortrait
+                ? "relative aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-2xl bg-muted/30 shadow-[var(--shadow-card)]"
+                : "relative aspect-video w-full max-w-5xl overflow-hidden rounded-2xl bg-muted/30 shadow-[var(--shadow-card)]"
+            }
+          >
+            <div className="absolute inset-0">
+              <VideoWithLoading
+                lessonId={safeSelectedLesson?.id || selectedLessonId}
+                videoId={videoId}
+                title={safeSelectedLesson?.title || course.title}
+                fitMode="contain"
+                onTrackProgress={handleVideoTrackingProgress}
+                onEnded={handleLessonVideoEnded}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <SecureVideoPlayer
+        url={safeSelectedLesson?.videoUrl}
+        key={safeSelectedLesson?.id}
+        lessonId={safeSelectedLesson?.id || selectedLessonId}
+        durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
+        title={safeSelectedLesson?.title || course.title}
+        className={isPortrait ? "mx-auto max-w-[420px]" : "mx-auto max-w-5xl"}
+        orientation={isPortrait ? "portrait" : "landscape"}
+        fitMode="contain"
+        onMediaSize={handleMediaSize}
+        onProgressWindow={(fromTime, toTime, duration) =>
+          handleVideoTrackingProgress({
+            lessonId: safeSelectedLesson?.id || selectedLessonId,
+            fromTime,
+            toTime,
+            duration,
+          })
+        }
+        onEnded={handleLessonVideoEnded}
+      />
+    );
+  };
+
+  const renderOverviewPanel = () => (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("videos")}
+          className={`min-h-10 border-b-2 px-1 py-2 text-sm font-semibold transition-colors ${
+            activeTab === "videos"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Aperçu
+        </button>
+        {hasAttachment && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("resources")}
+            className={`min-h-10 border-b-2 px-1 py-2 text-sm font-semibold transition-colors ${
+              activeTab === "resources"
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Ressources
+          </button>
+        )}
+      </div>
+
+      {activeTab === "videos" && (
+        <LessonOverview
+          sectionTitle={activeSectionTitle}
+          title={selectedLesson?.title || course.title}
+          description={overviewDescription}
+          levelLabel={levelLabel}
+          durationLabel={lessonDurationLabel}
+          formatLabel={isPortrait ? "Format portrait" : "Format paysage"}
+          learnPoints={learningPoints}
+        />
+      )}
+
+      {activeTab === "resources" && (
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-card)] sm:p-6">
+          <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+            Ressources du cours
+          </h2>
+          {hasAttachment ? (
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold text-foreground">
+                    {attachmentFilename}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Document PDF</p>
+                </div>
+              </div>
+              {attachmentUrl && (
+                <a
+                  href={attachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={attachmentFilename}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Download className="h-4 w-4" />
+                  Télécharger
+                </a>
+              )}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Aucune ressource disponible pour ce cours.
+            </p>
+          )}
+        </section>
+      )}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-[#F7F9FA]">
+    <div className="min-h-screen bg-background">
       {/* Fullscreen Video Modal - Mobile */}
       {isFullscreen && isMobile && (
         <div className="fixed inset-0 z-50 bg-black">
@@ -2880,7 +3197,7 @@ function CourseDetailsPageComponent() {
       )}
 
       {hasCourseAccess ? (
-        <div className="flex h-screen flex-col overflow-hidden bg-[#F7F9FA]">
+        <div className="flex h-screen flex-col overflow-hidden bg-background">
           <header className="z-40 flex-shrink-0 border-b border-[#3E4143] bg-[#1C1D1F] text-white">
             <div className="flex h-14 items-center justify-between px-4 lg:px-6">
               <button
@@ -2897,20 +3214,24 @@ function CourseDetailsPageComponent() {
               >
                 <ArrowLeft className="h-5 w-5 shrink-0" />
                 {!(contentMode === "quiz" && activeQuizModuleId) && (
-                  <span className="truncate text-base font-medium">{course.title}</span>
+                  <span className="truncate text-base font-medium">
+                    {course.title}
+                  </span>
                 )}
               </button>
 
               {!(contentMode === "quiz" && activeQuizModuleId) && (
-                <div className="hidden items-center gap-3 sm:flex">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="hidden items-center gap-2 sm:flex">
                     <div className="h-1.5 w-28 rounded-full bg-[#4A4E62]">
                       <div
-                        className="h-full rounded-full bg-[#002c75]"
+                        className="h-full rounded-full bg-primary"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>
-                    <span className="text-sm text-white/80">Votre progression</span>
+                    <span className="text-sm text-white/80">
+                      Votre progression
+                    </span>
                   </div>
                 </div>
               )}
@@ -2918,7 +3239,7 @@ function CourseDetailsPageComponent() {
           </header>
 
           {contentMode === "quiz" && activeQuizModuleId ? (
-            <main className="min-h-0 flex-1 overflow-y-auto bg-[#F7F9FA] py-6">
+            <main className="min-h-0 flex-1 overflow-y-auto bg-muted/30 py-6">
               <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
                 <QuizModal
                   isOpen={true}
@@ -2933,265 +3254,74 @@ function CourseDetailsPageComponent() {
               </div>
             </main>
           ) : (
-            <main className="relative flex min-h-0 flex-1 overflow-hidden">
-              <section className="min-h-0 flex-1 overflow-y-auto">
-                <section className="border-b border-[#D1D7DC] bg-white">
-                  <div className="flex flex-col bg-white">
-                    {hasVideoContent ? (
-                      <div className="relative w-full aspect-video max-h-[600px] bg-white">
-                        {!shouldShowVideoUnavailableState ? (
-                          (() => {
-                            const videoId = getYouTubeVideoId(
-                              safeSelectedLesson?.videoUrl,
-                            );
-                            return videoId ? (
-                              <VideoWithLoading
-                                lessonId={safeSelectedLesson?.id || selectedLessonId}
-                                videoId={videoId}
-                                title={safeSelectedLesson?.title || course.title}
-                                onTrackProgress={handleVideoTrackingProgress}
-                                onEnded={handleLessonVideoEnded}
-                              />
-                            ) : (
-                              <SecureVideoPlayer
-                                url={safeSelectedLesson?.videoUrl}
-                                key={safeSelectedLesson?.id}
-                                lessonId={safeSelectedLesson?.id || selectedLessonId}
-                                durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
-                                title={safeSelectedLesson?.title || course.title}
-                                className="h-full w-full"
-                                onProgressWindow={(fromTime, toTime, duration) =>
-                                  handleVideoTrackingProgress({
-                                    lessonId: safeSelectedLesson?.id || selectedLessonId,
-                                    fromTime,
-                                    toTime,
-                                    duration,
-                                  })
-                                }
-                                onEnded={handleLessonVideoEnded}
-                              />
-                            );
-                          })()
-                        ) : (
-                          <div className="w-full aspect-video">{renderVideoUnavailableState()}</div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full aspect-video">{renderVideoUnavailableState()}</div>
-                    )}
-
-                    {hasVideoContent && (
-                      <div className="flex items-center justify-between gap-3 border-t border-[#2F3137] bg-[#15171B] px-4 py-3 sm:px-6">
-                        <button
-                          type="button"
-                          onClick={handlePreviousLesson}
-                          disabled={currentLessonIndex === 0}
-                          className="inline-flex items-center gap-2 rounded border border-[#3E4148] px-3 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#20232A] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                          <span>Précédent</span>
-                        </button>
-
-                        <span className="text-sm font-medium text-[#C0C4CC]">
-                          Leçon {Math.min(currentLessonIndex + 1, lessonsWithVideos.length)} /{" "}
-                          {lessonsWithVideos.length}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={handleNextLesson}
-                          disabled={currentLessonIndex >= lessonsWithVideos.length - 1}
-                          className="inline-flex items-center gap-2 rounded border border-[#3E4148] px-3 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#20232A] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <span>Suivant</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
+            <main
+              className={`relative flex min-h-0 flex-1 ${
+                isPortrait
+                  ? "flex-col overflow-y-auto"
+                  : "flex-col overflow-hidden lg:flex-row"
+              }`}
+            >
+              <div
+                className={`min-w-0 flex-1 ${
+                  isPortrait ? "" : "overflow-y-auto"
+                }`}
+              >
+                <div
+                  className={`animate-in fade-in-0 duration-300 space-y-4 px-3 py-4 sm:space-y-5 sm:px-4 sm:py-6 ${
+                    isPortrait
+                      ? "mx-auto w-full max-w-3xl"
+                      : "mx-auto w-full max-w-5xl lg:px-6"
+                  }`}
+                >
+                  <div
+                    className={
+                      isPortrait ? "mx-auto w-full max-w-[420px]" : "w-full"
+                    }
+                  >
+                    {renderLessonPlayer()}
                   </div>
-                </section>
 
-                <section className="border-b border-[#D1D7DC] bg-white">
-                  <div className="mx-auto max-w-[1020px] overflow-x-auto px-4">
-                    <div className="flex min-w-max items-center gap-8">
-                      <Search className="h-4 w-4 text-[#6A6F73]" />
-                      <div className="flex items-center gap-6">
-                        <button
-                          onClick={() => setActiveTab("videos")}
-                          className={`border-b-2 py-4 text-[15px] font-semibold transition-colors ${
-                            activeTab === "videos"
-                              ? "border-[#002c75] text-[#002c75]"
-                              : "border-transparent text-[#6A6F73] hover:text-[#1C1D1F]"
-                          }`}
-                        >
-                          Aperçu
-                        </button>
-                        {hasAttachment && (
-                          <button
-                            onClick={() => setActiveTab("resources")}
-                            className={`border-b-2 py-4 text-[15px] font-semibold transition-colors ${
-                              activeTab === "resources"
-                                ? "border-[#002c75] text-[#002c75]"
-                                : "border-transparent text-[#6A6F73] hover:text-[#1C1D1F]"
-                            }`}
-                          >
-                            Ressources
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </section>
+                  {hasVideoContent && (
+                    <LessonNav
+                      onPrevious={handlePreviousLesson}
+                      onNext={handleNextLesson}
+                      canPrevious={currentLessonIndex > 0}
+                      canNext={
+                        currentLessonIndex < lessonsWithVideos.length - 1
+                      }
+                      current={Math.min(
+                        currentLessonIndex + 1,
+                        lessonsWithVideos.length,
+                      )}
+                      total={lessonsWithVideos.length}
+                      className={
+                        isPortrait ? "mx-auto max-w-[420px]" : undefined
+                      }
+                    />
+                  )}
 
-                <div className="bg-[#F7F9FA]">
-                  {isMobile && hasVideoContent && (
-                    <section className="border-b border-[#D1D7DC] bg-white">
+                  {/* Portrait : contenu empilé sous la vidéo */}
+                  {isPortrait && hasVideoContent && (
+                    <section ref={courseContentRef} className="scroll-mt-16">
                       <LessonsSidebar />
                     </section>
                   )}
 
-                  {activeTab === "videos" && (
-                    <section className="mx-auto max-w-[1020px] px-4 py-8 lg:px-8">
-                      <h1 className="text-4xl font-bold leading-tight text-[#1C1D1F]">
-                        {selectedLesson?.title || course.title}
-                      </h1>
-
-                      <p className="mt-6 max-w-3xl text-lg leading-8 text-[#2D2F31]">
-                        {selectedLesson?.content ||
-                          course.description ||
-                          "Ce module vous guide pas à pas avec une approche pratique, des exemples concrets et des exercices progressifs."}
-                      </p>
-
-                      <div className="mt-8 grid gap-4 border border-[#D1D7DC] bg-white p-6 md:grid-cols-3">
-                        <div>
-                          <p className="text-sm text-[#6A6F73]">Niveau</p>
-                          <p className="text-xl font-semibold text-[#1C1D1F]">{levelLabel}</p>
-                        </div>
-                        {/* <div>
-                          <p className="text-sm text-[#6A6F73]">Étudiants</p>
-                          <p className="text-xl font-semibold text-[#1C1D1F]">
-                            {studentsCount}
-                          </p>
-                        </div> */}
-                        <div>
-                          <p className="text-sm text-[#6A6F73]">Durée totale</p>
-                          <p className="text-xl font-semibold text-[#1C1D1F]">
-                            {formatDuration(totalCourseDuration)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-8 border border-[#D1D7DC] bg-white p-6">
-                        <h3 className="mb-6 text-3xl font-bold text-[#1C1D1F]">
-                          Ce que vous apprendrez
-                        </h3>
-                        {hasLearningPoints ? (
-                          <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
-                            {learningPoints.map((point, index) => (
-                              <div key={`${point}-${index}`} className="flex items-start gap-3">
-                                <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#002c75]" />
-                                <span className="text-sm leading-6 text-[#2D2F31]">{point}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-[#6A6F73]">
-                            Les objectifs d&apos;apprentissage apparaîtront ici une fois le contenu
-                            pédagogique détaillé dans les modules.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="mt-8 border-t border-[#D1D7DC] pt-8">
-                        <h3 className="text-2xl font-bold text-[#1C1D1F]">Description</h3>
-                        <p className="mt-4 max-w-4xl text-[17px] leading-8 text-[#2D2F31]">
-                          {course.description ||
-                            "Ce cours est conçu pour vous donner une compréhension solide et pratique du sujet, avec un parcours progressif et orienté vers l'application réelle."}
-                        </p>
-                      </div>
-                    </section>
-                  )}
-
-                  {activeTab === "resources" && (
-                    <section className="mx-auto max-w-[1020px] px-4 py-8 lg:px-8">
-                      <h2 className="text-3xl font-bold text-[#1C1D1F]">
-                        Ressources du cours
-                      </h2>
-
-                      {hasAttachment ? (
-                        <div className="mt-6 rounded-xl border border-[#D1D7DC] bg-white p-6">
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#EEF4FF] text-[#002c75]">
-                                <FileText className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <p className="text-base font-semibold text-[#1C1D1F]">
-                                  {attachmentFilename}
-                                </p>
-                                <p className="text-sm text-[#6A6F73]">
-                                  Document PDF
-                                </p>
-                              </div>
-                            </div>
-                            {attachmentUrl && (
-                              <a
-                                href={attachmentUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={attachmentFilename}
-                                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#002c75] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#001f54]"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Download className="h-4 w-4" />
-                                 <p>Télécharger</p>
-                                </div>
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-6 rounded-xl border border-[#D1D7DC] bg-white p-6 text-sm text-[#6A6F73]">
-                          Aucune ressource disponible pour ce cours.
-                        </div>
-                      )}
-                    </section>
-                  )}
+                  {renderOverviewPanel()}
                 </div>
-              </section>
+              </div>
 
-              {!isMobile && hasVideoContent && (
+              {/* Paysage desktop : sidebar latérale — jamais empilée sous la vidéo */}
+              {!isPortrait && hasVideoContent && (
                 <>
-                  <aside
-                    className={`hidden flex-shrink-0 overflow-hidden transition-[width,min-width] duration-300 ease-in-out lg:flex lg:min-h-0 lg:flex-col lg:bg-white ${
-                      isDesktopSidebarOpen
-                        ? "w-[340px] min-w-[340px]"
-                        : "w-0 min-w-0"
-                    }`}
-                  >
-                    <div
-                      className={`h-full w-[340px] transform transition-transform duration-300 ease-in-out ${
-                        isDesktopSidebarOpen ? "translate-x-0" : "translate-x-full"
-                      }`}
-                    >
-                      <LessonsSidebar
-                        onClose={() => {
-                          setIsDesktopSidebarOpen(false);
-                        }}
-                      />
-                    </div>
-                  </aside>
-
-                  {!isDesktopSidebarOpen && (
-                    <button
-                      type="button"
-                      onClick={() => setIsDesktopSidebarOpen(true)}
-                      aria-label="Ouvrir le panneau contenu du cours"
-                      className="absolute right-0 top-1/2 z-30 hidden h-12 w-9 -translate-y-1/2 items-center justify-center rounded-l-md bg-[#002c75] text-white shadow-lg transition-all duration-200 hover:bg-[#001f54] lg:flex"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                  )}
+                  <CourseSidebar>
+                    <LessonsSidebar showHeader={false} />
+                  </CourseSidebar>
+                  <CourseSheet>
+                    {(close) => (
+                      <LessonsSidebar onClose={close} showHeader={false} />
+                    )}
+                  </CourseSheet>
                 </>
               )}
             </main>
