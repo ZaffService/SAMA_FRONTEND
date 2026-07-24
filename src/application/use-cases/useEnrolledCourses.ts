@@ -1,7 +1,16 @@
-import { useState, useEffect } from "react";
+"use client";
+
+/**
+ * Cours inscrits via TanStack Query
+ *
+ * Même API publique : enrolledCourses, loading, error, refetch
+ * enabled: false → pas de fetch (ex: utilisateur non connecté)
+ */
+
+import { useQuery } from "@tanstack/react-query";
 import { StudentUseCases } from "./student-use-cases";
 import { Enrollment } from "@/infrastructure/api/student-api";
-import logger from "@/shared/helpers/logger";
+import { courseKeys } from "@/shared/helpers/query-keys";
 
 interface UseEnrolledCoursesState {
   enrolledCourses: Enrollment[];
@@ -21,78 +30,25 @@ export function useEnrolledCourses(
   options: UseEnrolledCoursesOptions = {},
 ): UseEnrolledCoursesState & UseEnrolledCoursesActions {
   const { enabled = true } = options;
-  const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchEnrolledCourses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      logger.log(
-        "🔍 [useEnrolledCourses] Début récupération des cours inscrits...",
-      );
-
-      const courses = await StudentUseCases.getEnrolledCourses();
-
-      logger.log("📚 [useEnrolledCourses] Cours inscrits récupérés:", courses);
-      logger.log(
-        "📊 [useEnrolledCourses] Nombre de cours:",
-        courses?.length || 0,
-      );
-
-      // 🔥 DEBUG spécifique pour le cours problématique
-      const leadershipCourse = courses?.find((c) =>
-        c.title?.includes("Leadership"),
-      );
-      if (leadershipCourse) {
-        logger.log(
-          "🎯 [useEnrolledCourses] Cours Leadership trouvé:",
-          leadershipCourse,
-        );
-        logger.log("🆔 ID du cours Leadership:", leadershipCourse.id);
-        logger.log("🏷️ Titre du cours Leadership:", leadershipCourse.title);
-      } else {
-        logger.log(
-          "❌ [useEnrolledCourses] Cours Leadership NON trouvé dans les cours inscrits",
-        );
-      }
-
-      setEnrolledCourses(courses);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : "Erreur lors du chargement des cours inscrits";
-      setError(errorMessage);
-      logger.error("❌ [useEnrolledCourses] Erreur:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refetch = async () => {
-    if (!enabled) {
-      return;
-    }
-    await fetchEnrolledCourses();
-  };
-
-  useEffect(() => {
-    if (!enabled) {
-      setEnrolledCourses([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    fetchEnrolledCourses();
-  }, [enabled]);
+  const query = useQuery({
+    queryKey: courseKeys.enrolled(),
+    queryFn: () => StudentUseCases.getEnrolledCourses(),
+    enabled,
+    staleTime: 2 * 60 * 1000,
+  });
 
   return {
-    enrolledCourses,
-    loading,
-    error,
-    refetch,
+    enrolledCourses: enabled ? (query.data ?? []) : [],
+    loading: enabled ? query.isPending : false,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Erreur lors du chargement des cours inscrits"
+      : null,
+    refetch: async () => {
+      if (!enabled) return;
+      await query.refetch();
+    },
   };
 }

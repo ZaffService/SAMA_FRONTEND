@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CategoriesApi } from "@/infrastructure/api/categories-api";
+import { useState } from "react";
+import { useCategories } from "@/application/use-cases/useCategories";
+import {
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from "@/application/use-cases/useCategoryMutations";
 import type { Category } from "@/domain/entities/course";
 import Swal from "sweetalert2";
 import {
@@ -24,42 +29,21 @@ export function CategoriesManagement({
   onBack,
   onCategoryUpdated,
 }: CategoriesManagementProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Lecture : même cache que l'accueil / mega-menu
+  const { categories, loading, error, refresh } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Form states
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  // Charger les catégories
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await CategoriesApi.getCategories();
-      setCategories(data);
-      logger.log("✅ Catégories chargées:", data);
-    } catch (err) {
-      logger.error("❌ Erreur lors du chargement des catégories:", err);
-      setError(
-        err instanceof Error ? err.message : "Erreur lors du chargement",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // Créer une catégorie
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -74,7 +58,7 @@ export function CategoriesManagement({
     }
 
     try {
-      await CategoriesApi.createCategory({
+      await createCategory.mutateAsync({
         name: newCategoryName,
         description: newCategoryDescription,
       });
@@ -86,13 +70,9 @@ export function CategoriesManagement({
         confirmButtonColor: "#3b82f6",
       });
 
-      // Réinitialiser le formulaire
       setNewCategoryName("");
       setNewCategoryDescription("");
       setShowCreateForm(false);
-
-      // Rafraîchir la liste
-      await fetchCategories();
       onCategoryUpdated?.();
     } catch (err) {
       logger.error("❌ Erreur lors de la création:", err);
@@ -106,7 +86,6 @@ export function CategoriesManagement({
     }
   };
 
-  // Ouvrir le modal de modification
   const handleEditClick = (category: Category) => {
     setEditingCategory(category);
     setEditName(category.name);
@@ -114,7 +93,6 @@ export function CategoriesManagement({
     setShowEditModal(true);
   };
 
-  // Modifier une catégorie
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -131,9 +109,12 @@ export function CategoriesManagement({
     }
 
     try {
-      await CategoriesApi.updateCategory(editingCategory.id, {
-        name: editName,
-        description: editDescription,
+      await updateCategory.mutateAsync({
+        categoryId: editingCategory.id,
+        data: {
+          name: editName,
+          description: editDescription,
+        },
       });
 
       Swal.fire({
@@ -143,12 +124,8 @@ export function CategoriesManagement({
         confirmButtonColor: "#3b82f6",
       });
 
-      // Fermer le modal
       setShowEditModal(false);
       setEditingCategory(null);
-
-      // Rafraîchir la liste
-      await fetchCategories();
       onCategoryUpdated?.();
     } catch (err) {
       logger.error("❌ Erreur lors de la modification:", err);
@@ -162,9 +139,7 @@ export function CategoriesManagement({
     }
   };
 
-  // Supprimer une catégorie
   const handleDelete = async (categoryId: string) => {
-    // Demander confirmation
     const result = await Swal.fire({
       title: "Êtes-vous sûr ?",
       text: "Cette action est irréversible !",
@@ -179,7 +154,7 @@ export function CategoriesManagement({
     if (!result.isConfirmed) return;
 
     try {
-      await CategoriesApi.deleteCategory(categoryId);
+      await deleteCategory.mutateAsync(categoryId);
 
       Swal.fire({
         title: "Supprimée !",
@@ -188,13 +163,10 @@ export function CategoriesManagement({
         confirmButtonColor: "#3b82f6",
       });
 
-      // Rafraîchir la liste
-      await fetchCategories();
       onCategoryUpdated?.();
     } catch (err) {
       logger.error("❌ Erreur lors de la suppression:", err);
 
-      // Gérer les erreurs spécifiques
       if (
         err instanceof Error &&
         err.message.includes("utilisée par des cours")
@@ -264,7 +236,7 @@ export function CategoriesManagement({
             <div className="text-center py-12">
               <p className="text-red-600 mb-4">{error}</p>
               <button
-                onClick={fetchCategories}
+                onClick={() => void refresh()}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
               >
                 Réessayer

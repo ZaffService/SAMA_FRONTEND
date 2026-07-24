@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GraduationCap, Loader2 } from "lucide-react";
-import { CategoriesApi } from "@/infrastructure/api/categories-api";
+import { useCreateCategory } from "@/application/use-cases/useCategoryMutations";
 import logger from "@/shared/helpers/logger";
 
 interface CategoryDialogProps {
@@ -29,8 +29,9 @@ export function CategoryDialog({
 }: CategoryDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const createCategory = useCreateCategory();
+  const isLoading = createCategory.isPending;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,15 +42,12 @@ export function CategoryDialog({
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      await CategoriesApi.createCategory({
+      await createCategory.mutateAsync({
         name: name.trim(),
         description: description.trim() || undefined,
       });
 
-      // Réinitialiser le formulaire
       setName("");
       setDescription("");
       onCategoryCreated();
@@ -59,8 +57,6 @@ export function CategoryDialog({
       setError(
         err instanceof Error ? err.message : "Erreur lors de la création",
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 

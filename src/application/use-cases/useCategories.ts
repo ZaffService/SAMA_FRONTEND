@@ -1,7 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+"use client";
+
+/**
+ * Module Catégories — lecture via TanStack Query
+ *
+ * Conserve la même API publique (categories, loading, error, refresh)
+ * pour ne rien casser dans page.tsx / mega-menu / admin.
+ */
+
+import { useQuery } from "@tanstack/react-query";
 import { CategoriesApi } from "@/infrastructure/api/categories-api";
 import type { Category } from "@/domain/entities/course";
-import logger from "@/shared/helpers/logger";
+import { categoryKeys } from "@/shared/helpers/query-keys";
+
+// Ré-export pour les imports existants / mutations
+export { categoryKeys } from "@/shared/helpers/query-keys";
 
 interface UseCategoriesState {
   categories: Category[];
@@ -14,69 +26,23 @@ interface UseCategoriesActions {
 }
 
 export function useCategories(): UseCategoriesState & UseCategoriesActions {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const hasInitialized = useRef(false);
-
-  const fetchCategories = useCallback(async () => {
-    // Éviter les appels multiples au premier rendu
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      logger.log("🔄 Récupération des catégories...");
-
-      const result = await CategoriesApi.getCategories();
-
-      if (!abortControllerRef.current.signal.aborted) {
-        setCategories(result);
-        logger.log(`✅ ${result.length} catégories chargées avec succès`);
-      }
-    } catch (err) {
-      if (!abortControllerRef.current.signal.aborted) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Erreur inconnue";
-        logger.error("❌ Erreur lors de la récupération des catégories:", err);
-        setError(errorMessage);
-        setCategories([]);
-      }
-    } finally {
-      if (!abortControllerRef.current.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-      fetchCategories();
-    }
-
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [fetchCategories]);
-
-  const refresh = useCallback(async () => {
-    return fetchCategories();
-  }, [fetchCategories]);
+  const query = useQuery({
+    queryKey: categoryKeys.list(),
+    queryFn: () => CategoriesApi.getCategories(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
   return {
-    categories,
-    loading,
-    error,
-    refresh,
+    categories: query.data ?? [],
+    loading: query.isPending,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : "Erreur inconnue"
+      : null,
+    refresh: async () => {
+      await query.refetch();
+    },
   };
 }

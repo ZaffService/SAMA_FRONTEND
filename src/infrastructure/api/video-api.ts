@@ -217,17 +217,59 @@ export function validateVideoFile(
  */
 export class VideoApi {
   /**
-   * Cache for signed video URLs
+   * Cache legacy (composants qui n'utilisent pas encore TanStack Query)
    */
   private static urlCache: Map<string, { url: string; expiresAt: Date }> =
     new Map();
 
   /**
+   * Appel réseau brut — utilisé par TanStack Query (le cache TQ gère le TTL).
+   */
+  static async requestSignedVideoUrl(
+    lessonId: string,
+  ): Promise<SignedVideoUrl> {
+    logger.log(`🔍 Récupération URL signée pour leçon ${lessonId}...`);
+
+    const response = await fetch(
+      buildApiUrl(`/course/lesson/${lessonId}/video/signed`),
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      },
+    );
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        throw new Error("UNAUTHORIZED: Vous n'êtes pas inscrit à ce cours");
+      }
+      if (response.status === 404) {
+        throw new Error("LESSON_NOT_FOUND: Cette leçon n'existe pas");
+      }
+      if (response.status === 410) {
+        throw new Error("VIDEO_DELETED: La vidéo a été supprimée");
+      }
+      throw new Error(
+        `Erreur ${response.status} lors de la récupération de la vidéo`,
+      );
+    }
+
+    const data = (await response.json()) as SignedVideoUrl;
+    logger.log(`✅ URL signée obtenue, expire à ${data.expiresAt}`);
+    return {
+      url: data.url,
+      expiresAt: data.expiresAt,
+      lessonId: data.lessonId || lessonId,
+    };
+  }
+
+  /**
    * Récupère une URL signée pour la vidéo d'une leçon
-   * Cache les URLs jusqu'à leur expiration
+   * Cache local jusqu'à expiration (compatibilité legacy)
    */
   static async getSignedVideoUrl(lessonId: string): Promise<string> {
-    // Vérifier le cache
     const cached = this.urlCache.get(lessonId);
     if (cached && cached.expiresAt > new Date()) {
       logger.log(`✅ URL signée en cache pour leçon ${lessonId}`);
@@ -235,43 +277,11 @@ export class VideoApi {
     }
 
     try {
-      logger.log(`🔍 Récupération URL signée pour leçon ${lessonId}...`);
-
-      const response = await fetch(
-        buildApiUrl(`/course/lesson/${lessonId}/video/signed`),
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        },
-      );
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error("UNAUTHORIZED: Vous n'êtes pas inscrit à ce cours");
-        }
-        if (response.status === 404) {
-          throw new Error("LESSON_NOT_FOUND: Cette leçon n'existe pas");
-        }
-        if (response.status === 410) {
-          throw new Error("VIDEO_DELETED: La vidéo a été supprimée");
-        }
-        throw new Error(
-          `Erreur ${response.status} lors de la récupération de la vidéo`,
-        );
-      }
-
-      const data = (await response.json()) as SignedVideoUrl;
-
-      // Mettre en cache
+      const data = await this.requestSignedVideoUrl(lessonId);
       this.urlCache.set(lessonId, {
         url: data.url,
         expiresAt: new Date(data.expiresAt),
       });
-
-      logger.log(`✅ URL signée obtenue, expire à ${data.expiresAt}`);
       return data.url;
     } catch (error) {
       logger.error(`❌ Erreur récupération URL vidéo:`, error);

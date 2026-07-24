@@ -1,13 +1,21 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+"use client";
+
+/**
+ * Liste des cours via TanStack Query
+ *
+ * - Les filtres restent en state local (page, query, categories)
+ * - Debounce 300ms avant de changer la queryKey (évite un fetch à chaque frappe)
+ * - queryKey inclut les filtres → cache par combinaison de recherche
+ * - API publique inchangée pour les pages existantes
+ */
+
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { CoursesUseCases } from "./courses-use-cases";
-import { Course } from "@/domain/entities/course";
 import { CourseSearchOptions } from "@/infrastructure/api/baseConfig";
 import { BackendCourse } from "@/infrastructure/api/courses-api";
+import { courseKeys } from "@/shared/helpers/query-keys";
 import logger from "@/shared/helpers/logger";
-
-/* =====================================================
-   TYPES
-===================================================== */
 
 interface FiltersState {
   page: number;
@@ -46,38 +54,81 @@ interface UseCoursesOptions {
   fetchAll?: boolean;
 }
 
-/* =====================================================
-   HOOK
-===================================================== */
+const MAX_FETCH_ALL_PAGES = 20;
+
+async function fetchCoursesPage(
+  filters: FiltersState,
+  perPage: number,
+  fetchAll: boolean,
+) {
+  const searchOptions: CourseSearchOptions | undefined =
+    filters.query || filters.categories.length > 0
+      ? {
+          query: filters.query || undefined,
+          categoryId: filters.categories[0] || undefined,
+        }
+      : undefined;
+
+  if (fetchAll) {
+    const firstResult = await CoursesUseCases.getCourses(
+      1,
+      perPage,
+      searchOptions,
+    );
+
+    let allCourses = [...(firstResult.courses || [])];
+    let totalPages = firstResult.pages ?? 1;
+    const totalFromApi = firstResult.total;
+    let hasCourses = firstResult.hasCoursesInDatabase;
+
+    if (totalPages < 1) totalPages = 1;
+    const safeTotalPages = Math.min(totalPages, MAX_FETCH_ALL_PAGES);
+
+    for (let page = 2; page <= safeTotalPages; page += 1) {
+      const pageResult = await CoursesUseCases.getCourses(
+        page,
+        perPage,
+        searchOptions,
+      );
+      allCourses = allCourses.concat(pageResult.courses || []);
+      hasCourses = hasCourses || pageResult.hasCoursesInDatabase;
+    }
+
+    if (totalPages > MAX_FETCH_ALL_PAGES) {
+      logger.warn(
+        `⚠️ [useCourses] fetchAll limité à ${MAX_FETCH_ALL_PAGES} pages (total API: ${totalPages})`,
+      );
+    }
+
+    return {
+      courses: allCourses,
+      total: totalFromApi ?? allCourses.length,
+      pages: 1,
+      hasCoursesInDatabase: hasCourses,
+    };
+  }
+
+  const result = await CoursesUseCases.getCourses(
+    filters.page,
+    perPage,
+    searchOptions,
+  );
+
+  return {
+    courses: result.courses,
+    total: result.total,
+    pages: result.pages,
+    hasCoursesInDatabase: result.hasCoursesInDatabase,
+  };
+}
 
 export function useCourses(
   initialPage: number = 1,
   initialPerPage: number = 8,
   options?: UseCoursesOptions,
 ): UseCoursesState & UseCoursesActions {
-  const MAX_FETCH_ALL_PAGES = 20;
-  /* =======================
-     STATES
-  ======================= */
-
-  const [courses, setCourses] = useState<BackendCourse[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showMaintenance, setShowMaintenance] = useState(false);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(0);
-  const [hasCoursesInDatabase, setHasCoursesInDatabase] = useState(false);
-
-  const [filterData, setFilterData] = useState({
-    categories: [] as Array<{ id: string; name: string; count: number }>,
-    levels: [] as Array<{ id: string; name: string; count: number }>,
-    priceRanges: [] as Array<{ id: string; name: string; count: number }>,
-  });
-  const [filterLoading, setFilterLoading] = useState(false);
-
-  /* =======================
-     FILTRES (SOURCE UNIQUE)
-  ======================= */
+  const fetchAll = options?.fetchAll ?? false;
+  const perPage = useRef(initialPerPage);
 
   const [filters, setFilters] = useState<FiltersState>({
     page: initialPage,
@@ -85,165 +136,33 @@ export function useCourses(
     categories: [],
   });
 
-  const perPage = useRef(initialPerPage);
-  const fetchAll = options?.fetchAll ?? false;
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isInitialMount = useRef(true);
-
-  /* =====================================================
-     FETCH COURSES (API ONLY)
-  ===================================================== */
-
-  const fetchCourses = useCallback(async (currentFilters: FiltersState) => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const searchOptions: CourseSearchOptions | undefined =
-        currentFilters.query || currentFilters.categories.length > 0
-          ? {
-              query: currentFilters.query || undefined,
-              categoryId: currentFilters.categories[0] || undefined, // 1 catégorie assumée
-            }
-          : undefined;
-
-      if (fetchAll) {
-        const firstResult = await CoursesUseCases.getCourses(
-          1,
-          perPage.current,
-          searchOptions,
-        );
-
-        if (controller.signal.aborted) return;
-
-        let allCourses = [...(firstResult.courses || [])];
-        let totalPages = firstResult.pages ?? 1;
-        const totalFromApi = firstResult.total;
-        let hasCourses = firstResult.hasCoursesInDatabase;
-
-        if (totalPages < 1) {
-          totalPages = 1;
-        }
-
-        const safeTotalPages = Math.min(totalPages, MAX_FETCH_ALL_PAGES);
-
-        for (let page = 2; page <= safeTotalPages; page += 1) {
-          if (controller.signal.aborted) return;
-          const pageResult = await CoursesUseCases.getCourses(
-            page,
-            perPage.current,
-            searchOptions,
-          );
-          allCourses = allCourses.concat(pageResult.courses || []);
-          hasCourses = hasCourses || pageResult.hasCoursesInDatabase;
-        }
-
-        if (!controller.signal.aborted) {
-          setCourses(allCourses);
-          setTotal(totalFromApi ?? allCourses.length);
-          setPages(1);
-          setHasCoursesInDatabase(hasCourses);
-          setShowMaintenance(false);
-          if (totalPages > MAX_FETCH_ALL_PAGES) {
-            logger.warn(
-              `⚠️ [useCourses] fetchAll limité à ${MAX_FETCH_ALL_PAGES} pages (total API: ${totalPages})`,
-            );
-          }
-        }
-      } else {
-        const result = await CoursesUseCases.getCourses(
-          currentFilters.page,
-          perPage.current,
-          searchOptions,
-        );
-
-        if (!controller.signal.aborted) {
-          setCourses(result.courses);
-          setTotal(result.total);
-          setPages(result.pages);
-          setHasCoursesInDatabase(result.hasCoursesInDatabase);
-          setShowMaintenance(false);
-        }
-      }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
-
-      const message =
-        err instanceof Error ? err.message : "Erreur de chargement";
-      setError(message);
-      const isNetworkError =
-        err instanceof Error &&
-        err.message.includes("Impossible de se connecter au serveur");
-      setShowMaintenance(isNetworkError);
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, [fetchAll]);
-
-  /* =====================================================
-     FETCH COURSES (DEBOUNCED)
-  ===================================================== */
+  // Debounce : on ne change la queryKey qu'après 300ms sans frappe
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      fetchCourses(filters);
-      return;
-    }
+    const t = setTimeout(() => setDebouncedFilters(filters), 300);
+    return () => clearTimeout(t);
+  }, [filters]);
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+  const listQuery = useQuery({
+    queryKey: courseKeys.list({
+      page: debouncedFilters.page,
+      perPage: perPage.current,
+      query: debouncedFilters.query || undefined,
+      categoryId: debouncedFilters.categories[0] || undefined,
+      fetchAll,
+    }),
+    queryFn: () =>
+      fetchCoursesPage(debouncedFilters, perPage.current, fetchAll),
+    staleTime: 60 * 1000,
+    placeholderData: (previous) => previous,
+  });
 
-    debounceRef.current = setTimeout(() => {
-      fetchCourses(filters);
-    }, 300);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, [filters, fetchCourses]);
-
-  /* =====================================================
-     FILTER DATA — API ONLY (NO MOCK)
-  ===================================================== */
-
-  const loadFilterData = useCallback(async () => {
-    try {
-      setFilterLoading(true);
-      const data = await CoursesUseCases.getCourseFilters();
-      setFilterData(data);
-    } catch (err) {
-      logger.error("❌ Erreur chargement filtres", err);
-      setFilterData({
-        categories: [],
-        levels: [],
-        priceRanges: [],
-      });
-    } finally {
-      setFilterLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadFilterData();
-  }, [loadFilterData]);
-
-  /* =====================================================
-     ACTIONS (NO DIRECT FETCH)
-  ===================================================== */
+  const filtersQuery = useQuery({
+    queryKey: courseKeys.filters(),
+    queryFn: () => CoursesUseCases.getCourseFilters(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const setPage = useCallback((page: number) => {
     setFilters((prev) => ({ ...prev, page }));
@@ -262,42 +181,56 @@ export function useCourses(
   }, []);
 
   const refetch = useCallback(() => {
-    setFilters((prev) => ({ ...prev }));
-  }, []);
+    void listQuery.refetch();
+  }, [listQuery]);
 
   const clearError = useCallback(() => {
-    setError(null);
+    // no-op compatible : l'erreur vient de la query
   }, []);
 
-  /* =====================================================
-     DERIVED STATE
-  ===================================================== */
-
+  const pages = listQuery.data?.pages ?? 0;
   const effectivePages = fetchAll ? 1 : pages;
   const effectivePage = fetchAll ? 1 : filters.page;
+  const loading = listQuery.isFetching;
   const hasMore = !fetchAll && filters.page < pages && !loading;
 
-  /* =====================================================
-     RETURN
-  ===================================================== */
+  const errorMessage = listQuery.error
+    ? listQuery.error instanceof Error
+      ? listQuery.error.message
+      : "Erreur de chargement"
+    : null;
+
+  const showMaintenance = Boolean(
+    errorMessage && errorMessage.includes("Impossible de se connecter au serveur"),
+  );
+
+  const filterData = useMemo(
+    () =>
+      filtersQuery.data ?? {
+        categories: [],
+        levels: [],
+        priceRanges: [],
+      },
+    [filtersQuery.data],
+  );
 
   return {
-    courses,
+    courses: listQuery.data?.courses ?? [],
     loading,
-    error,
+    error: errorMessage,
     showMaintenance,
-    total,
+    total: listQuery.data?.total ?? 0,
     pages: effectivePages,
     hasMore,
     currentPage: effectivePage,
     filterData,
-    filterLoading,
+    filterLoading: filtersQuery.isPending,
     setPage,
     setSearchQuery,
     setFilterCategories,
     refresh,
     refetch,
     clearError,
-    hasCoursesInDatabase,
+    hasCoursesInDatabase: listQuery.data?.hasCoursesInDatabase ?? false,
   };
 }

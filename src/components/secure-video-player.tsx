@@ -8,11 +8,14 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { VideoApi } from "@/infrastructure/api/video-api";
 import {
   isDirectPlayableVideoUrl,
   shouldFetchSignedVideoUrl,
 } from "@/lib/video-url-utils";
+import { useSignedVideoUrl } from "@/application/use-cases/useSignedVideoUrl";
+import { videoKeys } from "@/shared/helpers/query-keys";
 import logger from "@/shared/helpers/logger";
 
 interface SecureVideoPlayerProps {
@@ -290,43 +293,78 @@ export function SecureVideoPlayer({
     [lessonId, onEnded],
   );
 
-  // Fonction pour récupérer l'URL signée depuis l'API (utilisée quand aucune URL directe n'est fournie)
+  const queryClient = useQueryClient();
+
+  // TanStack Query : URL signée avec refetch avant expiration
+  const needsSignedUrl = Boolean(
+    lessonId && shouldFetchSignedVideoUrl(url),
+  );
+  const signedVideo = useSignedVideoUrl(lessonId, needsSignedUrl);
+
   const fetchSignedUrl = useCallback(async () => {
+    if (!lessonId) return;
     setLoading(true);
     setError(null);
     try {
-      const signedUrl = await VideoApi.getSignedVideoUrl(lessonId);
-      setVideoUrl(signedUrl);
+      VideoApi.invalidateCache(lessonId);
+      await queryClient.invalidateQueries({
+        queryKey: videoKeys.signed(lessonId),
+      });
+      const data = await queryClient.fetchQuery({
+        queryKey: videoKeys.signed(lessonId),
+        queryFn: () => VideoApi.requestSignedVideoUrl(lessonId),
+      });
+      setVideoUrl(data.url);
     } catch (err) {
       logger.error("Erreur lors de la récupération de l'URL signée:", err);
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setLoading(false);
     }
-  }, [lessonId]);
+  }, [lessonId, queryClient]);
 
   useEffect(() => {
     if (url && isDirectPlayableVideoUrl(url)) {
       setVideoUrl(url);
       setLoading(false);
+      setError(null);
       return;
     }
 
-    if (shouldFetchSignedVideoUrl(url) && lessonId) {
-      fetchSignedUrl();
+    if (needsSignedUrl) {
+      if (signedVideo.url) {
+        setVideoUrl(signedVideo.url);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+      if (signedVideo.error) {
+        setError(signedVideo.error);
+        setLoading(false);
+        return;
+      }
+      setLoading(signedVideo.loading);
       return;
     }
 
     if (url) {
       setVideoUrl(url);
       setLoading(false);
+      setError(null);
       return;
     }
 
     setVideoUrl(undefined);
     setLoading(false);
     setError("Identifiant de leçon manquant pour charger la vidéo.");
-  }, [url, lessonId, fetchSignedUrl]);
+  }, [
+    url,
+    lessonId,
+    needsSignedUrl,
+    signedVideo.url,
+    signedVideo.error,
+    signedVideo.loading,
+  ]);
 
   useEffect(() => {
     lastTrackedTimeRef.current = 0;
@@ -633,9 +671,9 @@ export function SecureVideoPlayer({
 
   // Gestionnaire d'erreur vidéo - retente de récupérer une nouvelle URL signée
   const handleVideoError = useCallback(() => {
-    // En cas d'erreur de lecture (possiblement expiration), retenter
+    // Expiration probable → invalide TQ + cache legacy puis refetch
     VideoApi.invalidateCache(lessonId);
-    fetchSignedUrl();
+    void fetchSignedUrl();
   }, [fetchSignedUrl, lessonId]);
 
   useEffect(() => {
