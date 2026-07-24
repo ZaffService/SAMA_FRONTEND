@@ -428,7 +428,6 @@ function CourseDetailsPageComponent() {
   const [videoOrientation, setVideoOrientation] = useState<
     "landscape" | "portrait"
   >("landscape");
-  const courseContentRef = useRef<HTMLElement | null>(null);
   const initialViewParam = (searchParams.get("view") || "").toLowerCase();
   const initialQuizModuleIdParam = searchParams.get("moduleId");
   const initialQuizModeParam = (searchParams.get("quizMode") || "").toLowerCase();
@@ -2200,43 +2199,30 @@ function CourseDetailsPageComponent() {
         steppedProgress < TRACKING_COMPLETION_THRESHOLD
       ) {
         lessonLastReportedProgressRef.current[lessonId] = steppedProgress;
-        logger.log("[TRACKING] progression intermédiaire", {
-          lessonId,
-          progressPercent: Math.round(steppedProgress * 100),
-          fromTime,
-          toTime,
+      }
+
+      // Persistance locale uniquement sur paliers (évite write storm)
+      const shouldPersist =
+        steppedProgress > previousReported ||
+        (!isCompleted && maxProgress >= TRACKING_COMPLETION_THRESHOLD);
+
+      if (shouldPersist) {
+        persistTrackingToStorage(lessonId, {
           duration,
+          maxProgress,
+          completed: isCompleted,
+          lastReportedProgress:
+            lessonLastReportedProgressRef.current[lessonId] || 0,
         });
       }
 
-      logger.log("[TRACKING] segment reçu", {
-        lessonId,
-        fromTime,
-        toTime,
-        duration,
-        maxProgress: Number((maxProgress * 100).toFixed(2)),
-        currentProgress: Number((currentProgress * 100).toFixed(2)),
-        reportedProgress: Number(
-          (lessonLastReportedProgressRef.current[lessonId] * 100).toFixed(2),
-        ),
-        isCompleted,
-      });
-
-      persistTrackingToStorage(lessonId, {
-        duration,
-        maxProgress,
-        completed: isCompleted,
-        lastReportedProgress:
-          lessonLastReportedProgressRef.current[lessonId] || 0,
-      });
-
       if (!isCompleted && maxProgress >= TRACKING_COMPLETION_THRESHOLD) {
         lessonLastReportedProgressRef.current[lessonId] = 1;
-        logger.log("[TRACKING] seuil atteint, complétion auto", {
-          lessonId,
-          maxProgress: Number((maxProgress * 100).toFixed(2)),
-          threshold: TRACKING_COMPLETION_THRESHOLD * 100,
-          reason: "threshold_95_percent",
+        persistTrackingToStorage(lessonId, {
+          duration,
+          maxProgress,
+          completed: false,
+          lastReportedProgress: 1,
         });
         void markLessonCompletedAutomatically(lessonId, {
           forceComplete: true,
@@ -2456,7 +2442,7 @@ function CourseDetailsPageComponent() {
         </div>
       ) : null}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className={showHeader ? "flex-1 overflow-y-auto" : "flex-1"}>
         {sortedModules.map((module, moduleIndex) => {
           const isExpanded = expandedModules.has(module.id);
           const moduleQuiz = getModuleQuiz(module.id);
@@ -3254,18 +3240,8 @@ function CourseDetailsPageComponent() {
               </div>
             </main>
           ) : (
-            <main
-              className={`relative flex min-h-0 flex-1 ${
-                isPortrait
-                  ? "flex-col overflow-y-auto"
-                  : "flex-col overflow-hidden lg:flex-row"
-              }`}
-            >
-              <div
-                className={`min-w-0 flex-1 ${
-                  isPortrait ? "" : "overflow-y-auto"
-                }`}
-              >
+            <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+              <div className="course-player-scroll min-w-0 flex-1 overflow-y-auto">
                 <div
                   className={`animate-in fade-in-0 duration-300 space-y-4 px-3 py-4 sm:space-y-5 sm:px-4 sm:py-6 ${
                     isPortrait
@@ -3300,19 +3276,12 @@ function CourseDetailsPageComponent() {
                     />
                   )}
 
-                  {/* Portrait : contenu empilé sous la vidéo */}
-                  {isPortrait && hasVideoContent && (
-                    <section ref={courseContentRef} className="scroll-mt-16">
-                      <LessonsSidebar />
-                    </section>
-                  )}
-
                   {renderOverviewPanel()}
                 </div>
               </div>
 
-              {/* Paysage desktop : sidebar latérale — jamais empilée sous la vidéo */}
-              {!isPortrait && hasVideoContent && (
+              {/* Contenu du cours : sidebar desktop + sheet mobile (paysage & portrait) */}
+              {hasVideoContent && (
                 <>
                   <CourseSidebar>
                     <LessonsSidebar showHeader={false} />

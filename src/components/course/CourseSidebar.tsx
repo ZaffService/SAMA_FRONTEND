@@ -3,7 +3,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ListVideo, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -19,7 +18,7 @@ type CourseSidebarProps = {
   className?: string;
 };
 
-/** Sidebar desktop repliable (paysage) — contenu fourni par la page. */
+/** Sidebar desktop repliable — contenu fourni par la page. */
 export function CourseSidebar({ children, className }: CourseSidebarProps) {
   const [open, setOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
@@ -53,6 +52,7 @@ export function CourseSidebar({ children, className }: CourseSidebarProps) {
         className,
       )}
       aria-label="Contenu du cours"
+      data-sidebar-open={open ? "true" : "false"}
     >
       <div
         className={cn(
@@ -105,18 +105,12 @@ export function CourseSidebar({ children, className }: CourseSidebarProps) {
         </TooltipProvider>
       </div>
 
-      <div
-        className={cn(
-          "min-h-0 flex-1 transition-opacity duration-300",
-          open ? "opacity-100" : "pointer-events-none opacity-0",
-        )}
-      >
-        {open && (
-          <ScrollArea className="h-full">
-            <div className="p-2">{children}</div>
-          </ScrollArea>
-        )}
-      </div>
+      {/* Scroll uniquement à l'ouverture — barre discrète collée à droite */}
+      {open ? (
+        <div className="course-sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="p-2">{children}</div>
+        </div>
+      ) : null}
     </aside>
   );
 }

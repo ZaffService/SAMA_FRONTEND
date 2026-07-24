@@ -9,13 +9,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 type CourseSheetProps = {
   children: ReactNode | ((close: () => void) => ReactNode);
 };
 
-/** Drawer mobile pour le contenu du cours (paysage) — ne s'affiche qu'en < lg. */
+/** Drawer mobile pour le contenu du cours — ne s'affiche qu'en < lg. */
 export function CourseSheet({ children }: CourseSheetProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -40,11 +39,11 @@ export function CourseSheet({ children }: CourseSheetProps) {
           <SheetHeader className="border-b border-border px-4 py-4 text-left">
             <SheetTitle>Contenu du cours</SheetTitle>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-4.5rem)]">
+          <div className="course-sidebar-scroll h-[calc(100vh-4.5rem)] overflow-y-auto overflow-x-hidden">
             <div className="p-2">
               {typeof children === "function" ? children(close) : children}
             </div>
-          </ScrollArea>
+          </div>
         </SheetContent>
       </Sheet>
     </>

@@ -34,7 +34,9 @@ interface SecureVideoPlayerProps {
   onEnded?: () => void;
 }
 
-const TRACKING_TICK_SECONDS = 2;
+const TRACKING_TICK_SECONDS = 5;
+const MIN_PROGRESS_DELTA_SEC = 2.5;
+const FALLBACK_POLL_MS = 10_000;
 const COMPLETION_THRESHOLD = 0.95;
 const PLAYERJS_SCRIPT_ID = "bunny-playerjs-sdk";
 const PLAYERJS_SCRIPT_SRC =
@@ -335,7 +337,6 @@ export function SecureVideoPlayer({
     completionNotifiedRef.current = false;
     completionThresholdNotifiedRef.current = false;
     playbackStartedRef.current = false;
-    logger.log("[BUNNY TRACKING] reset état tracking", { lessonId, videoUrl });
   }, [durationHintSeconds, lessonId, videoUrl]);
 
   useEffect(() => {
@@ -349,10 +350,12 @@ export function SecureVideoPlayer({
   useEffect(() => {
     if (!resolvedIframeUrl || !isIframeEmbedUrl(resolvedIframeUrl)) return;
 
-    logger.log("[BUNNY TRACKING] mode iframe actif", { lessonId, videoUrl: resolvedIframeUrl });
-
     let isMounted = true;
     let playerInstance: PlayerJsInstance | null = null;
+    let pollId: number | null = null;
+    let playerJsReady = false;
+    let durationLogged = false;
+    let lastProgressEmitAt = 0;
 
     const resolveDuration = (candidate?: number): number => {
       if (typeof candidate === "number" && Number.isFinite(candidate) && candidate > 0) {
@@ -373,6 +376,7 @@ export function SecureVideoPlayer({
       nextTimeCandidate: unknown,
       durationCandidate: unknown,
       source: string,
+      options?: { force?: boolean },
     ) => {
       const nextTime = toFiniteNumber(nextTimeCandidate);
       if (typeof nextTime !== "number" || nextTime < 0) return;
@@ -380,32 +384,32 @@ export function SecureVideoPlayer({
       const duration = resolveDuration(toFiniteNumber(durationCandidate));
       const previousTime = lastTrackedTimeRef.current;
       const progressHandler = onProgressWindowRef.current;
+      const force = options?.force === true;
+      const delta = Math.abs(nextTime - previousTime);
+      const nearEnd =
+        duration > 0 && nextTime / duration >= COMPLETION_THRESHOLD;
 
       if (nextTime > 0.5) {
         playbackStartedRef.current = true;
       }
 
+      // Seek arrière : on recentre sans flood
       if (nextTime + 0.5 < previousTime) {
         lastTrackedTimeRef.current = nextTime;
-        logger.log("[BUNNY TRACKING] saut arrière détecté", {
-          lessonId,
-          source,
-          from: previousTime,
-          to: nextTime,
-        });
         maybeNotifyCompleted(nextTime, duration, source);
         return;
       }
 
-      if (progressHandler && duration > 0) {
+      const now = Date.now();
+      const shouldEmit =
+        force ||
+        nearEnd ||
+        (delta >= MIN_PROGRESS_DELTA_SEC &&
+          now - lastProgressEmitAt >= MIN_PROGRESS_DELTA_SEC * 1000);
+
+      if (shouldEmit && progressHandler && duration > 0) {
         progressHandler(previousTime, nextTime, duration);
-        logger.log("[BUNNY TRACKING] progression envoyée", {
-          lessonId,
-          source,
-          from: previousTime,
-          to: nextTime,
-          duration,
-        });
+        lastProgressEmitAt = now;
       }
 
       lastTrackedTimeRef.current = nextTime;
@@ -414,15 +418,21 @@ export function SecureVideoPlayer({
 
     const probePlayerDuration = () => {
       if (!playerInstance) return;
+      // Déjà connue : ne pas re-polluer getDuration / logs
+      if (lastKnownDurationRef.current > 0) return;
+
       playerInstance.getDuration((value) => {
         if (!isMounted) return;
         const duration = toFiniteNumber(value);
         if (typeof duration === "number" && duration > 0) {
           lastKnownDurationRef.current = duration;
-          logger.log("[BUNNY TRACKING][playerjs] durée réelle détectée", {
-            lessonId,
-            duration,
-          });
+          if (!durationLogged) {
+            durationLogged = true;
+            logger.log("[BUNNY TRACKING][playerjs] durée réelle détectée", {
+              lessonId,
+              duration,
+            });
+          }
           maybeNotifyCompleted(
             lastTrackedTimeRef.current,
             duration,
@@ -432,6 +442,13 @@ export function SecureVideoPlayer({
       });
     };
 
+    const stopPolling = () => {
+      if (pollId !== null) {
+        window.clearInterval(pollId);
+        pollId = null;
+      }
+    };
+
     const initPlayerJs = async () => {
       try {
         await loadPlayerJs();
@@ -439,16 +456,19 @@ export function SecureVideoPlayer({
         if (!iframeRef.current || !window.playerjs?.Player) return;
 
         playerInstance = new window.playerjs.Player(iframeRef.current);
-        logger.log("[BUNNY TRACKING][playerjs] SDK initialisé", { lessonId });
 
         const onReady: PlayerJsCallback = () => {
-          logger.log("[BUNNY TRACKING][playerjs] ready", { lessonId });
+          playerJsReady = true;
+          // playerjs fournit timeupdate → plus besoin du polling postMessage
+          stopPolling();
           probePlayerDuration();
         };
 
         const onTimeUpdate: PlayerJsCallback = (payload) => {
           const data =
-            payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+            payload && typeof payload === "object"
+              ? (payload as Record<string, unknown>)
+              : {};
           const duration = toFiniteNumber(data.duration);
           const percent = toFiniteNumber(data.percent);
           const currentTimeFromData = toFiniteNumber(
@@ -466,7 +486,9 @@ export function SecureVideoPlayer({
 
         const onSeeked: PlayerJsCallback = (payload) => {
           const data =
-            payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+            payload && typeof payload === "object"
+              ? (payload as Record<string, unknown>)
+              : {};
           const duration = toFiniteNumber(data.duration);
           const percent = toFiniteNumber(data.percent);
           const secondsFromData = toFiniteNumber(
@@ -480,7 +502,9 @@ export function SecureVideoPlayer({
                 ? Math.max(0, Math.min(1, percent)) * resolvedDuration
                 : undefined;
 
-          sendProgressWindow(seconds, resolvedDuration, "playerjs_seeked");
+          sendProgressWindow(seconds, resolvedDuration, "playerjs_seeked", {
+            force: true,
+          });
           probePlayerDuration();
         };
 
@@ -497,12 +521,8 @@ export function SecureVideoPlayer({
           if (!playerInstance) return;
           try {
             playerInstance.off(eventName, callback);
-          } catch (error) {
-            logger.warn("[BUNNY TRACKING][playerjs] off() ignoré", {
-              lessonId,
-              eventName,
-              error,
-            });
+          } catch {
+            /* ignore */
           }
         };
 
@@ -544,81 +564,65 @@ export function SecureVideoPlayer({
         return;
       }
 
-      const parsed = parseBunnyMessage(event.data);
-      logger.log("[BUNNY TRACKING] message reçu", {
-        origin: event.origin,
-        eventName: parsed.eventName,
-        raw: parsed.data,
-      });
+      // Si playerjs est actif, on ignore le flood postMessage
+      if (playerJsReady) return;
 
+      const parsed = parseBunnyMessage(event.data);
       sendProgressWindow(parsed.currentTime, parsed.duration, "iframe_message");
 
       if (parsed.ended) {
-        logger.log("[BUNNY TRACKING] vidéo terminée", { lessonId });
         maybeNotifyEnded("iframe_message_ended");
       }
     };
 
     const requestPlayerState = () => {
-      const target = iframeRef.current?.contentWindow;
-      if (!target) return;
-
-      // Bunny peut ignorer certaines commandes selon version player.
-      // On envoie plusieurs formats pour maximiser la compatibilité.
-      const commands = [
-        { event: "getCurrentTime" },
-        { event: "getDuration" },
-        { type: "getCurrentTime" },
-        { type: "getDuration" },
-        "getCurrentTime",
-        "getDuration",
-      ];
-
-      commands.forEach((cmd) => {
-        target.postMessage(cmd, "*");
-      });
+      if (!isMounted || playerJsReady) return;
 
       if (playerInstance) {
         playerInstance.getCurrentTime((value) => {
-          if (!isMounted) return;
+          if (!isMounted || playerJsReady) return;
           const currentTime = toFiniteNumber(value);
           if (typeof currentTime !== "number") return;
-
-          const previous = lastTrackedTimeRef.current;
-          if (Math.abs(currentTime - previous) < 0.1) return;
           sendProgressWindow(
             currentTime,
             lastKnownDurationRef.current,
             "playerjs_poll_current_time",
           );
         });
-
         probePlayerDuration();
+        return;
+      }
+
+      const target = iframeRef.current?.contentWindow;
+      if (!target) return;
+
+      // Un seul format par commande (évite 6 postMessage × 2s)
+      target.postMessage({ event: "getCurrentTime" }, "*");
+      if (lastKnownDurationRef.current <= 0) {
+        target.postMessage({ event: "getDuration" }, "*");
       }
     };
 
     window.addEventListener("message", handleMessage);
-    const pollId = window.setInterval(requestPlayerState, 2000);
-
-    requestPlayerState();
+    // Polling de secours uniquement (ralentit fortement le spam)
+    pollId = window.setInterval(requestPlayerState, FALLBACK_POLL_MS);
+    // Premier tick différé pour laisser playerjs démarrer
+    const bootId = window.setTimeout(requestPlayerState, 1500);
 
     return () => {
       isMounted = false;
+      window.clearTimeout(bootId);
+      stopPolling();
       try {
         cleanupPlayerJs?.();
-      } catch (error) {
-        logger.warn("[BUNNY TRACKING] cleanup playerjs ignoré", {
-          lessonId,
-          error,
-        });
+      } catch {
+        /* ignore */
       }
       window.removeEventListener("message", handleMessage);
-      window.clearInterval(pollId);
     };
   }, [
     isIframeEmbedUrl,
     lessonId,
-    onEnded,
     parseBunnyMessage,
     maybeNotifyCompleted,
     maybeNotifyEnded,
