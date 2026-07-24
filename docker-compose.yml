@@ -1,0 +1,72 @@
+services:
+  frontend:
+    build:
+      context: .
+      target: run_dev
+    container_name: e-learning-web-frontend
+    env_file:
+      - .env
+    ports:
+      - '3006:3000'
+      - '5555:5555'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      # Évite la boucle HMR : les écritures dans .next ne doivent pas retrigger le watcher du bind mount.
+      - /app/.next
+    environment:
+      - WATCHPACK_POLLING=true
+      - API_URL=http://backend:3000
+      # Laisser vide : dérivé depuis window.location (LAN / localhost) pour les sockets.
+      - NEXT_PUBLIC_REALTIME_URL=
+      - RESTCOUNTRIES_API_KEY=${RESTCOUNTRIES_API_KEY:-}
+    # HTTP en LAN pour que Socket.IO fonctionne (HTTPS page + WS HTTP = mixed content).
+    # Pour micro iPhone : npm run dev:https (nécessite TLS aussi côté WS).
+    command: ["npm", "run", "dev"]
+    depends_on:
+      - backend
+    networks:
+      - e-learning-network
+
+  backend:
+    image: bibocomdigital/e-learning-backend-develop:latest
+    env_file:
+      - .env.backend
+    environment:
+      - NODE_ENV=development
+    ports:
+      - '3005:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - e-learning-network
+
+  postgres:
+    image: postgres:17
+    container_name: postgres-e-learning
+    env_file:
+      - .env.backend
+    environment:
+      - POSTGRES_USER=elearninguser
+      - POSTGRES_PASSWORD=elearningpassword
+      - POSTGRES_DB=elearning
+    ports:
+      - '5434:5432'
+    volumes:
+      - elearning_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U elearninguser -d elearning']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - e-learning-network
+
+volumes:
+  elearning_postgres_data:
+
+networks:
+  e-learning-network:
+    driver: bridge

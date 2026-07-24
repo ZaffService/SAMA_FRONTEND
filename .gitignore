@@ -31,5 +31,5 @@ Dockerfile
 
 # TypeScript build info
 tsconfig.tsbuildinfo
-
 .env.backend
+.env
