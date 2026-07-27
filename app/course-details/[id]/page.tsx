@@ -16,6 +16,8 @@ import { useLocalAuth } from "@/infrastructure/storage/useAuth";
 import { usePayment } from "@/application/use-cases/usePayment";
 import { QuizApi } from "@/infrastructure/api/quiz-api";
 import { SecureVideoPlayer } from "@/components/secure-video-player";
+import { CustomYouTubePlayer } from "@/components/custom-youtube-player";
+import { detectYouTubeOrientation } from "@/lib/youtube";
 import { CourseSidebar } from "@/components/course/CourseSidebar";
 import { CourseSheet } from "@/components/course/CourseSheet";
 import { LessonNav } from "@/components/course/LessonNav";
@@ -197,205 +199,6 @@ type VideoProgressWindow = {
   toTime: number;
   duration: number;
 };
-
-const loadYouTubeIframeApi = (): Promise<void> => {
-  if (typeof window === "undefined") return Promise.resolve();
-  if ((window as any).YT?.Player) return Promise.resolve();
-
-  return new Promise((resolve) => {
-    const waitForApi = () => {
-      if ((window as any).YT?.Player) {
-        resolve();
-        return true;
-      }
-      return false;
-    };
-
-    if (waitForApi()) return;
-
-    const existingScript = document.getElementById("youtube-iframe-api");
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.id = "youtube-iframe-api";
-      script.src = "https://www.youtube.com/iframe_api";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-
-    const poll = window.setInterval(() => {
-      if (waitForApi()) {
-        window.clearInterval(poll);
-      }
-    }, 100);
-  });
-};
-
-// ✅ Player YouTube avec tracking de progression par segments
-function VideoWithLoading({
-  lessonId,
-  videoId,
-  title,
-  fitMode = "contain",
-  onTrackProgress,
-  onEnded,
-}: {
-  lessonId: string;
-  videoId: string;
-  title?: string;
-  fitMode?: "contain" | "cover";
-  onTrackProgress: (payload: VideoProgressWindow) => void;
-  onEnded?: () => void;
-}) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasPlaybackIssue, setHasPlaybackIssue] = useState(false);
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const playerRef = useRef<any>(null);
-  const trackingIntervalRef = useRef<number | null>(null);
-  const lastTrackedTimeRef = useRef(0);
-
-  const flushTrackedWindow = useCallback(() => {
-    const player = playerRef.current;
-    if (!player || typeof player.getCurrentTime !== "function") return;
-
-    const current = Number(player.getCurrentTime()) || 0;
-    const duration = Number(player.getDuration()) || 0;
-    onTrackProgress({
-      lessonId,
-      fromTime: lastTrackedTimeRef.current,
-      toTime: current,
-      duration,
-    });
-    lastTrackedTimeRef.current = current;
-  }, [lessonId, onTrackProgress]);
-
-  const stopTracking = useCallback(() => {
-    if (trackingIntervalRef.current) {
-      window.clearInterval(trackingIntervalRef.current);
-      trackingIntervalRef.current = null;
-    }
-  }, []);
-
-  const startTracking = useCallback(() => {
-    stopTracking();
-    trackingIntervalRef.current = window.setInterval(() => {
-      flushTrackedWindow();
-    }, TRACKING_INTERVAL_MS);
-  }, [flushTrackedWindow, stopTracking]);
-
-  useEffect(() => {
-    let isMounted = true;
-    setIsLoading(true);
-    setHasPlaybackIssue(false);
-    lastTrackedTimeRef.current = 0;
-
-    const initPlayer = async () => {
-      await loadYouTubeIframeApi();
-      if (!isMounted || !hostRef.current) return;
-
-      const YT = (window as any).YT;
-      if (!YT?.Player) return;
-
-      playerRef.current = new YT.Player(hostRef.current, {
-        videoId,
-        playerVars: {
-          controls: 1,
-          modestbranding: 1,
-          rel: 0,
-          autoplay: 0,
-          playsinline: 1,
-        },
-        events: {
-          onReady: (event: any) => {
-            setIsLoading(false);
-            lastTrackedTimeRef.current = Number(event.target.getCurrentTime()) || 0;
-          },
-          onError: () => {
-            setIsLoading(false);
-            setHasPlaybackIssue(true);
-            stopTracking();
-          },
-          onStateChange: (event: any) => {
-            const state = event.data;
-            const PlayerState = YT.PlayerState;
-
-            if (state === PlayerState.PLAYING) {
-              startTracking();
-              return;
-            }
-
-            stopTracking();
-            flushTrackedWindow();
-
-            if (state === PlayerState.ENDED) {
-              onEnded?.();
-            }
-          },
-        },
-      });
-    };
-
-    void initPlayer();
-
-    return () => {
-      isMounted = false;
-      stopTracking();
-      if (playerRef.current && typeof playerRef.current.destroy === "function") {
-        playerRef.current.destroy();
-      }
-      playerRef.current = null;
-    };
-  }, [videoId, flushTrackedWindow, onEnded, startTracking, stopTracking]);
-
-  useEffect(() => {
-    if (!isLoading) return;
-
-    const timeoutId = window.setTimeout(() => {
-      setHasPlaybackIssue(true);
-      setIsLoading(false);
-      stopTracking();
-    }, 12000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [isLoading, stopTracking]);
-
-  const playerFrameClassName =
-    fitMode === "cover"
-      ? "absolute inset-0 h-full w-full [&>iframe]:absolute [&>iframe]:left-1/2 [&>iframe]:top-1/2 [&>iframe]:h-[100%] [&>iframe]:w-auto [&>iframe]:min-h-full [&>iframe]:min-w-full [&>iframe]:max-w-none [&>iframe]:-translate-x-1/2 [&>iframe]:-translate-y-1/2 [&>iframe]:scale-[1.01]"
-      : "h-full w-full [&>iframe]:h-full [&>iframe]:w-full";
-
-  return (
-    <div className="absolute inset-0 h-full w-full overflow-hidden bg-black">
-      {hasPlaybackIssue && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black px-4">
-          <div className="text-center text-white">
-            <PlayCircle className="mx-auto mb-4 h-12 w-12 text-white/45" />
-            <p className="text-base font-medium text-white/90">
-              Vidéo indisponible pour le moment
-            </p>
-            <p className="mt-1 text-sm text-white/60">
-              Veuillez réessayer un peu plus tard.
-            </p>
-          </div>
-        </div>
-      )}
-      {isLoading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900">
-          <div className="text-center text-white">
-            <div className="mx-auto mb-3 h-12 w-12 animate-spin rounded-full border-4 border-white border-t-transparent" />
-            <p className="text-sm">Chargement de la vidéo...</p>
-          </div>
-        </div>
-      )}
-      <div
-        className={`${playerFrameClassName} transition-opacity duration-300 ${
-          isLoading || hasPlaybackIssue ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        <div ref={hostRef} title={title || "Vidéo YouTube"} className="h-full w-full" />
-      </div>
-    </div>
-  );
-}
 
 function CourseDetailsPageComponent() {
   const params = useParams();
@@ -1590,8 +1393,9 @@ function CourseDetailsPageComponent() {
     };
 
     // Explicit portrait cues (course/lesson named Portrait, Shorts, vertical, etc.)
+    // Avoid matching English "short film" via bare "short".
     if (
-      /portrait|vertical|short|reel|tiktok|9\s*[:/x]\s*16/.test(titleHint)
+      /portrait|vertical|shorts|tiktok|\breels?\b|9\s*[:/x]\s*16/.test(titleHint)
     ) {
       apply(true);
       return;
@@ -1604,17 +1408,10 @@ function CourseDetailsPageComponent() {
 
     const ytId = getYouTubeVideoId(url);
     if (ytId) {
+      // Comme Bunny : détecter portrait/paysage, ne pas forcer 16:9
       void (async () => {
-        try {
-          const res = await fetch(
-            `https://www.youtube.com/oembed?url=${encodeURIComponent(
-              `https://www.youtube.com/shorts/${ytId}`,
-            )}&format=json`,
-          );
-          apply(res.ok);
-        } catch {
-          apply(false);
-        }
+        const orientation = await detectYouTubeOrientation(url);
+        apply(orientation === "portrait");
       })();
       return () => {
         cancelled = true;
@@ -2954,23 +2751,25 @@ function CourseDetailsPageComponent() {
 
     const videoId = getYouTubeVideoId(safeSelectedLesson?.videoUrl);
     if (videoId) {
+      // Même logique que Bunny : cadre portrait OU paysage selon détection
       return (
         <div className="flex w-full justify-center">
           <div
             className={
               isPortrait
-                ? "relative aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-2xl bg-muted/30 shadow-[var(--shadow-card)]"
-                : "relative aspect-video w-full max-w-5xl overflow-hidden rounded-2xl bg-muted/30 shadow-[var(--shadow-card)]"
+                ? "relative mx-auto aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-2xl bg-black shadow-[var(--shadow-card)]"
+                : "relative aspect-video w-full max-w-5xl overflow-hidden rounded-2xl bg-black shadow-[var(--shadow-card)]"
             }
           >
             <div className="absolute inset-0">
-              <VideoWithLoading
+              <CustomYouTubePlayer
                 lessonId={safeSelectedLesson?.id || selectedLessonId}
                 videoId={videoId}
                 title={safeSelectedLesson?.title || course.title}
-                fitMode="contain"
+                orientation={isPortrait ? "portrait" : "landscape"}
                 onTrackProgress={handleVideoTrackingProgress}
                 onEnded={handleLessonVideoEnded}
+                onMediaSize={handleMediaSize}
               />
             </div>
           </div>
@@ -2985,9 +2784,13 @@ function CourseDetailsPageComponent() {
         lessonId={safeSelectedLesson?.id || selectedLessonId}
         durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
         title={safeSelectedLesson?.title || course.title}
-        className={isPortrait ? "mx-auto max-w-[420px]" : "mx-auto max-w-5xl"}
+        className={
+          isPortrait
+            ? "mx-auto w-full max-w-none sm:max-w-[420px]"
+            : "mx-auto max-w-5xl"
+        }
         orientation={isPortrait ? "portrait" : "landscape"}
-        fitMode="contain"
+        fitMode={isPortrait ? "cover" : "contain"}
         onMediaSize={handleMediaSize}
         onProgressWindow={(fromTime, toTime, duration) =>
           handleVideoTrackingProgress({
@@ -3097,17 +2900,20 @@ function CourseDetailsPageComponent() {
               <X className="h-6 w-6" />
             </button>
 
-            <div className="flex flex-1 items-center justify-center bg-black">
+            <div className="relative h-full w-full bg-black">
               {!shouldShowVideoUnavailableState ? (
                 (() => {
                   const videoId = getYouTubeVideoId(safeSelectedLesson?.videoUrl);
                   return videoId ? (
-                    <VideoWithLoading
+                    <CustomYouTubePlayer
                       lessonId={safeSelectedLesson?.id || selectedLessonId}
                       videoId={videoId}
                       title={safeSelectedLesson?.title || course.title}
+                      orientation={isPortrait ? "portrait" : "landscape"}
+                      className="absolute inset-0 h-full w-full"
                       onTrackProgress={handleVideoTrackingProgress}
                       onEnded={handleLessonVideoEnded}
+                      onMediaSize={handleMediaSize}
                     />
                   ) : (
                     <SecureVideoPlayer
@@ -3117,6 +2923,9 @@ function CourseDetailsPageComponent() {
                       durationHintSeconds={(safeSelectedLesson?.duration || 0) * 60}
                       title={safeSelectedLesson?.title || course.title}
                       className="h-full w-full"
+                      orientation={isPortrait ? "portrait" : "landscape"}
+                      fitMode="cover"
+                      onMediaSize={handleMediaSize}
                       onProgressWindow={(fromTime, toTime, duration) =>
                         handleVideoTrackingProgress({
                           lessonId: safeSelectedLesson?.id || selectedLessonId,
@@ -3243,17 +3052,13 @@ function CourseDetailsPageComponent() {
             <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
               <div className="course-player-scroll min-w-0 flex-1 overflow-y-auto">
                 <div
-                  className={`animate-in fade-in-0 duration-300 space-y-4 px-3 py-4 sm:space-y-5 sm:px-4 sm:py-6 ${
+                  className={`animate-in fade-in-0 duration-300 ${
                     isPortrait
-                      ? "mx-auto w-full max-w-3xl"
-                      : "mx-auto w-full max-w-5xl lg:px-6"
+                      ? "space-y-0 px-0 py-0 sm:space-y-5 sm:px-4 sm:py-6"
+                      : "mx-auto w-full max-w-5xl space-y-4 px-3 py-4 sm:space-y-5 sm:px-4 sm:py-6 lg:px-6"
                   }`}
                 >
-                  <div
-                    className={
-                      isPortrait ? "mx-auto w-full max-w-[420px]" : "w-full"
-                    }
-                  >
+                  <div className={isPortrait ? "w-full max-w-none" : "w-full"}>
                     {renderLessonPlayer()}
                   </div>
 
@@ -3271,7 +3076,9 @@ function CourseDetailsPageComponent() {
                       )}
                       total={lessonsWithVideos.length}
                       className={
-                        isPortrait ? "mx-auto max-w-[420px]" : undefined
+                        isPortrait
+                          ? "mx-auto max-w-[420px] px-3 pt-3 sm:px-0"
+                          : undefined
                       }
                     />
                   )}

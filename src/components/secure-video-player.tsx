@@ -742,11 +742,20 @@ export function SecureVideoPlayer({
     detectedRatio ??
     (orientation === "portrait" ? 9 / 16 : 16 / 9);
   const isPortrait = ratio < 1;
-  const frameStyle = isPortrait
-    ? isMobile
-      ? { width: "100%", aspectRatio: `${ratio}` }
-      : { width: "min(100%, 380px)", aspectRatio: `${ratio}` }
-    : { width: "100%", aspectRatio: `${ratio}` };
+  const fillViewport = fitMode === "cover" && isPortrait && isMobile;
+  const frameStyle = fillViewport
+    ? {
+        width: "100%",
+        height: "calc(100dvh - 3.5rem)",
+        maxWidth: "none",
+        maxHeight: "none",
+        aspectRatio: "auto",
+      }
+    : isPortrait
+      ? isMobile
+        ? { width: "100%", aspectRatio: `${ratio}` }
+        : { width: "min(100%, 380px)", aspectRatio: `${ratio}` }
+      : { width: "100%", aspectRatio: `${ratio}` };
   const mediaClassName =
     fitMode === "cover"
       ? "absolute inset-0 h-full w-full border-0 object-cover object-center"
@@ -759,7 +768,9 @@ export function SecureVideoPlayer({
   const renderShell = (content: ReactNode) => (
     <div className={shellClassName}>
       <div
-        className="relative overflow-hidden rounded-2xl bg-black shadow-lg"
+        className={`relative overflow-hidden bg-black shadow-lg ${
+          fillViewport ? "w-full max-w-none rounded-none" : "rounded-2xl"
+        }`}
         style={frameStyle}
       >
         {content}
