@@ -138,6 +138,7 @@ export function CustomYouTubePlayer({
   const [isReady, setIsReady] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasEnded, setHasEnded] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(80);
@@ -210,6 +211,7 @@ export function CustomYouTubePlayer({
     setIsReady(false);
     setHasError(false);
     setIsPlaying(false);
+    setHasEnded(false);
     setCurrentTime(0);
     setDuration(0);
     lastTrackedTimeRef.current = 0;
@@ -230,6 +232,7 @@ export function CustomYouTubePlayer({
         videoId,
         width: "100%",
         height: "100%",
+        host: "https://www.youtube-nocookie.com",
         playerVars: {
           autoplay: 0,
           controls: 0,
@@ -238,6 +241,7 @@ export function CustomYouTubePlayer({
           iv_load_policy: 3,
           modestbranding: 1,
           playsinline: 1,
+          /** Limite les suggestions (même chaîne uniquement ; on masque le reste via overlays). */
           rel: 0,
           cc_load_policy: 0,
           origin: window.location.origin,
@@ -248,6 +252,7 @@ export function CustomYouTubePlayer({
             const player = event.target;
             player.setVolume(80);
             setIsReady(true);
+            setHasEnded(false);
             setDuration(Number(player.getDuration()) || 0);
             lastTrackedTimeRef.current = Number(player.getCurrentTime()) || 0;
             fitIframe();
@@ -272,9 +277,31 @@ export function CustomYouTubePlayer({
 
             if (state === api.PlayerState.PLAYING) {
               setIsPlaying(true);
+              setHasEnded(false);
               setDuration(Number(event.target.getDuration()) || 0);
               startTracking();
               revealChromeTemporarily();
+              return;
+            }
+
+            if (state === api.PlayerState.ENDED) {
+              const dur = Number(event.target.getDuration()) || 0;
+              const endTime = dur > 0 ? dur : Number(event.target.getCurrentTime()) || 0;
+              // Flush tracking jusqu’à la vraie fin (getCurrentTime() peut renvoyer 0 sur ENDED)
+              onTrackProgress({
+                lessonId,
+                fromTime: lastTrackedTimeRef.current,
+                toTime: endTime,
+                duration: dur,
+              });
+              lastTrackedTimeRef.current = endTime;
+              stopTracking();
+              setDuration(dur);
+              setCurrentTime(endTime);
+              setIsPlaying(false);
+              setHasEnded(true);
+              setShowChrome(true);
+              onEnded?.();
               return;
             }
 
@@ -283,10 +310,6 @@ export function CustomYouTubePlayer({
             setCurrentTime(Number(event.target.getCurrentTime()) || 0);
             setIsPlaying(false);
             setShowChrome(true);
-
-            if (state === api.PlayerState.ENDED) {
-              onEnded?.();
-            }
           },
         },
       });
@@ -307,9 +330,11 @@ export function CustomYouTubePlayer({
     };
   }, [
     videoId,
+    lessonId,
     orientation,
     onEnded,
     onMediaSize,
+    onTrackProgress,
     fitIframe,
     flushTrackedWindow,
     revealChromeTemporarily,
@@ -340,14 +365,25 @@ export function CustomYouTubePlayer({
   const pause = () => playerRef.current?.pauseVideo();
   const togglePlay = () => {
     if (!playerRef.current) return;
-    if (isPlaying) pause();
-    else play();
+    if (isPlaying) {
+      pause();
+      return;
+    }
+    // Rejouer uniquement sur action utilisateur (après ENDED)
+    if (hasEnded) {
+      playerRef.current.seekTo(0, true);
+      setHasEnded(false);
+      setCurrentTime(0);
+      lastTrackedTimeRef.current = 0;
+    }
+    play();
   };
 
   const onSeek = (value: number) => {
     playerRef.current?.seekTo(value, true);
     setCurrentTime(value);
     lastTrackedTimeRef.current = value;
+    if (hasEnded) setHasEnded(false);
   };
 
   const onVolumeChange = (value: number) => {
@@ -392,14 +428,17 @@ export function CustomYouTubePlayer({
     e.stopPropagation();
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  /** Dès que la lecture est arrêtée, on masque l’UI YouTube (suggestions, fin, etc.). */
   const showPoster = !isPlaying;
+  const sliderMax = Math.max(duration, 0.1);
+  const sliderValue = Math.min(Math.max(currentTime, 0), sliderMax);
 
   return (
     <div
       ref={shellRef}
       className={cn(
-        "relative h-full w-full overflow-hidden bg-black select-none",
+        "relative h-full w-full isolate overflow-hidden bg-black select-none",
         className,
       )}
       onPointerMove={revealChromeTemporarily}
@@ -407,18 +446,43 @@ export function CustomYouTubePlayer({
     >
       <div
         ref={stageRef}
-        className="absolute inset-0 overflow-hidden bg-black [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0"
+        className="absolute inset-0 z-0 overflow-hidden bg-black [&_iframe]:pointer-events-none [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full [&_iframe]:border-0"
         aria-hidden={!isReady}
         title={title || "Vidéo"}
       />
 
+      {/*
+        Filets anti-suggestions pendant la lecture (panneau « Plus de vidéos » à droite,
+        titre / liens en haut). pointer-events pour bloquer toute navigation hors site.
+      */}
+      {isPlaying && (
+        <>
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 z-20 h-16"
+            onPointerDown={blockChromeClick}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-y-0 right-0 z-20 w-[min(42%,14rem)]"
+            onPointerDown={blockChromeClick}
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 z-20 h-14"
+            onPointerDown={blockChromeClick}
+          />
+        </>
+      )}
+
+      {/* Couverture totale à l’arrêt / fin → cache suggestions & écran de fin YouTube */}
       {showPoster && (
         <button
           type="button"
-          className="absolute inset-0 z-20 flex items-center justify-center bg-black"
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black"
           onClick={togglePlay}
           disabled={!isReady || hasError}
-          aria-label="Lire la vidéo"
+          aria-label={hasEnded ? "Rejouer la vidéo" : "Lire la vidéo"}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -432,30 +496,22 @@ export function CustomYouTubePlayer({
             }}
             className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
           />
-          <span className="absolute inset-0 bg-black/35" />
-          <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-900/40 transition hover:bg-[#1D4ED8] sm:h-20 sm:w-20">
-            <Play className="ml-1 h-8 w-8 fill-white sm:h-10 sm:w-10" />
+          <span className="absolute inset-0 bg-black/50" />
+          <span className="relative z-10 flex flex-col items-center gap-3">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-900/40 transition hover:bg-[#1D4ED8] sm:h-20 sm:w-20">
+              <Play className="ml-1 h-8 w-8 fill-white sm:h-10 sm:w-10" />
+            </span>
+            {hasEnded && (
+              <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
+                Rejouer
+              </span>
+            )}
           </span>
         </button>
       )}
 
-      {isPlaying && (
-        <>
-          <div
-            aria-hidden
-            className="absolute inset-x-0 top-0 z-20 h-14"
-            onPointerDown={blockChromeClick}
-          />
-          <div
-            aria-hidden
-            className="absolute inset-x-0 bottom-0 z-20 h-12"
-            onPointerDown={blockChromeClick}
-          />
-        </>
-      )}
-
       {hasError && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black px-4 text-center text-white">
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black px-4 text-center text-white">
           <p className="text-sm text-white/80">
             Vidéo indisponible pour le moment.
           </p>
@@ -465,21 +521,32 @@ export function CustomYouTubePlayer({
       {(showChrome || !isPlaying) && isReady && !hasError && (
         <div
           className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 transition-opacity",
+            "pointer-events-auto absolute inset-x-0 bottom-0 z-50 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 transition-opacity",
             isPlaying && !showChrome ? "pointer-events-none opacity-0" : "opacity-100",
           )}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <input
-            type="range"
-            min={0}
-            max={Math.max(duration, 0.1)}
-            step={0.1}
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(e) => onSeek(Number(e.target.value))}
-            className="mb-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/25 accent-[#2563EB] [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#2563EB]"
-            aria-label="Progression"
-          />
+          <div className="relative mb-2 h-1.5 w-full">
+            <div className="absolute inset-0 rounded-full bg-white/25" />
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-[#2563EB]"
+              style={{ width: `${progress}%` }}
+            />
+            <div
+              className="pointer-events-none absolute top-1/2 z-10 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#2563EB] shadow"
+              style={{ left: `${progress}%` }}
+            />
+            <input
+              type="range"
+              min={0}
+              max={sliderMax}
+              step={0.1}
+              value={sliderValue}
+              onChange={(e) => onSeek(Number(e.target.value))}
+              className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+              aria-label="Progression"
+            />
+          </div>
 
           <div className="flex items-center gap-2 text-white">
             <button
@@ -496,7 +563,7 @@ export function CustomYouTubePlayer({
             </button>
 
             <span className="min-w-[5.5rem] text-xs tabular-nums text-white/90">
-              {formatTime(currentTime)} / {formatTime(duration)}
+              {formatTime(sliderValue)} / {formatTime(duration)}
             </span>
 
             <div className="ml-auto flex items-center gap-1.5">
