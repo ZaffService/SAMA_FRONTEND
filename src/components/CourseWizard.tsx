@@ -32,6 +32,7 @@ import { CoursePreview } from "./CoursePreview";
 import { AttachmentManager } from "./AttachmentManager";
 import { VideoUploadManager } from "./VideoUploadManager";
 import { useLocalAuth } from "@/infrastructure/storage/useAuth";
+import { isYouTubeUrl } from "@/lib/youtube";
 import {
   showCourseCreatedSuccess,
   showCourseCreationError,
@@ -214,6 +215,14 @@ export function CourseWizard({ onCourseCreated }: CourseWizardProps) {
             }
             if (!lesson.tempId) {
               return `La leçon "${lesson.title}" doit avoir un tempId`;
+            }
+            if (
+              (lesson.videoSource === "youtube" ||
+                (!lesson.videoFile && lesson.videoUrl)) &&
+              lesson.videoUrl &&
+              !isYouTubeUrl(lesson.videoUrl)
+            ) {
+              return `Lien YouTube invalide pour la leçon "${lesson.title}"`;
             }
           }
         }

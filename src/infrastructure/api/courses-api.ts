@@ -1,11 +1,56 @@
 import type { Course, CourseDetails } from "@/domain/entities/course";
 import type { Module, Lesson } from "@/domain/entities/module";
+import {
+  lessonHasExternalVideoUrl,
+  normalizeYouTubeUrl,
+  type LessonVideoSourceMode,
+} from "@/lib/youtube";
 import Cookies from "js-cookie";
 
 export enum LessonStatus {
   PENDING_VIDEO = "PENDING_VIDEO",
   VIDEO_UPLOADED = "VIDEO_UPLOADED",
   READY = "READY",
+}
+
+/** Sérialise une leçon pour le JSON `data` (inclut videoUrl YouTube si pas de fichier). */
+function serializeLessonPayload(lesson: {
+  id?: string;
+  tempId?: string;
+  title: string;
+  content?: string;
+  orderIndex?: number;
+  duration?: number;
+  videoFile?: File | null;
+  videoUrl?: string | null;
+  videoSource?: LessonVideoSourceMode | string;
+}) {
+  const payload: Record<string, unknown> = {
+    title: lesson.title,
+    content: lesson.content || "",
+    orderIndex: Number(lesson.orderIndex) || 0,
+    duration: Number(lesson.duration) || 0,
+  };
+
+  if (lesson.id) payload.id = lesson.id;
+  if (lesson.tempId) payload.tempId = lesson.tempId;
+
+  if (
+    lessonHasExternalVideoUrl({
+      videoFile: lesson.videoFile,
+      videoUrl: lesson.videoUrl,
+      videoSource:
+        lesson.videoSource === "file" || lesson.videoSource === "youtube"
+          ? lesson.videoSource
+          : undefined,
+    })
+  ) {
+    const normalized =
+      normalizeYouTubeUrl(lesson.videoUrl) || lesson.videoUrl!.trim();
+    payload.videoUrl = normalized;
+  }
+
+  return payload;
 }
 
 // Helper function to decode base64url
@@ -579,13 +624,9 @@ export class CoursesApi {
         orderIndex: Number(module.orderIndex) || 0,
         description: module.description || undefined,
         lessons:
-          module.lessons?.map((lesson: any) => ({
-            tempId: lesson.tempId,
-            title: lesson.title,
-            content: lesson.content || "",
-            orderIndex: Number(lesson.orderIndex) || 0,
-            duration: Number(lesson.duration) || 0,
-          })) || [],
+          module.lessons?.map((lesson: any) =>
+            serializeLessonPayload(lesson),
+          ) || [],
         quizzes:
           module.quizzes?.map((quiz: any) => ({
             title: quiz.title,
@@ -623,11 +664,11 @@ export class CoursesApi {
       logger.log("🖼️ [CoursesApi] Fichier thumbnail ajouté");
     }
 
-    // Ajouter les vidéos
+    // Ajouter les vidéos fichiers seulement (YouTube = videoUrl dans data JSON)
     let videoCount = 0;
     courseData.modules.forEach((module: Module) => {
       module.lessons.forEach((lesson: Lesson) => {
-        if (lesson.videoFile) {
+        if (lesson.videoFile && !lessonHasExternalVideoUrl(lesson)) {
           const videoKey = `lessonVideos[${lesson.tempId}]`;
           formData.append(videoKey, lesson.videoFile);
           videoCount++;
@@ -916,13 +957,9 @@ export class CoursesApi {
         orderIndex: Number(module.orderIndex) || 0,
         description: module.description || undefined,
         lessons:
-          module.lessons?.map((lesson: any) => ({
-            tempId: lesson.tempId,
-            title: lesson.title,
-            content: lesson.content || "",
-            orderIndex: Number(lesson.orderIndex) || 0,
-            duration: Number(lesson.duration) || 0,
-          })) || [],
+          module.lessons?.map((lesson: any) =>
+            serializeLessonPayload(lesson),
+          ) || [],
         quizzes:
           module.quizzes?.map((quiz: any) => ({
             title: quiz.title,
@@ -960,7 +997,7 @@ export class CoursesApi {
     let videoCount = 0;
     courseData.modules.forEach((module: Module) => {
       module.lessons.forEach((lesson: Lesson) => {
-        if (lesson.videoFile) {
+        if (lesson.videoFile && !lessonHasExternalVideoUrl(lesson)) {
           const videoKey = `lessonVideos[${lesson.tempId}]`;
           formData.append(videoKey, lesson.videoFile);
           videoCount++;
@@ -1112,14 +1149,9 @@ export class CoursesApi {
         orderIndex: Number(module.orderIndex) || 0,
         description: module.description || undefined,
         lessons:
-          module.lessons?.map((lesson: any) => ({
-            id: lesson.id || undefined,
-            tempId: lesson.tempId,
-            title: lesson.title,
-            content: lesson.content || "",
-            orderIndex: Number(lesson.orderIndex) || 0,
-            duration: Number(lesson.duration) || 0,
-          })) || [],
+          module.lessons?.map((lesson: any) =>
+            serializeLessonPayload(lesson),
+          ) || [],
         quizzes:
           module.quizzes?.map((quiz: any) => ({
             id: quiz.id || undefined,
@@ -1162,7 +1194,7 @@ export class CoursesApi {
     let videoCount = 0;
     courseData.modules.forEach((module: any) => {
       module.lessons?.forEach((lesson: any) => {
-        if (lesson.videoFile) {
+        if (lesson.videoFile && !lessonHasExternalVideoUrl(lesson)) {
           const videoKey = `lessonVideos[${lesson.tempId}]`;
           formData.append(videoKey, lesson.videoFile);
           videoCount++;
@@ -1609,12 +1641,18 @@ export class CoursesApi {
    */
   static async uploadLessonVideo(
     lessonId: string,
-    videoFile: File,
+    source: File | { videoUrl: string },
   ): Promise<any> {
-    logger.log(`🎥 API: Upload de vidéo pour la leçon ${lessonId}`);
+    logger.log(`🎥 API: Upload / lien vidéo pour la leçon ${lessonId}`);
 
     const formData = new FormData();
-    formData.append("video", videoFile);
+    if (source instanceof File) {
+      formData.append("video", source);
+    } else {
+      const normalized =
+        normalizeYouTubeUrl(source.videoUrl) || source.videoUrl.trim();
+      formData.append("videoUrl", normalized);
+    }
 
     const response = await fetch(
       buildApiUrl(API_ENDPOINTS.LESSONS.UPLOAD_VIDEO(lessonId)),
@@ -1641,7 +1679,7 @@ export class CoursesApi {
     }
 
     const responseData = await response.json();
-    logger.log("✅ [CoursesApi] Vidéo uploadée:", responseData);
+    logger.log("✅ [CoursesApi] Vidéo enregistrée:", responseData);
 
     return responseData;
   }
@@ -1739,6 +1777,8 @@ export class CoursesApi {
       content: string;
       duration?: number;
       videoFile?: File;
+      videoUrl?: string;
+      videoSource?: LessonVideoSourceMode;
       orderIndex: number; // Calculé côté frontend
     }>,
   ): Promise<{
@@ -1755,23 +1795,26 @@ export class CoursesApi {
 
     const formData = new FormData();
 
-    // Préparer les données des leçons AVEC orderIndex
-    const lessonsData = lessons.map((lesson) => ({
-      tempId: lesson.tempId,
-      title: lesson.title,
-      content: lesson.content,
-      orderIndex: lesson.orderIndex, // Envoyé par le frontend
-      ...(lesson.duration && { duration: lesson.duration }),
-    }));
+    // Préparer les données des leçons AVEC orderIndex (+ videoUrl YouTube si besoin)
+    const lessonsData = lessons.map((lesson) =>
+      serializeLessonPayload(lesson),
+    );
 
     // Ajouter le JSON des leçons
     formData.append("data", JSON.stringify({ lessons: lessonsData }));
     logger.log("📦 [CoursesApi] Données leçons:", JSON.stringify(lessonsData, null, 2));
 
-    // Ajouter les vidéos avec leur tempId
+    // Ajouter les fichiers vidéo uniquement (pas YouTube)
     let videoCount = 0;
     lessons.forEach((lesson) => {
-      if (lesson.videoFile) {
+      if (
+        lesson.videoFile &&
+        !lessonHasExternalVideoUrl({
+          videoFile: lesson.videoFile,
+          videoUrl: lesson.videoUrl,
+          videoSource: lesson.videoSource as LessonVideoSourceMode | undefined,
+        })
+      ) {
         formData.append(`lessonVideos[${lesson.tempId}]`, lesson.videoFile);
         videoCount++;
         logger.log(`🎥 [CoursesApi] Vidéo ajoutée pour ${lesson.tempId}: ${lesson.videoFile.name}`);
@@ -1826,14 +1869,9 @@ export class CoursesApi {
     
     const formData = new FormData();
     
-    const lessonsData = lessons.map((lesson) => ({
-      id: lesson.id || undefined,
-      tempId: lesson.tempId || undefined,
-      title: lesson.title,
-      content: lesson.content || "",
-      orderIndex: lesson.orderIndex,
-      duration: lesson.duration || 0,
-    }));
+    const lessonsData = lessons.map((lesson) =>
+      serializeLessonPayload(lesson),
+    );
     
     const moduleData = {
       lessons: lessonsData,
@@ -1841,10 +1879,10 @@ export class CoursesApi {
     
     formData.append("data", JSON.stringify(moduleData));
     
-    // Ajouter les vidéos
+    // Ajouter les fichiers vidéo uniquement (pas YouTube)
     let videoCount = 0;
     lessons.forEach((lesson) => {
-      if (lesson.videoFile) {
+      if (lesson.videoFile && !lessonHasExternalVideoUrl(lesson)) {
         const videoKey = `lessonVideos[${lesson.tempId || lesson.id}]`;
         formData.append(videoKey, lesson.videoFile);
         videoCount++;

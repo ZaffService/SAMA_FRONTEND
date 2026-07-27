@@ -17,15 +17,15 @@ import {
   Plus,
   Trash2,
   GripVertical,
-  Upload,
   AlertCircle,
   CheckCircle,
-  FileVideo,
   Loader2,
   Edit,
 } from "lucide-react";
 import { Lesson, Module } from "@/domain/entities/module";
 import { CoursesApi } from "@/infrastructure/api/courses-api";
+import { LessonVideoSourcePicker } from "@/components/lesson-video-source-picker";
+import type { LessonVideoSourceMode } from "@/lib/youtube";
 import logger from "@/shared/helpers/logger";
 
 // ============================================================================
@@ -128,14 +128,6 @@ export function LessonManager({
     return null;
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
   const handleVideoUpload = async (index: number, file: File) => {
     const lessonId = lessons[index].tempId || `lesson-${index}`;
 
@@ -154,7 +146,11 @@ export function LessonManager({
         const currentProgress = prev[lessonId] || 0;
         if (currentProgress >= 100) {
           clearInterval(progressInterval);
-          updateLesson(index, { videoFile: file });
+          updateLesson(index, {
+            videoFile: file,
+            videoUrl: undefined,
+            videoSource: "file",
+          });
           return { ...prev, [lessonId]: 100 };
         }
         return { ...prev, [lessonId]: currentProgress + 10 };
@@ -164,8 +160,40 @@ export function LessonManager({
     setTimeout(() => {
       clearInterval(progressInterval);
       setUploadProgress((prev) => ({ ...prev, [lessonId]: 100 }));
-      updateLesson(index, { videoFile: file });
+      updateLesson(index, {
+        videoFile: file,
+        videoUrl: undefined,
+        videoSource: "file",
+      });
     }, 2000);
+  };
+
+  const handleVideoSourceModeChange = (
+    index: number,
+    mode: LessonVideoSourceMode,
+  ) => {
+    const lessonId = lessons[index].tempId || `lesson-${index}`;
+    if (mode === "file") {
+      updateLesson(index, {
+        videoSource: "file",
+        videoUrl: undefined,
+      });
+    } else {
+      updateLesson(index, {
+        videoSource: "youtube",
+        videoFile: undefined,
+      });
+      setUploadProgress((prev) => ({ ...prev, [lessonId]: 0 }));
+    }
+    setUploadErrors((prev) => ({ ...prev, [lessonId]: "" }));
+  };
+
+  const handleVideoUrlChange = (index: number, url: string) => {
+    updateLesson(index, {
+      videoSource: "youtube",
+      videoUrl: url,
+      videoFile: undefined,
+    });
   };
 
   const handleFileDrop = useCallback((e: React.DragEvent, index: number) => {
@@ -199,7 +227,10 @@ export function LessonManager({
 
   const removeVideo = (index: number) => {
     const lessonId = lessons[index].tempId || `lesson-${index}`;
-    updateLesson(index, { videoFile: undefined });
+    updateLesson(index, {
+      videoFile: undefined,
+      videoUrl: undefined,
+    });
     setUploadProgress((prev) => ({ ...prev, [lessonId]: 0 }));
     setUploadErrors((prev) => ({ ...prev, [lessonId]: "" }));
   };
@@ -330,130 +361,35 @@ export function LessonManager({
                     <label className="mb-2 block text-sm font-semibold text-white">
                       Vidéo de la leçon (optionnel)
                     </label>
-
-                    {(() => {
-                      const lessonId = lesson.tempId || `lesson-${index}`;
-                      const currentError = uploadErrors[lessonId];
-                      const currentDragOver = isDragOver[lessonId];
-                      const currentProgress = uploadProgress[lessonId] || 0;
-
-                      return (
-                        <>
-                          {currentError && (
-                            <Alert variant="destructive" className="mb-3">
-                              <AlertCircle className="h-4 w-4" />
-                              <AlertDescription>
-                                {currentError}
-                              </AlertDescription>
-                            </Alert>
-                          )}
-
-                          <div
-                            className={`
-                              border-2 border-dashed rounded-lg p-6 text-center transition-colors
-                              ${
-                                currentDragOver
-                                  ? "border-[#3B82F6] bg-[#1E335F]/30"
-                                  : "border-[#3B3754] hover:border-[#5B5680]"
-                              }
-                              ${lesson.videoFile ? "border-[#34D399] bg-[#12352D]" : ""}
-                            `}
-                            onDragOver={(e) => handleDragOverVideo(e, index)}
-                            onDragLeave={(e) => handleDragLeaveVideo(e, index)}
-                            onDrop={(e) => handleFileDrop(e, index)}
-                          >
-                            {lesson.videoFile ? (
-                              <div className="space-y-3">
-                                <div className="flex items-center justify-center space-x-2">
-                                  <CheckCircle className="h-5 w-5 text-green-600" />
-                                  <span className="text-sm font-medium text-[#A9F5E5]">
-                                    Vidéo ajoutée
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center justify-between rounded border border-[#3B3754] bg-[#181721] p-3">
-                                  <div className="flex items-center space-x-3">
-                                    <FileVideo className="h-8 w-8 text-blue-500" />
-                                    <div className="text-left">
-                                      <p className="max-w-xs truncate text-sm font-medium text-white">
-                                        {lesson.videoFile.name}
-                                      </p>
-                                      <p className="text-xs text-white/65">
-                                        {formatFileSize(lesson.videoFile.size)}{" "}
-                                        • {lesson.videoFile.type}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeVideo(index)}
-                                    className="text-red-400 hover:text-red-300"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : currentProgress > 0 && currentProgress < 100 ? (
-                              <div className="space-y-3">
-                                <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
-                                <div className="space-y-2">
-                                  <p className="text-sm font-medium text-white">
-                                    Téléchargement en cours...
-                                  </p>
-                                  <div className="h-2 w-full rounded-full bg-[#2B2841]">
-                                    <div
-                                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                      style={{ width: `${currentProgress}%` }}
-                                    ></div>
-                                  </div>
-                                  <p className="text-xs text-white/65">
-                                    {currentProgress}% terminé
-                                  </p>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                <Upload
-                                  className={`mx-auto h-10 w-10 ${currentDragOver ? "text-[#3B82F6]" : "text-white/55"}`}
-                                />
-                                <div className="space-y-2">
-                                  <p className="text-lg font-medium text-white">
-                                    {currentDragOver
-                                      ? "Déposez votre vidéo ici"
-                                      : "Glissez-déposez une vidéo"}
-                                  </p>
-                                  <p className="text-sm text-white/75">
-                                    ou{" "}
-                                    <label
-                                      htmlFor={`video-upload-${index}`}
-                                      className="cursor-pointer font-medium text-[#3B82F6] hover:text-[#60A5FA]"
-                                    >
-                                      parcourez vos fichiers
-                                    </label>
-                                  </p>
-                                  <p className="text-xs text-white/60">
-                                    Formats acceptés: MP4, WebM, OGG, AVI, MOV,
-                                    WMV, FLV, MKV • Max 500MB
-                                  </p>
-                                </div>
-                                <input
-                                  type="file"
-                                  accept="video/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleVideoUpload(index, file);
-                                  }}
-                                  className="hidden"
-                                  id={`video-upload-${index}`}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
+                    <LessonVideoSourcePicker
+                      variant="dark"
+                      mode={
+                        lesson.videoSource === "youtube" ||
+                        (!lesson.videoFile && !!lesson.videoUrl)
+                          ? "youtube"
+                          : "file"
+                      }
+                      videoFile={lesson.videoFile}
+                      videoUrl={lesson.videoUrl || ""}
+                      error={uploadErrors[lesson.tempId || `lesson-${index}`]}
+                      isDragOver={
+                        !!isDragOver[lesson.tempId || `lesson-${index}`]
+                      }
+                      uploadProgress={
+                        uploadProgress[lesson.tempId || `lesson-${index}`] || 0
+                      }
+                      onModeChange={(mode) =>
+                        handleVideoSourceModeChange(index, mode)
+                      }
+                      onFileSelect={(file) => handleVideoUpload(index, file)}
+                      onVideoUrlChange={(url) =>
+                        handleVideoUrlChange(index, url)
+                      }
+                      onClear={() => removeVideo(index)}
+                      onDragOver={(e) => handleDragOverVideo(e, index)}
+                      onDragLeave={(e) => handleDragLeaveVideo(e, index)}
+                      onDrop={(e) => handleFileDrop(e, index)}
+                    />
                   </div>
                 </CardContent>
               </Card>

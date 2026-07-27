@@ -1,3 +1,5 @@
+import type { LessonVideoSourceMode } from "@/lib/youtube";
+
 export interface Lesson {
   id?: string;
   tempId?: string;
@@ -5,8 +7,11 @@ export interface Lesson {
   content: string;
   orderIndex?: number; // Optionnel - calculé automatiquement par le backend
   duration: number;
+  /** URL YouTube (ou externe) — exclusif avec videoFile */
   videoUrl?: string;
   videoFile?: File;
+  /** Mode UI : fichier (Bunny) ou lien YouTube */
+  videoSource?: LessonVideoSourceMode;
   quiz?: Quiz;
 }
 
